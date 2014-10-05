@@ -174,6 +174,8 @@ struct pp_instance {
 
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
 	MsgHeader received_ptp_header;
+	MsgHeader pdelay_req_hdr;
+
 	char *iface_name; /* for direct actions on hardware */
 	char *port_name; /* for diagnostics, mainly */
 	int port_idx;

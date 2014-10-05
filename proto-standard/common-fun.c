@@ -15,7 +15,7 @@
 #define ARCH_IS_WRS 0
 #endif
 
-static void *msg_copy_header(MsgHeader *dest, MsgHeader *src)
+void *msg_copy_header(MsgHeader *dest, MsgHeader *src)
 {
 	return memcpy(dest, src, sizeof(MsgHeader));
 }

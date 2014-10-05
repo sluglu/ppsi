@@ -154,7 +154,7 @@ struct pp_instance {
 	uint16_t peer_vid;	/* Our peer's VID (for PROTO_VLAN) */
 
 	/* Times, for the various offset computations */
-	TimeInternal t1, t2, t3, t4;			/* *the* stamps */
+	TimeInternal t1, t2, t3, t4, t5, t6;		/* *the* stamps */
 	TimeInternal cField;				/* transp. clocks */
 	TimeInternal last_rcv_time, last_snt_time;	/* two temporaries */
 

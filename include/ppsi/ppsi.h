@@ -398,6 +398,8 @@ extern void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 					   Timestamp * prec_orig_tstamp);
 extern void msg_pack_pdelay_resp(struct pp_instance *ppi, MsgHeader * hdr,
 				 Timestamp * rcv_tstamp);
+extern void msg_pack_pdelay_req(struct pp_instance *ppi,
+				Timestamp * orig_tstamp);
 
 /* each of them returns 0 if ok, -1 in case of error in send, 1 if stamp err */
 #define PP_SEND_OK		0
@@ -409,6 +411,7 @@ extern int msg_issue_announce(struct pp_instance *ppi);
 extern int msg_issue_sync_followup(struct pp_instance *ppi);
 extern int msg_issue_delay_req(struct pp_instance *ppi);
 extern int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time);
+extern int msg_issue_pdelay_req(struct pp_instance *ppi);
 extern int msg_issue_pdelay_resp_followup(struct pp_instance *ppi,
 					  TimeInternal * time);
 extern int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal * time);

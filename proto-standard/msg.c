@@ -262,6 +262,22 @@ void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 		htonl(*(UInteger32 *) (buf + 40));
 }
 
+/* Unpack PDelay Resp FollowUp message from in buffer of ppi to msgtmp.follow */
+void msg_unpack_pdelay_resp_follow_up(void *buf,
+				      MsgPDelayRespFollowUp * pdelay_resp_flwup)
+{
+	pdelay_resp_flwup->responseOriginTimestamp.secondsField.msb =
+	    htons(*(UInteger16 *) (buf + 34));
+	pdelay_resp_flwup->responseOriginTimestamp.secondsField.lsb =
+	    htonl(*(UInteger32 *) (buf + 36));
+	pdelay_resp_flwup->responseOriginTimestamp.nanosecondsField =
+	    htonl(*(UInteger32 *) (buf + 40));
+	memcpy(&pdelay_resp_flwup->requestingPortIdentity.clockIdentity,
+	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
+	pdelay_resp_flwup->requestingPortIdentity.portNumber =
+	    htons(*(UInteger16 *) (buf + 52));
+}
+
 /* pack DelayReq message into out buffer of ppi */
 static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
@@ -408,6 +424,17 @@ void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req)
 		htonl(*(UInteger32 *) (buf + 40));
 }
 
+/* Unpack PDelayReq message from in buffer of ppi to msgtmp.req */
+void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req)
+{
+	pdelay_req->originTimestamp.secondsField.msb =
+	    htons(*(UInteger16 *) (buf + 34));
+	pdelay_req->originTimestamp.secondsField.lsb =
+	    htonl(*(UInteger32 *) (buf + 36));
+	pdelay_req->originTimestamp.nanosecondsField =
+	    htonl(*(UInteger32 *) (buf + 40));
+}
+
 /* Unpack delayResp message from IN buffer of ppi to msgtmp.presp */
 void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 {
@@ -421,6 +448,21 @@ void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
 	resp->requestingPortIdentity.portNumber =
 		htons(*(UInteger16 *) (buf + 52));
+}
+
+/* Unpack PDelayResp message from IN buffer of ppi to msgtmp.presp */
+void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp)
+{
+	presp->requestReceiptTimestamp.secondsField.msb =
+	    htons(*(UInteger16 *) (buf + 34));
+	presp->requestReceiptTimestamp.secondsField.lsb =
+	    htonl(*(UInteger32 *) (buf + 36));
+	presp->requestReceiptTimestamp.nanosecondsField =
+	    htonl(*(UInteger32 *) (buf + 40));
+	memcpy(&presp->requestingPortIdentity.clockIdentity,
+	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
+	presp->requestingPortIdentity.portNumber =
+	    htons(*(UInteger16 *) (buf + 52));
 }
 
 const char const *pp_msg_names[16] = {

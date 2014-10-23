@@ -29,8 +29,11 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	struct wr_sockaddr addr;
 
 	addr.ethertype = ETH_P_1588;
+#ifdef CONFIG_E2E
 	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
-
+#else
+	memcpy(addr.mac, PP_PDELAY_MACADDRESS, sizeof(mac_addr_t));
+#endif
 	sock = ptpd_netif_create_socket(&__static_ptp_socket, &addr,
 					PTPD_SOCK_RAW_ETHERNET, 0);
 	if (!sock)

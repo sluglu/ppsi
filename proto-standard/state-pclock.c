@@ -76,9 +76,9 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		     resp.requestingPortIdentity.portNumber) &&
 		    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 
-			to_TimeInternal(&ppi->t2,
+			to_TimeInternal(&ppi->t4,
 					&resp.requestReceiptTimestamp);
-			ppi->t4 = ppi->last_rcv_time;
+			ppi->t6 = ppi->last_rcv_time;
 
 		} else {
 			pp_diag(ppi, frames, 2, "pp_pclock : "
@@ -102,10 +102,10 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		     respFllw.requestingPortIdentity.portNumber) &&
 		    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 
-			to_TimeInternal(&ppi->t3,
+			to_TimeInternal(&ppi->t5,
 					&respFllw.responseOriginTimestamp);
 
-			//pp_servo_got_resp(ppi);
+			pp_servo_got_presp(ppi);
 
 		} else {
 			pp_diag(ppi, frames, 2, "pp_pclock : "

@@ -155,6 +155,7 @@ struct pp_instance {
 
 	/* Times, for the various offset computations */
 	TimeInternal t1, t2, t3, t4, t5, t6;		/* *the* stamps */
+	Integer32 t4_cf, t6_cf;				/* peer delay */
 	TimeInternal cField;				/* transp. clocks */
 	TimeInternal last_rcv_time, last_snt_time;	/* two temporaries */
 

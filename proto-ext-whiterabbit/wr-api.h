@@ -156,7 +156,7 @@ struct wr_servo_state {
 	int32_t clock_period_ps;
 
 	/* These fields are used by servo code, across iterations */
-	TimeInternal t1, t2, t3, t4;
+	TimeInternal t1, t2, t3, t4, t5, t6;
 	int64_t delta_ms_prev;
 	int missed_iters;
 
@@ -178,6 +178,13 @@ struct wr_servo_state {
 	uint32_t n_err_delta_rtt;
 	TimeInternal update_time;
 };
+
+int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s);
+int wr_e2e_offset(struct pp_instance *ppi,
+		  struct wr_servo_state *s, TimeInternal *ts_offset_hw);
+int wr_p2p_offset(struct pp_instance *ppi,
+		  struct wr_servo_state *s, TimeInternal *ts_offset_hw);
+
 
 /* All data used as extension ppsi-wr must be put here */
 struct wr_data {

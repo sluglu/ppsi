@@ -110,10 +110,11 @@ struct hal_temp_sensors {
 };
 
 /* This is the overall structure stored in shared memory */
-#define HAL_SHMEM_VERSION 7 /* Version 7 because of moving of reading
-			     * temperature treshold values to snmpd */
+#define HAL_SHMEM_VERSION 8 /* Version 8 because of adding HAL mode */
+
 struct hal_shmem_header {
 	int nports;
+	int hal_mode;
 	struct hal_port_state *ports;
 	struct hal_temp_sensors temp;
 };

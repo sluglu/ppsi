@@ -341,6 +341,12 @@ int wr_servo_update(struct pp_instance *ppi)
 		wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
 		wrp->ops->adjust_phase(0);
 		s->flags |= WR_FLAG_WAIT_HW;
+		/*
+		 * If nsec wrong, code above forces SYNC_NSEC,
+		 * Else, we must ensure we leave this status towards
+		 * fine tuning
+		 */
+		s->state = WR_SYNC_PHASE;
 		break;
 
 	case WR_SYNC_NSEC:

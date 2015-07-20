@@ -375,7 +375,9 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 		if (res != 1) {
 			pp_diag(ppi, time, 1, "%s: poll() = %i (%s)\n",
 				__func__, res, strerror(errno));
-			return;
+			if (retry++ > 5)
+				return;
+			continue;
 		}
 
 		res = recvmsg(fd, &msg, MSG_ERRQUEUE);

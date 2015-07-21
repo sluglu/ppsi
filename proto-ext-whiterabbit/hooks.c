@@ -8,6 +8,7 @@ static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
 	wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
 	wrp->wrModeOn = 0;
@@ -26,6 +27,7 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 {
 	int i;
 
+	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 	/* If current arch (e.g. wrpc) is not using the 'pp_links style'
 	 * configuration, just assume there is one ppi instance,
 	 * already configured properly by the arch's main loop */
@@ -64,6 +66,7 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wrp->wrMode = NON_WR;
 	return 0;
 }
@@ -74,6 +77,8 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSignaling wrsig_msg;
 	TimeInternal *time = &ppi->last_rcv_time;
+
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	switch (msgtype) {
 
@@ -104,6 +109,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wr_servo_init(ppi);
 	return 0;
 }
@@ -114,6 +120,8 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	TimeInternal correction_field;
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
+
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	/* FIXME: check sub-nano relevance of correction filed */
 	cField_to_TimeInternal(&correction_field, hdr->correctionfield);
@@ -146,6 +154,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 
 static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 {
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
 		((ann->ext_specific & WR_NODE_MODE) != NON_WR);
 	WR_DSPOR(ppi)->parentWrModeOn =
@@ -159,6 +168,7 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 
 static int wr_execute_slave(struct pp_instance *ppi)
 {
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if (!WR_DSPOR(ppi)->doRestart)
 		return 0;
 
@@ -170,6 +180,7 @@ static int wr_execute_slave(struct pp_instance *ppi)
 
 static void wr_handle_announce(struct pp_instance *ppi)
 {
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if ((WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
 	    (1 /* FIXME: Recommended State, see page 33*/) &&
 	    (WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
@@ -183,6 +194,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 			      TimeInternal *precise_orig_timestamp,
 			      TimeInternal *correction_field)
 {
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if (!WR_DSPOR(ppi)->wrModeOn)
 		return 0;
 
@@ -195,6 +207,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 
 int wr_pack_announce(struct pp_instance *ppi)
 {
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if (WR_DSPOR(ppi)->wrConfig != NON_WR &&
 		WR_DSPOR(ppi)->wrConfig != WR_S_ONLY) {
 		msg_pack_announce_wr_tlv(ppi);
@@ -207,6 +220,7 @@ void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 {
 	int msg_len = htons(*(UInteger16 *) (buf + 2));
 
+	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 	if (msg_len > PP_ANNOUNCE_LENGTH)
 		msg_unpack_announce_wr_tlv(buf, ann);
 }

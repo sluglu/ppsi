@@ -296,15 +296,11 @@ int wr_servo_update(struct pp_instance *ppi)
 		 * DSPOR(ppi)->doRestart = TRUE; */
 	}
 
-	/*
-	 * After each action on the hardware, we must verify if it is over.
-	 * However, we loose one iteration every two. To be audited later.
-	 */
-	if (s->flags & WR_FLAG_WAIT_HW) {
-		if (!wrp->ops->adjust_in_progress())
-			s->flags &= ~WR_FLAG_WAIT_HW;
-		else
-			pp_diag(ppi, servo, 1, "servo:busy\n");
+	/* After each action on the hardware, we must verify if it is over. */
+	if (!wrp->ops->adjust_in_progress()) {
+		s->flags &= ~WR_FLAG_WAIT_HW;
+	} else {
+		pp_diag(ppi, servo, 1, "servo:busy\n");
 		goto out;
 	}
 
@@ -407,8 +403,6 @@ int wr_servo_update(struct pp_instance *ppi)
 				s->cur_setpoint);
 
 			s->delta_ms_prev = s->delta_ms;
-			s->flags |= WR_FLAG_WAIT_HW;
-			s->state = WR_TRACK_PHASE;
 		}
 		break;
 

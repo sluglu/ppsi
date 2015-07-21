@@ -132,7 +132,6 @@ enum {
 /* wr_servo interface */
 int wr_servo_init(struct pp_instance *ppi);
 void wr_servo_reset(void);
-int wr_servo_man_adjust_phase(int phase);
 void wr_servo_enable_tracking(int enable);
 int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
 		      TimeInternal *t2);

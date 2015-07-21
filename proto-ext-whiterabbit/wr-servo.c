@@ -187,14 +187,6 @@ int wr_servo_init(struct pp_instance *ppi)
 	return 0;
 }
 
-static int ph_adjust = 0;
-
-int wr_servo_man_adjust_phase(int phase)
-{
-	ph_adjust = phase;
-	return ph_adjust;
-}
-
 int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
 		      TimeInternal *t2)
 {
@@ -284,7 +276,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	delay_ms_fix = (((int64_t)(s->picos_mu - big_delta_fix) * (int64_t) s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
 		+ ((s->picos_mu - big_delta_fix) >> 1)
-		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
+		+ s->delta_tx_m + s->delta_rx_s;
 
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix));
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);

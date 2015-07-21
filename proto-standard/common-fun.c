@@ -242,6 +242,10 @@ int st_com_master_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 
 	st_com_add_foreign(ppi, buf);
 	ppi->next_state = bmc(ppi); /* got a new announce: run bmc */
+
+	if (pp_hooks.handle_announce)
+		pp_hooks.handle_announce(ppi);
+
 	return 0;
 }
 

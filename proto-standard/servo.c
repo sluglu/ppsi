@@ -111,6 +111,12 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	Integer32 adj;
 	int s;
 
+
+	/* We sometimes enter here before we got sync/f-up */
+	if (ppi->t1.seconds == 0 && ppi->t1.nanoseconds == 0) {
+		pp_diag(ppi, servo, 2, "discard T3/T4: we miss T1/T2\n");
+		return;
+	}
 	/*
 	 * calc 'slave_to_master_delay', removing the correction field
 	 * added by transparent clocks in the path.

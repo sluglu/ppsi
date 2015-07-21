@@ -17,6 +17,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int d1, d2;
 
 	if (ppi->is_new_state) {
+		memset(&ppi->t1, 0, sizeof(ppi->t1));
 		pp_servo_init(ppi);
 
 		if (pp_hooks.new_slave)

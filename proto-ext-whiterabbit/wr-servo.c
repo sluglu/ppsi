@@ -328,6 +328,9 @@ int wr_servo_update(struct pp_instance *ppi)
 		servo_name[s->state],
 		s->flags & WR_FLAG_WAIT_HW ? " (wait for hw)" : "");
 
+	/* update string state name */
+	strcpy(s->servo_state_name, servo_name[s->state]);
+
 	switch (s->state) {
 	case WR_SYNC_TAI:
 		wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
@@ -397,9 +400,6 @@ int wr_servo_update(struct pp_instance *ppi)
 		break;
 
 	}
-	/* update string state name */
-	strcpy(s->servo_state_name, servo_name[s->state]);
-
 	/* Increase number of servo updates with state different than
 	 * WR_TRACK_PHASE. (Used by SNMP) */
 	if (s->state != WR_TRACK_PHASE)

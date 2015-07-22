@@ -40,10 +40,12 @@ int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
 
 	p.adjust_sec = adjust_sec;
 	p.adjust_nsec = adjust_nsec;
-	cmd = (adjust_sec ? HEXP_PPSG_CMD_ADJUST_SEC : HEXP_PPSG_CMD_ADJUST_NSEC);
-
-	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd, &rval, cmd, &p);
-
+	cmd = (adjust_sec
+	       ? HEXP_PPSG_CMD_ADJUST_SEC : HEXP_PPSG_CMD_ADJUST_NSEC);
+	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
+			  &rval, cmd, &p);
+	pp_diag(NULL, time, 1, "Adjust: %i : %09i = %i\n", adjust_sec,
+		adjust_nsec, ret);
 	if (ret < 0 || rval < 0) {
 		pp_printf("%s: error (local %i remote %i)\n",
 			  __func__, ret, rval);
@@ -252,7 +254,9 @@ static int wrs_time_set(struct pp_instance *ppi, TimeInternal *t)
 
 static int wrs_time_adjust_offset(struct pp_instance *ppi, long offset_ns)
 {
-	pp_diag(ppi, time, 1, "adjust offset %09li\n", offset_ns);
+	if (offset_ns == 0)
+		return 0;
+	pp_diag(ppi, time, 1, "adjust offset 0.%09li\n", offset_ns);
 	return wrs_adjust_counters(0, offset_ns);
 }
 

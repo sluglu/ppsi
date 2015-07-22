@@ -2,6 +2,12 @@
 #include "wr-api.h"
 #include <libwr/shmem.h>
 
+#ifdef CONFIG_ARCH_WRS
+#define ARCH_IS_WRS 1
+#else
+#define ARCH_IS_WRS 0
+#endif
+
 #define WR_SERVO_OFFSET_STABILITY_THRESHOLD 60 /* psec */
 
 #define FIX_ALPHA_FRACBITS 40
@@ -356,7 +362,7 @@ int wr_servo_update(struct pp_instance *ppi)
 		s->state = WR_WAIT_OFFSET_STABLE;
 		s->delta_ms_prev = s->delta_ms;
 
-		{
+		if (ARCH_IS_WRS) {
 			/*
 			 * Now, let's fix system time. We pass here
 			 * once only, so that's the best place to do

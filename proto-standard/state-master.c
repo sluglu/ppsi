@@ -91,10 +91,6 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
 				DSPOR(ppi)->logAnnounceInterval);
-
-		if ((e = msg_issue_announce(ppi) < 0))
-			goto out;
-
 	}
 
 	if (plen == 0)

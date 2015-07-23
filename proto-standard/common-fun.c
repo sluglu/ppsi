@@ -41,6 +41,10 @@ void pp_prepare_pointers(struct pp_instance *ppi)
 	case PPSI_PROTO_RAW:
 		ppi->tx_offset = ETH_HLEN; /* 14, I know! */
 		ppi->rx_offset = ETH_HLEN;
+	#ifdef CONFIG_ARCH_WRPC
+		ppi->tx_offset = 0; /* Currently, wrpc has a separate header */
+		ppi->rx_offset = 0;
+	#endif
 		break;
 	case PPSI_PROTO_VLAN:
 		ppi->tx_offset = sizeof(struct pp_vlanhdr);

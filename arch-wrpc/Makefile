@@ -31,10 +31,11 @@ include time-wrpc/Makefile
 
 $(TARGET).o: $(LIBARCH)
 
-$(OBJ-y): wrpcsw_root_check
+fsm.o: wrpcsw_root_check
 
 wrpcsw_root_check:
-	if ! [ -e "$(WRPCSW_ROOT)/include/wrc.h" ]; then\
-		echo "Error: WRPCSW_ROOT: can't find $(WRPCSW_ROOT)/include/wrc.h" >&2;\
+	@if ! [ -e "$(WRPCSW_ROOT)/include/wrc.h" ]; then\
+		echo "Error:  can't find $(WRPCSW_ROOT)/include/wrc.h" >&2; \
+		echo "  please set WRPCSW_ROOT in your environment" >&2; \
 		exit 1;\
 	fi

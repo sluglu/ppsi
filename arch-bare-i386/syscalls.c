@@ -18,12 +18,30 @@ struct sel_arg_struct {
 	void *tvp;
 };
 
+extern int write(int fd, const void *buf, int count);
+extern void exit(int exitval);
+extern int time(long *t);
+extern int select(struct sel_arg_struct *as);
+extern int ioctl(int fd, int cmd, void *arg);
+extern int socket(int domain, int type, int proto);
+extern int bind(int fd, const struct bare_sockaddr *addr, int addrlen);
+extern int recv(int fd, void *pkt, int plen, int flags);
+extern int send(int fd, void *pkt, int plen, int flags);
+extern int shutdown(int fd, int flags);
+extern int close(int fd);
+extern int setsockopt(int fd, int level, int optname, const void *optval,
+     int optlen);
+extern int gettimeofday(void *tv, void *z);
+extern int settimeofday(void *tv, void *z);
+extern int adjtimex(void *tv);
+extern int clock_gettime(int clock, void *t);
+
 /*
  * The following lines use defines from Torvalds (linux-2.4.0: see syscalls.h)
  */
 _syscall3(int, write, int, fd, const void *, buf, int, count)
-_syscall1(int, exit, int, exitcode)
-_syscall1(int, time, void *, tz)
+_syscall1(void, exit, int, exitcode)
+_syscall1(int, time, long *, t)
 _syscall3(int, ioctl, int, fd, int, cmd, void *, arg)
 _syscall1(int, select, struct sel_arg_struct *, as)
 static _syscall2(int, socketcall, int, call, unsigned long *, args)

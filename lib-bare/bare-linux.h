@@ -8,7 +8,8 @@
 /*
  * These are the functions provided by the various bare files
  */
-
+extern void ppsi_clear_bss(void);
+extern int ppsi_main(int argc, char **argv);
 extern void bare_main_loop(struct pp_instance *ppi);
 
 extern struct pp_network_operations bare_net_ops;

@@ -205,7 +205,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 	return 1; /* the caller returns too */
 }
 
-int wr_pack_announce(struct pp_instance *ppi)
+static int wr_pack_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if (WR_DSPOR(ppi)->wrConfig != NON_WR &&
@@ -216,7 +216,7 @@ int wr_pack_announce(struct pp_instance *ppi)
 	return PP_ANNOUNCE_LENGTH;
 }
 
-void wr_unpack_announce(void *buf, MsgAnnounce *ann)
+static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 {
 	int msg_len = htons(*(UInteger16 *) (buf + 2));
 

@@ -2,6 +2,8 @@
  * All code from uClibc-0.9.32. LGPL V2.1
  */
 #include <ppsi/lib.h>
+#include <stdlib.h>
+size_t strnlen(const char *s, size_t max);
 
 /* Architectures declare pp_puts: map puts (used by pp_printf) to it */
 int puts(const char *s)

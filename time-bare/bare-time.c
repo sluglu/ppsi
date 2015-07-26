@@ -78,12 +78,12 @@ static int bare_time_adjust(struct pp_instance *ppi, long offset_ns,
 	return ret;
 }
 
-int bare_time_adjust_offset(struct pp_instance *ppi, long offset_ns)
+static int bare_time_adjust_offset(struct pp_instance *ppi, long offset_ns)
 {
 	return bare_time_adjust(ppi, offset_ns, 0);
 }
 
-int bare_time_adjust_freq(struct pp_instance *ppi, long freq_ppb)
+static int bare_time_adjust_freq(struct pp_instance *ppi, long freq_ppb)
 {
 	return bare_time_adjust(ppi, 0, freq_ppb);
 }

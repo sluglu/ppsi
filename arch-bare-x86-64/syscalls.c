@@ -21,6 +21,7 @@ int bare_errno;
 
 /* This routine is jumped to by all the syscall handlers, to stash
  * an error number into errno.  */
+int __syscall_error(void);
 int __syscall_error(void)
 {
 	register int err_no __asm__ ("%rcx");
@@ -37,6 +38,11 @@ int __syscall_error(void)
 #include <ppsi/ppsi.h>
 #include "bare-linux.h"
 
+int write(int, const void *, int);
+void exit(int);
+long time(long *);
+int ioctl(int, int, void *);
+
 /*
  * We depends on syscall.S that does the register passing
  * Usage: long syscall (syscall_number, arg1, arg2, arg3, arg4, arg5, arg6)
@@ -50,13 +56,13 @@ int write(int fd, const void *buf, int count)
 		       0, 0, 0);
 }
 
-int exit(int exitcode)
+void exit(int exitcode)
 {
-	return syscall(__NR_exit, (uint64_t)exitcode, 0, 0,
+	syscall(__NR_exit, (uint64_t)exitcode, 0, 0,
 		       0, 0, 0);
 }
 
-int time(long *t)
+long time(long *t)
 {
 	return syscall(__NR_time, (uint64_t)t, 0, 0,
 		       0, 0, 0);

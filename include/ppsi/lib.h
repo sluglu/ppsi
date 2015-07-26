@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <string.h>
 
+extern int puts(const char *s);
 extern void pp_puts(const char *s);
 extern int atoi(const char *s);
 

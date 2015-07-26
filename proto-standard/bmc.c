@@ -260,7 +260,7 @@ slave:
 }
 
 /* Find Ebest, 9.3.2.2 */
-void bmc_update_ebest(struct pp_globals *ppg)
+static void bmc_update_ebest(struct pp_globals *ppg)
 {
 	int i, best;
 	struct pp_instance *ppi, *ppi_best;

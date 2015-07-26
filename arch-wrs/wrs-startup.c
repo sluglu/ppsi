@@ -59,7 +59,7 @@ struct wrs_shm_head *ppsi_head;
  * we need to call calloc, to reset all stuff that used to be static,
  * but we'd better have a simple prototype, compatilble with wrs_shm_alloc()
  */
-void *local_malloc(void *headptr, size_t size)
+static void *local_malloc(void *headptr, size_t size)
 {
 	void *retval = malloc(size);
 

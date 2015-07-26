@@ -64,7 +64,7 @@ struct wrs_socket {
 	timeout_t dmtd_update_tmo;
 };
 
-static uint64_t get_tics()
+static uint64_t get_tics(void)
 {
 	struct timezone tz = {0, 0};
 	struct timeval tv;
@@ -285,7 +285,7 @@ drop:
 	return ret;
 }
 
-int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
+static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		   TimeInternal *t)
 {
 	struct pp_channel *ch1, *ch2;
@@ -437,7 +437,7 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	}
 }
 
-int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
+static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			  TimeInternal *t, int chtype, int use_pdelay_addr)
 {
 	struct sockaddr_in addr;

@@ -1,8 +1,10 @@
+
 /*
  * From: linux-2.4.0::include/asm-i386/unistd.h
  */
 
 extern int bare_errno;
+
 /*
  * user-visible error numbers are in the range -1 - -4096
  */

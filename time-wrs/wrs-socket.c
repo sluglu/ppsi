@@ -468,6 +468,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			ppi->t_ops->get(ppi, t);
 
 		ret = send(ch->fd, hdr, len, 0);
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			break;
+		}
 		poll_tx_timestamp(ppi, pkt, len, s, ch->fd, t);
 
 		if (drop) /* avoid messaging about stamps that are not used */
@@ -498,6 +503,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		if (len < 64)
 			len = 64;
 		ret = send(ch->fd, vhdr, len, 0);
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			break;
+		}
 		poll_tx_timestamp(ppi,  pkt, len, s, ch->fd, t);
 
 		if (drop) /* avoid messaging about stamps that are not used */
@@ -519,6 +529,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			addr.sin_port = 3200;
 		ret = sendto(fd, pkt, len, 0, (struct sockaddr *)&addr,
 			     sizeof(struct sockaddr_in));
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			break;
+		}
 		poll_tx_timestamp(ppi, pkt, len, s, fd, t);
 
 		if (drop) /* like above: skil messages about timestamps */

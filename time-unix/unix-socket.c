@@ -210,6 +210,11 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 			ppi->t_ops->get(ppi, t);
 
 		ret = send(ch->fd, hdr, len, 0);
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			return ret;
+		}
 		if (pp_diag_allow(ppi, frames, 2))
 			dump_1588pkt("send: ", pkt, len, t);
 		return ret;
@@ -228,9 +233,13 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 			ppi->t_ops->get(ppi, t);
 
 		ret = send(ch->fd, vhdr, len, 0);
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			return ret;
+		}
 		if (pp_diag_allow(ppi, frames, 2))
 			dump_1588pkt("send: ", vhdr, len, t);
-		return ret;
 
 	case PPSI_PROTO_UDP:
 		addr.sin_family = AF_INET;
@@ -243,8 +252,11 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 		ret = sendto(ppi->ch[chtype].fd, pkt, len, 0,
 			     (struct sockaddr *)&addr,
 			     sizeof(struct sockaddr_in));
-		if (pp_diag_allow(ppi, frames, 2))
-			dump_payloadpkt("send: ", pkt, len, t);
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			return ret;
+		}
 		return ret;
 
 	default:
@@ -265,7 +277,7 @@ static int unix_open_ch_raw(struct pp_instance *ppi, char *ifname, int chtype)
 
 	/* open socket */
 	context = "socket()";
-	sock = socket(PF_PACKET, SOCK_RAW, ETH_P_1588);
+	sock = socket(PF_PACKET, SOCK_RAW | SOCK_NONBLOCK, ETH_P_1588);
 	if (sock < 0)
 		goto err_out;
 
@@ -339,7 +351,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	char *context;
 
 	context = "socket()";
-	sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	sock = socket(PF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
 	if (sock < 0)
 		goto err_out;
 

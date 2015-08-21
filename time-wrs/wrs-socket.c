@@ -349,7 +349,7 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	} control;
 	struct cmsghdr *cmsg;
 	struct pollfd pfd;
-	int res, retry = 0;;
+	int res, retry;
 
 	struct sock_extended_err *serr = NULL;
 	struct scm_timestamping *sts = NULL;
@@ -369,32 +369,39 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 
 	pfd.fd = fd;
 	pfd.events = POLLERR;
-	while (1) { /* Not forever: we break after a few runs */
+
+	#define N_RETRY 5
+	for (retry = 0; retry < N_RETRY; retry++) {
 		errno = 0;
 		res = poll(&pfd, 1, 20 /* ms */);
-		if (res != 1) {
+		if (res < 0 && errno != EAGAIN) {
 			pp_diag(ppi, time, 1, "%s: poll() = %i (%s)\n",
 				__func__, res, strerror(errno));
-			if (retry++ > 5)
-				return;
 			continue;
 		}
+		if (res < 1)
+			continue;
 
 		res = recvmsg(fd, &msg, MSG_ERRQUEUE);
 		if (res <= 0) {
+			/* sometimes we got EAGAIN despite poll() = 1 */
 			pp_diag(ppi, time, 1, "%s: recvmsg() = %i (%s)\n",
 				__func__, res, strerror(errno));
-			return;
+			continue;
 		}
 		/* Now, check if this frame is our frame. If not, retry */
 		if (!memcmp(data, pkt, len))
 			break;
 		pp_diag(ppi, time, 1, "%s: recvmsg(): not our frame\n",
 			__func__);
-		/* We won't pop out wrong stamps forever... */
-		if (retry++ > 5)
-			return;
 	}
+	if (retry) {
+		pp_diag(ppi, time, 1, "%s: %i iterations. %s\n", __func__,
+			retry, errno ? strerror(errno) : "");
+	}
+	if (retry == N_RETRY) /* we got nothing */
+		return;
+
 	if (!t) /* maybe caller is not interested, though we popped it out */
 		return;
 

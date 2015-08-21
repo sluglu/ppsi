@@ -368,7 +368,7 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 		t->seconds = t->correct = 0;
 
 	pfd.fd = fd;
-	pfd.events = POLLIN;
+	pfd.events = POLLERR;
 	while (1) { /* Not forever: we break after a few runs */
 		errno = 0;
 		res = poll(&pfd, 1, 20 /* ms */);

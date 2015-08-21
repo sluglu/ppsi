@@ -370,10 +370,10 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	pfd.fd = fd;
 	pfd.events = POLLERR;
 
-	#define N_RETRY 5
+	#define N_RETRY 3
 	for (retry = 0; retry < N_RETRY; retry++) {
 		errno = 0;
-		res = poll(&pfd, 1, 20 /* ms */);
+		res = poll(&pfd, 1, 2 /* ms */);
 		if (res < 0 && errno != EAGAIN) {
 			pp_diag(ppi, time, 1, "%s: poll() = %i (%s)\n",
 				__func__, res, strerror(errno));

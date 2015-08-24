@@ -13,7 +13,7 @@
 #define FIX_ALPHA_FRACBITS 40
 
 /* Define threshold values for SNMP */
-#define SNMP_MAX_OFFSET_PS 1000
+#define SNMP_MAX_OFFSET_PS 500
 #define SNMP_MAX_DELTA_RTT_PS 1000
 
 static const char *servo_name[] = {

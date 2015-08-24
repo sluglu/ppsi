@@ -349,7 +349,7 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	} control;
 	struct cmsghdr *cmsg;
 	struct pollfd pfd;
-	int res, retry = 0;;
+	int res, retry;
 
 	struct sock_extended_err *serr = NULL;
 	struct scm_timestamping *sts = NULL;
@@ -368,33 +368,40 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 		t->seconds = t->correct = 0;
 
 	pfd.fd = fd;
-	pfd.events = POLLIN;
-	while (1) { /* Not forever: we break after a few runs */
+	pfd.events = POLLERR;
+
+	#define N_RETRY 3
+	for (retry = 0; retry < N_RETRY; retry++) {
 		errno = 0;
-		res = poll(&pfd, 1, 20 /* ms */);
-		if (res != 1) {
+		res = poll(&pfd, 1, 2 /* ms */);
+		if (res < 0 && errno != EAGAIN) {
 			pp_diag(ppi, time, 1, "%s: poll() = %i (%s)\n",
 				__func__, res, strerror(errno));
-			if (retry++ > 5)
-				return;
 			continue;
 		}
+		if (res < 1)
+			continue;
 
 		res = recvmsg(fd, &msg, MSG_ERRQUEUE);
 		if (res <= 0) {
+			/* sometimes we got EAGAIN despite poll() = 1 */
 			pp_diag(ppi, time, 1, "%s: recvmsg() = %i (%s)\n",
 				__func__, res, strerror(errno));
-			return;
+			continue;
 		}
 		/* Now, check if this frame is our frame. If not, retry */
 		if (!memcmp(data, pkt, len))
 			break;
 		pp_diag(ppi, time, 1, "%s: recvmsg(): not our frame\n",
 			__func__);
-		/* We won't pop out wrong stamps forever... */
-		if (retry++ > 5)
-			return;
 	}
+	if (retry) {
+		pp_diag(ppi, time, 1, "%s: %i iterations. %s\n", __func__,
+			retry, errno ? strerror(errno) : "");
+	}
+	if (retry == N_RETRY) /* we got nothing */
+		return;
+
 	if (!t) /* maybe caller is not interested, though we popped it out */
 		return;
 
@@ -468,6 +475,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			ppi->t_ops->get(ppi, t);
 
 		ret = send(ch->fd, hdr, len, 0);
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			break;
+		}
 		poll_tx_timestamp(ppi, pkt, len, s, ch->fd, t);
 
 		if (drop) /* avoid messaging about stamps that are not used */
@@ -498,6 +510,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		if (len < 64)
 			len = 64;
 		ret = send(ch->fd, vhdr, len, 0);
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			break;
+		}
 		poll_tx_timestamp(ppi,  pkt, len, s, ch->fd, t);
 
 		if (drop) /* avoid messaging about stamps that are not used */
@@ -519,6 +536,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			addr.sin_port = 3200;
 		ret = sendto(fd, pkt, len, 0, (struct sockaddr *)&addr,
 			     sizeof(struct sockaddr_in));
+		if (ret < 0) {
+			pp_diag(ppi, frames, 0, "send failed: %s\n",
+				strerror(errno));
+			break;
+		}
 		poll_tx_timestamp(ppi, pkt, len, s, fd, t);
 
 		if (drop) /* like above: skil messages about timestamps */

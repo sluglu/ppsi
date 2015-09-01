@@ -17,7 +17,6 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	mac_addr_t mac;
 	wr_sockaddr_t addr;
 
-	addr.family = PTPD_SOCK_RAW_ETHERNET;
 	addr.ethertype = ETH_P_1588;
 	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
 

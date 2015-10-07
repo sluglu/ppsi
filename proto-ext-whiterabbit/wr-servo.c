@@ -171,9 +171,10 @@ int wr_servo_init(struct pp_instance *ppi)
 	wrp->ops->enable_timing_output(ppi, 0);
 
 	strncpy(s->if_name, ppi->cfg.iface_name, sizeof(s->if_name));
-	s->state = WR_UNINITIALIZED; /* Turned into SYNC_TAI at 1st iteration */
 	s->cur_setpoint = 0;
+	wrp->ops->adjust_phase(s->cur_setpoint);
 	s->missed_iters = 0;
+	s->state = WR_SYNC_TAI;
 
 	s->delta_tx_m = delta_to_ps(wrp->otherNodeDeltaTx);
 	s->delta_rx_m = delta_to_ps(wrp->otherNodeDeltaRx);
@@ -311,16 +312,11 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 
 	/* So, we didn't return. Choose the right state */
-
-	if (s->state == WR_UNINITIALIZED)
-		s->state = WR_SYNC_TAI;
-
 	if (ts_offset_hw.seconds) /* so bad... */
 		s->state = WR_SYNC_TAI;
 	else if (ts_offset_hw.nanoseconds) /* not that bad */
 		s->state = WR_SYNC_NSEC;
 	/* else, let the states below choose the sequence */
-
 
 	pp_diag(ppi, servo, 2, "offset_hw: %li.%09li (+%li)\n",
 		(long)ts_offset_hw.seconds, (long)ts_offset_hw.nanoseconds,
@@ -336,7 +332,6 @@ int wr_servo_update(struct pp_instance *ppi)
 	switch (s->state) {
 	case WR_SYNC_TAI:
 		wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
-		wrp->ops->adjust_phase(0);
 		s->flags |= WR_FLAG_WAIT_HW;
 		/*
 		 * If nsec wrong, code above forces SYNC_NSEC,
@@ -353,14 +348,14 @@ int wr_servo_update(struct pp_instance *ppi)
 		break;
 
 	case WR_SYNC_PHASE:
-		s->cur_setpoint = ts_offset_hw.phase
-			+ ts_offset_hw.nanoseconds * 1000;
-
+		pp_diag(ppi, servo, 2, "oldsetp %i, offset %i:%04i\n",
+			s->cur_setpoint, ts_offset_hw.nanoseconds,
+			ts_offset_hw.phase);
+		s->cur_setpoint += ts_offset_hw.phase;
 		wrp->ops->adjust_phase(s->cur_setpoint);
 
 		s->flags |= WR_FLAG_WAIT_HW;
 		s->state = WR_WAIT_OFFSET_STABLE;
-		s->delta_ms_prev = s->delta_ms;
 
 		if (ARCH_IS_WRS) {
 			/*
@@ -382,24 +377,21 @@ int wr_servo_update(struct pp_instance *ppi)
 		remaining_offset = abs(ts_to_picos(ts_offset_hw));
 		if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
 			wrp->ops->enable_timing_output(ppi, 1);
+			s->delta_ms_prev = s->delta_ms;
 			s->state = WR_TRACK_PHASE;
 		} else {
 			s->missed_iters++;
 		}
 		if (s->missed_iters >= 10) {
 			s->missed_iters = 0;
-			s->state = WR_SYNC_TAI;
+			s->state = WR_SYNC_PHASE;
 		}
 		break;
 
 	case WR_TRACK_PHASE:
 		s->skew = s->delta_ms - s->delta_ms_prev;
 
-		if (ts_offset_hw.seconds || ts_offset_hw.nanoseconds) {
-				s->state = WR_SYNC_TAI;
-				break;
-		}
-
+		/* Can be disabled for manually tweaking and testing */
 		if(tracking_enabled) {
 			// just follow the changes of deltaMS
 			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);

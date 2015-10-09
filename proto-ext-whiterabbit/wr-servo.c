@@ -393,8 +393,8 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		/* Can be disabled for manually tweaking and testing */
 		if(tracking_enabled) {
-			// just follow the changes of deltaMS
-			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
+			// adjust phase towards offset = 0 make ck0 0
+			s->cur_setpoint += (ts_offset_hw.phase / 4);
 
 			wrp->ops->adjust_phase(s->cur_setpoint);
 			pp_diag(ppi, time, 1, "adjust phase %i\n",

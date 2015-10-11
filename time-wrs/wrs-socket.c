@@ -252,6 +252,10 @@ drop:
 		}
 	}
 
+	/* For UDP, avoid all of the following, as we don't have vlans */
+	if (ppi->proto == PPSI_PROTO_UDP)
+		goto out;
+
 	/*
 	 * While on PC-class ethernet driver we see the internal frame,
 	 * our simple WR driver returns the whole frame. No aux pointer
@@ -277,6 +281,7 @@ drop:
 		ppi->peer_vid = 0;
 	}
 
+out:
 	if (ppsi_drop_rx()) {
 		pp_diag(ppi, frames, 1, "Drop received frame\n");
 		return -2;

@@ -344,7 +344,7 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 			      struct wrs_socket *s, int fd, TimeInternal *t)
 {
-	char data[16384];
+	char data[16384], *dataptr;
 	struct msghdr msg;
 	struct iovec entry;
 	struct sockaddr_ll from_addr;
@@ -394,8 +394,14 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 				__func__, res, strerror(errno));
 			continue;
 		}
-		/* Now, check if this frame is our frame. If not, retry */
-		if (!memcmp(data, pkt, len))
+		/*
+		 * Now, check if this frame is our frame. If not, retry.
+		 * Note: for UDP we get back a raw frame. So check trailing
+		 * part only (we know it's 14 + 20 + 8 to skip, but we'd
+		 * better not rely on that -- think vlans for example
+		 */
+		dataptr = data + res - len;
+		if (dataptr >= data && !memcmp(dataptr, pkt, len))
 			break;
 		pp_diag(ppi, time, 1, "%s: recvmsg(): not our frame\n",
 			__func__);

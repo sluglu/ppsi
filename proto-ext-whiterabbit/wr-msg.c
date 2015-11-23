@@ -69,6 +69,7 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 			class = PP_CLASS_WR_GM_LOCKED;
 		else
 			class = PP_CLASS_WR_GM_UNLOCKED;
+		m1(ppi);
 		if (class != DSDEF(ppi)->clockQuality.clockClass) {
 			pp_error("New class %i\n", class);
 			DSDEF(ppi)->clockQuality.clockClass = class;

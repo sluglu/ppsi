@@ -13,7 +13,7 @@
 /* This function should init the minic and get the mac address */
 static int wrpc_open_ch(struct pp_instance *ppi)
 {
-	wr_socket_t *sock;
+	struct wrpc_socket *sock;
 	mac_addr_t mac;
 	struct wr_sockaddr addr;
 
@@ -38,7 +38,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 			 TimeInternal *t)
 {
 	int got;
-	wr_socket_t *sock;
+	struct wrpc_socket *sock;
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
 	sock = ppi->ch[PP_NP_EVT].custom;
@@ -70,7 +70,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 			 TimeInternal *t, int chtype, int use_pdelay_addr)
 {
 	int snt;
-	wr_socket_t *sock;
+	struct wrpc_socket *sock;
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
 	sock = ppi->ch[PP_NP_EVT].custom;

@@ -13,6 +13,8 @@
 /* This function should init the minic and get the mac address */
 static int wrpc_open_ch(struct pp_instance *ppi)
 {
+	/* we know we create one socket only in wrpc */
+	static struct wrpc_socket __static_ptp_socket;
 	struct wrpc_socket *sock;
 	mac_addr_t mac;
 	struct wr_sockaddr addr;
@@ -20,7 +22,8 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	addr.ethertype = ETH_P_1588;
 	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
 
-	sock = ptpd_netif_create_socket(PTPD_SOCK_RAW_ETHERNET, 0, &addr);
+	sock = ptpd_netif_create_socket(&__static_ptp_socket,
+					PTPD_SOCK_RAW_ETHERNET, 0, &addr);
 	if (!sock)
 		return -1;
 

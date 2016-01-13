@@ -9,12 +9,21 @@
 
 #include <ptpd_netif.h> /* wrpc-sw */
 
+/*
+ * we know we create one socket only in wrpc. The buffer size used to be
+ * 512. Let's keep it unchanged, because we might enqueue a few frames.
+ * I think this can be decreased to 256, but I'd better play safe
+ */
+static uint8_t __ptp_queue[512];
+static struct wrpc_socket __static_ptp_socket = {
+	.queue.buff = __ptp_queue,
+	.queue.size = sizeof(__ptp_queue),
+};
+
 
 /* This function should init the minic and get the mac address */
 static int wrpc_open_ch(struct pp_instance *ppi)
 {
-	/* we know we create one socket only in wrpc */
-	static struct wrpc_socket __static_ptp_socket;
 	struct wrpc_socket *sock;
 	mac_addr_t mac;
 	struct wr_sockaddr addr;
@@ -22,8 +31,8 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	addr.ethertype = ETH_P_1588;
 	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
 
-	sock = ptpd_netif_create_socket(&__static_ptp_socket,
-					PTPD_SOCK_RAW_ETHERNET, 0, &addr);
+	sock = ptpd_netif_create_socket(&__static_ptp_socket, &addr,
+					PTPD_SOCK_RAW_ETHERNET, 0);
 	if (!sock)
 		return -1;
 

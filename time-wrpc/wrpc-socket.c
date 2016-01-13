@@ -15,7 +15,7 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 {
 	wr_socket_t *sock;
 	mac_addr_t mac;
-	wr_sockaddr_t addr;
+	struct wr_sockaddr addr;
 
 	addr.ethertype = ETH_P_1588;
 	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
@@ -39,8 +39,8 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 {
 	int got;
 	wr_socket_t *sock;
-	wr_timestamp_t wr_ts;
-	wr_sockaddr_t addr;
+	struct wr_timestamp wr_ts;
+	struct wr_sockaddr addr;
 	sock = ppi->ch[PP_NP_EVT].custom;
 	got = ptpd_netif_recvfrom(sock, &addr, pkt, len, &wr_ts);
 
@@ -71,8 +71,8 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 {
 	int snt;
 	wr_socket_t *sock;
-	wr_timestamp_t wr_ts;
-	wr_sockaddr_t addr;
+	struct wr_timestamp wr_ts;
+	struct wr_sockaddr addr;
 	sock = ppi->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = ETH_P_1588;

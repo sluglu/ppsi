@@ -241,7 +241,7 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 
 drop:
 	if (aux) {
-		printf("aux: %x   proto %x\n", aux->tp_vlan_tci,
+		pp_diag(ppi, frames, 1,"aux: %x   proto %x\n", aux->tp_vlan_tci,
 		       ntohs(hdr->h_proto));
 
 		if (0) {

@@ -225,6 +225,7 @@ int wrc_ptp_stop()
 	return 0;
 }
 
+/* this returns whether or not the function did any work */
 int wrc_ptp_update()
 {
 	int i;
@@ -259,8 +260,8 @@ int wrc_ptp_update()
 		/* Nothing received, but timeout elapsed */
 		start_tics = timer_get_tics();
 		delay_ms = pp_state_machine(ppi, NULL, 0);
-		return 0;
+		return 1;
 	}
 	delay_ms = pp_state_machine(ppi, ppi->rx_ptp, i);
-	return 0;
+	return 1;
 }

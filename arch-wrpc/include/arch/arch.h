@@ -6,11 +6,13 @@
 
 /* Architecture-specific defines, included by top-level stuff */
 
-#define htons(x)      (x)
-#define htonl(x)      (x)
+#ifndef htons /* If we build as host process, we have them LE already */
+#  define htons(x)      (x)
+#  define htonl(x)      (x)
 
-#define ntohs htons
-#define ntohl htonl
+#  define ntohs htons
+#  define ntohl htonl
+#endif
 
 #define abs(x) ((x >= 0) ? x : -x)
 #endif /* __ARCH_H__ */

@@ -9,18 +9,30 @@
 
 #include <ptpd_netif.h> /* wrpc-sw */
 
+/*
+ * we know we create one socket only in wrpc. The buffer size used to be
+ * 512. Let's keep it unchanged, because we might enqueue a few frames.
+ * I think this can be decreased to 256, but I'd better play safe
+ */
+static uint8_t __ptp_queue[512];
+static struct wrpc_socket __static_ptp_socket = {
+	.queue.buff = __ptp_queue,
+	.queue.size = sizeof(__ptp_queue),
+};
+
 
 /* This function should init the minic and get the mac address */
 static int wrpc_open_ch(struct pp_instance *ppi)
 {
-	wr_socket_t *sock;
+	struct wrpc_socket *sock;
 	mac_addr_t mac;
-	wr_sockaddr_t addr;
+	struct wr_sockaddr addr;
 
 	addr.ethertype = ETH_P_1588;
 	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
 
-	sock = ptpd_netif_create_socket(PTPD_SOCK_RAW_ETHERNET, 0, &addr);
+	sock = ptpd_netif_create_socket(&__static_ptp_socket, &addr,
+					PTPD_SOCK_RAW_ETHERNET, 0);
 	if (!sock)
 		return -1;
 
@@ -38,9 +50,9 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 			 TimeInternal *t)
 {
 	int got;
-	wr_socket_t *sock;
-	wr_timestamp_t wr_ts;
-	wr_sockaddr_t addr;
+	struct wrpc_socket *sock;
+	struct wr_timestamp wr_ts;
+	struct wr_sockaddr addr;
 	sock = ppi->ch[PP_NP_EVT].custom;
 	got = ptpd_netif_recvfrom(sock, &addr, pkt, len, &wr_ts);
 
@@ -70,9 +82,9 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 			 TimeInternal *t, int chtype, int use_pdelay_addr)
 {
 	int snt;
-	wr_socket_t *sock;
-	wr_timestamp_t wr_ts;
-	wr_sockaddr_t addr;
+	struct wrpc_socket *sock;
+	struct wr_timestamp wr_ts;
+	struct wr_sockaddr addr;
 	sock = ppi->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = ETH_P_1588;

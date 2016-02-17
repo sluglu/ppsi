@@ -393,6 +393,12 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		/* Can be disabled for manually tweaking and testing */
 		if(tracking_enabled) {
+			if (abs(ts_offset_hw.phase) >
+			    2 * WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
+				s->state = WR_SYNC_PHASE;
+				break;
+			}
+
 			// adjust phase towards offset = 0 make ck0 0
 			s->cur_setpoint += (ts_offset_hw.phase / 4);
 

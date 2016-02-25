@@ -17,8 +17,9 @@ remove_tmp_c=true
 B=$(mktemp /tmp/ppsi-build.XXXXXX)
 remove_tmp_b=true
 
-# loop on default .config files, building for all architectures
-configs=$(ls configs)
+# loop on default .config files, building for all architectures or for those
+# listed on the command line
+[ $# -ne 0 ] && configs=$* || configs=$(ls configs)
 for c in $configs; do
     echo "##### Building with '$c'"
     echo "##### Building with '$c'" >> $B

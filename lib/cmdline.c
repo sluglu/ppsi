@@ -34,7 +34,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-a NUMBER,NUMBER", "specify clock servo P and I values (min == 1)"},
 	{"-w NUMBER", "specify meanPathDelay filter stiffness"},
 	CMD_LINE_SEPARATOR,
-	{"-b NAME", "bind PTP to network interface NAME"},
 	//{"-u ADDRESS", "also send uni-cast to ADDRESS\n"}, -- FIXME: useful?
 	{"-e", "run in ethernet mode (level2)"},
 	/* {"-h", "run in End to End mode"}, -- we only support end-to-end */
@@ -156,19 +155,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 		case 'w':
 			a = argv[++i];
 			GOPTS(ppg)->s = atoi(a);
-			break;
-		case 'b':
-			a = argv[++i];
-			if (ppg->nlinks == 1) {
-				INST(ppg, 0)->iface_name = a;
-				INST(ppg, 0)->port_name = a;
-			} else {
-				/* If ppsi.conf exists and more than one link is
-				 * configured, it makes no sense trying to set an iface
-				 * name */
-				pp_printf("Can not use -b option in multi-link conf");
-				return -1;
-			}
 			break;
 		case 'l':
 			a = argv[++i];

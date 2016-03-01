@@ -44,7 +44,7 @@ int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
 	       ? HEXP_PPSG_CMD_ADJUST_SEC : HEXP_PPSG_CMD_ADJUST_NSEC);
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 			  &rval, cmd, &p);
-	pp_diag(NULL, time, 1, "Adjust: %i : %09i = %i\n", adjust_sec,
+	pp_diag(NULL, time, 1, "Adjust: %lli : %09i = %i\n", adjust_sec,
 		adjust_nsec, ret);
 	if (ret < 0 || rval < 0) {
 		pp_printf("%s: error (local %i remote %i)\n",

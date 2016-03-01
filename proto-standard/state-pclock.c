@@ -17,6 +17,7 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int d1, d2;
 
 	if (ppi->is_new_state) {
+		memset(&ppi->t1, 0, sizeof(ppi->t1));
 		pp_servo_init(ppi);
 
 		if (pp_hooks.new_slave)
@@ -48,9 +49,12 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		e = st_com_slave_handle_followup(ppi, pkt, plen);
 		break;
 
+	case PPM_DELAY_REQ:
+		/* Being slave, we are not waiting for a delay request */
+		break;
+
 	case PPM_PDELAY_REQ:
-		e = (plen < PP_PDELAY_RESP_LENGTH);
-		if (e)
+		if (plen < PP_PDELAY_RESP_LENGTH)
 			break;
 
 		if (pp_hooks.handle_preq)
@@ -60,17 +64,14 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 		if (e)
 			goto out;
-
 		break;
 
 	case PPM_PDELAY_RESP:
-
 		e = st_com_peer_handle_pres(ppi, pkt, plen);
 		break;
 
 	case PPM_PDELAY_RESP_FOLLOW_UP:
-		e = (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH);
-		if (e)
+		if (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH)
 			break;
 
 		msg_unpack_pdelay_resp_follow_up(pkt, &respFllw);
@@ -120,9 +121,16 @@ out:
 				DSPOR(ppi)->logMinDelayReqInterval);
 	}
 
-	if (e) {
+	switch(e) {
+	case PP_SEND_OK: /* 0 */
+		break;
+	case PP_SEND_ERROR:
 		ppi->next_state = PPS_FAULTY;
-		return 0;
+		break;
+	case PP_SEND_NO_STAMP:
+		/* nothing, just keep the ball rolling */
+		e = 0;
+		break;
 	}
 
 	/* Leaving this state */

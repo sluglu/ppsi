@@ -25,7 +25,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		if (e)
 			goto out;
 
-		ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
+		ppi->flags &= ~PPI_FLAGS_WAITING;
 
 		pp_timeout_restart_annrec(ppi);
 
@@ -55,10 +55,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_DELAY_RESP:
-
-		e = (plen < PP_DELAY_RESP_LENGTH);
-
-		if (e)
+		if (plen < PP_DELAY_RESP_LENGTH)
 			break;
 
 		msg_unpack_delay_resp(pkt, &resp);
@@ -97,13 +94,6 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 		break;
 
-	/*
-	 * We are not supporting pdelay (not configured to, see
-	 * 9.5.13.1, p 106), so all the code about pdelay is removed
-	 * as a whole by one commit in our history. It can be recoverd
-	 * and fixed if needed
-	 */
-
 	default:
 		/* disregard, nothing to do */
 		break;
@@ -122,11 +112,6 @@ out:
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_DELAYREQ,
 				DSPOR(ppi)->logMinDelayReqInterval);
-
-		/* Add latency */
-		add_TimeInternal(&ppi->t3,
-				 &ppi->t3,
-				 &OPTS(ppi)->outbound_latency);
 	}
 
 	switch(e) {

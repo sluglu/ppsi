@@ -324,7 +324,7 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 	/* now line points to the next word, with no leading blanks */
 
 	if (word[0] == '#')
-		return 0;
+		return 1;
 	if (!*word) {
 		/* empty or blank-only
 		 * FIXME: this sets cur_ppi_n to an unvalid value. this means
@@ -417,7 +417,7 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 /* Parse a whole string by splitting lines at '\n' or ';' */
 static int pp_parse_conf(struct pp_globals *ppg, char *conf, int len)
 {
-	int errcount = 0;
+	int ret, in_comment = 0, errcount = 0;
 	char *line, *rest, term;
 	int lineno = 1;
 
@@ -432,11 +432,21 @@ static int pp_parse_conf(struct pp_globals *ppg, char *conf, int len)
 			;
 		term = *rest;
 		*rest = '\0';
-		if (*line)
-			errcount += pp_config_line(ppg, line, lineno) < 0;
+		ret = 0;
+		if (!in_comment) {
+			if (*line)
+				ret = pp_config_line(ppg, line, lineno);
+			if (ret == 1)
+				in_comment = 1;
+			if (ret < 0)
+				errcount++;
+		}
+
 		line = rest + 1;
-		if (term == '\n')
+		if (term == '\n') {
 			lineno++;
+			in_comment = 0;
+		}
 	} while (term); /* if terminator was already 0, we are done */
 	return errcount ? -1 : 0;
 }

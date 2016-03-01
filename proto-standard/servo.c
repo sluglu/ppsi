@@ -8,6 +8,13 @@
 
 #include <ppsi/ppsi.h>
 
+static void pp_servo_mpd_fltr(struct pp_instance *, struct pp_avg_fltr *,
+			      TimeInternal *);
+static void pp_servo_offset_master(struct pp_instance *, TimeInternal *,
+				   TimeInternal *, TimeInternal *);
+static Integer32 pp_servo_pi_controller(struct pp_instance *, TimeInternal *);
+
+
 void pp_servo_init(struct pp_instance *ppi)
 {
 	int d;
@@ -235,6 +242,7 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
 }
 
+static
 void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
 		       TimeInternal * mpd)
 {
@@ -291,6 +299,7 @@ void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
 		(int)mpd_fltr->s_exp, mpd->nanoseconds);
 }
 
+static
 void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 			    TimeInternal * ofm, TimeInternal * m_to_s_dly)
 {
@@ -340,6 +349,7 @@ void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 	}
 }
 
+static
 Integer32 pp_servo_pi_controller(struct pp_instance * ppi, TimeInternal * ofm)
 {
 	long long I_term;

@@ -115,7 +115,6 @@ struct pp_instance_cfg {
 	char port_name[16];
 	char iface_name[16];
 	int ext;   /* 0: none, 1: whiterabbit */ /* FIXME extension enumeration */
-	int delay_mech;		/* E2E: 0, P2P: 1 */
 };
 
 /*
@@ -217,7 +216,7 @@ struct pp_globals {
 	DSTimeProperties *timePropertiesDS;	/* page 70 */
 
 	/* Sync Mechanism */
-	int delay_mech;		/* E2E : 0 , P2P : 1 */
+	int delay_mech;		/* PP_E2E_MECH, PP_P2P_MECH */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;

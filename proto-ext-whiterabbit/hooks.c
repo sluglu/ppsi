@@ -221,7 +221,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 	wr_servo_got_sync(ppi, precise_orig_timestamp,
 			  &ppi->t2);
 
-	if (GLBS(ppi)->delay_mech)
+	if (GLBS(ppi)->delay_mech == PP_P2P_MECH)
 		wr_servo_update(ppi);
 
 	return 1; /* the caller returns too */

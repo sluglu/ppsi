@@ -27,13 +27,12 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	struct wrpc_socket *sock;
 	mac_addr_t mac;
 	struct wr_sockaddr addr;
+	char *macaddr = PP_MCAST_MACADDRESS;
 
+	if (ppi->glbs->delay_mech == PP_P2P_MECH)
+		macaddr = PP_PDELAY_MACADDRESS;
 	addr.ethertype = ETH_P_1588;
-#ifdef CONFIG_E2E
-	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
-#else
-	memcpy(addr.mac, PP_PDELAY_MACADDRESS, sizeof(mac_addr_t));
-#endif
+	memcpy(addr.mac, macaddr, sizeof(mac_addr_t));
 	sock = ptpd_netif_create_socket(&__static_ptp_socket, &addr,
 					PTPD_SOCK_RAW_ETHERNET, 0);
 	if (!sock)

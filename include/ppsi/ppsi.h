@@ -9,6 +9,18 @@
 #define __PPSI_PPSI_H__
 #include <generated/autoconf.h>
 
+
+#ifdef CONFIG_E2E
+#  define HAS_E2E 1
+#else
+#  define HAS_E2E 0
+#endif
+#ifdef CONFIG_P2P
+#  define HAS_P2P 1
+#else
+#  define HAS_P2P 0
+#endif
+
 #include <stdint.h>
 #include <stdarg.h>
 #include <stddef.h>

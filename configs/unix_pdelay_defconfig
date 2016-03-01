@@ -12,8 +12,8 @@ CONFIG_ARCH="unix"
 #
 # PTP Protocol Options
 #
-CONFIG_E2E=y
-# CONFIG_P2P is not set
+# CONFIG_E2E is not set
+CONFIG_P2P=y
 CONFIG_EXT_NONE=y
 CONFIG_EXTENSION=""
 CONFIG_CROSS_COMPILE=""

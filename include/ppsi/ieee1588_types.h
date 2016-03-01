@@ -255,13 +255,12 @@ typedef struct DSPort {			/* page 72 */
 	PortIdentity	portIdentity;
 	/* Dynamic */
 	/* Enumeration8	portState; -- not used */
-	Integer8	logMinDelayReqInterval; /* note: never changed */
+	Integer8	logMinDelayReqInterval; /* -- same as pdelay one */
 	/* TimeInternal	peerMeanPathDelay; -- not used */
 	/* Configurable */
 	Integer8	logAnnounceInterval;
 	UInteger8	announceReceiptTimeout;
 	Integer8	logSyncInterval;
-	Integer8	logMinPDelayReqInterval;
 	/* Enumeration8	delayMechanism; -- not used */
 	UInteger4	versionNumber;
 

@@ -87,21 +87,6 @@ menu "PTP Protocol Options"
                   the link delay and another 2 for synchronizing.
         endchoice
 
-        choice
-                prompt "PTP Clock Type"
-        config BOUNDARY
-                boolean "Boundary Clock"
-                help
-                  The boundary clock implements a local PTP clock which
-                  can be synchronized to a master on one port and act
-                  as a master on other ports.
-        config TC
-                boolean "Peer-to-Peer Transparent Clock"
-                help
-                  A TC measures the local link delays using the peer
-                  delay mechanism and it must determine the residence
-                  time and make corrections to sync messages.
-        endchoice
 endmenu
 
 config EXT_WR

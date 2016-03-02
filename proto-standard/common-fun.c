@@ -233,7 +233,6 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 	if (len < PP_PDELAY_REQ_LENGTH)
 		return -1;
 
-	msg_copy_header(&ppi->pdelay_req_hdr, &ppi->received_ptp_header);
 	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
 	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
 

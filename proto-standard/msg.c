@@ -517,7 +517,7 @@ int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, TimeInternal * time)
 	Timestamp prec_orig_tstamp;
 	from_TimeInternal(time, &prec_orig_tstamp);
 
-	msg_pack_pdelay_resp_follow_up(ppi, &ppi->pdelay_req_hdr,
+	msg_pack_pdelay_resp_follow_up(ppi, &ppi->received_ptp_header,
 				       &prec_orig_tstamp);
 
 	return __send_and_log(ppi, PP_PDELAY_RESP_FOLLOW_UP_LENGTH,
@@ -570,7 +570,7 @@ int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal * time)
 	Timestamp rcv_tstamp;
 	from_TimeInternal(time, &rcv_tstamp);
 
-	msg_pack_pdelay_resp(ppi, &ppi->pdelay_req_hdr, &rcv_tstamp);
+	msg_pack_pdelay_resp(ppi, &ppi->received_ptp_header, &rcv_tstamp);
 
 	return __send_and_log(ppi, PP_PDELAY_RESP_LENGTH, PPM_PDELAY_RESP,
 			      PP_NP_EVT);

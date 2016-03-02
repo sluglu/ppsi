@@ -74,10 +74,9 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 static int wr_handle_preq(struct pp_instance *ppi)
 {
 
-	msg_copy_header(&ppi->pdelay_req_hdr, &ppi->received_ptp_header);
-	ppi->pdelay_req_hdr.correctionfield.msb = 0;
-	ppi->pdelay_req_hdr.correctionfield.lsb =
-	    phase_to_cf_units(ppi->last_rcv_time.phase);
+	ppi->received_ptp_header.correctionfield.msb = 0;
+	ppi->received_ptp_header.correctionfield.lsb =
+		phase_to_cf_units(ppi->last_rcv_time.phase);
 
 	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
 	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);

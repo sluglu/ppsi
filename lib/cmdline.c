@@ -29,7 +29,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	CMD_LINE_SEPARATOR,
 	{"-x", "do not reset the clock if off by more than one second"},
 	{"-t", "do not adjust the system clock"},
-	{"-a NUMBER,NUMBER", "specify clock servo P and I values (min == 1)"},
 	{"-w NUMBER", "specify meanPathDelay filter stiffness"},
 	CMD_LINE_SEPARATOR,
 	//{"-u ADDRESS", "also send uni-cast to ADDRESS\n"}, -- FIXME: useful?
@@ -122,15 +121,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 			break;
 		case 't':
 			GOPTS(ppg)->flags |= PP_FLAG_NO_ADJUST;
-			break;
-		case 'a':
-			a = argv[++i];
-			cmd_line_parse_two(a, &n1, &n2);
-			/* no negative or zero attenuation */
-			if (n1 < 1 || n2 < 1)
-				return -1;
-			GOPTS(ppg)->ap = n1;
-			GOPTS(ppg)->ai = n2;
 			break;
 		case 'w':
 			a = argv[++i];

@@ -380,6 +380,14 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		}
 		break;
 
+	case ARG_INT2:
+		if (sscanf(line, "%i,%i", cfg_arg.i2, &cfg_arg.i2[1]) < 0) {
+			pp_diag(NULL, config, 1, "line %i: wrong arg \"%s\""
+				" for \"%s\"\n", lineno, line, word);
+			return -1;
+		}
+		break;
+
 	case ARG_STR:
 		while (*line && blank(*line))
 			line++;

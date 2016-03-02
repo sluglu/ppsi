@@ -278,6 +278,7 @@ struct pp_cfg_time {
  * added inside here, without redefining cfg_handler prototype */
 union pp_cfg_arg {
 	int i;
+	int i2[2];
 	char *s;
 	struct pp_cfg_time ts;
 };
@@ -295,6 +296,7 @@ struct pp_argname {
 enum pp_argtype {
 	ARG_NONE,
 	ARG_INT,
+	ARG_INT2,
 	ARG_STR,
 	ARG_NAMES,
 	ARG_TIME,

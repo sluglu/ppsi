@@ -127,10 +127,7 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_PDELAY_REQ:
-		msg_copy_header(&ppi->pdelay_req_hdr,
-				&ppi->received_ptp_header);
-		msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
-		msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+		st_com_peer_handle_preq(ppi, pkt, plen);
 		break;
 
 	default:

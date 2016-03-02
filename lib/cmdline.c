@@ -28,7 +28,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-d STRING", "diagnostic level (see diag-macros.h)"},
 	CMD_LINE_SEPARATOR,
 	{"-x", "do not reset the clock if off by more than one second"},
-	{"-O NUMBER", "do not reset the clock if offset is more than NUMBER nanoseconds"},
 	{"-M NUMBER", "do not accept delay values of more than NUMBER nanoseconds"},
 	{"-t", "do not adjust the system clock"},
 	{"-a NUMBER,NUMBER", "specify clock servo P and I values (min == 1)"},
@@ -121,15 +120,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 			break;
 		case 'x':
 			GOPTS(ppg)->flags |= PP_FLAG_NO_RESET;
-			break;
-		case 'O':
-			a = argv[++i];
-			GOPTS(ppg)->max_rst = atoi(a);
-			if (GOPTS(ppg)->max_rst > PP_NSEC_PER_SEC) {
-				pp_printf("Use -x to prevent jumps of"
-				" more than one second\n");
-				return -1;
-			}
 			break;
 		case 'M':
 			a = argv[++i];

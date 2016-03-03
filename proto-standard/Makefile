@@ -4,6 +4,7 @@
 D := proto-standard
 
 OBJ-y += $D/fsm-table.o \
+	$D/fsm-lib.o \
 	$D/state-initializing.o \
 	$D/state-faulty.o \
 	$D/state-disabled.o \

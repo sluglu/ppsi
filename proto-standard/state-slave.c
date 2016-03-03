@@ -29,6 +29,8 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			goto out;
 	}
 
+	e  = pp_lib_may_issue_request(ppi);
+
 	if (plen == 0)
 		goto out;
 
@@ -138,15 +140,6 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 out:
 	if (e == 0)
 		e = st_com_execute_slave(ppi);
-
-	if (pp_timeout_z(ppi, PP_TO_REQUEST)) {
-		e = msg_issue_request(ppi);
-
-		ppi->t3 = ppi->last_snt_time;
-
-		/* Restart the timeout for next time */
-		pp_timeout_set(ppi, PP_TO_REQUEST);
-	}
 
 	switch(e) {
 	case PP_SEND_OK: /* 0 */

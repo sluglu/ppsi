@@ -16,15 +16,8 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgPDelayRespFollowUp respFllw;
 
 	/* when the clock is using peer-delay, listening must send it too */
-	if (ppi->glbs->delay_mech == PP_P2P_MECH
-	    && pp_timeout_z(ppi, PP_TO_REQUEST)) {
-		e = msg_issue_request(ppi);
-
-		ppi->t3 = ppi->last_snt_time;
-
-		/* Restart the timeout for next time */
-		pp_timeout_set(ppi, PP_TO_REQUEST);
-	}
+	if (ppi->glbs->delay_mech == PP_P2P_MECH)
+		e  = pp_lib_may_issue_request(ppi);
 
 	if (plen == 0)
 		goto no_incoming_msg;

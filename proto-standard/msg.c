@@ -525,7 +525,7 @@ int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, TimeInternal * time)
 }
 
 /* Pack and send on event multicast ip adress a DelayReq message */
-int msg_issue_delay_req(struct pp_instance *ppi)
+static int msg_issue_delay_req(struct pp_instance *ppi)
 {
 	Timestamp orig_tstamp;
 	TimeInternal now;
@@ -539,7 +539,7 @@ int msg_issue_delay_req(struct pp_instance *ppi)
 }
 
 /* Pack and send on event multicast ip adress a PDelayReq message */
-int msg_issue_pdelay_req(struct pp_instance *ppi)
+static int msg_issue_pdelay_req(struct pp_instance *ppi)
 {
 	Timestamp orig_tstamp;
 	TimeInternal now;
@@ -550,6 +550,13 @@ int msg_issue_pdelay_req(struct pp_instance *ppi)
 
 	return __send_and_log(ppi, PP_PDELAY_REQ_LENGTH, PPM_PDELAY_REQ,
 			      PP_NP_EVT);
+}
+
+int msg_issue_request(struct pp_instance *ppi)
+{
+	if (ppi->glbs->delay_mech == PP_E2E_MECH)
+		return msg_issue_delay_req(ppi);
+	return msg_issue_pdelay_req(ppi);
 }
 
 /* Pack and send on event multicast ip adress a DelayResp message */

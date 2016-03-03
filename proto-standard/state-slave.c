@@ -105,7 +105,7 @@ out:
 		e = st_com_execute_slave(ppi);
 
 	if (pp_timeout_z(ppi, PP_TO_DELAYREQ)) {
-		e = msg_issue_delay_req(ppi);
+		e = msg_issue_request(ppi);
 
 		ppi->t3 = ppi->last_snt_time;
 

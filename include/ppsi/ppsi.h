@@ -429,9 +429,8 @@ extern void msg_pack_pdelay_req(struct pp_instance *ppi,
 extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);
 extern int msg_issue_sync_followup(struct pp_instance *ppi);
-extern int msg_issue_delay_req(struct pp_instance *ppi);
+extern int msg_issue_request(struct pp_instance *ppi);
 extern int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time);
-extern int msg_issue_pdelay_req(struct pp_instance *ppi);
 extern int msg_issue_pdelay_resp_followup(struct pp_instance *ppi,
 					  TimeInternal * time);
 extern int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal * time);

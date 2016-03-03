@@ -57,9 +57,6 @@ out:
 	else
 		ppi->next_state = PPS_FAULTY;
 
-	if (ppi->next_state != ppi->state)
-		pp_timeout_clr(ppi, PP_TO_ANN_RECEIPT);
-
 	ppi->next_delay = WR_DSPOR(ppi)->wrStateTimeout;
 
 	return e;

@@ -119,6 +119,8 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 		if (ppi->state != ppi->next_state) {
 			ppi->state = ppi->next_state;
 			ppi->is_new_state = 1;
+			pp_timeout_setall(ppi);
+			ppi->flags &= ~PPI_FLAGS_WAITING;
 			pp_diag_fsm(ppi, ip->name, STATE_LEAVE, 0);
 			return 0; /* next_delay unused: go to new state now */
 		}

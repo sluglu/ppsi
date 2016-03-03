@@ -67,16 +67,6 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
 
-	if (ppi->is_new_state) {
-		pp_timeout_set(ppi, PP_TO_SYNC_SEND);
-		pp_timeout_set(ppi, PP_TO_REQUEST);
-		pp_timeout_set(ppi, PP_TO_ANN_SEND);
-
-		/* Send an announce immediately, when becomes master */
-		if ((e = pp_master_issue_announce(ppi)) < 0)
-			goto out;
-	}
-
 	if (pp_timeout_z(ppi, PP_TO_SYNC_SEND)) {
 		/* Restart the timeout for next time */
 		pp_timeout_set(ppi, PP_TO_SYNC_SEND);

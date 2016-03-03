@@ -20,11 +20,6 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (e)
 		goto out;
 
-	if (ppi->is_new_state) {
-		pp_timeout_restart_annrec(ppi);
-		pp_timeout_set(ppi, PP_TO_REQUEST);
-	}
-
 	/* when the clock is using peer-delay, listening must send it too */
 	if (ppi->glbs->delay_mech == PP_P2P_MECH
 	    && pp_timeout_z(ppi, PP_TO_REQUEST)) {
@@ -101,10 +96,6 @@ out:
 
 	if (e != 0)
 		ppi->next_state = PPS_FAULTY;
-
-	/* Leaving this state */
-	if (ppi->next_state != ppi->state)
-		pp_timeout_clr(ppi, PP_TO_ANN_RECEIPT);
 
 	ppi->next_delay = pp_ms_to_timeout(ppi, PP_TO_ANN_RECEIPT);
 

@@ -90,6 +90,19 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 	__pp_timeout_set(ppi, index, millisec);
 }
 
+/*
+ * When we enter a new fsm state, we init all timeouts. Who cares if
+ * some of them are not used (and even if some have no default timeout)
+ */
+void pp_timeout_setall(struct pp_instance *ppi)
+{
+	int i;
+	for (i = 0; i < __PP_TO_ARRAY_SIZE; i++)
+		pp_timeout_set(ppi, i);
+	/* but announce_send must be send soon */
+	__pp_timeout_set(ppi, PP_TO_ANN_SEND, 20);
+}
+
 void pp_timeout_clr(struct pp_instance *ppi, int index)
 {
 	ppi->timeouts[index] = 0;

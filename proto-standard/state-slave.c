@@ -27,12 +27,6 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			e = pp_hooks.new_slave(ppi, pkt, plen);
 		if (e)
 			goto out;
-
-		ppi->flags &= ~PPI_FLAGS_WAITING;
-
-		pp_timeout_restart_annrec(ppi);
-
-		pp_timeout_set(ppi, PP_TO_REQUEST);
 	}
 
 	if (plen == 0)
@@ -167,10 +161,8 @@ out:
 	}
 
 	if (ppi->next_state != ppi->state) {
-		pp_timeout_clr(ppi, PP_TO_ANN_RECEIPT);
-		pp_timeout_clr(ppi, PP_TO_REQUEST);
-
 		pp_servo_init(ppi);
+		return e;
 	}
 	d1 = d2 = pp_ms_to_timeout(ppi, PP_TO_ANN_RECEIPT);
 	if (ppi->timeouts[PP_TO_REQUEST])

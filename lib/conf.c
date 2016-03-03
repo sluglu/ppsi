@@ -215,6 +215,21 @@ static int f_domain(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	return 0;
 }
 
+static int f_announce_intvl(int lineno, struct pp_globals *ppg,
+			    union pp_cfg_arg *arg)
+{
+	int i = arg->i;
+
+	CHECK_PPI(0);
+	if (i < 0 || i > 4) {
+		i = i < 0 ? 0 : 4;
+		pp_printf("config line %i: announce interval out of range: %i, "
+			  "forced to %i\n", lineno, arg->i, i);
+	}
+	GOPTS(ppg)->announce_intvl = i;
+	return 0;
+}
+
 /* These are the tables for the parser */
 static struct pp_argname arg_proto[] = {
 	{"raw", PPSI_PROTO_RAW},
@@ -248,6 +263,7 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_servo_pi,	"servo-pi",	ARG_INT2},
 	{ f_latency,	"latency",	ARG_INT2},
 	{ f_domain,	"domain-number", ARG_INT},
+	{ f_announce_intvl, "announce-interval", ARG_INT},
 	{}
 };
 

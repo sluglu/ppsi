@@ -119,15 +119,6 @@ int pp_timeout(struct pp_instance *ppi, int index)
 	return ret;
 }
 
-int pp_timeout_z(struct pp_instance *ppi, int index)
-{
-	int ret = pp_timeout(ppi, index);
-
-	if (ret)
-		pp_timeout_clr(ppi, index);
-	return ret;
-}
-
 /* how many ms to wait for the timeout to happen, for ppi->next_delay */
 int pp_ms_to_timeout(struct pp_instance *ppi, int index)
 {

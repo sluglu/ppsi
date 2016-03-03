@@ -21,7 +21,7 @@ int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (ppi->is_new_state)
 		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->wrStateTimeout);
 
-	if (pp_timeout_z(ppi, PP_TO_EXT_0)) {
+	if (pp_timeout(ppi, PP_TO_EXT_0)) {
 		/*
 		 * FIXME: We should implement a retry by re-sending
 		 * the "calibrated" message, moving it here from the

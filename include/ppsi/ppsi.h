@@ -229,7 +229,6 @@ extern void pp_timeout_setall(struct pp_instance *ppi);
 extern void pp_timeout_clr(struct pp_instance *ppi, int index);
 extern int pp_timeout(struct pp_instance *ppi, int index)
 	__attribute__((warn_unused_result));
-extern int pp_timeout_z(struct pp_instance *ppi, int index);
 extern int pp_ms_to_timeout(struct pp_instance *ppi, int index);
 
 /* The channel for an instance must be created and possibly destroyed. */

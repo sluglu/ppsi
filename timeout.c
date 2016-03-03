@@ -21,7 +21,7 @@ static char *timeout_names[__PP_TO_ARRAY_SIZE] __attribute__((used)) = {
 /*
  * Log means messages
  */
-void pp_timeout_log(struct pp_instance *ppi, int index)
+static void pp_timeout_log(struct pp_instance *ppi, int index)
 {
 	pp_diag(ppi, time, 1, "timeout expired: %s\n", timeout_names[index]);
 }
@@ -64,3 +64,54 @@ void pp_timeout_rand(struct pp_instance *ppi, int index, int logval)
 	pp_timeout_set(ppi, index, millisec);
 }
 
+void pp_timeout_set(struct pp_instance *ppi, int index,
+				  int millisec)
+{
+	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
+}
+
+void pp_timeout_clr(struct pp_instance *ppi, int index)
+{
+	ppi->timeouts[index] = 0;
+}
+
+int pp_timeout(struct pp_instance *ppi, int index)
+{
+	int ret = ppi->timeouts[index] &&
+		time_after_eq(ppi->t_ops->calc_timeout(ppi, 0),
+			      ppi->timeouts[index]);
+
+	if (ret)
+		pp_timeout_log(ppi, index);
+	return ret;
+}
+
+int pp_timeout_z(struct pp_instance *ppi, int index)
+{
+	int ret = pp_timeout(ppi, index);
+
+	if (ret)
+		pp_timeout_clr(ppi, index);
+	return ret;
+}
+
+/* how many ms to wait for the timeout to happen, for ppi->next_delay */
+int pp_ms_to_timeout(struct pp_instance *ppi, int index)
+{
+	signed long ret;
+
+	if (!ppi->timeouts[index]) /* not pending, nothing to wait for */
+		return 0;
+
+	ret = ppi->timeouts[index] - ppi->t_ops->calc_timeout(ppi, 0);
+	return ret <= 0 ? 0 : ret;
+}
+
+/* called several times, only sets a timeout, so inline it here */
+void pp_timeout_restart_annrec(struct pp_instance *ppi)
+{
+	/* This timeout is a number of the announce interval lapses */
+	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT,
+		       ((DSPOR(ppi)->announceReceiptTimeout) <<
+			DSPOR(ppi)->logAnnounceInterval) * 1000);
+}

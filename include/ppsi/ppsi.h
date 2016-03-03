@@ -58,6 +58,8 @@ struct pp_vlanhdr {
 };
 
 /* Helpers for the fsm (fsm-lib.c) */
+extern int pp_lib_may_issue_sync(struct pp_instance *ppi);
+extern int pp_lib_may_issue_announce(struct pp_instance *ppi);
 extern int pp_lib_may_issue_request(struct pp_instance *ppi);
 
 /* We use data sets a lot, so have these helpers */

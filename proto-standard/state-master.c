@@ -9,57 +9,6 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-/* Local functions that build to nothing when Kconfig selects 0/1 vlans */
-static int pp_master_issue_announce(struct pp_instance *ppi)
-{
-	int i, vlan = 0;
-
-	if (CONFIG_VLAN_ARRAY_SIZE && ppi->nvlans == 1)
-		vlan = ppi->vlans[0];
-
-	if (CONFIG_VLAN_ARRAY_SIZE <= 1 || ppi->nvlans <= 1) {
-		ppi->peer_vid = vlan;
-		return msg_issue_announce(ppi);
-	}
-
-	/*
-	 * If Kconfig selected 0/1 vlans, this code is not built.
-	 * If we have several vlans, we replace peer_vid and proceed;
-	 */
-	for (i = 0; i < ppi->nvlans; i++) {
-		ppi->peer_vid = ppi->vlans[i];
-		msg_issue_announce(ppi);
-		/* ignore errors: each vlan is separate */
-	}
-	return 0;
-}
-
-static int pp_master_issue_sync_followup(struct pp_instance *ppi)
-{
-	int i, vlan = 0;
-
-	if (CONFIG_VLAN_ARRAY_SIZE && ppi->nvlans == 1)
-		vlan = ppi->vlans[0];
-
-	if (CONFIG_VLAN_ARRAY_SIZE <= 1 || ppi->nvlans <= 1) {
-		ppi->peer_vid = vlan;
-		return msg_issue_sync_followup(ppi);
-	}
-
-	/*
-	 * If Kconfig selected 0/1 vlans, this code is not built.
-	 * If we have several vlans, we replace peer_vid and proceed;
-	 */
-	for (i = 0; i < ppi->nvlans; i++) {
-		ppi->peer_vid = ppi->vlans[i];
-		msg_issue_sync_followup(ppi);
-		/* ignore errors: each vlan is separate */
-	}
-	return 0;
-}
-
-
-/* The real state function, relying on the two above for sending */
 int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	int msgtype, d1, d2;
@@ -67,26 +16,13 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
 
-	if (pp_timeout_z(ppi, PP_TO_SYNC_SEND)) {
-		/* Restart the timeout for next time */
-		pp_timeout_set(ppi, PP_TO_SYNC_SEND);
-
-		if ((e = pp_master_issue_sync_followup(ppi) < 0))
-			goto out;
-
-	}
-
-	if (pp_timeout_z(ppi, PP_TO_ANN_SEND)) {
-		if ((e = pp_master_issue_announce(ppi) < 0))
-			goto out;
-
-		/* Restart the timeout for next time */
-		pp_timeout_set(ppi, PP_TO_ANN_SEND);
-	}
+	/* ignore errors; we are not getting FAULTY if not transmitting */
+	pp_lib_may_issue_sync(ppi);
+	pp_lib_may_issue_announce(ppi);
 
 	/* when the clock is using peer-delay, the muster mast send it too */
 	if (ppi->glbs->delay_mech == PP_P2P_MECH)
-		e  = pp_lib_may_issue_request(ppi);
+		pp_lib_may_issue_request(ppi);
 
 	if (plen == 0)
 		goto out;

@@ -19,5 +19,4 @@ OBJ-y += $D/fsm-table.o \
 	$D/arith.o \
 	$D/servo.o \
 	$D/hooks.o \
-	$D/timeout.o \
 	$D/open-close.o

@@ -51,7 +51,7 @@ CFLAGS += -O2 -ggdb -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
 
 # to avoid ifdef as much as possible, I use the kernel trick for OBJ variables
-OBJ-y := fsm.o diag.o
+OBJ-y := fsm.o diag.o timeout.o
 
 # Include arch code. Each arch chooses its own time directory..
 include arch-$(ARCH)/Makefile

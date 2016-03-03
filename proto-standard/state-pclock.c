@@ -2,6 +2,7 @@
  * Copyright (C) 2014 GSI (www.gsi.de)
  * Author: Cesar Prados
  * Based on PTPd project v. 2.1.0 (see AUTHORS for details)
+ *
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
 
@@ -10,8 +11,7 @@
 
 int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
-
-	int e = 0;		/* error var, to check errors in msg handling */
+	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
 	int d1, d2;
@@ -99,7 +99,7 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 		} else {
 			pp_diag(ppi, frames, 2, "pp_pclock : "
-				"PDelay Resp Follow doesn't match PDelay Req\n");
+				"PDelay Resp F-up doesn't match PDelay Req\n");
 		}
 		break;
 

@@ -63,6 +63,8 @@ extern struct pp_msgtype_info pp_msgtype_info[16];
 extern int pp_lib_may_issue_sync(struct pp_instance *ppi);
 extern int pp_lib_may_issue_announce(struct pp_instance *ppi);
 extern int pp_lib_may_issue_request(struct pp_instance *ppi);
+extern int pp_lib_handle_announce(struct pp_instance *ppi,
+				  unsigned char *buf, int len);
 
 /* We use data sets a lot, so have these helpers */
 static inline struct pp_globals *GLBS(struct pp_instance *ppi)
@@ -151,7 +153,7 @@ struct pp_ext_hooks {
 	int (*handle_resp)(struct pp_instance *ppi);
 	void (*s1)(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
 	int (*execute_slave)(struct pp_instance *ppi);
-	void (*handle_announce)(struct pp_instance *ppi);
+	int (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi, TimeInternal *orig,
 			       TimeInternal *correction_field);
 	int (*handle_preq) (struct pp_instance * ppi);

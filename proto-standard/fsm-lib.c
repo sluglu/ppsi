@@ -2,12 +2,11 @@
  * Copyright (C) 2011 CERN (www.cern.ch)
  * Author: Aurelio Colosimo
  * Copyright (C) 2014 GSI (www.gsi.de)
- * Author: Alessandro Rubin
+ * Author: Alessandro Rubini
  *
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
 #include <ppsi/ppsi.h>
-
 
 /* Local functions that build to nothing when Kconfig selects 0/1 vlans */
 static int pp_vlan_issue_announce(struct pp_instance *ppi)
@@ -106,5 +105,56 @@ int pp_lib_may_issue_request(struct pp_instance *ppi)
 		return e;
 	}
 	ppi->t3 = ppi->last_snt_time;
+	return 0;
+}
+
+/* Called by this file, basically when an announce is got, all states */
+static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
+{
+	int i;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+
+	/* Check if foreign master is already known */
+	for (i = 0; i < ppi->frgn_rec_num; i++) {
+		if (!memcmp(&hdr->sourcePortIdentity,
+			    &ppi->frgn_master[i].port_id,
+			    sizeof(hdr->sourcePortIdentity))) {
+			/* already in Foreign master data set, update info */
+			msg_copy_header(&ppi->frgn_master[i].hdr, hdr);
+			msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
+			return;
+		}
+	}
+
+	/* New foreign master */
+	if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS)
+		ppi->frgn_rec_num++;
+
+	/* FIXME: replace the worst */
+	i = ppi->frgn_rec_num - 1;
+
+	/* Copy new foreign master data set from announce message */
+	memcpy(&ppi->frgn_master[i].port_id,
+	       &hdr->sourcePortIdentity, sizeof(hdr->sourcePortIdentity));
+
+	/*
+	 * header and announce field of each Foreign Master are
+	 * useful to run Best Master Clock Algorithm
+	 */
+	msg_copy_header(&ppi->frgn_master[i].hdr, hdr);
+	msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
+
+	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", i);
+}
+
+int pp_lib_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
+{
+	__lib_add_foreign(ppi, buf);
+
+	ppi->next_state = bmc(ppi); /* got a new announce: run bmc */
+	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+
+	if (pp_hooks.handle_announce)
+		return pp_hooks.handle_announce(ppi);
 	return 0;
 }

@@ -24,7 +24,7 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= st_com_slave_handle_followup,
 	[PPM_DELAY_RESP]	= slave_handle_response,
-	[PPM_ANNOUNCE]		= st_com_slave_handle_announce,
+	[PPM_ANNOUNCE]		= pp_lib_handle_announce,
 	/* skip signaling and management, for binary size */
 };
 

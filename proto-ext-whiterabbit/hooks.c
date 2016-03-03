@@ -192,7 +192,7 @@ static int wr_execute_slave(struct pp_instance *ppi)
 	return 1; /* the caller returns too */
 }
 
-static void wr_handle_announce(struct pp_instance *ppi)
+static int wr_handle_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if ((WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
@@ -202,6 +202,7 @@ static void wr_handle_announce(struct pp_instance *ppi)
 		/* We must start the handshake as a WR slave */
 		wr_handshake_init(ppi, PPS_SLAVE);
 	}
+	return 0;
 }
 
 static int wr_handle_followup(struct pp_instance *ppi,

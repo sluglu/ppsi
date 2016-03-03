@@ -20,7 +20,7 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	switch (ppi->received_ptp_header.messageType) {
 
 	case PPM_ANNOUNCE:
-		e = st_com_master_handle_announce(ppi, pkt, plen);
+		e = pp_lib_handle_announce(ppi, pkt, plen);
 		break;
 
 	case PPM_SYNC:

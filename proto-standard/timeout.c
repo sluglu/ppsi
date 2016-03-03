@@ -9,7 +9,7 @@
 #define N(n) [n] = #n
 
 static char *timeout_names[__PP_TO_ARRAY_SIZE] __attribute__((used)) = {
-	N(PP_TO_DELAYREQ),
+	N(PP_TO_REQUEST),
 	N(PP_TO_SYNC),
 	N(PP_TO_ANN_RECEIPT),
 	N(PP_TO_ANN_INTERVAL),

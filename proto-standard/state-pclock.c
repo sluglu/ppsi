@@ -28,7 +28,8 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->flags &= ~PPI_FLAGS_WAITING;
 
 		pp_timeout_restart_annrec(ppi);
-		pp_timeout_rand(ppi, PP_TO_DELAYREQ,
+
+		pp_timeout_rand(ppi, PP_TO_REQUEST,
 				DSPOR(ppi)->logMinDelayReqInterval);
 	}
 
@@ -111,13 +112,13 @@ out:
 	if (e == 0)
 		e = st_com_execute_slave(ppi);
 
-	if (pp_timeout_z(ppi, PP_TO_DELAYREQ)) {
+	if (pp_timeout_z(ppi, PP_TO_REQUEST)) {
 		e = msg_issue_request(ppi);
 
 		ppi->t3 = ppi->last_snt_time;
 
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_DELAYREQ,
+		pp_timeout_rand(ppi, PP_TO_REQUEST,
 				DSPOR(ppi)->logMinDelayReqInterval);
 	}
 
@@ -133,19 +134,15 @@ out:
 		break;
 	}
 
-	/* Leaving this state */
 	if (ppi->next_state != ppi->state) {
 		pp_timeout_clr(ppi, PP_TO_ANN_RECEIPT);
-		pp_timeout_clr(ppi, PP_TO_DELAYREQ);
+		pp_timeout_clr(ppi, PP_TO_REQUEST);
 
 		pp_servo_init(ppi);
 	}
-
 	d1 = d2 = pp_ms_to_timeout(ppi, PP_TO_ANN_RECEIPT);
-	if (ppi->timeouts[PP_TO_DELAYREQ])
-		d2 = pp_ms_to_timeout(ppi, PP_TO_DELAYREQ);
-
+	if (ppi->timeouts[PP_TO_REQUEST])
+		d2 = pp_ms_to_timeout(ppi, PP_TO_REQUEST);
 	ppi->next_delay = d1 < d2 ? d1 : d2;
-
-	return 0;
+	return e;
 }

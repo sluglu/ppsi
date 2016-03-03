@@ -32,10 +32,8 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-w NUMBER", "specify meanPathDelay filter stiffness"},
 	CMD_LINE_SEPARATOR,
 	//{"-u ADDRESS", "also send uni-cast to ADDRESS\n"}, -- FIXME: useful?
-	{"-e", "run in ethernet mode (level2)"},
 	/* {"-h", "run in End to End mode"}, -- we only support end-to-end */
 	/* {"-G", "run in gPTP mode (implies -e)"}, -- no peer-to-peer mode */
-	CMD_LINE_SEPARATOR,
 	{"-g", "run as slave only"},
 	{"-v NUMBER", "specify system clock allen variance"},
 	{"-r NUMBER", "specify system clock accuracy"},
@@ -135,11 +133,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 			break;
 		case 'h':
 			/* ignored: was "GOPTS(ppg)->e2e_mode = 1;" */
-			break;
-		case 'e':
-			/* Apply -e option globally, to each configured link */
-			for (j = 0; j < ppg->nlinks; j++)
-				INST(ppg, j)->proto = PPSI_PROTO_RAW;
 			break;
 		case 'G':
 			/* gptp_mode not supported: fall through */

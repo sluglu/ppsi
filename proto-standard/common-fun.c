@@ -87,14 +87,14 @@ int st_com_execute_slave(struct pp_instance *ppi)
 	if (ret < 0)
 		return ret;
 
-	if (pp_timeout_z(ppi, PP_TO_ANN_RECEIPT)) {
+	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
 		ppi->frgn_rec_num = 0;
 		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
 			ppi->next_state = PPS_MASTER;
 		} else {
 			ppi->next_state = PPS_LISTENING;
-			pp_timeout_restart_annrec(ppi);
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		}
 	}
 	return 0;

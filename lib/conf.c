@@ -197,6 +197,17 @@ static int f_servo_pi(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	return 0;
 }
 
+static int f_latency(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	int n1, n2;
+
+	CHECK_PPI(0);
+	n1 = arg->i2[0]; n2 = arg->i2[1];
+	GOPTS(ppg)->inbound_latency.nanoseconds = n1;
+	GOPTS(ppg)->outbound_latency.nanoseconds = n2;
+	return 0;
+}
+
 /* These are the tables for the parser */
 static struct pp_argname arg_proto[] = {
 	{"raw", PPSI_PROTO_RAW},
@@ -228,6 +239,7 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_class,	"clock-class",	ARG_INT},
 	{ f_accuracy,	"clock-accuracy", ARG_INT},
 	{ f_servo_pi,	"servo-pi",	ARG_INT2},
+	{ f_latency,	"latency",	ARG_INT2},
 	{}
 };
 

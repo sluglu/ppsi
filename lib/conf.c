@@ -230,6 +230,17 @@ static int f_announce_intvl(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
+static int f_sync_intvl(int lineno, struct pp_globals *ppg,
+			union pp_cfg_arg *arg)
+{
+	int i = arg->i;
+
+	CHECK_PPI(0);
+	GOPTS(ppg)->sync_intvl = i;
+	return 0;
+}
+
+
 /* These are the tables for the parser */
 static struct pp_argname arg_proto[] = {
 	{"raw", PPSI_PROTO_RAW},
@@ -264,6 +275,7 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_latency,	"latency",	ARG_INT2},
 	{ f_domain,	"domain-number", ARG_INT},
 	{ f_announce_intvl, "announce-interval", ARG_INT},
+	{ f_sync_intvl, "sync-interval", ARG_INT},
 	{}
 };
 

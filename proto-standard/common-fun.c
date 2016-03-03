@@ -151,7 +151,7 @@ int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 	st_com_add_foreign(ppi, buf);
 
 	/*Reset Timer handling Announce receipt timeout*/
-	pp_timeout_restart_annrec(ppi);
+	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 
 	ppi->next_state = bmc(ppi); /* got a new announce: run bmc */
 

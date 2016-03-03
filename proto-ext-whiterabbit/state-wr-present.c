@@ -35,7 +35,6 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (sendmsg) {
 		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_WRS_PRESENT_TIMEOUT_MS);
-		pp_timeout_restart_annrec(ppi);
 		e = msg_issue_wrsig(ppi, SLAVE_PRESENT);
 	}
 

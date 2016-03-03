@@ -140,8 +140,3 @@ int pp_ms_to_timeout(struct pp_instance *ppi, int index)
 	return ret <= 0 ? 0 : ret;
 }
 
-/* called several times, only sets a timeout, so inline it here */
-void pp_timeout_restart_annrec(struct pp_instance *ppi)
-{
-	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-}

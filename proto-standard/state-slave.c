@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2011 CERN (www.cern.ch)
  * Author: Aurelio Colosimo
+ * Copyright (C) 2014 GSI (www.gsi.de)
+ * Author: Cesar Prados
  * Based on PTPd project v. 2.1.0 (see AUTHORS for details)
  *
  * Released according to the GNU LGPL, version 2.1 or any later version.
@@ -14,6 +16,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgDelayResp resp;
+	MsgPDelayRespFollowUp respFllw;
 	int d1, d2;
 
 	if (ppi->is_new_state) {
@@ -94,10 +97,58 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 		break;
 
+	case PPM_PDELAY_REQ:
+		if (plen < PP_PDELAY_RESP_LENGTH)
+			break;
+
+		if (pp_hooks.handle_preq)
+			e = pp_hooks.handle_preq(ppi);
+		else
+			e = st_com_peer_handle_preq(ppi, pkt, plen);
+
+		if (e)
+			goto out;
+		break;
+
+	case PPM_PDELAY_RESP:
+		e = st_com_peer_handle_pres(ppi, pkt, plen);
+		break;
+
+	case PPM_PDELAY_RESP_FOLLOW_UP:
+		if (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH)
+			break;
+
+		msg_unpack_pdelay_resp_follow_up(pkt, &respFllw);
+
+		if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+			    &respFllw.requestingPortIdentity.clockIdentity,
+			    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
+		    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
+		     hdr->sequenceId) &&
+		    (DSPOR(ppi)->portIdentity.portNumber ==
+		     respFllw.requestingPortIdentity.portNumber) &&
+		    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+
+			to_TimeInternal(&ppi->t5,
+					&respFllw.responseOriginTimestamp);
+			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
+
+			if (pp_hooks.handle_presp)
+				e = pp_hooks.handle_presp(ppi);
+			else
+				pp_servo_got_presp(ppi);
+			if (e)
+				goto out;
+
+		} else {
+			pp_diag(ppi, frames, 2, "pp_pclock : "
+				"PDelay Resp F-up doesn't match PDelay Req\n");
+		}
+		break;
+
 	default:
 		/* disregard, nothing to do */
 		break;
-
 	}
 
 out:

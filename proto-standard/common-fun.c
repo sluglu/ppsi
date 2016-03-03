@@ -230,8 +230,15 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 			    int len)
 {
+	int e = 0;
+
 	if (len < PP_PDELAY_REQ_LENGTH)
 		return -1;
+
+	if (pp_hooks.handle_preq)
+		e = pp_hooks.handle_preq(ppi);
+	if (e)
+		return e;
 
 	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
 	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);

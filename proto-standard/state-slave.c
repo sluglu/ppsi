@@ -98,16 +98,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_PDELAY_REQ:
-		if (plen < PP_PDELAY_RESP_LENGTH)
-			break;
-
-		if (pp_hooks.handle_preq)
-			e = pp_hooks.handle_preq(ppi);
-		else
-			e = st_com_peer_handle_preq(ppi, pkt, plen);
-
-		if (e)
-			goto out;
+		e = st_com_peer_handle_preq(ppi, pkt, plen);
 		break;
 
 	case PPM_PDELAY_RESP:

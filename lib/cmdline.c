@@ -35,7 +35,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-e", "run in ethernet mode (level2)"},
 	/* {"-h", "run in End to End mode"}, -- we only support end-to-end */
 	/* {"-G", "run in gPTP mode (implies -e)"}, -- no peer-to-peer mode */
-	{"-l NUMBER,NUMBER", "specify inbound, outbound latency in nsec"},
 	CMD_LINE_SEPARATOR,
 	{"-i NUMBER", "specify PTP domain number"},
 	CMD_LINE_SEPARATOR,
@@ -66,28 +65,11 @@ static void cmd_line_print_help(void)
 	}
 }
 
-static void cmd_line_parse_two(char *a, int *n1, int *n2)
-{
-	int i, comma = 0;
-	*n1 = *n2 = 0;
-	for (i = 0; a[i] != '\0'; i++) {
-		if (a[i] == ',') {
-			comma = i;
-			a[i] = '\0';
-			*n1 = atoi(a);
-			break;
-		}
-	}
-	*n2 = atoi(&a[comma+1]);
-	a[comma] = ',';
-}
-
 int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 {
 	int i, err = 0;
 	int j;
 	char *a; /* cmd line argument */
-	int n1, n2; /* used by cmd_line_parse_two */
 
 	for (i = 1; i < argc; i++) {
 		a = argv[i];
@@ -125,12 +107,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 		case 'w':
 			a = argv[++i];
 			GOPTS(ppg)->s = atoi(a);
-			break;
-		case 'l':
-			a = argv[++i];
-			cmd_line_parse_two(a, &n1, &n2);
-			GOPTS(ppg)->inbound_latency.nanoseconds = n1;
-			GOPTS(ppg)->outbound_latency.nanoseconds = n2;
 			break;
 		case 'i':
 			a = argv[++i];

@@ -36,8 +36,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	/* {"-h", "run in End to End mode"}, -- we only support end-to-end */
 	/* {"-G", "run in gPTP mode (implies -e)"}, -- no peer-to-peer mode */
 	CMD_LINE_SEPARATOR,
-	{"-y NUMBER", "specify sync interval in 2^NUMBER sec"},
-	CMD_LINE_SEPARATOR,
 	{"-g", "run as slave only"},
 	{"-v NUMBER", "specify system clock allen variance"},
 	{"-r NUMBER", "specify system clock accuracy"},
@@ -104,10 +102,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 		case 'w':
 			a = argv[++i];
 			GOPTS(ppg)->s = atoi(a);
-			break;
-		case 'y':
-			a = argv[++i];
-			GOPTS(ppg)->sync_intvl = atoi(a);
 			break;
 		case 'g':
 			GOPTS(ppg)->clock_quality.clockClass

@@ -36,8 +36,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	/* {"-h", "run in End to End mode"}, -- we only support end-to-end */
 	/* {"-G", "run in gPTP mode (implies -e)"}, -- no peer-to-peer mode */
 	CMD_LINE_SEPARATOR,
-	{"-i NUMBER", "specify PTP domain number"},
-	CMD_LINE_SEPARATOR,
 	{"-n NUMBER", "specify announce interval in 2^NUMBER sec"},
 	{"-y NUMBER", "specify sync interval in 2^NUMBER sec"},
 	CMD_LINE_SEPARATOR,
@@ -107,10 +105,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 		case 'w':
 			a = argv[++i];
 			GOPTS(ppg)->s = atoi(a);
-			break;
-		case 'i':
-			a = argv[++i];
-			GOPTS(ppg)->domain_number = atoi(a);
 			break;
 		case 'y':
 			a = argv[++i];

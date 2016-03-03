@@ -68,33 +68,30 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgPDelayRespFollowUp respFllw;
 
 	if (ppi->is_new_state) {
-		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
-		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
-				DSPOR(ppi)->logAnnounceInterval);
+		pp_timeout_set(ppi, PP_TO_SYNC_SEND);
+		pp_timeout_set(ppi, PP_TO_REQUEST);
+		pp_timeout_set(ppi, PP_TO_ANN_SEND);
 
 		/* Send an announce immediately, when becomes master */
 		if ((e = pp_master_issue_announce(ppi)) < 0)
 			goto out;
 	}
 
-	if (pp_timeout_z(ppi, PP_TO_SYNC)) {
+	if (pp_timeout_z(ppi, PP_TO_SYNC_SEND)) {
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
+		pp_timeout_set(ppi, PP_TO_SYNC_SEND);
 
 		if ((e = pp_master_issue_sync_followup(ppi) < 0))
 			goto out;
 
 	}
 
-	if (pp_timeout_z(ppi, PP_TO_ANN_INTERVAL)) {
+	if (pp_timeout_z(ppi, PP_TO_ANN_SEND)) {
 		if ((e = pp_master_issue_announce(ppi) < 0))
 			goto out;
 
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
-				DSPOR(ppi)->logAnnounceInterval);
+		pp_timeout_set(ppi, PP_TO_ANN_SEND);
 	}
 
 	/* when the clock is using peer-delay, the muster mast send it too */
@@ -105,8 +102,7 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->t3 = ppi->last_snt_time;
 
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
+		pp_timeout_set(ppi, PP_TO_REQUEST);
 	}
 
 	if (plen == 0)
@@ -204,8 +200,8 @@ out:
 		break;
 	}
 
-	d1 = pp_ms_to_timeout(ppi, PP_TO_ANN_INTERVAL);
-	d2 = pp_ms_to_timeout(ppi, PP_TO_SYNC);
+	d1 = pp_ms_to_timeout(ppi, PP_TO_ANN_SEND);
+	d2 = pp_ms_to_timeout(ppi, PP_TO_SYNC_SEND);
 	ppi->next_delay = d1 < d2 ? d1 : d2;
 	return e;
 

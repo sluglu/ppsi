@@ -32,8 +32,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 		pp_timeout_restart_annrec(ppi);
 
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
+		pp_timeout_set(ppi, PP_TO_REQUEST);
 	}
 
 	if (plen == 0)
@@ -152,8 +151,7 @@ out:
 		ppi->t3 = ppi->last_snt_time;
 
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
+		pp_timeout_set(ppi, PP_TO_REQUEST);
 	}
 
 	switch(e) {

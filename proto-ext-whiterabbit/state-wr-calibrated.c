@@ -19,7 +19,7 @@ int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgSignaling wrsig_msg;
 
 	if (ppi->is_new_state)
-		pp_timeout_set(ppi, PP_TO_EXT_0, wrp->wrStateTimeout);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->wrStateTimeout);
 
 	if (pp_timeout_z(ppi, PP_TO_EXT_0)) {
 		/*

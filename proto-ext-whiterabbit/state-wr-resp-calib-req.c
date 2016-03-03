@@ -31,7 +31,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (enable) { /* first or retry */
 		if (send_pattern)
 			wrp->ops->calib_pattern_enable(ppi, 0, 0, 0);
-		pp_timeout_set(ppi, PP_TO_EXT_0,
+		__pp_timeout_set(ppi, PP_TO_EXT_0,
 			       wrp->otherNodeCalPeriod / 1000);
 	}
 

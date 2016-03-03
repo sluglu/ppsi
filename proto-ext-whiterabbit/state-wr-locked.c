@@ -30,8 +30,7 @@ int wr_locked(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (sendmsg) {
-		pp_timeout_set(ppi, PP_TO_EXT_0,
-			       wrp->wrStateTimeout);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->wrStateTimeout);
 		e = msg_issue_wrsig(ppi, LOCKED);
 	}
 

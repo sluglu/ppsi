@@ -22,8 +22,7 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (ppi->is_new_state) {
 		pp_timeout_restart_annrec(ppi);
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
+		pp_timeout_set(ppi, PP_TO_REQUEST);
 	}
 
 	/* when the clock is using peer-delay, listening must send it too */
@@ -34,8 +33,7 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->t3 = ppi->last_snt_time;
 
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
+		pp_timeout_set(ppi, PP_TO_REQUEST);
 	}
 
 	if (plen == 0)

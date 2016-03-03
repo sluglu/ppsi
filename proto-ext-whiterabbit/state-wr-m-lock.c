@@ -31,7 +31,7 @@ int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (sendmsg) {
 		e = msg_issue_wrsig(ppi, LOCK);
-		pp_timeout_set(ppi, PP_TO_EXT_0, WR_M_LOCK_TIMEOUT_MS);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_M_LOCK_TIMEOUT_MS);
 	}
 
 	if (plen == 0)

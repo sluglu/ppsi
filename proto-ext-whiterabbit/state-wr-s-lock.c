@@ -27,7 +27,7 @@ int wr_s_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (enable) {
 		wrp->ops->locking_enable(ppi);
-		pp_timeout_set(ppi, PP_TO_EXT_0, WR_S_LOCK_TIMEOUT_MS);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_S_LOCK_TIMEOUT_MS);
 	}
 
 	if (wrp->ops->locking_poll(ppi, 0) == WR_SPLL_READY) {

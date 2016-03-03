@@ -30,8 +30,7 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (sendmsg) {
-		pp_timeout_set(ppi, PP_TO_EXT_0,
-			       wrp->calPeriod);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->calPeriod);
 		e = msg_issue_wrsig(ppi, CALIBRATE);
 		wrp->wrPortState = WR_PORT_CALIBRATION_0;
 		if (wrp->calibrated)

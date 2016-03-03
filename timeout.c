@@ -6,40 +6,66 @@
  */
 #include <ppsi/ppsi.h>
 
-#define N(n) [n] = #n
-
-static char *timeout_names[__PP_TO_ARRAY_SIZE] __attribute__((used)) = {
-	N(PP_TO_REQUEST),
-	N(PP_TO_SYNC),
-	N(PP_TO_ANN_RECEIPT),
-	N(PP_TO_ANN_INTERVAL),
-	N(PP_TO_FAULTY),
-	N(PP_TO_EXT_0),
-	N(PP_TO_EXT_1),
+struct timeout_config {
+	char *name;
+	int isrand;
+	int value;
 };
 
-/*
- * Log means messages
- */
+/* most timeouts have a static configuration. Save it here */
+static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
+	[PP_TO_REQUEST] =	{"REQUEST",	1,},
+	[PP_TO_SYNC_SEND] =	{"SYNC_SEND",	1,},
+	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	0,},
+	[PP_TO_ANN_SEND] =	{"ANN_SEND",	1,},
+	[PP_TO_FAULTY] =	{"FAULTY",	0, 4000},
+	/* extension timeouts are explicitly set to a value */
+};
+
+/* Init fills the timeout values; they are not changed after program startup */
+void pp_timeout_init(struct pp_instance *ppi)
+{
+	struct DSPort *port = ppi->portDS;
+
+	to_configs[PP_TO_REQUEST].value =
+		port->logMinDelayReqInterval;
+	to_configs[PP_TO_SYNC_SEND].value =
+		port->logSyncInterval;
+	to_configs[PP_TO_ANN_RECEIPT].value = 1000 * (
+		port->announceReceiptTimeout << port->logAnnounceInterval);
+	to_configs[PP_TO_ANN_SEND].value = port->logAnnounceInterval;
+}
+
 static void pp_timeout_log(struct pp_instance *ppi, int index)
 {
-	pp_diag(ppi, time, 1, "timeout expired: %s\n", timeout_names[index]);
+	pp_diag(ppi, time, 1, "timeout expired: %s\n",
+		to_configs[index].name);
+}
+
+
+void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
+{
+	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
 }
 
 /*
- * And "rand" means logarithm...
- *
  * Randomize a timeout. We are required to fit between 70% and 130%
  * of the value for 90% of the time, at least. But making it "almost
  * exact" is bad in a big network. So randomize between 80% and 120%:
  * constant part is 80% and variable is 40%.
  */
 
-void pp_timeout_rand(struct pp_instance *ppi, int index, int logval)
+void pp_timeout_set(struct pp_instance *ppi, int index)
 {
 	static uint32_t seed;
 	uint32_t rval;
 	int millisec;
+	int logval = to_configs[index].value;
+
+	if (!to_configs[index].isrand){
+		__pp_timeout_set(ppi, index, logval); /* not a logval */
+		return;
+	}
 
 	if (!seed) {
 		uint32_t *p;
@@ -61,13 +87,7 @@ void pp_timeout_rand(struct pp_instance *ppi, int index, int logval)
 	millisec = (1 << logval) * 400; /* This is 40% of the nominal value */
 	millisec = (millisec * 2) + rval % millisec;
 
-	pp_timeout_set(ppi, index, millisec);
-}
-
-void pp_timeout_set(struct pp_instance *ppi, int index,
-				  int millisec)
-{
-	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
+	__pp_timeout_set(ppi, index, millisec);
 }
 
 void pp_timeout_clr(struct pp_instance *ppi, int index)
@@ -110,8 +130,5 @@ int pp_ms_to_timeout(struct pp_instance *ppi, int index)
 /* called several times, only sets a timeout, so inline it here */
 void pp_timeout_restart_annrec(struct pp_instance *ppi)
 {
-	/* This timeout is a number of the announce interval lapses */
-	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT,
-		       ((DSPOR(ppi)->announceReceiptTimeout) <<
-			DSPOR(ppi)->logAnnounceInterval) * 1000);
+	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 }

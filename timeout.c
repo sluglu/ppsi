@@ -105,9 +105,8 @@ void pp_timeout_setall(struct pp_instance *ppi)
 
 int pp_timeout(struct pp_instance *ppi, int index)
 {
-	int ret = ppi->timeouts[index] &&
-		time_after_eq(ppi->t_ops->calc_timeout(ppi, 0),
-			      ppi->timeouts[index]);
+	int ret = time_after_eq(ppi->t_ops->calc_timeout(ppi, 0),
+				ppi->timeouts[index]);
 
 	if (ret)
 		pp_timeout_log(ppi, index);
@@ -118,9 +117,6 @@ int pp_timeout(struct pp_instance *ppi, int index)
 int pp_ms_to_timeout(struct pp_instance *ppi, int index)
 {
 	signed long ret;
-
-	if (!ppi->timeouts[index]) /* not pending, nothing to wait for */
-		return 0;
 
 	ret = ppi->timeouts[index] - ppi->t_ops->calc_timeout(ppi, 0);
 	return ret <= 0 ? 0 : ret;

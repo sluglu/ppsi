@@ -197,7 +197,6 @@ struct pp_time_operations {
 	int (*adjust_offset)(struct pp_instance *ppi, long offset_ns);
 	int (*adjust_freq)(struct pp_instance *ppi, long freq_ppb);
 	int (*init_servo)(struct pp_instance *ppi);
-	/* calc_timeout cannot return zero */
 	unsigned long (*calc_timeout)(struct pp_instance *ppi, int millisec);
 };
 

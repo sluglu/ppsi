@@ -157,6 +157,33 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 	return 0;
 }
 
+/* used to make basic checks before the individual state is called */
+static int type_length[__PP_NR_MESSAGES_TYPES] = {
+	[PPM_SYNC]		= PP_SYNC_LENGTH,
+	[PPM_DELAY_REQ]		= PP_DELAY_REQ_LENGTH,
+	[PPM_PDELAY_REQ]	= PP_PDELAY_REQ_LENGTH,
+	[PPM_PDELAY_RESP]	= PP_PDELAY_RESP_LENGTH,
+	[PPM_FOLLOW_UP]		= PP_FOLLOW_UP_LENGTH,
+	[PPM_DELAY_RESP]	= PP_DELAY_RESP_LENGTH,
+	[PPM_PDELAY_R_FUP]	= PP_PDELAY_R_FUP_LENGTH,
+	[PPM_ANNOUNCE]		= PP_ANNOUNCE_LENGTH,
+	[PPM_SIGNALING]		=   PP_HEADER_LENGTH,
+	[PPM_MANAGEMENT]	= PP_MANAGEMENT_LENGTH,
+};
+
+static int fsm_unpack_verify_frame(struct pp_instance *ppi,
+				   uint8_t *packet, int plen)
+{
+	int msgtype;
+
+	msgtype = packet[0] & 0xf;
+	if (msgtype >= __PP_NR_MESSAGES_TYPES || plen < type_length[msgtype])
+		return 1; /* too short */
+	if ((packet[1] & 0xf) != 2)
+		return 1; /* wrong ptp version */
+	return msg_unpack_header(ppi, packet, plen);
+}
+
 /*
  * This is the state machine code. i.e. the extension-independent
  * function that runs the machine. Errors are managed and reported
@@ -190,13 +217,15 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	}
 
 	/*
-	 * Since all ptp frames have the same header, parse it now.
+	 * Since all ptp frames have the same header, parse it now,
+	 * and centralize some error check.
 	 * In case of error continue without a frame, so the current
 	 * ptp state can update ppi->next_delay and return a proper value
 	 */
-	if (plen && msg_unpack_header(ppi, packet, plen)) {
-		packet = NULL;
+	err = fsm_unpack_verify_frame(ppi, packet, plen);
+	if (err) {
 		plen = 0;
+		packet = NULL;
 	}
 	if (!plen)
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;

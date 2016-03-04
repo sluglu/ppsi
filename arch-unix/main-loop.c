@@ -116,12 +116,6 @@ void unix_main_loop(struct pp_globals *ppg)
 						errno, strerror(errno));
 					continue;
 				}
-				if (i < PP_MINIMUM_LENGTH) {
-					pp_diag(ppi, frames, 1,
-						"Short frame: %d < %d\n", i,
-						PP_MINIMUM_LENGTH);
-					continue;
-				}
 
 				tmp_d = pp_state_machine(ppi, ppi->rx_ptp,
 					i - ppi->rx_offset);

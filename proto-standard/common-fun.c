@@ -144,9 +144,6 @@ static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 				 int len)
 {
-	if (len < PP_ANNOUNCE_LENGTH)
-		return -1;
-
 	/* st_com_add_foreign takes care of announce unpacking */
 	st_com_add_foreign(ppi, buf);
 
@@ -168,8 +165,6 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
 
-	if (len < PP_SYNC_LENGTH)
-		return -1;
 	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT))
 		return 0;
 
@@ -199,9 +194,6 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	MsgPDelayResp resp;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	int e = 0;
-
-	if (len < PP_PDELAY_RESP_LENGTH)
-		return -1;
 
 	msg_unpack_pdelay_resp(buf, &resp);
 
@@ -294,9 +286,6 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 {
 	int e = 0;
 
-	if (len < PP_PDELAY_REQ_LENGTH)
-		return -1;
-
 	if (pp_hooks.handle_preq)
 		e = pp_hooks.handle_preq(ppi);
 	if (e)
@@ -317,9 +306,6 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	TimeInternal cField;
 
 	MsgHeader *hdr = &ppi->received_ptp_header;
-
-	if (len < PP_FOLLOW_UP_LENGTH)
-		return -1;
 
 	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 		pp_error("%s: Follow up message is not from current parent\n",
@@ -367,9 +353,6 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 int st_com_master_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 				  int len)
 {
-	if (len < PP_ANNOUNCE_LENGTH)
-		return -1;
-
 	pp_diag(ppi, bmc, 2, "Announce message from another foreign master\n");
 
 	st_com_add_foreign(ppi, buf);

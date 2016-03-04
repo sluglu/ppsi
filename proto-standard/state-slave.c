@@ -35,9 +35,6 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgDelayResp resp;
 
-	if (plen < PP_DELAY_RESP_LENGTH)
-		return 0;
-
 	msg_unpack_delay_resp(pkt, &resp);
 
 	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,

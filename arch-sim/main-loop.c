@@ -84,12 +84,6 @@ void sim_main_loop(struct pp_globals *ppg)
 						PP_MAX_FRAME_LENGTH - 4,
 						&ppi->last_rcv_time);
 
-			if (i < PP_MINIMUM_LENGTH) {
-				pp_diag(ppi, frames, 1,	"Error or short frame: "
-					"%d < %d\n", i,	PP_MINIMUM_LENGTH);
-				continue;
-			}
-
 			sim_set_global_DS(ppi);
 			tmp_ns = 1000LL * 1000LL * pp_state_machine(ppi,
 					ppi->rx_ptp, i - ppi->rx_offset);

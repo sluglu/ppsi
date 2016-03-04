@@ -103,11 +103,6 @@ void pp_timeout_setall(struct pp_instance *ppi)
 	__pp_timeout_set(ppi, PP_TO_ANN_SEND, 20);
 }
 
-void pp_timeout_clr(struct pp_instance *ppi, int index)
-{
-	ppi->timeouts[index] = 0;
-}
-
 int pp_timeout(struct pp_instance *ppi, int index)
 {
 	int ret = ppi->timeouts[index] &&

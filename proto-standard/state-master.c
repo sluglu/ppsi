@@ -65,9 +65,6 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	else /* please check commit '6d7bf7e3' about below, I'm not sure */
 		pp_timeout_set(ppi, PP_TO_REQUEST);
 
-	if (plen == 0)
-		goto out;
-
 	/*
 	 * An extension can do special treatment of this message type,
 	 * possibly returning error or eating the message by returning
@@ -86,7 +83,7 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	/*
 	 * The management of messages is now table-driven
 	 */
-	if (plen && msgtype < ARRAY_SIZE(actions)
+	if (msgtype < ARRAY_SIZE(actions)
 	    && actions[msgtype]) {
 		e = actions[msgtype](ppi, pkt, plen);
 	} else {

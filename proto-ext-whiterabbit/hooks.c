@@ -86,7 +86,8 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 	MsgSignaling wrsig_msg;
 	TimeInternal *time = &ppi->last_rcv_time;
 
-	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	if (msgtype != PPM_NO_MESSAGE)
+		pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	switch (msgtype) {
 

@@ -17,9 +17,6 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		e  = pp_lib_may_issue_request(ppi);
 
-	if (plen == 0)
-		goto no_incoming_msg;
-
 	switch (ppi->received_ptp_header.messageType) {
 
 	case PPM_ANNOUNCE:
@@ -51,7 +48,6 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	}
 
-no_incoming_msg:
 	if (e == 0)
 		e = st_com_execute_slave(ppi);
 

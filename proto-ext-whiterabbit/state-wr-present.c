@@ -38,9 +38,6 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		e = msg_issue_wrsig(ppi, SLAVE_PRESENT);
 	}
 
-	if (plen == 0)
-		goto out;
-
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
 
 		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
@@ -50,7 +47,6 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			ppi->next_state = WRS_S_LOCK;
 	}
 
-out:
 	if (e == 0)
 		st_com_execute_slave(ppi);
 	else

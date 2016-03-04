@@ -198,6 +198,8 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 		packet = NULL;
 		plen = 0;
 	}
+	if (!plen)
+		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
 
 	state = ppi->state;
 

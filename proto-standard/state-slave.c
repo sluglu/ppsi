@@ -95,7 +95,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	/*
 	 * The management of messages is now table-driven
 	 */
-	if (plen && hdr->messageType < ARRAY_SIZE(actions)
+	if (hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
 		e = actions[hdr->messageType](ppi, pkt, plen);
 	} else {

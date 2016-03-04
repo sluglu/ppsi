@@ -227,7 +227,9 @@ extern void pp_timeout_set(struct pp_instance *ppi, int index);
 extern void pp_timeout_setall(struct pp_instance *ppi);
 extern int pp_timeout(struct pp_instance *ppi, int index)
 	__attribute__((warn_unused_result));
-extern int pp_ms_to_timeout(struct pp_instance *ppi, int index);
+extern int pp_next_delay_1(struct pp_instance *ppi, int i1);
+extern int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2);
+extern int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3);
 
 /* The channel for an instance must be created and possibly destroyed. */
 extern int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *opts);

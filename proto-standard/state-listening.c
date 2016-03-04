@@ -90,7 +90,7 @@ out:
 	if (e != 0)
 		ppi->next_state = PPS_FAULTY;
 
-	ppi->next_delay = pp_ms_to_timeout(ppi, PP_TO_ANN_RECEIPT);
+	ppi->next_delay = pp_next_delay_1(ppi, PP_TO_ANN_RECEIPT);
 
 	return 0;
 }

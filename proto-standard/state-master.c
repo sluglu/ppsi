@@ -11,7 +11,7 @@
 
 int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
-	int msgtype, d1, d2;
+	int msgtype;
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
@@ -23,6 +23,8 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	/* when the clock is using peer-delay, the muster mast send it too */
 	if (ppi->glbs->delay_mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
+	else
+		pp_timeout_set(ppi, PP_TO_REQUEST);
 
 	if (plen == 0)
 		goto out;
@@ -119,9 +121,8 @@ out:
 		break;
 	}
 
-	d1 = pp_ms_to_timeout(ppi, PP_TO_ANN_SEND);
-	d2 = pp_ms_to_timeout(ppi, PP_TO_SYNC_SEND);
-	ppi->next_delay = d1 < d2 ? d1 : d2;
+	ppi->next_delay = pp_next_delay_3(ppi,
+		PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
 	return e;
 
 out_fault:

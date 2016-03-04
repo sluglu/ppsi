@@ -17,7 +17,6 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgDelayResp resp;
 	MsgPDelayRespFollowUp respFllw;
-	int d1, d2;
 
 	if (ppi->is_new_state) {
 		memset(&ppi->t1, 0, sizeof(ppi->t1));
@@ -157,9 +156,7 @@ out:
 		pp_servo_init(ppi);
 		return e;
 	}
-	d1 = d2 = pp_ms_to_timeout(ppi, PP_TO_ANN_RECEIPT);
-	if (ppi->timeouts[PP_TO_REQUEST])
-		d2 = pp_ms_to_timeout(ppi, PP_TO_REQUEST);
-	ppi->next_delay = d1 < d2 ? d1 : d2;
+	ppi->next_delay = pp_next_delay_2(ppi,
+					  PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
 	return e;
 }

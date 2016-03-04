@@ -113,12 +113,42 @@ int pp_timeout(struct pp_instance *ppi, int index)
 	return ret;
 }
 
-/* how many ms to wait for the timeout to happen, for ppi->next_delay */
-int pp_ms_to_timeout(struct pp_instance *ppi, int index)
+/*
+ * How many ms to wait for the timeout to happen, for ppi->next_delay.
+ * It is not allowed for a timeout to not be pending
+ */
+int pp_next_delay_1(struct pp_instance *ppi, int i1)
 {
-	signed long ret;
+	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
+	signed long r1;
 
-	ret = ppi->timeouts[index] - ppi->t_ops->calc_timeout(ppi, 0);
-	return ret <= 0 ? 0 : ret;
+	r1 = ppi->timeouts[i1] - now;
+	return r1 < 0 ? 0 : r1;
 }
 
+int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2)
+{
+	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
+	signed long r1, r2;
+
+	r1 = ppi->timeouts[i1] - now;
+	r2 = ppi->timeouts[i2] - now;
+	if (r2 < r1)
+		r1 = r2;
+	return r1 < 0 ? 0 : r1;
+}
+
+int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3)
+{
+	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
+	signed long r1, r2, r3;
+
+	r1 = ppi->timeouts[i1] - now;
+	r2 = ppi->timeouts[i2] - now;
+	r3 = ppi->timeouts[i3] - now;
+	if (r2 < r1)
+		r1 = r2;
+	if (r3 < r1)
+		r1 = r3;
+	return r1 < 0 ? 0 : r1;
+}

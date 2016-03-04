@@ -71,7 +71,7 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	/*
 	 * An extension can do special treatment of this message type,
 	 * possibly returning error or eating the message by returning
-	 * PPM_NOTHING_TO_DO
+	 * PPM_NO_MESSAGE
 	 */
 	msgtype = ppi->received_ptp_header.messageType;
 	if (pp_hooks.master_msg)

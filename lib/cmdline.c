@@ -35,7 +35,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	/* {"-h", "run in End to End mode"}, -- we only support end-to-end */
 	/* {"-G", "run in gPTP mode (implies -e)"}, -- no peer-to-peer mode */
 	{"-g", "run as slave only"},
-	{"-p NUMBER", "specify priority1 attribute"},
 	{"-q NUMBER", "specify priority2 attribute"},
 	CMD_LINE_SEPARATOR,
 	{NULL, NULL}
@@ -104,10 +103,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 			/* Apply -g option globally, to each configured link */
 			for (j = 0; j < ppg->nlinks; j++)
 				INST(ppg, j)->role = PPSI_ROLE_SLAVE;
-			break;
-		case 'p':
-			a = argv[++i];
-			GOPTS(ppg)->prio1 = atoi(a);
 			break;
 		case 'q':
 			a = argv[++i];

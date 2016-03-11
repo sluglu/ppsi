@@ -254,6 +254,13 @@ static int f_prio1(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	return 0;
 }
 
+static int f_prio2(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(0);
+	GOPTS(ppg)->prio2 = arg->i;
+	return 0;
+}
+
 /* These are the tables for the parser */
 static struct pp_argname arg_proto[] = {
 	{"raw", PPSI_PROTO_RAW},
@@ -291,6 +298,7 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_announce_intvl, "announce-interval", ARG_INT},
 	{ f_sync_intvl, "sync-interval", ARG_INT},
 	{ f_prio1,	"priority1"    , ARG_INT},
+	{ f_prio2,	"priority2"    , ARG_INT},
 	{}
 };
 

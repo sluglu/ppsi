@@ -8,7 +8,7 @@
 #include <ppsi/ppsi.h>
 #include "ppsi-sim.h"
 
-static int f_ppm_real(int lineno, struct pp_globals *ppg,
+static int f_ppm_real(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
 	struct pp_instance *ppi_slave;
@@ -20,7 +20,7 @@ static int f_ppm_real(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_ppm_servo(int lineno, struct pp_globals *ppg,
+static int f_ppm_servo(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
 	struct pp_instance *ppi_slave;
@@ -32,7 +32,7 @@ static int f_ppm_servo(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_ofm(int lineno, struct pp_globals *ppg,
+static int f_ofm(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
 	struct pp_sim_time_instance *t_master, *t_slave;
@@ -45,7 +45,7 @@ static int f_ofm(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_init_time(int lineno, struct pp_globals *ppg,
+static int f_init_time(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
 	struct pp_sim_time_instance *t_inst;
@@ -57,8 +57,8 @@ static int f_init_time(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_fwd_t_prop(int lineno, struct pp_globals *ppg,
-			union pp_cfg_arg *arg)
+static int f_fwd_t_prop(struct pp_argline *l, int lineno,
+			struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	struct sim_ppi_arch_data *data;
 	data = SIM_PPI_ARCH(pp_sim_get_master(ppg));
@@ -66,8 +66,8 @@ static int f_fwd_t_prop(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_bckwd_t_prop(int lineno, struct pp_globals *ppg,
-			union pp_cfg_arg *arg)
+static int f_bckwd_t_prop(struct pp_argline *l, int lineno,
+			  struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	struct sim_ppi_arch_data *data;
 	data = SIM_PPI_ARCH(pp_sim_get_slave(ppg));
@@ -75,15 +75,15 @@ static int f_bckwd_t_prop(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_t_prop(int lineno, struct pp_globals *ppg,
-			union pp_cfg_arg *arg)
+static int f_t_prop(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		    union pp_cfg_arg *arg)
 {
-	f_fwd_t_prop(lineno, ppg, arg);
-	f_bckwd_t_prop(lineno, ppg, arg);
+	f_fwd_t_prop(l, lineno, ppg, arg);
+	f_bckwd_t_prop(l, lineno, ppg, arg);
 	return 0;
 }
 
-static int f_fwd_jit(int lineno, struct pp_globals *ppg,
+static int f_fwd_jit(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
 	struct sim_ppi_arch_data *data;
@@ -93,7 +93,7 @@ static int f_fwd_jit(int lineno, struct pp_globals *ppg,
 }
 
 
-static int f_bckwd_jit(int lineno, struct pp_globals *ppg,
+static int f_bckwd_jit(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
 	struct sim_ppi_arch_data *data;
@@ -102,15 +102,15 @@ static int f_bckwd_jit(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_jit(int lineno, struct pp_globals *ppg,
+static int f_jit(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
-	f_fwd_jit(lineno, ppg, arg);
-	f_bckwd_jit(lineno, ppg, arg);
+	f_fwd_jit(l, lineno, ppg, arg);
+	f_bckwd_jit(l, lineno, ppg, arg);
 	return 0;
 }
 
-static int f_iter(int lineno, struct pp_globals *ppg,
+static int f_iter(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 			union pp_cfg_arg *arg)
 {
 	SIM_PPG_ARCH(ppg)->sim_iter_max = arg->i;

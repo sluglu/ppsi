@@ -8,13 +8,15 @@
 #include <ppsi/ppsi.h>
 
 
-static int f_rxdrop(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_rxdrop(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		    union pp_cfg_arg *arg)
 {
 	ppg->rxdrop = arg->i;
 	return 0;
 }
 
-static int f_txdrop(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_txdrop(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		    union pp_cfg_arg *arg)
 {
 	ppg->txdrop = arg->i;
 	return 0;

@@ -22,7 +22,8 @@ static inline struct pp_instance *CUR_PPI(struct pp_globals *ppg)
 }
 
 /* A "port" (or "link", for compatibility) line creates or uses a pp instance */
-static int f_port(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_port(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		  union pp_cfg_arg *arg)
 {
 	int i;
 
@@ -62,7 +63,8 @@ static int f_port(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 		return -1; \
 	}})
 
-static int f_if(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_if(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		union pp_cfg_arg *arg)
 {
 	CHECK_PPI(1);
 	strcpy(CUR_PPI(ppg)->cfg.iface_name, arg->s);
@@ -70,21 +72,24 @@ static int f_if(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 }
 
 /* The following ones are so similar. Bah... set a pointer somewhere? */
-static int f_proto(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_proto(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		   union pp_cfg_arg *arg)
 {
 	CHECK_PPI(1);
 	CUR_PPI(ppg)->proto = arg->i;
 	return 0;
 }
 
-static int f_role(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_role(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		  union pp_cfg_arg *arg)
 {
 	CHECK_PPI(1);
 	CUR_PPI(ppg)->role = arg->i;
 	return 0;
 }
 
-static int f_ext(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_ext(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		 union pp_cfg_arg *arg)
 {
 	CHECK_PPI(1);
 	CUR_PPI(ppg)->cfg.ext = arg->i;
@@ -92,21 +97,24 @@ static int f_ext(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 }
 
 /* The following two are identical as well. I really need a pointer... */
-static int f_class(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_class(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		   union pp_cfg_arg *arg)
 {
 	CHECK_PPI(0);
 	GOPTS(ppg)->clock_quality.clockClass = arg->i;
 	return 0;
 }
 
-static int f_accuracy(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_accuracy(struct pp_argline *l, int lineno,
+		      struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	CHECK_PPI(0);
 	GOPTS(ppg)->clock_quality.clockAccuracy = arg->i;
 	return 0;
 }
 
-static int f_variance(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_variance(struct pp_argline *l, int lineno,
+		      struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	CHECK_PPI(0);
 	GOPTS(ppg)->clock_quality.offsetScaledLogVariance = arg->i;
@@ -114,7 +122,8 @@ static int f_variance(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 }
 
 /* Diagnostics can be per-port or global */
-static int f_diag(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_diag(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		  union pp_cfg_arg *arg)
 {
 	unsigned long level = pp_diag_parse(arg->s);
 
@@ -126,7 +135,8 @@ static int f_diag(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 }
 
 /* VLAN support is per-port, and it depends on configuration itmes */
-static int f_vlan(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_vlan(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		  union pp_cfg_arg *arg)
 {
 	struct pp_instance *ppi = CUR_PPI(ppg);
 	int i, n, *v;
@@ -190,7 +200,8 @@ static int f_vlan(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	return 0;
 }
 
-static int f_servo_pi(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_servo_pi(struct pp_argline *l, int lineno,
+		      struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	int n1, n2;
 
@@ -204,7 +215,8 @@ static int f_servo_pi(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	return 0;
 }
 
-static int f_latency(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_latency(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		     union pp_cfg_arg *arg)
 {
 	int n1, n2;
 
@@ -215,15 +227,16 @@ static int f_latency(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	return 0;
 }
 
-static int f_domain(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_domain(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		    union pp_cfg_arg *arg)
 {
 	CHECK_PPI(0);
 	GOPTS(ppg)->domain_number = arg->i;
 	return 0;
 }
 
-static int f_announce_intvl(int lineno, struct pp_globals *ppg,
-			    union pp_cfg_arg *arg)
+static int f_announce_intvl(struct pp_argline *l, int lineno,
+			    struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	int i = arg->i;
 
@@ -237,8 +250,8 @@ static int f_announce_intvl(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_sync_intvl(int lineno, struct pp_globals *ppg,
-			union pp_cfg_arg *arg)
+static int f_sync_intvl(struct pp_argline *l, int lineno,
+			struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	int i = arg->i;
 
@@ -247,14 +260,16 @@ static int f_sync_intvl(int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_prio1(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_prio1(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		   union pp_cfg_arg *arg)
 {
 	CHECK_PPI(0);
 	GOPTS(ppg)->prio1 = arg->i;
 	return 0;
 }
 
-static int f_prio2(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+static int f_prio2(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+		   union pp_cfg_arg *arg)
 {
 	CHECK_PPI(0);
 	GOPTS(ppg)->prio2 = arg->i;
@@ -502,7 +517,7 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		break;
 	}
 
-	if (l->f(lineno, ppg, &cfg_arg))
+	if (l->f(l, lineno, ppg, &cfg_arg))
 		return -1;
 
 	return 0;

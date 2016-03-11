@@ -308,6 +308,8 @@ struct pp_argline {
 	char *keyword;	/* Each line starts with a keyword */
 	enum pp_argtype t;
 	struct pp_argname *args;
+	size_t field_offset;
+	int needs_port;
 };
 
 /* Both the architecture and the extension can provide config arguments */

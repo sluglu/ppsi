@@ -106,6 +106,13 @@ static int f_accuracy(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	return 0;
 }
 
+static int f_variance(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(0);
+	GOPTS(ppg)->clock_quality.offsetScaledLogVariance = arg->i;
+	return 0;
+}
+
 /* Diagnostics can be per-port or global */
 static int f_diag(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
@@ -271,6 +278,7 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_diag,	"diagnostics",	ARG_STR},
 	{ f_class,	"clock-class",	ARG_INT},
 	{ f_accuracy,	"clock-accuracy", ARG_INT},
+	{ f_variance,   "clock-allen-variance", ARG_INT},
 	{ f_servo_pi,	"servo-pi",	ARG_INT2},
 	{ f_latency,	"latency",	ARG_INT2},
 	{ f_domain,	"domain-number", ARG_INT},

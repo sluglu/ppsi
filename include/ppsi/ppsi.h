@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <ppsi/lib.h>
 #include <ppsi/ieee1588_types.h>
 #include <ppsi/constants.h>

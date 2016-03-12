@@ -89,56 +89,6 @@ static int f_if(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-/* The following ones are so similar. Bah... set a pointer somewhere? */
-static int f_proto(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		   union pp_cfg_arg *arg)
-{
-	CHECK_PPI(1);
-	CUR_PPI(ppg)->proto = arg->i;
-	return 0;
-}
-
-static int f_role(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		  union pp_cfg_arg *arg)
-{
-	CHECK_PPI(1);
-	CUR_PPI(ppg)->role = arg->i;
-	return 0;
-}
-
-static int f_ext(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		 union pp_cfg_arg *arg)
-{
-	CHECK_PPI(1);
-	CUR_PPI(ppg)->cfg.ext = arg->i;
-	return 0;
-}
-
-/* The following two are identical as well. I really need a pointer... */
-static int f_class(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		   union pp_cfg_arg *arg)
-{
-	CHECK_PPI(0);
-	GOPTS(ppg)->clock_quality.clockClass = arg->i;
-	return 0;
-}
-
-static int f_accuracy(struct pp_argline *l, int lineno,
-		      struct pp_globals *ppg, union pp_cfg_arg *arg)
-{
-	CHECK_PPI(0);
-	GOPTS(ppg)->clock_quality.clockAccuracy = arg->i;
-	return 0;
-}
-
-static int f_variance(struct pp_argline *l, int lineno,
-		      struct pp_globals *ppg, union pp_cfg_arg *arg)
-{
-	CHECK_PPI(0);
-	GOPTS(ppg)->clock_quality.offsetScaledLogVariance = arg->i;
-	return 0;
-}
-
 /* Diagnostics can be per-port or global */
 static int f_diag(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		  union pp_cfg_arg *arg)
@@ -245,14 +195,6 @@ static int f_latency(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-static int f_domain(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		    union pp_cfg_arg *arg)
-{
-	CHECK_PPI(0);
-	GOPTS(ppg)->domain_number = arg->i;
-	return 0;
-}
-
 static int f_announce_intvl(struct pp_argline *l, int lineno,
 			    struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
@@ -265,32 +207,6 @@ static int f_announce_intvl(struct pp_argline *l, int lineno,
 			  "forced to %i\n", lineno, arg->i, i);
 	}
 	GOPTS(ppg)->announce_intvl = i;
-	return 0;
-}
-
-static int f_sync_intvl(struct pp_argline *l, int lineno,
-			struct pp_globals *ppg, union pp_cfg_arg *arg)
-{
-	int i = arg->i;
-
-	CHECK_PPI(0);
-	GOPTS(ppg)->sync_intvl = i;
-	return 0;
-}
-
-static int f_prio1(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		   union pp_cfg_arg *arg)
-{
-	CHECK_PPI(0);
-	GOPTS(ppg)->prio1 = arg->i;
-	return 0;
-}
-
-static int f_prio2(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		   union pp_cfg_arg *arg)
-{
-	CHECK_PPI(0);
-	GOPTS(ppg)->prio2 = arg->i;
 	return 0;
 }
 
@@ -317,21 +233,87 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_port,	"port",		ARG_STR},
 	{ f_port,	"link",		ARG_STR}, /* old name for "port" */
 	{ f_if,		"iface",	ARG_STR},
-	{ f_proto,	"proto",	ARG_NAMES,	arg_proto},
-	{ f_role,	"role",		ARG_NAMES,	arg_role},
-	{ f_ext,	"extension",	ARG_NAMES,	arg_ext},
+	{
+		.f = f_simple_int,
+		.keyword = "proto",
+		.t = ARG_NAMES,
+		.args = arg_proto,
+		.field_offset = offsetof(struct pp_instance, proto),
+		.needs_port = 1
+	},
+	{
+		.f = f_simple_int,
+		.keyword = "role",
+		.t = ARG_NAMES,
+		.args = arg_role,
+		.field_offset = offsetof(struct pp_instance, role),
+		.needs_port = 1,
+	},
+	{
+		.f = f_simple_int,
+		.keyword = "extension",
+		.t = ARG_NAMES,
+		.args = arg_ext,
+		.field_offset = offsetof(struct pp_instance, cfg.ext),
+		.needs_port = 1,
+	},
 	{ f_vlan,	"vlan",		ARG_STR},
 	{ f_diag,	"diagnostics",	ARG_STR},
-	{ f_class,	"clock-class",	ARG_INT},
-	{ f_accuracy,	"clock-accuracy", ARG_INT},
-	{ f_variance,   "clock-allen-variance", ARG_INT},
+	{
+		.f = f_simple_int,
+		.keyword = "clock-class",
+		.t = ARG_INT,
+		.field_offset = offsetof(struct pp_runtime_opts,
+					 clock_quality.clockClass),
+		.needs_port = 0,
+	},
+	{
+		.f = f_simple_int,
+		.keyword = "clock-accuracy",
+		.t = ARG_INT,
+		.field_offset = offsetof(struct pp_runtime_opts,
+					 clock_quality.clockAccuracy),
+		.needs_port = 0,
+	},
+	{
+		.f = f_simple_int,
+		.keyword = "clock-allen-variance",
+		.t = ARG_INT,
+		.field_offset = offsetof(struct pp_runtime_opts,
+					 clock_quality.offsetScaledLogVariance),
+		.needs_port = 0,
+	},
 	{ f_servo_pi,	"servo-pi",	ARG_INT2},
 	{ f_latency,	"latency",	ARG_INT2},
-	{ f_domain,	"domain-number", ARG_INT},
+	{
+		.f = f_simple_int,
+		.keyword = "domain-number",
+		.t = ARG_INT,
+		.field_offset = offsetof(struct pp_runtime_opts, domain_number),
+		.needs_port = 0,
+	},
 	{ f_announce_intvl, "announce-interval", ARG_INT},
-	{ f_sync_intvl, "sync-interval", ARG_INT},
-	{ f_prio1,	"priority1"    , ARG_INT},
-	{ f_prio2,	"priority2"    , ARG_INT},
+	{
+		.f = f_simple_int,
+		.keyword = "sync-interval",
+		.t = ARG_INT,
+		.field_offset = offsetof(struct pp_runtime_opts, sync_intvl),
+		.needs_port = 0,
+	},
+	{
+		.f = f_simple_int,
+		.keyword = "priority1",
+		.t = ARG_INT,
+		.field_offset = offsetof(struct pp_runtime_opts, prio1),
+		.needs_port = 0,
+	},
+	{
+		.f = f_simple_int,
+		.keyword = "priority2",
+		.t = ARG_INT,
+		.field_offset = offsetof(struct pp_runtime_opts, prio2),
+		.needs_port = 0,
+	},
 	{}
 };
 

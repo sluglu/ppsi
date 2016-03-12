@@ -63,6 +63,24 @@ static int f_port(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		return -1; \
 	}})
 
+static inline void ASSIGN_INT_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    int v)
+{
+	if (l->needs_port)
+		*(int *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
+	else
+		*(int *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+}
+
+int f_simple_int(struct pp_argline *l, int lineno,
+		 struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(l->needs_port);
+	ASSIGN_INT_FIELD(l, ppg, arg->i);
+	return 0;
+}
+
 static int f_if(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		union pp_cfg_arg *arg)
 {

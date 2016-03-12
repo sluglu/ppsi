@@ -319,6 +319,8 @@ extern struct pp_argline pp_ext_arglines[];
 /* Note: config_string modifies the string it receives */
 extern int pp_config_string(struct pp_globals *ppg, char *s);
 extern int pp_config_file(struct pp_globals *ppg, int force, char *fname);
+extern int f_simple_int(struct pp_argline *l, int lineno,
+			struct pp_globals *ppg, union pp_cfg_arg *arg);
 
 #define PPSI_PROTO_RAW		0
 #define PPSI_PROTO_UDP		1

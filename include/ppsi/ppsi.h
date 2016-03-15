@@ -313,6 +313,44 @@ struct pp_argline {
 	int needs_port;
 };
 
+/* Below are macros for setting up pp_argline arrays */
+#define OFFS(s,f) offsetof(struct s, f)
+
+#define OPTION(s,func,k,typ,a,field,i)					\
+	{								\
+		.f = func,						\
+		.keyword = k,						\
+		.t = typ,						\
+		.args = a,						\
+		.field_offset = OFFS(s,field),				\
+		.needs_port = i,					\
+	}
+
+#define LEGACY_OPTION(func,k,typ)					\
+	{								\
+		.f = func,						\
+		.keyword = k,						\
+		.t = typ,						\
+	}
+
+#define INST_OPTION(func,k,t,a,field)					\
+	OPTION(pp_instance,func,k,t,a,field,1)
+
+#define INST_OPTION_INT(k,t,a,field)					\
+	INST_OPTION(f_simple_int,k,t,a,field)
+
+#define RT_OPTION(func,k,t,a,field)					\
+	OPTION(pp_runtime_opts,func,k,t,a,field,0)
+
+#define GLOB_OPTION(func,k,t,a,field)					\
+	OPTION(pp_globals,func,k,t,a,field,0)
+
+#define RT_OPTION_INT(k,t,a,field)					\
+	RT_OPTION(f_simple_int,k,t,a,field)
+
+#define GLOB_OPTION_INT(k,t,a,field)					\
+	GLOB_OPTION(f_simple_int,k,t,a,field)
+
 /* Both the architecture and the extension can provide config arguments */
 extern struct pp_argline pp_arch_arglines[];
 extern struct pp_argline pp_ext_arglines[];

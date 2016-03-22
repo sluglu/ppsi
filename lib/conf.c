@@ -241,7 +241,7 @@ static struct pp_argline pp_global_arglines[] = {
 	RT_OPTION_INT("clock-class", ARG_INT, NULL, clock_quality.clockClass),
 	RT_OPTION_INT("clock-accuracy", ARG_INT, NULL,
 		      clock_quality.clockAccuracy),
-	RT_OPTION_INT("clock-allen-variance", ARG_INT, NULL,
+	RT_OPTION_INT("clock-allan-variance", ARG_INT, NULL,
 		      clock_quality.offsetScaledLogVariance),
 	LEGACY_OPTION(f_servo_pi, "servo-pi", ARG_INT2),
 	LEGACY_OPTION(f_latency, "latency", ARG_INT2),

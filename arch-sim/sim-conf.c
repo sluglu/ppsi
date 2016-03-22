@@ -118,17 +118,17 @@ static int f_iter(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 }
 
 struct pp_argline pp_arch_arglines[] = {
-	{f_ppm_real,	"sim_ppm_real",		ARG_INT},
-	{f_ppm_servo,	"sim_init_ppm_servo",	ARG_INT},
-	{f_ofm,		"sim_init_ofm",		ARG_TIME},
-	{f_init_time,	"sim_init_master_time",	ARG_TIME},
-	{f_t_prop,	"sim_t_prop_ns",	ARG_INT},
-	{f_fwd_t_prop,	"sim_fwd_t_prop_ns",	ARG_INT},
-	{f_bckwd_t_prop,"sim_bckwd_t_prop_ns",	ARG_INT},
-	{f_jit,		"sim_jit_ns",		ARG_INT},
-	{f_fwd_jit,	"sim_fwd_jit_ns",	ARG_INT},
-	{f_bckwd_jit,	"sim_bckwd_jit_ns",	ARG_INT},
-	{f_iter,	"sim_iter_max",		ARG_TIME},
+	LEGACY_OPTION(f_ppm_real,	"sim_ppm_real",		ARG_INT),
+	LEGACY_OPTION(f_ppm_servo,	"sim_init_ppm_servo",	ARG_INT),
+	LEGACY_OPTION(f_ofm,		"sim_init_ofm",		ARG_TIME),
+	LEGACY_OPTION(f_init_time,	"sim_init_master_time", ARG_TIME),
+	LEGACY_OPTION(f_t_prop,		"sim_t_prop_ns",	ARG_INT),
+	LEGACY_OPTION(f_fwd_t_prop,	"sim_fwd_t_prop_ns",	ARG_INT),
+	LEGACY_OPTION(f_bckwd_t_prop,	"sim_bckwd_t_prop",	ARG_INT),
+	LEGACY_OPTION(f_jit,		"sim_jit_ns",		ARG_INT),
+	LEGACY_OPTION(f_fwd_jit,	"sim_fwd_jit_ns",	ARG_INT),
+	LEGACY_OPTION(f_bckwd_jit,	"sim_bckwd_jit_ns",	ARG_INT),
+	LEGACY_OPTION(f_iter,		"sim_iter_max",		ARG_TIME),
 	{}
 };
 

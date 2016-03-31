@@ -276,7 +276,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
 		       + s->delta_rx_m + s->delta_rx_s;
 
-	if ((signed)s->picos_mu < (signed)big_delta_fix) {
+	if ((int64_t)s->picos_mu < (int64_t)big_delta_fix) {
 		/* avoid negatives in calculations */
 		s->picos_mu = big_delta_fix;
 	}

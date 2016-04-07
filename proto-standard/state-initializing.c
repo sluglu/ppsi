@@ -9,6 +9,30 @@
 #include <ppsi/ppsi.h>
 
 /*
+ * Initialize parentDS
+ */
+static void init_parent_ds(struct pp_instance *ppi)
+{
+	/* 8.2.3.2 */
+	DSPAR(ppi)->parentPortIdentity.clockIdentity =
+		DSDEF(ppi)->clockIdentity;
+	/* FIXME: portNumber ? */
+	/* 8.2.3.3 skipped (parentStats is not used) */
+	/* 8.2.3.4 */
+	DSPAR(ppi)->observedParentOffsetScaledLogVariance = 0xffff;
+	/* 8.2.3.5 */
+	DSPAR(ppi)->observedParentClockPhaseChangeRate = 0x7fffffffUL;
+	/* 8.2.3.6 */
+	DSPAR(ppi)->grandmasterIdentity = DSDEF(ppi)->clockIdentity;
+	/* 8.2.3.7 */
+	DSPAR(ppi)->grandmasterClockQuality = DSDEF(ppi)->clockQuality;
+	/* 8.2.3.8 */
+	DSPAR(ppi)->grandmasterPriority1 = DSDEF(ppi)->priority1;
+	/* 8.2.3.9 */
+	DSPAR(ppi)->grandmasterPriority2 = DSDEF(ppi)->priority2;
+}
+
+/*
  * Initializes network and other stuff
  */
 
@@ -21,6 +45,8 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (ppi->n_ops->init(ppi) < 0) /* it must handle being called twice */
 		goto failure;
+
+	init_parent_ds(ppi);
 
 	/* Clock identity comes from mac address with 0xff:0xfe intermixed */
 	id = (unsigned char *)&DSDEF(ppi)->clockIdentity;

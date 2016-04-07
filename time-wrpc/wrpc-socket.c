@@ -31,7 +31,7 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 
 	if (ppi->mech == PP_P2P_MECH)
 		macaddr = PP_PDELAY_MACADDRESS;
-	addr.ethertype = ETH_P_1588;
+	addr.ethertype = htons(ETH_P_1588);
 	memcpy(addr.mac, macaddr, sizeof(mac_addr_t));
 	sock = ptpd_netif_create_socket(&__static_ptp_socket, &addr,
 					PTPD_SOCK_RAW_ETHERNET, 0);
@@ -96,7 +96,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 	sock = ppi->ch[PP_NP_EVT].custom;
 
-	addr.ethertype = ETH_P_1588;
+	addr.ethertype = htons(ETH_P_1588);
 	memcpy(&addr.mac, macaddr[is_pdelay], sizeof(mac_addr_t));
 
 	snt = ptpd_netif_sendto(sock, &addr, pkt, len, &wr_ts);

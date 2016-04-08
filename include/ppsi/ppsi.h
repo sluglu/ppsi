@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <ppsi/lib.h>
 #include <ppsi/ieee1588_types.h>
 #include <ppsi/constants.h>
@@ -278,6 +279,7 @@ struct pp_cfg_time {
  * added inside here, without redefining cfg_handler prototype */
 union pp_cfg_arg {
 	int i;
+	int i2[2];
 	char *s;
 	struct pp_cfg_time ts;
 };
@@ -285,8 +287,10 @@ union pp_cfg_arg {
 /*
  * Configuration: we are structure-based, and a typedef simplifies things
  */
-typedef int (*cfg_handler)(int lineno, struct pp_globals *ppg,
-				union pp_cfg_arg *arg);
+struct pp_argline;
+
+typedef int (*cfg_handler)(struct pp_argline *l, int lineno,
+			   struct pp_globals *ppg, union pp_cfg_arg *arg);
 
 struct pp_argname {
 	char *name;
@@ -295,6 +299,7 @@ struct pp_argname {
 enum pp_argtype {
 	ARG_NONE,
 	ARG_INT,
+	ARG_INT2,
 	ARG_STR,
 	ARG_NAMES,
 	ARG_TIME,
@@ -304,7 +309,47 @@ struct pp_argline {
 	char *keyword;	/* Each line starts with a keyword */
 	enum pp_argtype t;
 	struct pp_argname *args;
+	size_t field_offset;
+	int needs_port;
 };
+
+/* Below are macros for setting up pp_argline arrays */
+#define OFFS(s,f) offsetof(struct s, f)
+
+#define OPTION(s,func,k,typ,a,field,i)					\
+	{								\
+		.f = func,						\
+		.keyword = k,						\
+		.t = typ,						\
+		.args = a,						\
+		.field_offset = OFFS(s,field),				\
+		.needs_port = i,					\
+	}
+
+#define LEGACY_OPTION(func,k,typ)					\
+	{								\
+		.f = func,						\
+		.keyword = k,						\
+		.t = typ,						\
+	}
+
+#define INST_OPTION(func,k,t,a,field)					\
+	OPTION(pp_instance,func,k,t,a,field,1)
+
+#define INST_OPTION_INT(k,t,a,field)					\
+	INST_OPTION(f_simple_int,k,t,a,field)
+
+#define RT_OPTION(func,k,t,a,field)					\
+	OPTION(pp_runtime_opts,func,k,t,a,field,0)
+
+#define GLOB_OPTION(func,k,t,a,field)					\
+	OPTION(pp_globals,func,k,t,a,field,0)
+
+#define RT_OPTION_INT(k,t,a,field)					\
+	RT_OPTION(f_simple_int,k,t,a,field)
+
+#define GLOB_OPTION_INT(k,t,a,field)					\
+	GLOB_OPTION(f_simple_int,k,t,a,field)
 
 /* Both the architecture and the extension can provide config arguments */
 extern struct pp_argline pp_arch_arglines[];
@@ -313,6 +358,8 @@ extern struct pp_argline pp_ext_arglines[];
 /* Note: config_string modifies the string it receives */
 extern int pp_config_string(struct pp_globals *ppg, char *s);
 extern int pp_config_file(struct pp_globals *ppg, int force, char *fname);
+extern int f_simple_int(struct pp_argline *l, int lineno,
+			struct pp_globals *ppg, union pp_cfg_arg *arg);
 
 #define PPSI_PROTO_RAW		0
 #define PPSI_PROTO_UDP		1

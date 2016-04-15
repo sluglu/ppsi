@@ -28,9 +28,6 @@ static const char *servo_name[] = {
 /* Enable tracking by default. Disabling the tracking is used for demos. */
 static int tracking_enabled = 1;
 extern struct wrs_shm_head *ppsi_head;
-static struct wr_servo_state *saved_servo_pointer; /* required for
-						* wr_servo_reset, which doesn't
-						* have ppi context. */
 
 void wr_servo_enable_tracking(int enable)
 {
@@ -144,10 +141,9 @@ static TimeInternal ts_hardwarize(TimeInternal ts, int clock_period_ps)
 
 static int got_sync = 0;
 
-void wr_servo_reset(void)
+void wr_servo_reset(struct pp_instance *ppi)
 {
-	if (saved_servo_pointer)
-		saved_servo_pointer->flags = 0;
+	ppi->flags = 0;
 }
 
 static inline int32_t delta_to_ps(struct FixedDelta d)
@@ -184,8 +180,7 @@ int wr_servo_init(struct pp_instance *ppi)
 
 	strcpy(s->servo_state_name, "Uninitialized");
 
-	saved_servo_pointer = s;
-	saved_servo_pointer->flags |= WR_FLAG_VALID;
+	s->flags |= WR_FLAG_VALID;
 	s->update_count = 0;
 	s->tracking_enabled = tracking_enabled;
 

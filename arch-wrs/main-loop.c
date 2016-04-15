@@ -57,7 +57,7 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				ppi->frgn_rec_num = 0;
 				ppi->frgn_rec_best = -1;
 				if (ppg->ebest_idx == ppi->port_idx)
-					wr_servo_reset();
+					wr_servo_reset(ppi);
 			}
 		}
 

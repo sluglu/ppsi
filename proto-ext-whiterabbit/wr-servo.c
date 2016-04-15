@@ -143,7 +143,11 @@ static int got_sync = 0;
 
 void wr_servo_reset(struct pp_instance *ppi)
 {
+	/* shmem lock */
+	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 	ppi->flags = 0;
+	/* shmem unlock */
+	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
 }
 
 static inline int32_t delta_to_ps(struct FixedDelta d)

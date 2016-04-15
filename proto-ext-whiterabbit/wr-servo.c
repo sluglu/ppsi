@@ -284,6 +284,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	errcount = 0;
 
 	s->update_count++;
+	ppi->t_ops->get(ppi, &s->update_time);
 
 	got_sync = 0;
 

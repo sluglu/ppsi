@@ -12,8 +12,8 @@
 #include <ppsi/lib.h>
 #include "wr-constants.h"
 
-#define WRS_PPSI_SHMEM_VERSION 12 /* remove n_err_rxtx_deltas from struct
-				   * wr_servo_state */
+#define WRS_PPSI_SHMEM_VERSION 13 /* add update_time to
+				   * struct wr_servo_state */
 
 /*
  * This structure is used as extension-specific data in the DSPort
@@ -176,6 +176,7 @@ struct wr_servo_state {
 	uint32_t n_err_state;
 	uint32_t n_err_offset;
 	uint32_t n_err_delta_rtt;
+	TimeInternal update_time;
 };
 
 /* All data used as extension ppsi-wr must be put here */

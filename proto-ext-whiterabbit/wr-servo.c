@@ -25,7 +25,8 @@ static const char *servo_name[] = {
 	[WR_WAIT_OFFSET_STABLE] = "WAIT_OFFSET_STABLE",
 };
 
-static int tracking_enabled = 1; /* FIXME: why? */
+/* Enable tracking by default. Disabling the tracking is used for demos. */
+static int tracking_enabled = 1;
 extern struct wrs_shm_head *ppsi_head;
 static struct wr_servo_state *saved_servo_pointer; /* required for
 						* wr_servo_reset, which doesn't
@@ -186,6 +187,7 @@ int wr_servo_init(struct pp_instance *ppi)
 	saved_servo_pointer = s;
 	saved_servo_pointer->flags |= WR_FLAG_VALID;
 	s->update_count = 0;
+	s->tracking_enabled = tracking_enabled;
 
 	got_sync = 0;
 

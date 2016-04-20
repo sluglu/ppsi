@@ -64,7 +64,7 @@ static inline int __recv_and_count(struct pp_instance *ppi, void *pkt, int len,
 {
 	int ret;
 	ret = ppi->n_ops->recv(ppi, pkt, len, t);
-	if (ret >= 0)
+	if (ret > 0)
 		ppi->ptp_rx_count++;
 	return ret;
 }

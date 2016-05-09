@@ -66,7 +66,6 @@ static DSPort     portDS = {
 
 static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
 static int start_tics = 0;
-static int last_link_up = 0;
 
 static struct pp_globals ppg_static; /* forward declaration */
 static unsigned char __tx_buffer[PP_MAX_FRAME_LENGTH];
@@ -193,6 +192,7 @@ int wrc_ptp_start()
 {
 	struct pp_instance *ppi = &ppi_static;
 
+	pp_printf("PTP start\n");
 	pp_init_globals(&ppg_static, &__pp_default_rt_opts);
 
 	/* Call the state machine. Being it in "Initializing" state, make
@@ -212,6 +212,7 @@ int wrc_ptp_stop()
 	struct pp_instance *ppi = &ppi_static;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
+	pp_printf("PTP stop\n");
 	wrp->ops->enable_timing_output(ppi, 0);
 	/* Moving fiber: forget about this parent (FIXME: shouldn't be here) */
 	wrp->parentWrConfig = wrp->parentWrModeOn = 0;
@@ -230,22 +231,6 @@ int wrc_ptp_update()
 {
 	int i;
 	struct pp_instance *ppi = &ppi_static;
-
-	int now_link_up;
-
-	now_link_up = ep_link_up(NULL);
-
-	if (last_link_up != now_link_up) {
-		last_link_up = now_link_up;
-		if (ptp_enabled && (!now_link_up)) {
-			wrc_ptp_stop();
-			pp_printf("Link down: PTP stop\n");
-		}
-		if (!ptp_enabled && now_link_up) {
-			pp_printf("Link up: PTP start\n");
-			wrc_ptp_start();
-		}
-	}
 
 	if (!ptp_enabled)
 		return 0;

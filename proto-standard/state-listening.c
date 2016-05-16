@@ -20,23 +20,9 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (e)
 		goto out;
 
-	if (ppi->is_new_state) {
-		pp_timeout_restart_annrec(ppi);
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
-	}
-
 	/* when the clock is using peer-delay, listening must send it too */
-	if (ppi->glbs->delay_mech == PP_P2P_MECH
-	    && pp_timeout_z(ppi, PP_TO_REQUEST)) {
-		e = msg_issue_request(ppi);
-
-		ppi->t3 = ppi->last_snt_time;
-
-		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_REQUEST,
-				DSPOR(ppi)->logMinDelayReqInterval);
-	}
+	if (ppi->glbs->delay_mech == PP_P2P_MECH)
+		e  = pp_lib_may_issue_request(ppi);
 
 	if (plen == 0)
 		goto out;
@@ -104,11 +90,7 @@ out:
 	if (e != 0)
 		ppi->next_state = PPS_FAULTY;
 
-	/* Leaving this state */
-	if (ppi->next_state != ppi->state)
-		pp_timeout_clr(ppi, PP_TO_ANN_RECEIPT);
-
-	ppi->next_delay = pp_ms_to_timeout(ppi, PP_TO_ANN_RECEIPT);
+	ppi->next_delay = pp_next_delay_1(ppi, PP_TO_ANN_RECEIPT);
 
 	return 0;
 }

@@ -92,15 +92,11 @@ static unsigned long bare_calc_timeout(struct pp_instance *ppi, int millisec)
 {
 	struct bare_timespec now;
 	uint64_t now_ms;
-	unsigned long result;
 
-	if (!millisec)
-		millisec = 1;
 	sys_clock_gettime(CLOCK_MONOTONIC, &now);
 	now_ms = 1000LL * now.tv_sec + now.tv_nsec / 1000 / 1000;
 
-	result = now_ms + millisec;
-	return result ? result : 1; /* cannot return 0 */
+	return now_ms + millisec;
 }
 
 struct pp_time_operations bare_time_ops = {

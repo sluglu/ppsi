@@ -15,14 +15,10 @@
 
 int pp_faulty(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
-	if (ppi->is_new_state) {
-		pp_timeout_set(ppi, PP_TO_FAULTY, 4000);
-	}
-
 	if (pp_timeout(ppi, PP_TO_FAULTY)) {
 		ppi->next_state = PPS_INITIALIZING;
 		return 0;
 	}
-	ppi->next_delay = pp_ms_to_timeout(ppi, PP_TO_FAULTY);
+	ppi->next_delay = pp_next_delay_1(ppi, PP_TO_FAULTY);
 	return 0;
 }

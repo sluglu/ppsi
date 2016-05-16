@@ -186,7 +186,6 @@ static int wr_execute_slave(struct pp_instance *ppi)
 		return 0;
 
 	ppi->next_state = PPS_INITIALIZING;
-	pp_timeout_restart_annrec(ppi);
 	WR_DSPOR(ppi)->doRestart = FALSE;
 	return 1; /* the caller returns too */
 }

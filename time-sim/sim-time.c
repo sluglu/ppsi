@@ -110,10 +110,7 @@ static inline int sim_init_servo(struct pp_instance *ppi)
 
 static unsigned long sim_calc_timeout(struct pp_instance *ppi, int millisec)
 {
-	unsigned long res;
-
-	res = millisec + SIM_PPI_ARCH(ppi)->time.current_ns / 1000LL / 1000LL;
-	return res ? res : 1;
+	return millisec + SIM_PPI_ARCH(ppi)->time.current_ns / 1000LL / 1000LL;
 }
 
 struct pp_time_operations sim_time_ops = {

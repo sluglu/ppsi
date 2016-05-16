@@ -57,6 +57,10 @@ struct pp_vlanhdr {
 	uint16_t h_proto;
 };
 
+/* Helpers for the fsm (fsm-lib.c) */
+extern int pp_lib_may_issue_sync(struct pp_instance *ppi);
+extern int pp_lib_may_issue_announce(struct pp_instance *ppi);
+extern int pp_lib_may_issue_request(struct pp_instance *ppi);
 
 /* We use data sets a lot, so have these helpers */
 static inline struct pp_globals *GLBS(struct pp_instance *ppi)
@@ -193,7 +197,6 @@ struct pp_time_operations {
 	int (*adjust_offset)(struct pp_instance *ppi, long offset_ns);
 	int (*adjust_freq)(struct pp_instance *ppi, long freq_ppb);
 	int (*init_servo)(struct pp_instance *ppi);
-	/* calc_timeout cannot return zero */
 	unsigned long (*calc_timeout)(struct pp_instance *ppi, int millisec);
 };
 
@@ -212,69 +215,21 @@ extern struct pp_time_operations unix_time_ops;
 #define  PP_ADJ_FREQ_MAX	512000
 
 /*
- * Timeouts. I renamed from "timer" to "timeout" to avoid
- * misread/miswrite with the time operations above. A timeout, actually,
- * is just a number that must be compared with the current counter.
+ * Timeouts.
+ *
+ * A timeout, is just a number that must be compared with the current counter.
  * So we don't need struct operations, as it is one function only,
  * which is folded into the "pp_time_operations" above.
  */
-
-static inline void pp_timeout_set(struct pp_instance *ppi, int index,
-				  int millisec)
-{
-	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
-}
-
-extern void pp_timeout_rand(struct pp_instance *ppi, int index, int logval);
-
-static inline void pp_timeout_clr(struct pp_instance *ppi, int index)
-{
-	ppi->timeouts[index] = 0;
-}
-
-extern void pp_timeout_log(struct pp_instance *ppi, int index);
-
-static inline int pp_timeout(struct pp_instance *ppi, int index)
-{
-	int ret = ppi->timeouts[index] &&
-		time_after_eq(ppi->t_ops->calc_timeout(ppi, 0),
-			      ppi->timeouts[index]);
-
-	if (ret)
-		pp_timeout_log(ppi, index);
-	return ret;
-}
-
-static inline int pp_timeout_z(struct pp_instance *ppi, int index)
-{
-	int ret = pp_timeout(ppi, index);
-
-	if (ret)
-		pp_timeout_clr(ppi, index);
-	return ret;
-}
-
-/* how many ms to wait for the timeout to happen, for ppi->next_delay */
-static inline int pp_ms_to_timeout(struct pp_instance *ppi, int index)
-{
-	signed long ret;
-
-	if (!ppi->timeouts[index]) /* not pending, nothing to wait for */
-		return 0;
-
-	ret = ppi->timeouts[index] - ppi->t_ops->calc_timeout(ppi, 0);
-	return ret <= 0 ? 0 : ret;
-}
-
-/* called several times, only sets a timeout, so inline it here */
-static inline void pp_timeout_restart_annrec(struct pp_instance *ppi)
-{
-	/* This timeout is a number of the announce interval lapses */
-	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT,
-		       ((DSPOR(ppi)->announceReceiptTimeout) <<
-			DSPOR(ppi)->logAnnounceInterval) * 1000);
-}
-
+extern void pp_timeout_init(struct pp_instance *ppi);
+extern void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec);
+extern void pp_timeout_set(struct pp_instance *ppi, int index);
+extern void pp_timeout_setall(struct pp_instance *ppi);
+extern int pp_timeout(struct pp_instance *ppi, int index)
+	__attribute__((warn_unused_result));
+extern int pp_next_delay_1(struct pp_instance *ppi, int i1);
+extern int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2);
+extern int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3);
 
 /* The channel for an instance must be created and possibly destroyed. */
 extern int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *opts);

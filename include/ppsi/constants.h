@@ -53,9 +53,9 @@
 /* We use an array of timeouts, with these indexes */
 enum pp_timeouts {
 	PP_TO_REQUEST = 0,
-	PP_TO_SYNC,
+	PP_TO_SYNC_SEND,
 	PP_TO_ANN_RECEIPT,
-	PP_TO_ANN_INTERVAL,
+	PP_TO_ANN_SEND,
 	PP_TO_FAULTY,
 	/* Two timeouts for the protocol extension  */
 	PP_TO_EXT_0,

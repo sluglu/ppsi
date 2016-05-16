@@ -22,7 +22,7 @@ int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
 		sendmsg = 1;
-	} else if (pp_timeout_z(ppi, PP_TO_EXT_0)) {
+	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
 		if (wr_handshake_retry(ppi))
 			sendmsg = 1;
 		else
@@ -31,7 +31,7 @@ int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (sendmsg) {
 		e = msg_issue_wrsig(ppi, LOCK);
-		pp_timeout_set(ppi, PP_TO_EXT_0, WR_M_LOCK_TIMEOUT_MS);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_M_LOCK_TIMEOUT_MS);
 	}
 
 	if (plen == 0)

@@ -203,7 +203,10 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 		ch = ppi->ch + PP_NP_GEN;
 		hdr->h_proto = htons(ETH_P_1588);
 
-		memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+		if (use_pdelay_addr)
+			memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		else
+			memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
 		memcpy(hdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
@@ -226,7 +229,10 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 		vhdr->h_tci = htons(ppi->peer_vid); /* prio is 0 */
 		vhdr->h_tpid = htons(0x8100);
 
-		memcpy(vhdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+		if (use_pdelay_addr)
+			memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		else
+			memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
 		memcpy(vhdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
@@ -316,6 +322,11 @@ static int unix_open_ch_raw(struct pp_instance *ppi, char *ifname, int chtype)
 	memcpy(pmr.mr_address, PP_MCAST_MACADDRESS, ETH_ALEN);
 	setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
 		   &pmr, sizeof(pmr)); /* lazily ignore errors */
+	/* add peer delay multicast address */
+	memcpy(pmr.mr_address, PP_PDELAY_MACADDRESS, ETH_ALEN);
+	setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
+		   &pmr, sizeof(pmr)); /* lazily ignore errors */
+
 
 	/* make timestamps available through recvmsg() -- FIXME: hw? */
 	temp = 1;
@@ -419,6 +430,23 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
 		       &imr, sizeof(struct ip_mreq)) < 0)
 		goto err_out;
+
+	/* Init Peer multicast IP address */
+	memcpy(addr_str, PP_PDELAY_DOMAIN_ADDRESS, INET_ADDRSTRLEN);
+
+	context = addr_str;
+	errno = EINVAL;
+	if (!inet_aton(addr_str, &net_addr))
+		goto err_out;
+	ppi->mcast_addr = net_addr.s_addr;
+	imr.imr_multiaddr.s_addr = net_addr.s_addr;
+
+	/* join multicast group (for receiving) on specified interface */
+	context = "setsockopt(IP_ADD_MEMBERSHIP)";
+	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+		       &imr, sizeof(struct ip_mreq)) < 0)
+		goto err_out;
+
 	/* End of General multicast Ip address init */
 
 	/* set socket time-to-live */

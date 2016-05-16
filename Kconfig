@@ -72,8 +72,23 @@ config ARCH
        default "wrs" if ARCH_WRS
        default "sim" if ARCH_SIMULATOR
 
+menu "PTP Protocol Options"
+        choice
+                prompt "PTP Synchronization Mechanism"
+        config E2E
+                boolean "Delay-Request-Respond"
+                help
+                  Delay-Request-Response uses 4 timestamps
+                  for calculating the link delay and synchronizing.
+        config P2P
+                boolean "Peer Delay"
+                help
+                  Peer Delay uses 4 timestamps for calculating
+                  the link delay and another 2 for synchronizing.
+        endchoice
 
-# This is not a choice any more: it is mandated by the architecture
+endmenu
+
 config EXT_WR
 	bool
 	default y if ARCH_WRS || ARCH_WRPC

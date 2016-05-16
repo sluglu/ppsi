@@ -9,6 +9,18 @@
 #define __PPSI_PPSI_H__
 #include <generated/autoconf.h>
 
+
+#ifdef CONFIG_E2E
+#  define HAS_E2E 1
+#else
+#  define HAS_E2E 0
+#endif
+#ifdef CONFIG_P2P
+#  define HAS_P2P 1
+#else
+#  define HAS_P2P 0
+#endif
+
 #include <stdint.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -136,6 +148,8 @@ struct pp_ext_hooks {
 	void (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi, TimeInternal *orig,
 			       TimeInternal *correction_field);
+	int (*handle_preq) (struct pp_instance * ppi);
+	int (*handle_presp) (struct pp_instance * ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
 };
@@ -377,7 +391,8 @@ extern int f_simple_int(struct pp_argline *l, int lineno,
 extern void pp_servo_init(struct pp_instance *ppi);
 extern void pp_servo_got_sync(struct pp_instance *ppi); /* got t1 and t2 */
 extern void pp_servo_got_resp(struct pp_instance *ppi); /* got all t1..t4 */
-
+extern void pp_servo_got_psync(struct pp_instance *ppi); /* got t1 and t2 */
+extern void pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
 
 /* bmc.c */
 extern void m1(struct pp_instance *ppi);
@@ -392,17 +407,33 @@ extern void msg_unpack_announce(void *buf, MsgAnnounce *ann);
 extern void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup);
 extern void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req);
 extern void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp);
+/* pdelay */
+extern void msg_unpack_pdelay_resp_follow_up(void *buf,
+					     MsgPDelayRespFollowUp *
+					     pdelay_resp_flwup);
+extern void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
+					   MsgHeader * hdr,
+					   Timestamp * prec_orig_tstamp);
+extern void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp);
+extern void msg_pack_pdelay_resp(struct pp_instance *ppi,
+				 MsgHeader * hdr, Timestamp * rcv_tstamp);
+extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req);
+extern void msg_pack_pdelay_req(struct pp_instance *ppi,
+				Timestamp * orig_tstamp);
 
 /* each of them returns 0 if ok, -1 in case of error in send, 1 if stamp err */
 #define PP_SEND_OK		0
 #define PP_SEND_ERROR		-1
 #define PP_SEND_NO_STAMP	1
 
+extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);
 extern int msg_issue_sync_followup(struct pp_instance *ppi);
-extern int msg_issue_delay_req(struct pp_instance *ppi);
+extern int msg_issue_request(struct pp_instance *ppi);
 extern int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time);
-
+extern int msg_issue_pdelay_resp_followup(struct pp_instance *ppi,
+					  TimeInternal * time);
+extern int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal * time);
 
 /* Functions for timestamp handling (internal to protocol format conversion*/
 /* FIXME: add prefix in function name? */
@@ -431,7 +462,7 @@ extern struct pp_state_table_item pp_state_table[]; /* 0-terminated */
 /* Standard state-machine functions */
 extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
 		 pp_pre_master, pp_master, pp_passive, pp_uncalibrated,
-		 pp_slave;
+		 pp_slave, pp_pclock;;
 
 /* The engine */
 extern int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen);

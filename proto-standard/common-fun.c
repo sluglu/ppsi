@@ -8,6 +8,7 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 #include "../lib/network_types.h"
+#include "../proto-ext-whiterabbit/wr-api.h" /* FIXME: phase_to_cf_units */
 
 #ifdef CONFIG_ARCH_WRS
 #define ARCH_IS_WRS 1
@@ -15,7 +16,7 @@
 #define ARCH_IS_WRS 0
 #endif
 
-static void *msg_copy_header(MsgHeader *dest, MsgHeader *src)
+void *msg_copy_header(MsgHeader *dest, MsgHeader *src)
 {
 	return memcpy(dest, src, sizeof(MsgHeader));
 }
@@ -185,7 +186,63 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
 	to_TimeInternal(&ppi->t1,
 			&sync.originTimestamp);
-	pp_servo_got_sync(ppi);
+	if (GLBS(ppi)->delay_mech)
+		pp_servo_got_psync(ppi);
+	else
+		pp_servo_got_sync(ppi);
+	return 0;
+}
+
+int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
+			    int len)
+{
+	MsgPDelayResp resp;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+
+	if (len < PP_PDELAY_RESP_LENGTH)
+		return -1;
+
+	msg_unpack_pdelay_resp(buf, &resp);
+
+	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+		    &resp.requestingPortIdentity.clockIdentity,
+		    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
+	    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
+	     hdr->sequenceId) &&
+	    (DSPOR(ppi)->portIdentity.portNumber ==
+	     resp.requestingPortIdentity.portNumber) &&
+	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+
+		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
+		ppi->t6 = ppi->last_rcv_time;
+		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
+		ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
+
+		/* todo: in one clock the presp carries t5-t4 */
+
+	} else {
+		pp_diag(ppi, frames, 2, "pp_pclock : "
+			"PDelay Resp doesn't match PDelay Req\n");
+	}
+	return 0;
+}
+
+int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
+			    int len)
+{
+	int e = 0;
+
+	if (len < PP_PDELAY_REQ_LENGTH)
+		return -1;
+
+	if (pp_hooks.handle_preq)
+		e = pp_hooks.handle_preq(ppi);
+	if (e)
+		return e;
+
+	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
+	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+
 	return 0;
 }
 
@@ -231,7 +288,11 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	if (ret < 0)
 		return ret;
 
-	pp_servo_got_sync(ppi);
+	if (GLBS(ppi)->delay_mech)
+		pp_servo_got_psync(ppi);
+	else
+		pp_servo_got_sync(ppi);
+
 	return 0;
 }
 

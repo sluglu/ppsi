@@ -18,13 +18,8 @@
 #define WRC_MODE_GM 1
 #define WRC_MODE_MASTER 2
 #define WRC_MODE_SLAVE 3
-#define WRC_MODE_PCLOCK 4
-
-#define WRC_E2E 0
-#define WRC_P2P 1
 
 extern int ptp_mode;
-extern int ptp_sync_mech;
 
 int wrc_ptp_init(void);
 int wrc_ptp_set_mode(int mode);

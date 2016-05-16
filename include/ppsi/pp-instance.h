@@ -115,7 +115,6 @@ struct pp_instance_cfg {
 	char port_name[16];
 	char iface_name[16];
 	int ext;   /* 0: none, 1: whiterabbit */ /* FIXME extension enumeration */
-	int delay_mech;		/* E2E: 0, P2P: 1 */
 };
 
 /*
@@ -155,6 +154,7 @@ struct pp_instance {
 
 	/* Times, for the various offset computations */
 	TimeInternal t1, t2, t3, t4, t5, t6;		/* *the* stamps */
+	Integer32 t4_cf, t6_cf;				/* peer delay */
 	TimeInternal cField;				/* transp. clocks */
 	TimeInternal last_rcv_time, last_snt_time;	/* two temporaries */
 
@@ -174,6 +174,7 @@ struct pp_instance {
 
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
 	MsgHeader received_ptp_header;
+
 	char *iface_name; /* for direct actions on hardware */
 	char *port_name; /* for diagnostics, mainly */
 	int port_idx;
@@ -188,7 +189,8 @@ struct pp_instance {
 /* The following things used to be bit fields. Other flags are now enums */
 #define PPI_FLAG_FROM_CURRENT_PARENT	0x01
 #define PPI_FLAG_WAITING_FOR_F_UP	0x02
-
+#define PPI_FLAG_WAITING_FOR_RF_UP	0x04
+#define PPI_FLAGS_WAITING		0x06 /* both of the above */
 
 struct pp_globals_cfg {
 	int cfg_items;			/* Remember how many we parsed */
@@ -213,7 +215,7 @@ struct pp_globals {
 	DSTimeProperties *timePropertiesDS;	/* page 70 */
 
 	/* Sync Mechanism */
-	int delay_mech;		/* E2E : 0 , P2P : 1 */
+	int delay_mech;		/* PP_E2E_MECH, PP_P2P_MECH */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;

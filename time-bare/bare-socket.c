@@ -32,7 +32,10 @@ static int bare_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 	hdr->h_proto = htons(ETH_P_1588);
 
-	memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, 6);
+	if (use_pdelay_addr)
+		memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, 6);
+	else
+		memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, 6);
 
 	/* raw socket implementation always uses gen socket */
 	memcpy(hdr->h_source, ppi->ch[PP_NP_GEN].addr, 6);

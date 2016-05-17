@@ -9,7 +9,7 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-/* Unpack header from in buffer to msg_tmp_header field */
+/* Unpack header from in buffer to receieved_ptp_header field */
 int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -159,7 +159,7 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	return PP_ANNOUNCE_LENGTH;
 }
 
-/* Unpack Announce message from in buffer of ppi to msgtmp. Announce */
+/* Unpack Announce message from in buffer of ppi to internal structure */
 void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 {
 	ann->originTimestamp.secondsField.msb =
@@ -251,7 +251,7 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 52) = htons(hdr->sourcePortIdentity.portNumber);
 }
 
-/* Unpack FollowUp message from in buffer of ppi to msgtmp.follow */
+/* Unpack FollowUp message from in buffer of ppi to internal structure */
 void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 {
 	flwup->preciseOriginTimestamp.secondsField.msb =
@@ -262,7 +262,7 @@ void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 		htonl(*(UInteger32 *) (buf + 40));
 }
 
-/* Unpack PDelay Resp FollowUp message from in buffer of ppi to msgtmp.follow */
+/* Unpack PDelayRespFollowUp message from in buffer of ppi to internal struct */
 void msg_unpack_pdelay_resp_follow_up(void *buf,
 				      MsgPDelayRespFollowUp * pdelay_resp_flwup)
 {
@@ -413,7 +413,7 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 		htons(hdr->sourcePortIdentity.portNumber);
 }
 
-/* Unpack delayReq message from in buffer of ppi to msgtmp.req */
+/* Unpack delayReq message from in buffer of ppi to internal structure */
 void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req)
 {
 	delay_req->originTimestamp.secondsField.msb =
@@ -424,7 +424,7 @@ void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req)
 		htonl(*(UInteger32 *) (buf + 40));
 }
 
-/* Unpack PDelayReq message from in buffer of ppi to msgtmp.req */
+/* Unpack PDelayReq message from in buffer of ppi to internal structure */
 void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req)
 {
 	pdelay_req->originTimestamp.secondsField.msb =
@@ -435,7 +435,7 @@ void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req)
 	    htonl(*(UInteger32 *) (buf + 40));
 }
 
-/* Unpack delayResp message from IN buffer of ppi to msgtmp.presp */
+/* Unpack delayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 {
 	resp->receiveTimestamp.secondsField.msb =
@@ -450,7 +450,7 @@ void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 		htons(*(UInteger16 *) (buf + 52));
 }
 
-/* Unpack PDelayResp message from IN buffer of ppi to msgtmp.presp */
+/* Unpack PDelayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp)
 {
 	presp->requestReceiptTimestamp.secondsField.msb =

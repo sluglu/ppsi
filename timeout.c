@@ -36,13 +36,6 @@ void pp_timeout_init(struct pp_instance *ppi)
 	to_configs[PP_TO_ANN_SEND].value = port->logAnnounceInterval;
 }
 
-static void pp_timeout_log(struct pp_instance *ppi, int index)
-{
-	pp_diag(ppi, time, 1, "timeout expired: %s\n",
-		to_configs[index].name);
-}
-
-
 void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
 {
 	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
@@ -109,7 +102,8 @@ int pp_timeout(struct pp_instance *ppi, int index)
 				ppi->timeouts[index]);
 
 	if (ret)
-		pp_timeout_log(ppi, index);
+		pp_diag(ppi, time, 1, "timeout expired: %s\n",
+			to_configs[index].name);
 	return ret;
 }
 

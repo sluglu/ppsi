@@ -79,7 +79,12 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 	rval <<= 10;
 	rval ^= (unsigned int) (seed / 65536) % 1024;
 
-	millisec = (1 << logval) * 400; /* This is 40% of the nominal value */
+	/*
+	 * logval is signed. Let's imagine it's no less than -4.
+	 * Here below, 0 gets to 16 * 25 = 400ms, 40% of the nominal value
+	 */
+	millisec = (1 << (logval + 4)) * 25;
+	/* twice 40% + a random value between 0 and 40% */
 	millisec = (millisec * 2) + rval % millisec;
 
 	__pp_timeout_set(ppi, index, millisec);

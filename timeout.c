@@ -39,6 +39,8 @@ void pp_timeout_init(struct pp_instance *ppi)
 void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
 {
 	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
+	pp_diag(ppi, time, 3, "new timeout for %s: %i\n",
+		to_configs[index].name, millisec);
 }
 
 /*

@@ -170,8 +170,6 @@ struct pp_instance {
 	unsigned long timeouts[__PP_TO_ARRAY_SIZE];
 	UInteger16 recv_sync_sequence_id;
 
-	Integer8 log_min_delay_req_interval;
-
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
 	MsgHeader received_ptp_header;
 

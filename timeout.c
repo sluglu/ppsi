@@ -6,23 +6,29 @@
  */
 #include <ppsi/ppsi.h>
 
+enum rand_type {
+	RAND_NONE,	/* Not randomized */
+	RAND_70_130,	/* Should be 70% to 130% of 1 << value */
+	RAND_0_200,	/* Should be 0% to 200% of 1 << value */
+};
+
 struct timeout_config {
 	char *name;
-	int isrand;
+	int which_rand;
 	int value;
 };
 
 /* most timeouts have a static configuration. Save it here */
 static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
-	[PP_TO_REQUEST] =	{"REQUEST",	1,},
-	[PP_TO_SYNC_SEND] =	{"SYNC_SEND",	1,},
-	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	0,},
-	[PP_TO_ANN_SEND] =	{"ANN_SEND",	1,},
-	[PP_TO_FAULTY] =	{"FAULTY",	0, 4000},
+	[PP_TO_REQUEST] =	{"REQUEST",	RAND_0_200,},
+	[PP_TO_SYNC_SEND] =	{"SYNC_SEND",	RAND_70_130,},
+	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	RAND_NONE,},
+	[PP_TO_ANN_SEND] =	{"ANN_SEND",	RAND_70_130,},
+	[PP_TO_FAULTY] =	{"FAULTY",	RAND_NONE, 4000},
 	/* extension timeouts are explicitly set to a value */
 };
 
-/* Init fills the timeout values; they are not changed after program startup */
+/* Init fills the timeout values */
 void pp_timeout_init(struct pp_instance *ppi)
 {
 	struct DSPort *port = ppi->portDS;
@@ -36,24 +42,13 @@ void pp_timeout_init(struct pp_instance *ppi)
 	to_configs[PP_TO_ANN_SEND].value = port->logAnnounceInterval;
 }
 
-static void pp_timeout_log(struct pp_instance *ppi, int index)
-{
-	pp_diag(ppi, time, 1, "timeout expired: %s\n",
-		to_configs[index].name);
-}
-
-
 void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
 {
 	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
+	pp_diag(ppi, time, 3, "new timeout for %s: %i\n",
+		to_configs[index].name, millisec);
 }
 
-/*
- * Randomize a timeout. We are required to fit between 70% and 130%
- * of the value for 90% of the time, at least. But making it "almost
- * exact" is bad in a big network. So randomize between 80% and 120%:
- * constant part is 80% and variable is 40%.
- */
 
 void pp_timeout_set(struct pp_instance *ppi, int index)
 {
@@ -61,11 +56,6 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 	uint32_t rval;
 	int millisec;
 	int logval = to_configs[index].value;
-
-	if (!to_configs[index].isrand){
-		__pp_timeout_set(ppi, index, logval); /* not a logval */
-		return;
-	}
 
 	if (!seed) {
 		uint32_t *p;
@@ -84,9 +74,28 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 	rval <<= 10;
 	rval ^= (unsigned int) (seed / 65536) % 1024;
 
-	millisec = (1 << logval) * 400; /* This is 40% of the nominal value */
-	millisec = (millisec * 2) + rval % millisec;
+	/*
+	 * logval is signed. Let's imagine it's no less than -4.
+	 * Here below, 0 gets to 16 * 25 = 400ms, 40% of the nominal value
+	 */
+	millisec = (1 << (logval + 4)) * 25;
 
+	switch(to_configs[index].which_rand) {
+	case RAND_70_130:
+		/*
+		 * We are required to fit between 70% and 130%
+		 * of the value for 90% of the time, at least.
+		 * So randomize between 80% and 120%: constant
+		 * part is 80% and variable is 40%.
+		 */
+		millisec = (millisec * 2) + rval % millisec;
+		break;
+	case RAND_0_200:
+		millisec = rval % (millisec * 5);
+		break;
+	case RAND_NONE:
+		millisec = logval; /* not a log, just a constant */
+	}
 	__pp_timeout_set(ppi, index, millisec);
 }
 
@@ -109,7 +118,8 @@ int pp_timeout(struct pp_instance *ppi, int index)
 				ppi->timeouts[index]);
 
 	if (ret)
-		pp_timeout_log(ppi, index);
+		pp_diag(ppi, time, 1, "timeout expired: %s\n",
+			to_configs[index].name);
 	return ret;
 }
 

@@ -47,7 +47,8 @@ all: $(TARGET).o
 # CFLAGS to use. Both this Makefile (later) and app-makefile may grow CFLAGS
 CFLAGS = $(USER_CFLAGS)
 CFLAGS += -Wall -Wstrict-prototypes -Wmissing-prototypes
-CFLAGS += -O2 -ggdb -Iinclude -fno-common
+CFLAGS += -O$(CONFIG_OPTIMIZATION)
+CFLAGS += -ggdb -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
 
 # to avoid ifdef as much as possible, I use the kernel trick for OBJ variables

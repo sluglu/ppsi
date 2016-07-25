@@ -61,10 +61,7 @@ static int wrpc_time_adjust(struct pp_instance *ppi, long offset_ns,
 
 static unsigned long wrpc_calc_timeout(struct pp_instance *ppi, int millisec)
 {
-	unsigned long now_ms = timer_get_tics();
-
-	now_ms += millisec;
-	return now_ms ? now_ms : 1; /* cannot return 0 */
+	return timer_get_tics() + millisec;
 }
 
 struct pp_time_operations wrpc_time_ops = {

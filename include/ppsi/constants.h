@@ -52,15 +52,14 @@
 
 /* We use an array of timeouts, with these indexes */
 enum pp_timeouts {
-	PP_TO_DELAYREQ = 0,
-	PP_TO_SYNC,
+	PP_TO_REQUEST = 0,
+	PP_TO_SYNC_SEND,
 	PP_TO_ANN_RECEIPT,
-	PP_TO_ANN_INTERVAL,
+	PP_TO_ANN_SEND,
 	PP_TO_FAULTY,
-	/* A few timeouts for the protocol extension  */
+	/* Two timeouts for the protocol extension  */
 	PP_TO_EXT_0,
 	PP_TO_EXT_1,
-	PP_TO_EXT_2,
 	__PP_TO_ARRAY_SIZE,
 };
 
@@ -98,6 +97,9 @@ enum pp_timeouts {
 
 #define PP_MCAST_MACADDRESS		"\x01\x1B\x19\x00\x00\x00"
 #define PP_PDELAY_MACADDRESS		"\x01\x80\xC2\x00\x00\x0E"
+
+#define PP_E2E_MECH     0
+#define PP_P2P_MECH     1
 
 #include <arch/constants.h> /* architectures may override the defaults */
 

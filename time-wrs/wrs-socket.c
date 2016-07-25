@@ -478,7 +478,10 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		if (drop)
 			hdr->h_proto++;
 
-		memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+		if (use_pdelay_addr)
+			memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		else
+			memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
 		memcpy(hdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
@@ -511,7 +514,11 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		if (drop)
 			hdr->h_proto++;
 
-		memcpy(vhdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+		if (use_pdelay_addr)
+			memcpy(vhdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		else
+			memcpy(vhdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+
 		memcpy(vhdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)

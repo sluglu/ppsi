@@ -26,7 +26,7 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
 		sendmsg = 1;
-	} else if (pp_timeout_z(ppi, PP_TO_EXT_0)) {
+	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
 		if (wr_handshake_retry(ppi))
 			sendmsg = 1;
 		else
@@ -34,9 +34,7 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (sendmsg) {
-		pp_timeout_set(ppi, PP_TO_EXT_0,
-			       WR_WRS_PRESENT_TIMEOUT_MS);
-		pp_timeout_restart_annrec(ppi);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_WRS_PRESENT_TIMEOUT_MS);
 		e = msg_issue_wrsig(ppi, SLAVE_PRESENT);
 	}
 
@@ -57,9 +55,6 @@ out:
 		st_com_execute_slave(ppi);
 	else
 		ppi->next_state = PPS_FAULTY;
-
-	if (ppi->next_state != ppi->state)
-		pp_timeout_clr(ppi, PP_TO_ANN_RECEIPT);
 
 	ppi->next_delay = WR_DSPOR(ppi)->wrStateTimeout;
 

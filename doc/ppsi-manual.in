@@ -1224,12 +1224,6 @@ a list of the other ones please see the help message.
         levels for  fsm, time, frames, servo, bmc, extension (in that order).
         See @ref{Diagnostic Macros} for details.
 
-@item -b <ifname>
-
-	Specify which interface to use, for Ethernet mode (default:
-        architecture-dependent, but @t{eth0} for Linux builds). This
-        option can only be used in single-port operation.
-
 @item -e
 
 	Run in Ethernet mode (by default PPSi uses UDP if the architecture

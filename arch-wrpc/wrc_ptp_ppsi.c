@@ -94,6 +94,7 @@ static struct pp_globals ppg_static = {
 	.parentDS		= &parentDS,
 	.timePropertiesDS	= &timePropertiesDS,
 	.global_ext_data	= &servo_state,
+	.delay_mech		= HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
 };
 
 int wrc_ptp_init()
@@ -186,6 +187,22 @@ int wrc_ptp_set_mode(int mode)
 int wrc_ptp_get_mode()
 {
 	return ptp_mode;
+}
+
+void wrc_ptp_set_sync_mech(int mech)
+{
+	struct pp_instance *ppi = &ppi_static;
+	struct pp_globals *ppg = ppi->glbs;
+
+	wrc_ptp_stop();
+	ppg->delay_mech = mech;
+}
+
+int wrc_ptp_get_sync_mech()
+{
+	struct pp_instance *ppi = &ppi_static;
+	struct pp_globals *ppg = ppi->glbs;
+	return ppg->delay_mech;
 }
 
 int wrc_ptp_start()

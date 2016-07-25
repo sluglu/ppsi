@@ -51,6 +51,11 @@ int main(int argc, char **argv)
 	ppg->servo = &servo;
 	ppg->rt_opts = &__pp_default_rt_opts;
 
+	if (HAS_P2P) /* FIXME: turn this to a configuration opion */
+		ppg->delay_mech = PP_P2P_MECH;
+	else
+		ppg->delay_mech = PP_E2E_MECH;
+
 	/* We are hosted, so we can allocate */
 	ppg->max_links = PP_MAX_LINKS;
 	ppg->arch_data = calloc(1, sizeof(struct unix_arch_data));

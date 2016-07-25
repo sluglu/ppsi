@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 {
 	int sock, ret;
 	struct packet_mreq req;
+	struct sockaddr_ll addr;
 	struct ifreq ifr;
 	char *ifname = "eth0";
 
@@ -73,11 +74,24 @@ int main(int argc, char **argv)
 			ifname, strerror(errno));
 		exit(1);
 	}
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sll_family = AF_PACKET;
+	addr.sll_protocol = htons(ETH_P_ALL); /* ETH_P_1588, but also vlan */
+	addr.sll_ifindex = ifr.ifr_ifindex;
+	addr.sll_pkttype = PACKET_MULTICAST;
+	if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		fprintf(stderr, "%s: bind(%s)): %s\n", argv[0],
+			ifname, strerror(errno));
+		exit(1);
+	}
+
 	fprintf(stderr, "Dumping PTP packets from interface \"%s\"\n", ifname);
 
 	memset(&req, 0, sizeof(req));
 	req.mr_ifindex = ifr.ifr_ifindex;
 	req.mr_type = PACKET_MR_PROMISC;
+
 
 	if (setsockopt(3, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
 		       &req, sizeof(req)) < 0) {

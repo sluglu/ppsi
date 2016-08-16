@@ -162,9 +162,18 @@ config MAX_VLANS_PER_PORT
 	  microcontroller-class architectures.  Hosted builds
 	  feature a bigger default, because they have no size constraints.
 
+
 # I want a number, to be used without ifdef
 config VLAN_ARRAY_SIZE
        int
        default 0 if !VLAN
        default 1 if !HAS_MULTIPLE_VLAN
        default MAX_VLANS_PER_PORT
+
+config DISABLE_OPTIMIZATION
+	bool "Disable -O2, to ease running a debugger"
+
+config OPTIMIZATION
+	int
+	default 0 if DISABLE_OPTIMIZATION
+	default 2

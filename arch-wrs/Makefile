@@ -20,10 +20,8 @@ OBJ-y += $A/wrs-startup.o \
 	lib/drop.o \
 	lib/div64.o
 
-# These two are mandatory for arch-wrs
+# We only support "wrs" time operations
 TIME = wrs
-PROTO_EXT = whiterabbit
-
 include time-$(TIME)/Makefile
 
 # Unix time operations are always included as a fallback

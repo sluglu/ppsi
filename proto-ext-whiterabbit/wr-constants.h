@@ -13,17 +13,13 @@
 #ifndef __WREXT_WR_CONSTANTS_H__
 #define __WREXT_WR_CONSTANTS_H__
 
-#define WR_NODE				0x80
 #define WR_IS_CALIBRATED		0x04
 #define WR_IS_WR_MODE			0x08
 #define WR_NODE_MODE			0x03 /* a mask, see NON_WR etc below */
 
 # define WR_TLV_TYPE			0x2004
 
-#define WR_MASTER_PRIORITY1		6
 #define WR_DEFAULT_CAL_PERIOD		3000	/* [us] */
-#define WR_DEFAULT_CAL_PATTERN		0x3E0	/* 1111100000 */
-#define WR_DEFAULT_CAL_PATTERN_LEN	0xA	/* 10 bits */
 
 #define WR_DEFAULT_STATE_TIMEOUT_MS	300	/* [ms] */
 #define WR_WRS_PRESENT_TIMEOUT_MS	1000
@@ -37,16 +33,9 @@
 /* The +4 is for tlvType (2 bytes) and lengthField (2 bytes) */
 #define WR_ANNOUNCE_LENGTH (PP_ANNOUNCE_LENGTH + WR_ANNOUNCE_TLV_LENGTH + 4)
 
-#define WR_SLAVE_CLOCK_CLASS		248
-#define WR_MASTER_CLOCK_CLASS		5
-
-#define WR_MASTER_ONLY_CLOCK_CLASS	70
-
 /* new stuff for WRPTPv2 */
 
 #define TLV_TYPE_ORG_EXTENSION		0x0003 /* organization specific */
-
-#define WR_PRIORITY1                    64
 
 #define WR_TLV_ORGANIZATION_ID		0x080030
 #define WR_TLV_MAGIC_NUMBER		0xDEAD
@@ -58,9 +47,6 @@
 #define WR_SIGNALING_MSG_BASE_LENGTH	48
 
 #define WR_DEFAULT_PHY_CALIBRATION_REQUIRED FALSE
-
-#define     SEND_CALIBRATION_PATTERN	0X0001
-#define NOT_SEND_CALIBRATION_PATTERN	0X0000
 
 /* White Rabbit softpll status values */
 #define WR_SPLL_OK	0

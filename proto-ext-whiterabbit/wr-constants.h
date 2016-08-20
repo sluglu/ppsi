@@ -137,17 +137,4 @@ enum {
 	ANN_SUFIX = 0x2000,
 };
 
-/* White Rabbit slave port's role */
-enum {
-	NON_SLAVE	= 0x0,
-	PRIMARY_SLAVE,
-	SECONDARY_SLAVE,
-};
-
-/* White Rabbit data initialization mode */
-enum {
-	INIT,
-	RE_INIT,
-};
-
 #endif /* __WREXT_WR_CONSTANTS_H__ */

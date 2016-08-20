@@ -37,17 +37,6 @@
 /* The +4 is for tlvType (2 bytes) and lengthField (2 bytes) */
 #define WR_ANNOUNCE_LENGTH (PP_ANNOUNCE_LENGTH + WR_ANNOUNCE_TLV_LENGTH + 4)
 
-/* memory footprint tweak for WRPC */
-#ifdef WRPC_EXTRA_SLIM
-#define MAX_PORT_NUMBER			1
-#else
-#define MAX_PORT_NUMBER			16
-#endif
-
-#define MIN_PORT_NUMBER			1
-
-#define WR_PORT_NUMBER			10
-
 #define WR_SLAVE_CLOCK_CLASS		248
 #define WR_MASTER_CLOCK_CLASS		5
 

@@ -81,11 +81,6 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		goto failure;
 	}
 
-	if (ret) {
-		pp_diag(ppi, time, 1, "%s: can't init timers\n", __func__);
-		goto failure;
-	}
-
 	pp_diag(ppi, bmc, 1, "clock class = %d\n",
 			DSDEF(ppi)->clockQuality.clockClass);
 	pp_diag(ppi, bmc, 1, "clock accuracy = %d\n",

@@ -48,8 +48,10 @@ int from_TimeInternal(TimeInternal *internal, Timestamp *external)
 
 	if ((internal->seconds & ~INT_MAX) ||
 	    (internal->nanoseconds & ~INT_MAX)) {
-		pp_error("Negative value cannot be converted into "
-			  "timestamp\n");
+		pp_error("Negative value (%08x.%08x) cannot be converted "
+			 "into timestamp\n",
+			 internal->seconds,
+			 internal->nanoseconds);
 		return -1;
 	} else {
 		external->secondsField.lsb = internal->seconds;

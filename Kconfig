@@ -34,7 +34,6 @@ config ARCH_BARE_X86_64
 
 config ARCH_WRPC
 	bool "White Rabbit PTP Core (WR Node)"
-	select CONFIG_EXT_WR
 	select HAS_VLAN
 	help
 	  Build PPSi for use in the WRPC environment (SPEC card or similar
@@ -43,7 +42,6 @@ config ARCH_WRPC
 
 config ARCH_WRS
 	bool "White Rabbit Switch"
-	select CONFIG_EXT_WR
 	select HAS_VLAN
 	select HAS_MULTIPLE_VLAN
 	help

@@ -101,7 +101,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 	case PPM_PDELAY_REQ:
 		wr_handle_preq(ppi);
-		msgtype = PPM_NOTHING_TO_DO;
+		msgtype = PPM_PDELAY_REQ; /* normal management continues  */
 		break;
 
 	/* This is missing in the standard protocol */

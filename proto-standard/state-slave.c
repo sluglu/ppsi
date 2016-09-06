@@ -99,7 +99,8 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	    && actions[hdr->messageType]) {
 		e = actions[hdr->messageType](ppi, pkt, plen);
 	} else {
-		pp_diag(ppi, frames, 1, "Ignored frame\n");
+		if (plen)
+			pp_diag(ppi, frames, 1, "Ignored frame\n");
 	}
 	if (e)
 		goto out;

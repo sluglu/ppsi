@@ -9,6 +9,31 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+static int master_handle_delay_request(struct pp_instance *ppi,
+				       unsigned char *pkt, int plen);
+
+static pp_action *actions[] = {
+	[PPM_SYNC]		= st_com_master_handle_sync,
+	[PPM_DELAY_REQ]		= master_handle_delay_request,
+#if CONFIG_HAS_P2P
+	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
+	[PPM_PDELAY_RESP]	= st_com_peer_handle_pres,
+	[PPM_PDELAY_R_FUP]	= st_com_peer_handle_pres_followup,
+#endif
+	[PPM_FOLLOW_UP]		= 0,
+	[PPM_DELAY_RESP]	= 0,
+	[PPM_ANNOUNCE]		= st_com_master_handle_announce,
+	/* skip signaling and management, for binary size */
+};
+
+static int master_handle_delay_request(struct pp_instance *ppi,
+				       unsigned char *pkt, int plen)
+{
+	if (ppi->state == PPS_MASTER) /* not pre-master */
+		msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
+	return 0;
+}
+
 /*
  * MASTER and PRE_MASTER have many things in common. This function implements
  * both states. We set "pre" internally to 0 or 1.
@@ -16,9 +41,10 @@
 int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 {
 	int msgtype;
-	int pre = (ppi->state == PPS_MASTER);
+	int pre = (ppi->state == PPS_PRE_MASTER);
 	int e = 0; /* error var, to check errors in msg handling */
 
+	/* upgrade from pre-master to master */
 	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {
 		ppi->next_state = PPS_MASTER;
 		return 0;
@@ -36,10 +62,8 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	/* when the clock is using peer-delay, the master must send it too */
 	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
-	else {
-		if (!pre)
-			pp_timeout_set(ppi, PP_TO_REQUEST);
-	}
+	else /* please check commit '6d7bf7e3' about below, I'm not sure */
+		pp_timeout_set(ppi, PP_TO_REQUEST);
 
 	if (plen == 0)
 		goto out;
@@ -54,50 +78,26 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 		msgtype = pp_hooks.master_msg(ppi, pkt, plen, msgtype);
 	if (msgtype < 0) {
 		e = msgtype;
-		goto out_fault;
+		plen = 0;
+		e = PP_SEND_ERROR; /* well, "error" in general */
+		goto out;
 	}
 
-	switch (msgtype) {
-
-	case PPM_NOTHING_TO_DO:
-		break;
-
-	case PPM_ANNOUNCE:
-		e = st_com_master_handle_announce(ppi, pkt, plen);
-		break;
-
-	case PPM_SYNC:
-		e = st_com_master_handle_sync(ppi, pkt, plen);
-		break;
-
-	case PPM_DELAY_REQ:
-		if (!pre)
-			msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
-		break;
-
-	case PPM_PDELAY_REQ:
-		if (CONFIG_HAS_P2P)
-			st_com_peer_handle_preq(ppi, pkt, plen);
-		break;
-
-	case PPM_PDELAY_RESP:
-		if (CONFIG_HAS_P2P)
-			e = st_com_peer_handle_pres(ppi, pkt, plen);
-		break;
-
-	case PPM_PDELAY_R_FUP:
-		if (CONFIG_HAS_P2P)
-			e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
-		break;
-
-	default:
-		/* disregard, nothing to do */
-		break;
+	/*
+	 * The management of messages is now table-driven
+	 */
+	if (plen && msgtype < ARRAY_SIZE(actions)
+	    && actions[msgtype]) {
+		e = actions[msgtype](ppi, pkt, plen);
+	} else {
+		if (plen)
+			pp_diag(ppi, frames, 1, "Ignored frame\n");
 	}
 
 out:
 	switch(e) {
 	case PP_SEND_OK: /* 0 */
+		/* Why should we switch to slave? Remove this code? */
 		if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY
 		    || (ppi->role == PPSI_ROLE_SLAVE))
 			ppi->next_state = PPS_LISTENING;
@@ -111,6 +111,7 @@ out:
 		break;
 	}
 
+	/* we also use TO_QUALIFICATION, but avoid counting it here */
 	ppi->next_delay = pp_next_delay_3(ppi,
 		PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
 	return e;

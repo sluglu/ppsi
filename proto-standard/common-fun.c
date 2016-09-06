@@ -253,7 +253,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	int e = 0;
 	TimeInternal tmp;
 
-	if (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH)
+	if (plen < PP_PDELAY_R_FUP_LENGTH)
 		/* Ignore */
 		return e;
 

@@ -83,7 +83,7 @@ static int _pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen, int pre)
 		e = st_com_peer_handle_pres(ppi, pkt, plen);
 		break;
 
-	case PPM_PDELAY_RESP_FOLLOW_UP:
+	case PPM_PDELAY_R_FUP:
 		e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
 		break;
 

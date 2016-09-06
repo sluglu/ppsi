@@ -99,7 +99,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		e = st_com_peer_handle_pres(ppi, pkt, plen);
 		break;
 
-	case PPM_PDELAY_RESP_FOLLOW_UP:
+	case PPM_PDELAY_R_FUP:
 		e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
 		break;
 

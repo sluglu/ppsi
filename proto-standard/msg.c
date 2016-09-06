@@ -520,7 +520,7 @@ const char const *pp_msg_names[16] = {
 
 	[PPM_FOLLOW_UP] =		"follow_up",
 	[PPM_DELAY_RESP] =		"delay_resp",
-	[PPM_PDELAY_RESP_FOLLOW_UP] =	"pdelay_resp_follow_up",
+	[PPM_PDELAY_R_FUP] =		"pdelay_resp_follow_up",
 	[PPM_ANNOUNCE] =		"announce",
 	[PPM_SIGNALING] =		"signaling",
 	[PPM_MANAGEMENT] =		"management",
@@ -567,8 +567,8 @@ int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, TimeInternal * time)
 	msg_pack_pdelay_resp_follow_up(ppi, &ppi->received_ptp_header,
 				       &prec_orig_tstamp);
 
-	return __send_and_log(ppi, PP_PDELAY_RESP_FOLLOW_UP_LENGTH,
-			      PPM_PDELAY_RESP_FOLLOW_UP, PP_NP_GEN);
+	return __send_and_log(ppi, PP_PDELAY_R_FUP_LENGTH,
+			      PPM_PDELAY_R_FUP, PP_NP_GEN);
 }
 
 /* Pack and send on event multicast ip adress a DelayReq message */

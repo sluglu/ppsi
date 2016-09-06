@@ -3,7 +3,7 @@
  * Author: Aurelio Colosimo
  * Copyright (C) 2014 GSI (www.gsi.de)
  * Author: Cesar Prados
- * Based on PTPd project v. 2.1.0 (see AUTHORS for details)
+ * Originally based on PTPd project v. 2.1.0
  *
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
@@ -11,11 +11,72 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
+				 int plen);
+
+static pp_action *actions[] = {
+	[PPM_SYNC]		= st_com_slave_handle_sync,
+	[PPM_DELAY_REQ]		= 0,
+	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
+	[PPM_PDELAY_RESP]	= st_com_peer_handle_pres,
+	[PPM_FOLLOW_UP]		= st_com_slave_handle_followup,
+	[PPM_DELAY_RESP]	= slave_handle_response,
+	[PPM_PDELAY_R_FUP]	= st_com_peer_handle_pres_followup,
+	[PPM_ANNOUNCE]		= st_com_slave_handle_announce,
+	/* skip signaling and management, for binary size */
+};
+
+static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
+				 int plen)
+{
+	int e = 0;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	MsgDelayResp resp;
+
+	if (plen < PP_DELAY_RESP_LENGTH)
+		return 0;
+
+	msg_unpack_delay_resp(pkt, &resp);
+
+	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+		    &resp.requestingPortIdentity.clockIdentity,
+		    PP_CLOCK_IDENTITY_LENGTH) != 0) ||
+	    ((ppi->sent_seq[PPM_DELAY_REQ]) !=
+	     hdr->sequenceId) ||
+	    (DSPOR(ppi)->portIdentity.portNumber !=
+	     resp.requestingPortIdentity.portNumber) ||
+	    !(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+		pp_diag(ppi, frames, 2, "pp_slave : "
+			"Delay Resp doesn't match Delay Req\n");
+		return 0;
+	}
+
+	to_TimeInternal(&ppi->t4, &resp.receiveTimestamp);
+	/* Save delay resp cf in ppi->cField */
+	cField_to_TimeInternal(&ppi->cField,
+			       hdr->correctionfield);
+
+	if (pp_hooks.handle_resp)
+		e = pp_hooks.handle_resp(ppi);
+	else
+		pp_servo_got_resp(ppi);
+	if (e)
+		return e;
+
+	if (DSPOR(ppi)->logMinDelayReqInterval !=
+	    hdr->logMessageInterval) {
+		DSPOR(ppi)->logMinDelayReqInterval =
+			hdr->logMessageInterval;
+		/* new value for logMin */
+		pp_timeout_init(ppi);
+	}
+	return 0;
+}
+
 int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
-	MsgDelayResp resp;
 
 	if (ppi->is_new_state) {
 		memset(&ppi->t1, 0, sizeof(ppi->t1));
@@ -29,89 +90,25 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	e  = pp_lib_may_issue_request(ppi);
 
-	if (plen == 0)
+	/*
+	 * The management of messages is now table-driven
+	 */
+	if (plen && hdr->messageType < ARRAY_SIZE(actions)
+	    && actions[hdr->messageType]) {
+		e = actions[hdr->messageType](ppi, pkt, plen);
+	} else {
+		pp_diag(ppi, frames, 1, "Ignored frame\n");
+	}
+	if (e)
 		goto out;
 
-	switch (hdr->messageType) {
-
-	case PPM_ANNOUNCE:
-		e = st_com_slave_handle_announce(ppi, pkt, plen);
-		break;
-
-	case PPM_SYNC:
-		e = st_com_slave_handle_sync(ppi, pkt, plen);
-		break;
-
-	case PPM_FOLLOW_UP:
-		e = st_com_slave_handle_followup(ppi, pkt, plen);
-		break;
-
-	case PPM_DELAY_REQ:
-		/* Being slave, we are not waiting for a delay request */
-		break;
-
-	case PPM_DELAY_RESP:
-		if (plen < PP_DELAY_RESP_LENGTH)
-			break;
-
-		msg_unpack_delay_resp(pkt, &resp);
-
-		if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-			&resp.requestingPortIdentity.clockIdentity,
-			PP_CLOCK_IDENTITY_LENGTH) == 0) &&
-			((ppi->sent_seq[PPM_DELAY_REQ]) ==
-				hdr->sequenceId) &&
-			(DSPOR(ppi)->portIdentity.portNumber ==
-			resp.requestingPortIdentity.portNumber)
-			&& (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
-
-			to_TimeInternal(&ppi->t4, &resp.receiveTimestamp);
-			/* Save delay resp cf in ppi->cField */
-			cField_to_TimeInternal(&ppi->cField,
-					       hdr->correctionfield);
-
-			if (pp_hooks.handle_resp)
-				e = pp_hooks.handle_resp(ppi);
-			else
-				pp_servo_got_resp(ppi);
-			if (e)
-				goto out;
-
-			if (DSPOR(ppi)->logMinDelayReqInterval !=
-			    hdr->logMessageInterval) {
-				DSPOR(ppi)->logMinDelayReqInterval =
-					hdr->logMessageInterval;
-				/* new value for logMin */
-				pp_timeout_init(ppi);
-			}
-		} else {
-			pp_diag(ppi, frames, 2, "pp_slave : "
-			     "Delay Resp doesn't match Delay Req\n");
-		}
-
-		break;
-
-	case PPM_PDELAY_REQ:
-		e = st_com_peer_handle_preq(ppi, pkt, plen);
-		break;
-
-	case PPM_PDELAY_RESP:
-		e = st_com_peer_handle_pres(ppi, pkt, plen);
-		break;
-
-	case PPM_PDELAY_R_FUP:
-		e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
-		break;
-
-	default:
-		/* disregard, nothing to do */
-		break;
-	}
+	/*
+	 * This function, common to passive,listening etc,
+	 * is the core of the slave: timeout ann-receipt, hook
+	 */
+	e = st_com_execute_slave(ppi);
 
 out:
-	if (e == 0)
-		e = st_com_execute_slave(ppi);
-
 	switch(e) {
 	case PP_SEND_OK: /* 0 */
 		break;
@@ -132,3 +129,4 @@ out:
 					  PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
 	return e;
 }
+

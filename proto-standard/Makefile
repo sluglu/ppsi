@@ -9,7 +9,6 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-faulty.o \
 	$D/state-disabled.o \
 	$D/state-listening.o \
-	$D/state-pre-master.o \
 	$D/state-master.o \
 	$D/state-passive.o \
 	$D/state-uncalibrated.o \

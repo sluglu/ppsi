@@ -10,9 +10,11 @@
 #include "common-fun.h"
 
 /*
- * pre indicates that we're in PRE_MASTER slave
+ * MASTER and PRE_MASTER have many things in common. This function implements
+ * both states. It is invoked by pp_master and pp_pre_master with pre
+ * respectively equal to 0 and 1.
  */
-int _pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen, int pre)
+static int _pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen, int pre)
 {
 	int msgtype;
 	int e = 0; /* error var, to check errors in msg handling */
@@ -119,4 +121,9 @@ out_fault:
 int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 {
 	return _pp_master(ppi, pkt, plen, 0);
+}
+
+int pp_pre_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
+{
+	return _pp_master(ppi, pkt, plen, 1);
 }

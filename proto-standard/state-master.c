@@ -11,12 +11,12 @@
 
 /*
  * MASTER and PRE_MASTER have many things in common. This function implements
- * both states. It is invoked by pp_master and pp_pre_master with pre
- * respectively equal to 0 and 1.
+ * both states. We set "pre" internally to 0 or 1.
  */
-static int _pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen, int pre)
+int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 {
 	int msgtype;
+	int pre = (ppi->state == PPS_MASTER);
 	int e = 0; /* error var, to check errors in msg handling */
 
 	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {
@@ -121,12 +121,3 @@ out_fault:
 	return e;
 }
 
-int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
-{
-	return _pp_master(ppi, pkt, plen, 0);
-}
-
-int pp_pre_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
-{
-	return _pp_master(ppi, pkt, plen, 1);
-}

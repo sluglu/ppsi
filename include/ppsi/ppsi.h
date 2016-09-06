@@ -402,7 +402,7 @@ extern struct pp_state_table_item pp_state_table[]; /* 0-terminated */
 
 /* Standard state-machine functions */
 extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
-		 pp_pre_master, pp_master, pp_passive, pp_uncalibrated,
+		 pp_master, pp_passive, pp_uncalibrated,
 		 pp_slave, pp_pclock;;
 
 /* The engine */

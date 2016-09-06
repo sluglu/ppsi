@@ -232,7 +232,7 @@ static void dump_payload(char *prefix, void *pl, int len)
 		donelen = 54;
 		break;
 
-		CASE(G, PDELAY_RESP_FOLLOW_UP);
+		CASE(G, PDELAY_R_FUP);
 		dump_msg_resp_etc(prefix, "MSG-PDELAY_RESP_FOLLOWUP: ",
 				  msg_specific);
 		donelen = 54;

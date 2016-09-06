@@ -431,6 +431,8 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 		       &imr, sizeof(struct ip_mreq)) < 0)
 		goto err_out;
 
+#if 0 /* FIXME: UDP pdelay is not working due to address inflation */
+
 	/* Init Peer multicast IP address */
 	memcpy(addr_str, PP_PDELAY_DOMAIN_ADDRESS, INET_ADDRSTRLEN);
 
@@ -446,6 +448,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
 		       &imr, sizeof(struct ip_mreq)) < 0)
 		goto err_out;
+#endif
 
 	/* End of General multicast Ip address init */
 

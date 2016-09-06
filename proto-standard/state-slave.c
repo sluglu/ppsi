@@ -17,11 +17,13 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 static pp_action *actions[] = {
 	[PPM_SYNC]		= st_com_slave_handle_sync,
 	[PPM_DELAY_REQ]		= 0,
+#if CONFIG_HAS_P2P
 	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
 	[PPM_PDELAY_RESP]	= st_com_peer_handle_pres,
+	[PPM_PDELAY_R_FUP]	= st_com_peer_handle_pres_followup,
+#endif
 	[PPM_FOLLOW_UP]		= st_com_slave_handle_followup,
 	[PPM_DELAY_RESP]	= slave_handle_response,
-	[PPM_PDELAY_R_FUP]	= st_com_peer_handle_pres_followup,
 	[PPM_ANNOUNCE]		= st_com_slave_handle_announce,
 	/* skip signaling and management, for binary size */
 };

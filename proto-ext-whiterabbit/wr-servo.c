@@ -247,7 +247,7 @@ int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
 	s->t4.correct = 1; /* clock->delay_req_receive_time.correct; */
 	s->t4.phase = (int64_t) cf * 1000LL / 65536LL;
 
-	if (GLBS(ppi)->delay_mech == PP_P2P_MECH) {
+	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH) {
 		s->t5 = ppi->t5;
 		s->t5.correct = 1;
 		s->t5.phase = 0;
@@ -416,7 +416,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
 	picos_mu_prev = s->picos_mu;
-	if (GLBS(ppi)->delay_mech == PP_P2P_MECH) {
+	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH) {
 		if (!wr_p2p_offset(ppi, s, &ts_offset_hw))
 			goto out;
 	} else {

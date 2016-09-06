@@ -43,8 +43,6 @@ struct pp_runtime_opts {
 /* slave_only:1, -- moved to ppi, no more global */
 /* master_only:1, -- moved to ppi, no more global */
 /* ethernet_mode:1, -- moved to ppi, no more global */
-/* e2e_mode:1, -- no more: we only support e2e */
-/* gptp_mode:1, -- no more: peer-to-peer unsupported */
 
 
 

@@ -50,7 +50,7 @@ static struct pp_instance ppi_static = {
 /* We now have a structure with all globals, and multiple ppi inside */
 static struct pp_globals ppg_static = {
 	.pp_instances		= &ppi_static,
-	.delay_mech		= HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
+	.delay_mech		= CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
 	.nlinks			= 1,
 	.servo			= &servo,
 	.defaultDS		= &defaultDS,

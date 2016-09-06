@@ -341,7 +341,8 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 }
 
 /* pack DelayReq message into out buffer of ppi */
-void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
+static void msg_pack_pdelay_req(struct pp_instance *ppi,
+				Timestamp * orig_tstamp)
 {
 	void *buf;
 	UInteger8 *flags;
@@ -601,9 +602,9 @@ static int msg_issue_pdelay_req(struct pp_instance *ppi)
 
 int msg_issue_request(struct pp_instance *ppi)
 {
-	if (ppi->glbs->delay_mech == PP_E2E_MECH)
-		return msg_issue_delay_req(ppi);
-	return msg_issue_pdelay_req(ppi);
+	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
+		return msg_issue_pdelay_req(ppi);
+	return msg_issue_delay_req(ppi);
 }
 
 /* Pack and send on event multicast ip adress a DelayResp message */

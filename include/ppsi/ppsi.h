@@ -9,18 +9,6 @@
 #define __PPSI_PPSI_H__
 #include <generated/autoconf.h>
 
-
-#ifdef CONFIG_E2E
-#  define HAS_E2E 1
-#else
-#  define HAS_E2E 0
-#endif
-#ifdef CONFIG_P2P
-#  define HAS_P2P 1
-#else
-#  define HAS_P2P 0
-#endif
-
 #include <stdint.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -373,8 +361,6 @@ extern void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp);
 extern void msg_pack_pdelay_resp(struct pp_instance *ppi,
 				 MsgHeader * hdr, Timestamp * rcv_tstamp);
 extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req);
-extern void msg_pack_pdelay_req(struct pp_instance *ppi,
-				Timestamp * orig_tstamp);
 
 /* each of them returns 0 if ok, -1 in case of error in send, 1 if stamp err */
 #define PP_SEND_OK		0

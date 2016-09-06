@@ -186,7 +186,7 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
 	to_TimeInternal(&ppi->t1,
 			&sync.originTimestamp);
-	if (GLBS(ppi)->delay_mech)
+	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
 		pp_servo_got_psync(ppi);
 	else
 		pp_servo_got_sync(ppi);
@@ -355,7 +355,7 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	if (ret < 0)
 		return ret;
 
-	if (GLBS(ppi)->delay_mech)
+	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
 		pp_servo_got_psync(ppi);
 	else
 		pp_servo_got_sync(ppi);

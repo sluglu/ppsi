@@ -100,8 +100,9 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 		break;
 
 	case PPM_PDELAY_REQ:
-		wr_handle_preq(ppi);
-		msgtype = PPM_PDELAY_REQ; /* normal management continues  */
+		if (CONFIG_HAS_P2P)
+			wr_handle_preq(ppi);
+		/* normal management continues  */
 		break;
 
 	/* This is missing in the standard protocol */
@@ -214,13 +215,13 @@ static int wr_handle_followup(struct pp_instance *ppi,
 	wr_servo_got_sync(ppi, precise_orig_timestamp,
 			  &ppi->t2);
 
-	if (GLBS(ppi)->delay_mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
 		wr_servo_update(ppi);
 
 	return 1; /* the caller returns too */
 }
 
-static int wr_handle_presp(struct pp_instance *ppi)
+static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	TimeInternal correction_field;
@@ -291,8 +292,10 @@ struct pp_ext_hooks pp_hooks = {
 	.execute_slave = wr_execute_slave,
 	.handle_announce = wr_handle_announce,
 	.handle_followup = wr_handle_followup,
+#if CONFIG_HAS_P2P
 	.handle_preq = wr_handle_preq,
 	.handle_presp = wr_handle_presp,
+#endif
 	.pack_announce = wr_pack_announce,
 	.unpack_announce = wr_unpack_announce,
 };

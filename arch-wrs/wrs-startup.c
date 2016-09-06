@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 	ppg->servo = alloc_fn(ppsi_head, sizeof(*ppg->servo));
 	ppg->rt_opts = &__pp_default_rt_opts;
 
-	if (HAS_P2P) /* FIXME: turn this to a configuration opion */
+	if (CONFIG_HAS_P2P) /* FIXME: should be a run-time configuration */
 		ppg->delay_mech = PP_P2P_MECH;
 	else
 		ppg->delay_mech = PP_E2E_MECH;

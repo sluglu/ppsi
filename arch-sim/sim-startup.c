@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	ppg->max_links = 2; // master and slave, nothing else
 	ppg->arch_data = calloc(1, sizeof(struct sim_ppg_arch_data));
 	ppg->pp_instances = calloc(ppg->max_links, sizeof(struct pp_instance));
-	ppg->delay_mech = HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH;
+	ppg->delay_mech = CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH;
 
 	if ((!ppg->arch_data) || (!ppg->pp_instances))
 		return -1;

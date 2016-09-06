@@ -94,7 +94,7 @@ static struct pp_globals ppg_static = {
 	.parentDS		= &parentDS,
 	.timePropertiesDS	= &timePropertiesDS,
 	.global_ext_data	= &servo_state,
-	.delay_mech		= HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
+	.delay_mech		= CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
 };
 
 int wrc_ptp_init()

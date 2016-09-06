@@ -33,8 +33,8 @@ static int _pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen, int pre)
 		pp_lib_may_issue_announce(ppi);
 	}
 
-	/* when the clock is using peer-delay, the muster mast send it too */
-	if (ppi->glbs->delay_mech == PP_P2P_MECH)
+	/* when the clock is using peer-delay, the master must send it too */
+	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
 	else {
 		if (!pre)
@@ -76,15 +76,18 @@ static int _pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen, int pre)
 		break;
 
 	case PPM_PDELAY_REQ:
-		st_com_peer_handle_preq(ppi, pkt, plen);
+		if (CONFIG_HAS_P2P)
+			st_com_peer_handle_preq(ppi, pkt, plen);
 		break;
 
 	case PPM_PDELAY_RESP:
-		e = st_com_peer_handle_pres(ppi, pkt, plen);
+		if (CONFIG_HAS_P2P)
+			e = st_com_peer_handle_pres(ppi, pkt, plen);
 		break;
 
 	case PPM_PDELAY_R_FUP:
-		e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
+		if (CONFIG_HAS_P2P)
+			e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
 		break;
 
 	default:

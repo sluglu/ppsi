@@ -87,6 +87,19 @@ menu "PTP Protocol Options"
                   the link delay and another 2 for synchronizing.
         endchoice
 
+	config E2E_ONLY
+		boolean "Avoid building P2P code"
+		default n
+		help
+		  If you choose E2E above, P2P is built anyways,
+		  and you can choose at runtime what to run.
+		  This disables P2P code, for size reasons on wrpc-sw
+
+	config HAS_P2P
+	       int
+	       default 0 if E2E_ONLY
+	       default 1  
+
 endmenu
 
 config EXT_WR

@@ -32,7 +32,8 @@ struct wrs_shm_head {
 	int pid;		/* The current pid owning the area */
 
 	unsigned pidsequence;	/* Each new pid must increments this */
-	unsigned sequence;	/* If we need consistency, this is it */
+	unsigned sequence;	/* If we need consistency, this is it. LSB bit
+				 * informs whether shmem is locked already */
 	unsigned version;	/* Version of the data structure */
 	unsigned data_size;	/* Size of it (for binary dumps) */
 };
@@ -41,6 +42,8 @@ struct wrs_shm_head {
 #define WRS_SHM_READ   0x0000
 #define WRS_SHM_WRITE  0x0001
 #define WRS_SHM_LOCKED 0x0002 /* at init time: writers locks, readers wait  */
+
+#define WRS_SHM_LOCK_MASK 0x0001
 
 /* Set custom path for shmem */
 void wrs_shm_set_path(char *new_path);

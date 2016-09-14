@@ -32,7 +32,8 @@ struct wrs_shm_head {
 	int pid;		/* The current pid owning the area */
 
 	unsigned pidsequence;	/* Each new pid must increments this */
-	unsigned sequence;	/* If we need consistency, this is it */
+	unsigned sequence;	/* If we need consistency, this is it. LSB bit
+				 * informs whether shmem is locked already */
 	unsigned version;	/* Version of the data structure */
 	unsigned data_size;	/* Size of it (for binary dumps) */
 };
@@ -41,6 +42,14 @@ struct wrs_shm_head {
 #define WRS_SHM_READ   0x0000
 #define WRS_SHM_WRITE  0x0001
 #define WRS_SHM_LOCKED 0x0002 /* at init time: writers locks, readers wait  */
+
+#define WRS_SHM_LOCK_MASK 0x0001
+
+/* return values of wrs_shm_get_and_check */
+#define WRS_SHM_OPEN_OK           0x0001
+#define WRS_SHM_OPEN_FAILED       0x0001
+#define WRS_SHM_WRONG_VERSION     0x0002
+#define WRS_SHM_INCONSISTENT_DATA 0x0003
 
 /* Set custom path for shmem */
 void wrs_shm_set_path(char *new_path);
@@ -69,7 +78,11 @@ void *wrs_shm_follow(void *headptr, void *ptr);
 /* Before and after writing a chunk of data, act on sequence and stamp */
 #define WRS_SHM_WRITE_BEGIN	1
 #define WRS_SHM_WRITE_END	0
-extern void wrs_shm_write(void *headptr, int flags);
+
+/* A helper to pass the name of caller function */
+#define wrs_shm_write(headptr, flags) wrs_shm_write_caller(headptr, flags, \
+							   __func__)
+extern void wrs_shm_write_caller(void *headptr, int flags, const char *caller);
 
 /* A reader can rely on the sequence number (in the <linux/seqlock.h> way) */
 extern unsigned wrs_shm_seqbegin(void *headptr);

@@ -12,6 +12,7 @@
 
 #include <libwr/shmem.h>
 #include <libwr/util.h>
+#include <libwr/wrs-msg.h>
 
 #define SHM_LOCK_TIMEOUT_MS 50 /* in ms */
 
@@ -140,25 +141,33 @@ int wrs_shm_put(void *headptr)
 /* Open shmem and check if data is available
  * return 0 when ok, otherwise error
  * 1 when openning shmem failed
- * 2 when version is 0 */
+ * 2 when version is 0
+ * 3 when data in shmem is inconsistent, function shall be called again
+ */
 int wrs_shm_get_and_check(enum wrs_shm_name shm_name,
 				 struct wrs_shm_head **head)
 {
 	int ii;
 	int version;
+	int ret;
 
 	/* try to open shmem */
 	if (!(*head) && !(*head = wrs_shm_get(shm_name, "",
 					WRS_SHM_READ | WRS_SHM_LOCKED))) {
-		return 1;
+		return WRS_SHM_OPEN_FAILED;
 	}
 
 	ii = wrs_shm_seqbegin(*head);
 	/* read head version */
 	version = (*head)->version;
-	if (wrs_shm_seqretry(*head, ii) || !version) {
-		/* data in shmem available and version not zero */
-		return 2;
+	ret = wrs_shm_seqretry(*head, ii);
+	if (ret) {
+		/* inconsistent data in shmem */
+		return WRS_SHM_INCONSISTENT_DATA;
+	}
+	if (!version) {
+		/* data in shmem available and version is zero */
+		return WRS_SHM_WRONG_VERSION;
 	}
 
 	/* all ok */
@@ -197,15 +206,29 @@ void *wrs_shm_follow(void *headptr, void *ptr)
 }
 
 /* Before and after writing a chunk of data, act on sequence and stamp */
-void wrs_shm_write(void *headptr, int flags)
+void wrs_shm_write_caller(void *headptr, int flags, const char *caller)
 {
 	struct wrs_shm_head *head = headptr;
+
+	head->sequence++;
+	pr_debug("caller: %s\n", caller);
 
 	if (flags == WRS_SHM_WRITE_END) {
 		/* At end-of-writing update the timestamp too */
 		head->stamp = get_monotonic_sec();
+		if (head->sequence & 1)
+			pr_error("On the shmem write end the sequence number "
+				 "(%d) is even (should be odd). The caller of"
+				 " wrs_shm_write is %s\n",
+				 head->sequence, caller);
+	} else {
+		if (!(head->sequence & 1))
+			pr_error("On the shmem write begin the sequence number"
+				 " (%d) is odd (should be even). The caller of"
+				 " wrs_shm_write is %s\n",
+				 head->sequence, caller);
 	}
-	head->sequence++;
+
 	return;
 }
 

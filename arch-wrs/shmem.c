@@ -141,25 +141,33 @@ int wrs_shm_put(void *headptr)
 /* Open shmem and check if data is available
  * return 0 when ok, otherwise error
  * 1 when openning shmem failed
- * 2 when version is 0 */
+ * 2 when version is 0
+ * 3 when data in shmem is inconsistent, function shall be called again
+ */
 int wrs_shm_get_and_check(enum wrs_shm_name shm_name,
 				 struct wrs_shm_head **head)
 {
 	int ii;
 	int version;
+	int ret;
 
 	/* try to open shmem */
 	if (!(*head) && !(*head = wrs_shm_get(shm_name, "",
 					WRS_SHM_READ | WRS_SHM_LOCKED))) {
-		return 1;
+		return WRS_SHM_OPEN_FAILED;
 	}
 
 	ii = wrs_shm_seqbegin(*head);
 	/* read head version */
 	version = (*head)->version;
-	if (wrs_shm_seqretry(*head, ii) || !version) {
-		/* data in shmem available and version not zero */
-		return 2;
+	ret = wrs_shm_seqretry(*head, ii);
+	if (ret) {
+		/* inconsistent data in shmem */
+		return WRS_SHM_INCONSISTENT_DATA;
+	}
+	if (!version) {
+		/* data in shmem available and version is zero */
+		return WRS_SHM_WRONG_VERSION;
 	}
 
 	/* all ok */

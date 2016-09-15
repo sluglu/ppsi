@@ -12,6 +12,10 @@
 #define HAL_PORT_STATE_CALIBRATION 3
 #define HAL_PORT_STATE_LOCKING 4
 
+/* Read temperature from SFPs */
+#define READ_SFP_DIAG_ENABLE 1
+#define READ_SFP_DIAG_DISABLE 0
+
 #define DEFAULT_T2_PHASE_TRANS 0
 #define DEFAULT_T4_PHASE_TRANS 0
 
@@ -46,6 +50,7 @@ typedef struct hal_port_calibration {
 
 	struct shw_sfp_caldata sfp;
 	struct shw_sfp_header sfp_header_raw;
+	struct shw_sfp_dom sfp_dom_raw;
 } hal_port_calibration_t;
 
 /* Internal port state structure */
@@ -100,6 +105,9 @@ struct hal_port_state {
 
 	/* Endpoint's base address */
 	uint32_t ep_base;
+
+	/* whether SFP has diagnostic Monitoring capability */
+	int has_sfp_diag;
 };
 
 struct hal_temp_sensors {
@@ -110,13 +118,15 @@ struct hal_temp_sensors {
 };
 
 /* This is the overall structure stored in shared memory */
-#define HAL_SHMEM_VERSION 9 /* Version 9 because of adding sfp_header_raw */
+#define HAL_SHMEM_VERSION 10 /* Version 10 because of adding sfp_dom_raw
+				has_sfp_diag and read_sfp_diag */
 
 struct hal_shmem_header {
 	int nports;
 	int hal_mode;
 	struct hal_port_state *ports;
 	struct hal_temp_sensors temp;
+	int read_sfp_diag;
 };
 
 static inline int state_up(int state)

@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 		ppi->vlans_array_len = CONFIG_VLAN_ARRAY_SIZE;
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
-		ppi->mech = CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH;
+		ppi->mech = ppi->cfg.mech;
 		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
 		if (ppi->portDS)
 			ppi->portDS->ext_dsport =

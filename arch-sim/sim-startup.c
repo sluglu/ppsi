@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 		sim_set_global_DS(ppi);
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
-		ppi->mech = CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH;
+		ppi->mech = ppi->cfg.mech;
 		if (ppi->proto == PPSI_PROTO_RAW)
 			pp_printf("Warning: simulator doesn't support raw "
 					"ethernet. Using UDP\n");

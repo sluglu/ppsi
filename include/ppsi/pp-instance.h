@@ -112,7 +112,8 @@ enum { /* The two sockets. They are called "net path" for historical reasons */
 struct pp_instance_cfg {
 	char port_name[16];
 	char iface_name[16];
-	int ext;   /* 0: none, 1: whiterabbit */
+	int ext;   /* 0: none, 1: whiterabbit. 2: HA */
+	int mech;   /* 0: E2E, 1: P2P */
 };
 
 /*

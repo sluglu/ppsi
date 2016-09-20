@@ -228,6 +228,15 @@ static struct pp_argname arg_ext[] = {
 	{"whiterabbit", PPSI_EXT_WR},
 	{},
 };
+static struct pp_argname arg_mech[] = {
+	{"request-response", PP_E2E_MECH},
+	{"delay", PP_E2E_MECH},
+	{"e2e", PP_E2E_MECH},
+	{"peer-delay", PP_P2P_MECH},
+	{"pdelay", PP_P2P_MECH},
+	{"p2p", PP_P2P_MECH},
+	{},
+};
 
 static struct pp_argline pp_global_arglines[] = {
 	LEGACY_OPTION(f_port, "port", ARG_STR),
@@ -236,6 +245,7 @@ static struct pp_argline pp_global_arglines[] = {
 	INST_OPTION_INT("proto", ARG_NAMES, arg_proto, proto),
 	INST_OPTION_INT("role", ARG_NAMES, arg_role, role),
 	INST_OPTION_INT("extension", ARG_NAMES, arg_ext, cfg.ext),
+	INST_OPTION_INT("mechanism", ARG_NAMES, arg_mech, cfg.mech),
 	LEGACY_OPTION(f_vlan, "vlan", ARG_STR),
 	LEGACY_OPTION(f_diag, "diagnostic", ARG_STR),
 	RT_OPTION_INT("clock-class", ARG_INT, NULL, clock_quality.clockClass),

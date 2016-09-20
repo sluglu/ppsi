@@ -29,7 +29,7 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	struct wr_sockaddr addr;
 	char *macaddr = PP_MCAST_MACADDRESS;
 
-	if (ppi->glbs->delay_mech == PP_P2P_MECH)
+	if (ppi->mech == PP_P2P_MECH)
 		macaddr = PP_PDELAY_MACADDRESS;
 	addr.ethertype = ETH_P_1588;
 	memcpy(addr.mac, macaddr, sizeof(mac_addr_t));

@@ -14,7 +14,7 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int e = 0; /* error var, to check errors in msg handling */
 
 	/* when the clock is using peer-delay, listening must send it too */
-	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		e  = pp_lib_may_issue_request(ppi);
 
 	if (plen == 0)

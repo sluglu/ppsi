@@ -60,7 +60,7 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	}
 
 	/* when the clock is using peer-delay, the master must send it too */
-	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
 	else /* please check commit '6d7bf7e3' about below, I'm not sure */
 		pp_timeout_set(ppi, PP_TO_REQUEST);

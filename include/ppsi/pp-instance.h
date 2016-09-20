@@ -127,7 +127,8 @@ struct pp_instance {
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
 	int	role,			/* same as in config file */
-		proto;			/* same as in config file */
+		proto,			/* same as in config file */
+		mech;			/* same as in config file */
 
 	/* Pointer to global instance owning this pp_instance*/
 	struct pp_globals *glbs;
@@ -210,9 +211,6 @@ struct pp_globals {
 	DSCurrent *currentDS;			/* page 67 */
 	DSParent *parentDS;			/* page 68 */
 	DSTimeProperties *timePropertiesDS;	/* page 70 */
-
-	/* Sync Mechanism */
-	int delay_mech;		/* PP_E2E_MECH, PP_P2P_MECH */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;

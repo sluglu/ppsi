@@ -602,7 +602,7 @@ static int msg_issue_pdelay_req(struct pp_instance *ppi)
 
 int msg_issue_request(struct pp_instance *ppi)
 {
-	if (CONFIG_HAS_P2P && ppi->glbs->delay_mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		return msg_issue_pdelay_req(ppi);
 	return msg_issue_delay_req(ppi);
 }

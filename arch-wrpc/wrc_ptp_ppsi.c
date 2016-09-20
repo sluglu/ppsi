@@ -79,6 +79,7 @@ struct pp_instance ppi_static = {
 	.t_ops			= &wrpc_time_ops,
 	.vlans_array_len	= CONFIG_VLAN_ARRAY_SIZE,
 	.proto			= PP_DEFAULT_PROTO,
+	.mech		= CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
 	.iface_name		= "wr1",
 	.port_name		= "wr1",
 	.__tx_buffer		= __tx_buffer,
@@ -94,7 +95,6 @@ static struct pp_globals ppg_static = {
 	.parentDS		= &parentDS,
 	.timePropertiesDS	= &timePropertiesDS,
 	.global_ext_data	= &servo_state,
-	.delay_mech		= CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
 };
 
 int wrc_ptp_init()
@@ -192,17 +192,15 @@ int wrc_ptp_get_mode()
 void wrc_ptp_set_sync_mech(int mech)
 {
 	struct pp_instance *ppi = &ppi_static;
-	struct pp_globals *ppg = ppi->glbs;
 
 	wrc_ptp_stop();
-	ppg->delay_mech = mech;
+	ppi->mech = mech;
 }
 
 int wrc_ptp_get_sync_mech()
 {
 	struct pp_instance *ppi = &ppi_static;
-	struct pp_globals *ppg = ppi->glbs;
-	return ppg->delay_mech;
+	return ppi->mech;
 }
 
 int wrc_ptp_start()

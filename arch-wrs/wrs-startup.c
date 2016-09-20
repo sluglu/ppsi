@@ -154,11 +154,6 @@ int main(int argc, char **argv)
 	ppg->servo = alloc_fn(ppsi_head, sizeof(*ppg->servo));
 	ppg->rt_opts = &__pp_default_rt_opts;
 
-	if (CONFIG_HAS_P2P) /* FIXME: should be a run-time configuration */
-		ppg->delay_mech = PP_P2P_MECH;
-	else
-		ppg->delay_mech = PP_E2E_MECH;
-
 	ppg->max_links = PP_MAX_LINKS;
 	ppg->global_ext_data = alloc_fn(ppsi_head,
 					sizeof(struct wr_servo_state));
@@ -212,6 +207,7 @@ int main(int argc, char **argv)
 		ppi->vlans_array_len = CONFIG_VLAN_ARRAY_SIZE;
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
+		ppi->mech = CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH;
 		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
 		if (ppi->portDS)
 			ppi->portDS->ext_dsport =

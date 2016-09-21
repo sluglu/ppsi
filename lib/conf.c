@@ -183,18 +183,6 @@ static int f_servo_pi(struct pp_argline *l, int lineno,
 	return 0;
 }
 
-static int f_latency(struct pp_argline *l, int lineno, struct pp_globals *ppg,
-		     union pp_cfg_arg *arg)
-{
-	int n1, n2;
-
-	CHECK_PPI(0);
-	n1 = arg->i2[0]; n2 = arg->i2[1];
-	GOPTS(ppg)->inbound_latency.nanoseconds = n1;
-	GOPTS(ppg)->outbound_latency.nanoseconds = n2;
-	return 0;
-}
-
 static int f_announce_intvl(struct pp_argline *l, int lineno,
 			    struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
@@ -254,7 +242,6 @@ static struct pp_argline pp_global_arglines[] = {
 	RT_OPTION_INT("clock-allan-variance", ARG_INT, NULL,
 		      clock_quality.offsetScaledLogVariance),
 	LEGACY_OPTION(f_servo_pi, "servo-pi", ARG_INT2),
-	LEGACY_OPTION(f_latency, "latency", ARG_INT2),
 	RT_OPTION_INT("domain-number", ARG_INT, NULL, domain_number),
 	LEGACY_OPTION(f_announce_intvl, "announce-interval", ARG_INT),
 	RT_OPTION_INT("sync-interval", ARG_INT, NULL, sync_intvl),

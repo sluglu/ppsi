@@ -551,8 +551,6 @@ int msg_issue_sync_followup(struct pp_instance *ppi)
 
 	/* Send followup on general channel with sent-stamp of sync */
 	time_snt = &ppi->last_snt_time;
-	add_TimeInternal(time_snt, time_snt,
-			 &OPTS(ppi)->outbound_latency);
 	from_TimeInternal(time_snt, &tstamp);
 	msg_pack_follow_up(ppi, &tstamp);
 	return __send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,

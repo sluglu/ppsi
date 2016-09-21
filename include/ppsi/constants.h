@@ -17,8 +17,6 @@
 #define PP_MAX_LINKS				64
 #define PP_DEFAULT_CONFIGFILE			"/etc/ppsi.conf"
 
-#define PP_DEFAULT_INBOUND_LATENCY		0		/* in nsec */
-#define PP_DEFAULT_OUTBOUND_LATENCY		0		/* in nsec */
 #define PP_DEFAULT_FLAGS			0
 #define PP_DEFAULT_ROLE				PPSI_ROLE_AUTO
 #define PP_DEFAULT_PROTO			PPSI_PROTO_UDP /* overridden by arch */

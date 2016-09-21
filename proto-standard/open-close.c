@@ -17,8 +17,6 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 			.clockAccuracy = PP_DEFAULT_CLOCK_ACCURACY,
 			.offsetScaledLogVariance = PP_DEFAULT_CLOCK_VARIANCE,
 	},
-	.inbound_latency =	{0, PP_DEFAULT_INBOUND_LATENCY},
-	.outbound_latency =	{0, PP_DEFAULT_OUTBOUND_LATENCY},
 	.max_rst =		PP_DEFAULT_MAX_RESET,
 	.max_dly =		PP_DEFAULT_MAX_DELAY,
 	.flags =		PP_DEFAULT_FLAGS,

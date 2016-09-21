@@ -16,7 +16,6 @@
  */
 struct pp_runtime_opts {
 	ClockQuality clock_quality;
-	TimeInternal inbound_latency, outbound_latency;
 	Integer32 max_rst; /* Maximum number of nanoseconds to reset */
 	Integer32 max_dly; /* Maximum number of nanoseconds of delay */
 	Integer32 ttl;

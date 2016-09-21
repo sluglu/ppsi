@@ -44,40 +44,8 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 				     unsigned char *buf, int len);
 
-static inline int __send_and_log(struct pp_instance *ppi, int msglen,
-				 int msgtype, int chtype)
-{
-	int pdelay_addr = 0;
-	uint8_t *ptr = ppi->tx_ptp;
-
-	/*
-	 * We're not a transparent clock, just set our domain number in all
-	 * outgoing frames
-	 */
-	ptr[4] = GDSDEF(GLBS(ppi))->domainNumber;
-	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP)
-		pdelay_addr = 1;
-
-	if (ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,
-			     &ppi->last_snt_time, chtype,
-			     pdelay_addr) < msglen) {
-		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
-			pp_msg_names[msgtype], msgtype);
-		return PP_SEND_ERROR;
-	}
-	/* FIXME: diagnosticst should be looped back in the send method */
-	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d (%s)\n", msglen,
-		(int)(ppi->last_snt_time.seconds),
-		(int)(ppi->last_snt_time.nanoseconds),
-		pp_msg_names[msgtype]);
-	if (chtype == PP_NP_EVT && ppi->last_snt_time.correct == 0)
-		return PP_SEND_NO_STAMP;
-
-	/* count sent packets */
-	ppi->ptp_tx_count++;
-
-	return 0;
-}
+int __send_and_log(struct pp_instance *ppi, int msglen,
+		   int msgtype, int chtype);
 
 /* Count successfully received PTP packets */
 static inline int __recv_and_count(struct pp_instance *ppi, void *pkt, int len,

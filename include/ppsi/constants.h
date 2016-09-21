@@ -13,7 +13,6 @@
 #define PP_NSEC_PER_SEC (1000*1000*1000)
 
 /* implementation specific constants */
-#define PP_DEFAULT_PPI_FLAGS			0 /* UDP mode */
 #define PP_MAX_LINKS				64
 #define PP_DEFAULT_CONFIGFILE			"/etc/ppsi.conf"
 

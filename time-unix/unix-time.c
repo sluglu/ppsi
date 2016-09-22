@@ -23,22 +23,21 @@ static void clock_fatal_error(char *context)
 	exit(1);
 }
 
-static int unix_time_get(struct pp_instance *ppi, TimeInternal *t)
+static int unix_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct timespec tp;
 	if (clock_gettime(CLOCK_REALTIME, &tp) < 0)
 		clock_fatal_error("clock_gettime");
 	/* TAI = UTC + 35 */
-	t->seconds = tp.tv_sec + DSPRO(ppi)->currentUtcOffset;
-	t->nanoseconds = tp.tv_nsec;
-	t->correct = 1;
+	t->secs = tp.tv_sec + DSPRO(ppi)->currentUtcOffset;
+	t->scaled_nsecs = ((int64_t)tp.tv_nsec) << 16;
 	if (!(pp_global_d_flags & PP_FLAG_NOTIMELOG))
 		pp_diag(ppi, time, 2, "%s: %9li.%09li\n", __func__,
 			tp.tv_sec, tp.tv_nsec);
 	return 0;
 }
 
-static int unix_time_set(struct pp_instance *ppi, TimeInternal *t)
+static int unix_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	struct timespec tp;
 
@@ -55,8 +54,8 @@ static int unix_time_set(struct pp_instance *ppi, TimeInternal *t)
 	}
 
 	/* UTC = TAI - 35 */
-	tp.tv_sec = t->seconds - DSPRO(ppi)->currentUtcOffset;
-	tp.tv_nsec = t->nanoseconds;
+	tp.tv_sec = t->secs - DSPRO(ppi)->currentUtcOffset;
+	tp.tv_nsec = t->scaled_nsecs >> 16;
 	if (clock_settime(CLOCK_REALTIME, &tp) < 0)
 		clock_fatal_error("clock_settime");
 	pp_diag(ppi, time, 1, "%s: %9li.%09li\n", __func__,

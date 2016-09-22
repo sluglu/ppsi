@@ -257,8 +257,8 @@ static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 		return 0;
 	}
 
-	ppi->t4_cf = hdr->correctionfield.lsb;
-	wr_servo_got_delay(ppi, ppi->t4_cf);
+	/* FIXME: verify that last-received cField is already accounted for */
+	wr_servo_got_delay(ppi);
 	return 0;
 }
 

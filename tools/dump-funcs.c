@@ -31,18 +31,18 @@ static int dumpstruct(char *p1, char *p2, char *name, void *ptr, int size)
 }
 
 #if __STDC_HOSTED__
-static void dump_time(char *prefix, struct TimeInternal *ti)
+static void dump_time(char *prefix, const struct pp_time *t)
 {
 	struct timeval tv;
 	struct tm tm;
 
-	tv.tv_sec = ti->seconds;
-	tv.tv_usec = ti->nanoseconds / 1000;
+	tv.tv_sec = t->secs;
+	tv.tv_usec = (t->scaled_nsecs >> 16) / 1000;
 	localtime_r(&tv.tv_sec, &tm);
 	printf("%sTIME: (%li - 0x%lx) %02i:%02i:%02i.%06li%s\n", prefix,
 	       tv.tv_sec, tv.tv_sec,
 	       tm.tm_hour, tm.tm_min, tm.tm_sec, (long)tv.tv_usec,
-	       !ti->correct ? " invalid" : "");
+	       is_incorrect(t) ? " invalid" : "");
 }
 #else
 static void dump_time(char *prefix, struct TimeInternal *ti)
@@ -259,7 +259,7 @@ out:
 }
 
 /* This dumps a complete udp frame, starting from the eth header */
-int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
+int dump_udppkt(char *prefix, void *buf, int len, const struct pp_time *t,
 		int vlan)
 {
 	struct ethhdr *eth = buf;
@@ -267,8 +267,8 @@ int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
 	struct udphdr *udp;
 	void *payload;
 
-	if (ti)
-		dump_time(prefix, ti);
+	if (t)
+		dump_time(prefix, t);
 
 	dump_vlan(prefix, vlan);
 
@@ -285,23 +285,23 @@ int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
 }
 
 /* This dumps the payload only, used for udp frames without headers */
-int dump_payloadpkt(char *prefix, void *buf, int len, struct TimeInternal *ti)
+int dump_payloadpkt(char *prefix, void *buf, int len, const struct pp_time *t)
 {
-	if (ti)
-		dump_time(prefix, ti);
+	if (t)
+		dump_time(prefix, t);
 	dump_payload(prefix, buf, len);
 	return 0;
 }
 
 /* This dumps everything, used for raw frames with headers and ptp payload */
-int dump_1588pkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
+int dump_1588pkt(char *prefix, void *buf, int len, const struct pp_time *t,
 		 int vlan)
 {
 	struct ethhdr *eth = buf;
 	void *payload;
 
-	if (ti)
-		dump_time(prefix, ti);
+	if (t)
+		dump_time(prefix, t);
 	dump_vlan(prefix, vlan);
 	payload = buf + dump_eth(prefix, eth);
 	dump_payload(prefix, payload, len - (payload - buf));

@@ -234,7 +234,7 @@ int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
 	return 0;
 }
 
-int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
+int wr_servo_got_delay(struct pp_instance *ppi)
 {
 	struct wr_servo_state *s =
 			&((struct wr_data *)ppi->ext_data)->servo_state;
@@ -244,15 +244,13 @@ int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
 	s->t3 = ppi->t3;
 	/*  s->t3.phase = 0; */
 	s->t4 = ppi->t4;
-	s->t4.correct = 1; /* clock->delay_req_receive_time.correct; */
-	s->t4.phase = (int64_t) cf * 1000LL / 65536LL;
+	/* FIXME: verify that cField is already merged */
 
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
 		s->t5 = ppi->t5;
 		s->t5.correct = 1;
 		s->t5.phase = 0;
 		s->t6 = ppi->t6;
-		s->t6.phase = (int64_t) ppi->t6_cf * 1000LL / 65536LL;
 
 		wr_p2p_delay(ppi, s);
 	}

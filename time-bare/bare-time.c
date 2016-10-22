@@ -8,7 +8,7 @@
 #include <ppsi/ppsi.h>
 #include "bare-linux.h"
 
-static int bare_time_get(struct pp_instance *ppi, TimeInternal *t)
+static int bare_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct bare_timeval tv;
 
@@ -17,15 +17,15 @@ static int bare_time_get(struct pp_instance *ppi, TimeInternal *t)
 		sys_exit(1);
 	}
 	/* TAI = UTC + 35 */
-	t->seconds = tv.tv_sec + DSPRO(ppi)->currentUtcOffset;
-	t->nanoseconds = tv.tv_usec * 1000;
+	t->secs = tv.tv_sec + DSPRO(ppi)->currentUtcOffset;
+	t->scaled_nsecs = (tv.tv_usec * 1000LL) << 16;
 	if (!(pp_global_d_flags & PP_FLAG_NOTIMELOG))
 		pp_diag(ppi, time, 2, "%s: %9li.%06li\n", __func__,
 			tv.tv_sec, tv.tv_usec);
 	return 0;
 }
 
-static int bare_time_set(struct pp_instance *ppi, TimeInternal *t)
+static int bare_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	struct bare_timeval tv;
 
@@ -43,8 +43,8 @@ static int bare_time_set(struct pp_instance *ppi, TimeInternal *t)
 	}
 
 	/* UTC = TAI - 35 */
-	tv.tv_sec = t->seconds - DSPRO(ppi)->currentUtcOffset;
-	tv.tv_usec = t->nanoseconds / 1000;
+	tv.tv_sec = t->secs - DSPRO(ppi)->currentUtcOffset;
+	tv.tv_usec = (int)(t->scaled_nsecs >> 16) / 1000;
 
 	if (sys_settimeofday(&tv, NULL) < 0) {
 		pp_error("%s:", __func__);

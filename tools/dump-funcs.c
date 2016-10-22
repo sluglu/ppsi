@@ -45,11 +45,12 @@ static void dump_time(char *prefix, const struct pp_time *t)
 	       is_incorrect(t) ? " invalid" : "");
 }
 #else
-static void dump_time(char *prefix, struct TimeInternal *ti)
+static void dump_time(char *prefix, const struct pp_time *t)
 {
-	printf("%sTIME: (%li - 0x%lx) %li.%06li%s\n", prefix, (long)ti->seconds,
-	       (long)ti->seconds, (long)ti->seconds, (long)ti->nanoseconds,
-	       !ti->correct ? " invalid" : "");
+	printf("%sTIME: (%li - 0x%lx) %li.%06li%s\n", prefix,
+	       (long)t->secs, (long)t->secs, (long)t->secs,
+	       (long)(t->scaled_nsecs >> 16) / 1000,
+	       is_incorrect(t) ? " invalid" : "");
 }
 #endif
 

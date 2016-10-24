@@ -46,32 +46,31 @@ int sim_fast_forward_ns(struct pp_globals *ppg, int64_t ff_ns)
 	return 0;
 }
 
-static int sim_time_get(struct pp_instance *ppi, TimeInternal *t)
+static int sim_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
-	t->nanoseconds = SIM_PPI_ARCH(ppi)->time.current_ns %
-				(long long)PP_NSEC_PER_SEC;
-	t->seconds = (SIM_PPI_ARCH(ppi)->time.current_ns - t->nanoseconds) /
-				(long long)PP_NSEC_PER_SEC;
-	t->correct = 1;
+	t->scaled_nsecs = (SIM_PPI_ARCH(ppi)->time.current_ns %
+			   (long long)PP_NSEC_PER_SEC) << 16;
+	t->secs = SIM_PPI_ARCH(ppi)->time.current_ns /
+		(long long)PP_NSEC_PER_SEC;
 
 	if (!(pp_global_d_flags & PP_FLAG_NOTIMELOG))
 		pp_diag(ppi, time, 2, "%s: %9li.%09li\n", __func__,
-			(long)t->seconds, (long)t->nanoseconds);
+			(long)t->secs, (long)(t->scaled_nsecs >> 16));
 	return 0;
 }
 
-static int sim_time_set(struct pp_instance *ppi, TimeInternal *t)
+static int sim_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	if (!t) {
 		/* Change the network notion of utc/tai offset */
 		return 0;
 	}
 
-	SIM_PPI_ARCH(ppi)->time.current_ns = t->nanoseconds
-				+ t->seconds * (long long)PP_NSEC_PER_SEC;
+	SIM_PPI_ARCH(ppi)->time.current_ns = (t->scaled_nsecs >> 16)
+				+ t->secs * (long long)PP_NSEC_PER_SEC;
 
 	pp_diag(ppi, time, 1, "%s: %9i.%09i\n", __func__,
-			t->seconds, t->nanoseconds);
+		(int)t->secs, (int)(t->scaled_nsecs >> 16));
 	return 0;
 }
 

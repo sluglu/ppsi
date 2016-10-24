@@ -14,41 +14,23 @@ static void normalize_pp_time(struct pp_time *t)
 	/* no 64b division please, we'll rather loop a few times */
 	#define SNS_PER_S ((1000LL * 1000 * 1000) << 16)
 
-	/* 0 is special: it can have both negative and positive fractions */
-	if (t->secs == 0LL) {
-		while (t->scaled_nsecs > SNS_PER_S) {
-			t->secs++;
-			t->scaled_nsecs -= SNS_PER_S;
-		}
-		while (t->scaled_nsecs < -SNS_PER_S) {
-			t->secs--;
-			t->scaled_nsecs += SNS_PER_S;
-		}
-		return;
-	}
+	int sign = (t->secs < 0 || (t->secs == 0 && t->scaled_nsecs < 0))
+		? -1 : 1;
 
-	if (t->secs > 0LL) {
-		while (t->scaled_nsecs < 0) {
-			t->secs--;
-			t->scaled_nsecs += SNS_PER_S;
-		}
-		while (t->scaled_nsecs > SNS_PER_S) {
-			t->secs++;
-			t->scaled_nsecs -= SNS_PER_S;
-		}
-		return;
-	}
+	/* turn into positive, to make code shorter (don't replicate loops) */
+	t->secs *= sign;
+	t->scaled_nsecs *= sign;
 
-
-	/* A negative pp_time has both secs and scaled_nsecs <= 0 */
-	while (t->scaled_nsecs < -SNS_PER_S) {
-			t->secs--;
-			t->scaled_nsecs += SNS_PER_S;
+	while (t->scaled_nsecs < 0) {
+		t->secs--;
+		t->scaled_nsecs += SNS_PER_S;
 	}
-	while (t->scaled_nsecs > 0) {
-			t->secs++;
-			t->scaled_nsecs -= SNS_PER_S;
+	while (t->scaled_nsecs > SNS_PER_S) {
+		t->secs++;
+		t->scaled_nsecs -= SNS_PER_S;
 	}
+	t->secs *= sign;
+	t->scaled_nsecs *= sign;
 }
 
 void pp_time_add(struct pp_time *t1, struct pp_time *t2)

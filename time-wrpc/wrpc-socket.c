@@ -49,7 +49,7 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 
 /* To receive and send packets, we call the minic low-level stuff */
 static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
-			 TimeInternal *t)
+			 struct pp_time *t)
 {
 	int got;
 	struct wrpc_socket *sock;
@@ -59,15 +59,11 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	got = ptpd_netif_recvfrom(sock, &addr, pkt, len, &wr_ts);
 
 	if (t) {
-		t->seconds = wr_ts.sec;
-		t->nanoseconds = wr_ts.nsec;
-		t->phase = wr_ts.phase;
-		t->correct = wr_ts.correct;
-#if 0 /* I disabled the fields, for space: they were only used here */
-		t->raw_nsec = wr_ts.raw_nsec;
-		t->raw_phase = wr_ts.raw_phase;
-#endif
-		t->raw_ahead = wr_ts.raw_ahead;
+		t->secs = wr_ts.sec;
+		t->scaled_nsecs = (int64_t)wr_ts.nsec << 16;
+		t->scaled_nsecs += wr_ts.phase * (1 << 16) / 1000;
+		if (!wr_ts.correct)
+			mark_incorrect(t);
 	}
 
 /* wrpc-sw may pass this in USER_CFLAGS, to remove footprint */
@@ -87,7 +83,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 	struct wrpc_socket *sock;
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
-	TimeInternal *t = &ppi->last_snt_time;
+	struct pp_time *t = &ppi->last_snt_time;
 	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
 	static const uint8_t macaddr[2][ETH_ALEN] = {
 		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
@@ -102,13 +98,14 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 	snt = ptpd_netif_sendto(sock, &addr, pkt, len, &wr_ts);
 
 	if (t) {
-		t->seconds = wr_ts.sec;
-		t->nanoseconds = wr_ts.nsec;
-		t->phase = 0;
-		t->correct = wr_ts.correct;
+		t->secs = wr_ts.sec;
+		t->scaled_nsecs = (int64_t)wr_ts.nsec << 16;
+		if (!wr_ts.correct)
+			mark_incorrect(t);
 
-		pp_diag(ppi, frames, 2, "%s: snt=%d, sec=%d, nsec=%d\n",
-				__func__, snt, t->seconds, t->nanoseconds);
+		pp_diag(ppi, frames, 2, "%s: snt=%d, sec=%ld, nsec=%ld\n",
+			__func__, snt, (long)t->secs,
+			(long)(t->scaled_nsecs >> 16));
 	}
 /* wrpc-sw may pass this in USER_CFLAGS, to remove footprint */
 #ifndef CONFIG_NO_PTPDUMP

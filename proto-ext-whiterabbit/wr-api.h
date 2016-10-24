@@ -12,8 +12,7 @@
 #include <ppsi/lib.h>
 #include "wr-constants.h"
 
-#define WRS_PPSI_SHMEM_VERSION 17 /* Changed definition of field mcast_addr of
-				   * struct pp_instance */
+#define WRS_PPSI_SHMEM_VERSION 18 /* New pp_time everywhere */
 
 /*
  * This structure is used as extension-specific data in the DSPort
@@ -135,7 +134,7 @@ void wr_servo_reset(struct pp_instance *ppi);
 void wr_servo_enable_tracking(int enable);
 int wr_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
 		      struct pp_time *t2);
-int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf);
+int wr_servo_got_delay(struct pp_instance *ppi);
 int wr_servo_update(struct pp_instance *ppi);
 
 struct wr_servo_state {

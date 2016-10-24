@@ -73,9 +73,9 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 static int wr_handle_preq(struct pp_instance *ppi)
 {
-	ppi->received_ptp_header.correctionfield.msb = 0;
-	ppi->received_ptp_header.correctionfield.lsb =
-		phase_to_cf_units(ppi->last_rcv_time.phase);
+	/* FIXME: why do we save this fractional part? */
+	clear_time(&ppi->cField);
+	ppi->cField.scaled_nsecs = ppi->last_rcv_time.scaled_nsecs & 0xffff;
 	return 0;
 }
 
@@ -84,7 +84,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSignaling wrsig_msg;
-	TimeInternal *time = &ppi->last_rcv_time;
+	struct pp_time *time = &ppi->last_rcv_time;
 
 	if (msgtype != PPM_NO_MESSAGE)
 		pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
@@ -93,9 +93,8 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 	/* This case is modified from the default one */
 	case PPM_DELAY_REQ:
-		hdr->correctionfield.msb = 0;
-		hdr->correctionfield.lsb =
-			phase_to_cf_units(ppi->last_rcv_time.phase);
+		/* there is no cField now, we pp_time includes it all */
+		clear_time(&hdr->cField);
 		msg_issue_delay_resp(ppi, time); /* no error check */
 		msgtype = PPM_NO_MESSAGE;
 		break;
@@ -131,15 +130,12 @@ static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 static int wr_handle_resp(struct pp_instance *ppi)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
-	TimeInternal correction_field;
-	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
+	struct pp_time *ofm = &DSCUR(ppi)->offsetFromMaster;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	/* FIXME: check sub-nano relevance of correction filed */
-	cField_to_TimeInternal(&correction_field, hdr->correctionfield);
+	/* This correction_field we received is already part of t4 */
 
 	/*
 	 * If no WR mode is on, run normal code, if T2/T3 are valid.
@@ -147,7 +143,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
 	if (!wrp->wrModeOn) {
-		if (!ppi->t2.correct || !ppi->t3.correct) {
+		if (is_incorrect(&ppi->t2) || is_incorrect(&ppi->t3)) {
 			pp_diag(ppi, servo, 1,
 				"T2 or T3 incorrect, discarding tuple\n");
 			return 0;
@@ -156,13 +152,13 @@ static int wr_handle_resp(struct pp_instance *ppi)
 		/*
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
-		if (ofm->seconds)
+		if (ofm->secs)
 			wrp->ops->enable_timing_output(ppi, 0);
 		else
 			wrp->ops->enable_timing_output(ppi, 1);
 
 	}
-	wr_servo_got_delay(ppi, hdr->correctionfield.lsb);
+	wr_servo_got_delay(ppi);
 	wr_servo_update(ppi);
 	return 0;
 }
@@ -206,14 +202,13 @@ static int wr_handle_announce(struct pp_instance *ppi)
 }
 
 static int wr_handle_followup(struct pp_instance *ppi,
-			      TimeInternal *precise_orig_timestamp,
-			      TimeInternal *correction_field)
+			      struct pp_time *precise_orig_timestamp,
+			      struct pp_time *correction_field)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if (!WR_DSPOR(ppi)->wrModeOn)
 		return 0;
 
-	precise_orig_timestamp->phase = 0;
 	wr_servo_got_sync(ppi, precise_orig_timestamp,
 			  &ppi->t2);
 
@@ -225,13 +220,8 @@ static int wr_handle_followup(struct pp_instance *ppi,
 
 static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
-	TimeInternal correction_field;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
-
-	/* FIXME: check sub-nano relevance of correction filed */
-	cField_to_TimeInternal(&correction_field, hdr->correctionfield);
+	struct pp_time *ofm = &DSCUR(ppi)->offsetFromMaster;
 
 	/*
 	 * If no WR mode is on, run normal code, if T2/T3 are valid.
@@ -240,7 +230,7 @@ static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 	 */
 
 	if (!wrp->wrModeOn) {
-		if (!ppi->t3.correct || !ppi->t6.correct) {
+		if (is_incorrect(&ppi->t3) || is_incorrect(&ppi->t6)) {
 			pp_diag(ppi, servo, 1,
 				"T3 or T6 incorrect, discarding tuple\n");
 			return 0;
@@ -249,7 +239,7 @@ static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 		/*
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
-		if (ofm->seconds)
+		if (ofm->secs)
 			wrp->ops->enable_timing_output(ppi, 0);
 		else
 			wrp->ops->enable_timing_output(ppi, 1);

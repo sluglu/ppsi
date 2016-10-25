@@ -356,7 +356,7 @@ static void msg_pack_pdelay_req(struct pp_instance *ppi,
 	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x02;
 
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_REQ_LENGTH);
-	ppi->sent_seq[PPM_DELAY_REQ]++;
+	ppi->sent_seq[PPM_PDELAY_REQ]++;
 
 	/* Reset all flags (see Table 20) */
 	flags[0] = flags[1] = 0;

@@ -100,6 +100,15 @@ static inline int inside_range(int min, int max, int x)
 		return (x<=max || x>=min);
 }
 
+static char *fmt_time(struct pp_time *t)
+{
+	static char buf[64];
+	sprintf(buf, "(correct %i) %9li.%09li",
+		!is_incorrect(t), (long)t->secs,
+		(long)(t->scaled_nsecs >> 16));
+	return buf;
+}
+
 static void update_dmtd(struct wrs_socket *s, struct pp_instance *ppi)
 {
 	struct hal_port_state *p;
@@ -116,14 +125,19 @@ static void update_dmtd(struct wrs_socket *s, struct pp_instance *ppi)
 	}
 }
 
-static void wrs_linearize_rx_timestamp(TimeInternal *ts,
+/*
+ * Note: it looks like transition_point is always zero.
+ * Also, all calculations are ps here, but the timestamp is scaled_ns
+ *       -- ARub 2016-10
+ */
+static void wrs_linearize_rx_timestamp(struct pp_time *ts,
 	int32_t dmtd_phase, int cntr_ahead, int transition_point,
 	int clock_period)
 {
 	int trip_lo, trip_hi;
 	int phase;
 
-	phase = clock_period -1 -dmtd_phase;
+	phase = clock_period - 1 - dmtd_phase;
 
 	/* calculate the range within which falling edge timestamp is stable
 	 * (no possible transitions) */
@@ -140,25 +154,28 @@ static void wrs_linearize_rx_timestamp(TimeInternal *ts,
 		 * "reliable" one. cntr_ahead will be 1 when the rising edge
 		 * counter is 1 tick ahead of the falling edge counter */
 
-		ts->nanoseconds -= cntr_ahead ? (clock_period / 1000) : 0;
+		if (cntr_ahead)
+			ts->scaled_nsecs -= (clock_period / 1000LL) << 16;
 
 		/* check if the phase is before the counter transition value
 		 * and eventually increase the counter by 1 to simulate a
 		 * timestamp transition exactly at s->phase_transition
 		 * DMTD phase value */
 		if(inside_range(trip_lo, transition_point, phase))
-			ts->nanoseconds += clock_period / 1000;
+			ts->scaled_nsecs += (clock_period / 1000LL) << 16;
 
 	}
 
-	ts->phase = phase - transition_point - 1;
-	if(ts->phase  < 0) ts->phase += clock_period;
-	ts->phase = clock_period - 1 -ts->phase;
+	phase = phase - transition_point - 1;
+	if (phase  < 0)
+		phase += clock_period;
+	phase = clock_period - 1 - phase;
+	ts->scaled_nsecs += (phase << 16) / 1000;
 }
 
 
 static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
-			TimeInternal *t)
+			struct pp_time *t)
 {
 	struct ethhdr *hdr = pkt;
 	struct wrs_socket *s;
@@ -198,9 +215,6 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	/* FIXME Check ptp-noposix, commit d34f56f: if sender mac check
 	 * is required. Should be added here */
 
-	if (t)
-		t->correct = 0;
-
 	for (cmsg = CMSG_FIRSTHDR(&msg);
 	     cmsg;
 	     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
@@ -219,23 +233,18 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	if(sts && t)
 	{
 		int cntr_ahead = sts->hwtimeraw.tv_sec & 0x80000000 ? 1: 0;
-		t->nanoseconds = sts->hwtimeraw.tv_nsec;
-		t->seconds =
-			(uint64_t) sts->hwtimeraw.tv_sec & 0x7fffffff;
-
-		t->raw_ahead = cntr_ahead;
+		t->scaled_nsecs = (long long)sts->hwtimeraw.tv_nsec << 16;
+		t->secs = sts->hwtimeraw.tv_sec & 0x7fffffff;
 
 		update_dmtd(s, ppi);
 		if (!WR_DSPOR(ppi)->wrModeOn) {
-			/* for non-wr-mode any reported stamp is correct */
-			t->correct = 1;
 			goto drop;
 		}
-		if (s->dmtd_phase_valid)
-		{
+		if (s->dmtd_phase_valid) {
 			wrs_linearize_rx_timestamp(t, s->dmtd_phase,
 				cntr_ahead, s->phase_transition, s->clock_period);
-			t->correct = 1;
+		} else {
+			mark_incorrect(t);
 		}
 	}
 
@@ -278,7 +287,7 @@ out:
 }
 
 static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
-		   TimeInternal *t)
+			struct pp_time *t)
 {
 	struct pp_channel *ch1, *ch2;
 	struct ethhdr *hdr = pkt;
@@ -321,15 +330,13 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 	if (ret < 0)
 		return ret;
-	pp_diag(ppi, time, 1, "recv stamp: (correct %i) %9li.%09li\n",
-		t->correct, (long)t->seconds,
-		(long)t->nanoseconds);
+	pp_diag(ppi, time, 1, "recv stamp: %s\n", fmt_time(t));
 	return ret;
 }
 
 /* Waits for the transmission timestamp and stores it in t (if not null). */
 static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
-			      struct wrs_socket *s, int fd, TimeInternal *t)
+			      struct wrs_socket *s, int fd, struct pp_time *t)
 {
 	char data[16384], *dataptr;
 	struct msghdr msg;
@@ -357,7 +364,7 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	msg.msg_controllen = sizeof(control);
 
 	if (t) /* poison the stamp */
-		t->seconds = t->correct = 0;
+		mark_incorrect(t);
 
 	pfd.fd = fd;
 	pfd.events = POLLERR;
@@ -415,23 +422,21 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	     cmsg;
 	     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
 
-			void *dp = CMSG_DATA(cmsg);
+		void *dp = CMSG_DATA(cmsg);
 
-			if(cmsg->cmsg_level == SOL_PACKET
-			   && cmsg->cmsg_type == PACKET_TX_TIMESTAMP)
-				serr = (struct sock_extended_err *) dp;
+		if(cmsg->cmsg_level == SOL_PACKET
+		   && cmsg->cmsg_type == PACKET_TX_TIMESTAMP)
+			serr = (struct sock_extended_err *) dp;
 
-			if(cmsg->cmsg_level == SOL_SOCKET
-			   && cmsg->cmsg_type == SO_TIMESTAMPING)
-				sts = (struct scm_timestamping *) dp;
+		if(cmsg->cmsg_level == SOL_SOCKET
+		   && cmsg->cmsg_type == SO_TIMESTAMPING)
+			sts = (struct scm_timestamping *) dp;
 
-			if(sts && serr)
-			{
-				t->correct = 1;
-				t->phase = 0;
-				t->nanoseconds = sts->hwtimeraw.tv_nsec;
-				t->seconds = (uint64_t) sts->hwtimeraw.tv_sec & 0x7fffffff;
-			}
+		if(sts && serr)	{
+			t->scaled_nsecs =
+				(long long)sts->hwtimeraw.tv_nsec << 16;
+			t->secs = sts->hwtimeraw.tv_sec & 0x7fffffff;
+		}
 	}
 }
 
@@ -443,7 +448,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	struct ethhdr *hdr = pkt;
 	struct pp_vlanhdr *vhdr = pkt;
 	struct pp_channel *ch = ppi->ch + chtype;
-	TimeInternal *t = &ppi->last_snt_time;
+	struct pp_time *t = &ppi->last_snt_time;
 	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
 	static uint16_t udpport[] = {
 		[PP_NP_GEN] = PP_GEN_PORT,
@@ -492,9 +497,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 		if (pp_diag_allow(ppi, frames, 2))
 			dump_1588pkt("send: ", pkt, len, t, -1);
-		pp_diag(ppi, time, 1, "send stamp: (correct %i) %9li.%09li\n",
-			t->correct, (long)t->seconds,
-			(long)t->nanoseconds);
+		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 
 	case PPSI_PROTO_VLAN:
@@ -527,9 +530,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 		if (pp_diag_allow(ppi, frames, 2))
 			dump_1588pkt("send: ", pkt, len, t, ppi->peer_vid);
-		pp_diag(ppi, time, 1, "send stamp: (correct %i) %9li.%09li\n",
-			t->correct, (long)t->seconds,
-			(long)t->nanoseconds);
+		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 
 	case PPSI_PROTO_UDP:
@@ -553,9 +554,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 		if (pp_diag_allow(ppi, frames, 2))
 			dump_payloadpkt("send: ", pkt, len, t);
-		pp_diag(ppi, time, 1, "send stamp: (correct %i) %9li.%09li\n",
-			t->correct, (long)t->seconds,
-			(long)t->nanoseconds);
+		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 
 	default:

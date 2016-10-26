@@ -12,7 +12,8 @@
 #include <ppsi/lib.h>
 #include "wr-constants.h"
 
-#define WRS_PPSI_SHMEM_VERSION 16 /* Many changes since the last incease */
+#define WRS_PPSI_SHMEM_VERSION 17 /* Changed definition of field mcast_addr of
+				   * struct pp_instance */
 
 /*
  * This structure is used as extension-specific data in the DSPort

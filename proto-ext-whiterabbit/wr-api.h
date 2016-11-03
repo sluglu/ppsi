@@ -12,8 +12,7 @@
 #include <ppsi/lib.h>
 #include "wr-constants.h"
 
-#define WRS_PPSI_SHMEM_VERSION 15 /* added current_state_item the structure
-				   * pp_instance */
+#define WRS_PPSI_SHMEM_VERSION 16 /* Many changes since the last incease */
 
 /*
  * This structure is used as extension-specific data in the DSPort

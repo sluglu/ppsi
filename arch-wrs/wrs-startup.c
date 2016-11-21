@@ -184,8 +184,6 @@ int main(int argc, char **argv)
 
 	/* If no item has been parsed, provide a default file or string */
 	if (ppg->cfg.cfg_items == 0)
-		pp_config_file(ppg, 0, "/wr/etc/ppsi.conf");
-	if (ppg->cfg.cfg_items == 0)
 		pp_config_file(ppg, 0, PP_DEFAULT_CONFIGFILE);
 	if (ppg->cfg.cfg_items == 0) {
 		/* Default configuration for WR switch is all ports */

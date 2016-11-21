@@ -400,8 +400,7 @@ semicolon as a separator.
 If no configuration file is specified, the program reads the default
 one, which is architecture-specific (thus, the default configuration
 file is processed after all the command line configuration items.  The
-default file name is @t{/etc/ppsi.conf}, but @t{arch-wrs} tries to
-load @t{/wr/etc/ppsi.conf} first.   The source tree of PPSi includes
+default file name is @t{/etc/ppsi.conf}.  The source tree of PPSi includes
 two example configuration files in its own @t{etc/} subdirectory.
 
 Configuration is made of of global options and port-specific options.
@@ -1210,8 +1209,7 @@ a list of the other ones please see the help message.
 
 	Read configuration file. The program can read several
         configuration files. If no @t{-f} is passed, it tries to
-        read a configuration file from the standard places:
-        @t{/wr/etc/ppsi.conf} if White Rabbit, and @t{/etc/ppsi.conf}.
+        read a configuration file from the standard place @t{/etc/ppsi.conf}.
 
 @item -C <config-item>
 

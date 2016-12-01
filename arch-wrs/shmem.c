@@ -233,6 +233,8 @@ void wrs_shm_write_caller(struct wrs_shm_head *head, int flags,
 	pr_debug("caller of a function wrs_shm_write is %s, called for \"%s\" "
 		 "with the flag \"%s\"\n", caller, head->name, msg);
 
+	(void) *msg; /* if pr_debug() is empty, we'd have "unused variable" */
+
 	head->sequence += 2;
 	if (flags == WRS_SHM_WRITE_BEGIN) {
 		if (head->sequence & WRS_SHM_LOCK_MASK)

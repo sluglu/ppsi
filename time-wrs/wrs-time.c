@@ -153,10 +153,39 @@ int wrs_locking_poll(struct pp_instance *ppi, int grandmaster)
 	return WR_SPLL_READY;
 }
 
+/* This is a hack: we don't even have taih (struct pp_time come and save me) */
+static int wrdate_get(TimeInternal *t)
+{
+	unsigned long tail, nsec, tmp;
+	static volatile uint32_t *pps;
+	int fd;
 
+	if (!pps) {
+		void *mapaddr;
+
+		fd = open("/dev/mem", O_RDWR | O_SYNC);
+		if (fd < 0)
+			return -1;
+		mapaddr = mmap(0, 4096, PROT_READ, MAP_SHARED, fd, 0x10010000);
+		if (mapaddr == MAP_FAILED) {
+			return -1;
+		}
+		pps = mapaddr + 0x500; /* pps: 0x10010500 */
+	}
+	memset(t, 0, sizeof(*t));
+	do {
+		tail = pps[2];
+		nsec = pps[1] * 16; /* we count a 62.5MHz */
+		tmp = pps[2];
+	} while(tmp != tail);
+	t->seconds = tail;
+	t->nanoseconds = nsec;
+	return 0;
+}
+
+/* This is only used when the wrs is slave to a non-WR master */
 static int wrs_time_get(struct pp_instance *ppi, TimeInternal *t)
 {
-
 	hexp_pps_params_t p;
 	int cmd;
 	int ret, rval;
@@ -166,11 +195,11 @@ static int wrs_time_get(struct pp_instance *ppi, TimeInternal *t)
 					  cmd, &p);
 	if (ret < 0 || rval < 0) {
 		/*
-		 * It failed, so fall back on unix time. Please note
-		 * that these times are mainly for logging, nothing
-		 * critical is there, as T1..T4 are frame stamps.
+		 * It failed, likely not implemented (never was, as far as
+		 * I know). We can't fall back on unix time, as stamps
+		 * used in servo.c are WR times anyways. So do it by hand
 		 */
-		return unix_time_ops.get(ppi, t);
+		return wrdate_get(t);
 	}
 
 	/* FIXME Don't know whether p.current_phase_shift is to be assigned

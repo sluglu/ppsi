@@ -45,8 +45,9 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 	    (DSPOR(ppi)->portIdentity.portNumber !=
 	     resp.requestingPortIdentity.portNumber) ||
 	    !(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
-		pp_diag(ppi, frames, 2, "pp_slave : "
-			"Delay Resp doesn't match Delay Req\n");
+		pp_diag(ppi, frames, 1, "pp_slave : "
+			"Delay Resp doesn't match Delay Req (f %x)\n",
+			ppi->flags);
 		return 0;
 	}
 

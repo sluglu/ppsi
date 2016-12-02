@@ -643,7 +643,7 @@ static int wrs_net_init(struct pp_instance *ppi)
 
 	/* Only one wrs_socket is created for each pp_instance, because
 	 * wrs_socket is related to the interface and not to the pp_channel */
-	struct wrs_socket *s = calloc(0, sizeof(struct wrs_socket));
+	struct wrs_socket *s = calloc(1, sizeof(struct wrs_socket));
 
 	if (!s)
 		return -1;

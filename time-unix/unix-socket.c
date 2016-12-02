@@ -498,10 +498,6 @@ static int unix_net_init(struct pp_instance *ppi)
 	/* The buffer is inside ppi, but we need to set pointers and align */
 	pp_prepare_pointers(ppi);
 
-	if (!ppi->iface_name || !ppi->iface_name[0])
-		/* No interface name, set it to port name */
-		ppi->iface_name = ppi->port_name;
-
 	switch(ppi->proto) {
 	case PPSI_PROTO_RAW:
 		pp_diag(ppi, frames, 1, "unix_net_init raw Ethernet\n");

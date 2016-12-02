@@ -48,6 +48,7 @@ static int f_port(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 
 	 /* FIXME: strncpy (it is missing in bare archs by now) */
 	strcpy(CUR_PPI(ppg)->cfg.port_name, arg->s);
+	strcpy(CUR_PPI(ppg)->cfg.iface_name, arg->s); /* default iface name */
 	ppg->nlinks++;
 	return 0;
 }

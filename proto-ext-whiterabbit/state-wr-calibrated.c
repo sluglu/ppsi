@@ -31,9 +31,6 @@ int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		return 0; /* non-wr */
 	}
 
-	if (plen == 0)
-		goto out;
-
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
 		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
 			 &(wrp->msgTmpWrMessageID));
@@ -46,7 +43,6 @@ int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			ppi->next_state = WRS_WR_LINK_ON;
 	}
 
-out:
 	ppi->next_delay = wrp->wrStateTimeout;
 	return 0;
 }

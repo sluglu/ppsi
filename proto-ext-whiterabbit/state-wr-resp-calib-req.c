@@ -35,9 +35,6 @@ int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			       wrp->otherNodeCalPeriod / 1000);
 	}
 
-	if (plen == 0)
-		goto out;
-
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
 
 		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
@@ -53,7 +50,6 @@ int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		}
 	}
 
-out:
 	ppi->next_delay = wrp->wrStateTimeout;
 	return e;
 }

@@ -22,7 +22,7 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
-	[PPM_ANNOUNCE]		= st_com_master_handle_announce,
+	[PPM_ANNOUNCE]		= pp_lib_handle_announce,
 	/* skip signaling and management, for binary size */
 };
 
@@ -65,13 +65,10 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	else /* please check commit '6d7bf7e3' about below, I'm not sure */
 		pp_timeout_set(ppi, PP_TO_REQUEST);
 
-	if (plen == 0)
-		goto out;
-
 	/*
 	 * An extension can do special treatment of this message type,
 	 * possibly returning error or eating the message by returning
-	 * PPM_NOTHING_TO_DO
+	 * PPM_NO_MESSAGE
 	 */
 	msgtype = ppi->received_ptp_header.messageType;
 	if (pp_hooks.master_msg)
@@ -86,7 +83,7 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	/*
 	 * The management of messages is now table-driven
 	 */
-	if (plen && msgtype < ARRAY_SIZE(actions)
+	if (msgtype < ARRAY_SIZE(actions)
 	    && actions[msgtype]) {
 		e = actions[msgtype](ppi, pkt, plen);
 	} else {

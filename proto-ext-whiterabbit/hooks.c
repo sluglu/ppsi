@@ -86,7 +86,8 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 	MsgSignaling wrsig_msg;
 	TimeInternal *time = &ppi->last_rcv_time;
 
-	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	if (msgtype != PPM_NO_MESSAGE)
+		pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	switch (msgtype) {
 
@@ -96,7 +97,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 		hdr->correctionfield.lsb =
 			phase_to_cf_units(ppi->last_rcv_time.phase);
 		msg_issue_delay_resp(ppi, time); /* no error check */
-		msgtype = PPM_NOTHING_TO_DO;
+		msgtype = PPM_NO_MESSAGE;
 		break;
 
 	case PPM_PDELAY_REQ:
@@ -114,7 +115,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 			/* We must start the handshake as a WR master */
 			wr_handshake_init(ppi, PPS_MASTER);
 		}
-		msgtype = PPM_NOTHING_TO_DO;
+		msgtype = PPM_NO_MESSAGE;
 		break;
 	}
 
@@ -191,7 +192,7 @@ static int wr_execute_slave(struct pp_instance *ppi)
 	return 1; /* the caller returns too */
 }
 
-static void wr_handle_announce(struct pp_instance *ppi)
+static int wr_handle_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if ((WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
@@ -201,6 +202,7 @@ static void wr_handle_announce(struct pp_instance *ppi)
 		/* We must start the handshake as a WR slave */
 		wr_handshake_init(ppi, PPS_SLAVE);
 	}
+	return 0;
 }
 
 static int wr_handle_followup(struct pp_instance *ppi,

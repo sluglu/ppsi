@@ -34,9 +34,6 @@ int wr_locked(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		e = msg_issue_wrsig(ppi, LOCKED);
 	}
 
-	if (plen == 0)
-		goto out;
-
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
 
 		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
@@ -46,7 +43,6 @@ int wr_locked(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			ppi->next_state = WRS_RESP_CALIB_REQ;
 	}
 
-out:
 	if (e != 0)
 		ppi->next_state = PPS_FAULTY;
 	ppi->next_delay = wrp->wrStateTimeout;

@@ -24,7 +24,7 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= st_com_slave_handle_followup,
 	[PPM_DELAY_RESP]	= slave_handle_response,
-	[PPM_ANNOUNCE]		= st_com_slave_handle_announce,
+	[PPM_ANNOUNCE]		= pp_lib_handle_announce,
 	/* skip signaling and management, for binary size */
 };
 
@@ -34,9 +34,6 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 	int e = 0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgDelayResp resp;
-
-	if (plen < PP_DELAY_RESP_LENGTH)
-		return 0;
 
 	msg_unpack_delay_resp(pkt, &resp);
 
@@ -95,7 +92,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	/*
 	 * The management of messages is now table-driven
 	 */
-	if (plen && hdr->messageType < ARRAY_SIZE(actions)
+	if (hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
 		e = actions[hdr->messageType](ppi, pkt, plen);
 	} else {

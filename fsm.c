@@ -174,9 +174,10 @@ static int type_length[__PP_NR_MESSAGES_TYPES] = {
 static int fsm_unpack_verify_frame(struct pp_instance *ppi,
 				   uint8_t *packet, int plen)
 {
-	int msgtype;
+	int msgtype = 0;
 
-	msgtype = packet[0] & 0xf;
+	if (plen)
+		msgtype = packet[0] & 0xf;
 	if (msgtype >= __PP_NR_MESSAGES_TYPES || plen < type_length[msgtype])
 		return 1; /* too short */
 	if ((packet[1] & 0xf) != 2)

@@ -228,8 +228,6 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 		plen = 0;
 		packet = NULL;
 	}
-	if (!plen)
-		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
 
 	state = ppi->state;
 
@@ -257,6 +255,8 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	if (ppi->state != ppi->next_state)
 		return leave_current_state(ppi);
 
+	if (!plen)
+		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
 	err = ip->f1(ppi, packet, plen);
 	if (err)
 		pp_printf("fsm for %s: Error %i in %s\n",

@@ -217,9 +217,10 @@ static int wrs_time_get(struct pp_instance *ppi, TimeInternal *t)
 
 static int wrs_time_set(struct pp_instance *ppi, TimeInternal *t)
 {
-	TimeInternal diff;
+	TimeInternal diff, now;
 	struct timex tx;
 	int tai_offset = 0;
+	int msec;
 
 	/*
 	 * This is almost unused in ppsi, only proto-standard/servo.c
@@ -232,29 +233,40 @@ static int wrs_time_set(struct pp_instance *ppi, TimeInternal *t)
 	/*
 	 * We say "weird" because we are not expected to set time here;
 	 * rather, time setting goes usually from the WR servo, straight
-	 * to the HAL process, where a difference is injected into the fpga;
-	 * rather then "setting" an absolute time, which we can't do
-	 * and thus T3 is referenced below, to get some approximate value...
+	 * to the HAL process, where a difference is injected into the fpga.
+	 * We are only asked to set a time when slave of non-wr (and
+	 * normal servo drives us).  So get time to calc a rough difference.
 	 */
-	pp_diag(ppi, time, 1, "%s: (weird) %9li.%09li\n", __func__,
-		(long)t->seconds, (long)t->nanoseconds);
-	/* We have no way to get the WR time, currently. So use our T3 */
-	sub_TimeInternal(&diff, t, &ppi->t3);
+	wrdate_get(&now);
+	sub_TimeInternal(&diff, t, &now);
+	pp_diag(ppi, time, 1, "%s: (weird) %9li.%09li - delta %9li.%09li\n",
+		__func__,
+		(long)t->seconds, (long)t->nanoseconds,
+		(long)diff.seconds, (long)diff.nanoseconds);
 
 	/*
 	 * We can adjust nanoseconds or seconds, but not both at the
 	 * same time. When an adjustment is in progress we can't do
-	 * the other.  So make nanoseconds first if > 10ms, and the
+	 * the other.  So make nanoseconds first if > 20ms, and the
 	 * servo will call us again later for the seconds part.
+	 * Thus, we fall near, and can then trim frequency (hopefully).
 	 */
-	if (abs(diff.nanoseconds) > 10 * 1000 * 1000) {
+	msec = diff.nanoseconds / 1000 / 1000;;
+	#define THRESHOLD_MS 20
+	if ((msec > THRESHOLD_MS && msec < (1000 - THRESHOLD_MS))
+	    || (msec < -THRESHOLD_MS && msec > (-1000 + THRESHOLD_MS))) {
 		pp_diag(ppi, time, 1, "%s: adjusting nanoseconds: %li\n",
 			__func__, (long)diff.nanoseconds);
 		diff.seconds = 0;
 	} else {
+		diff.nanoseconds = 0;
+		if (msec > 500)
+			diff.seconds++;
+		if (msec < -500)
+			diff.seconds--;
+
 		pp_diag(ppi, time, 1, "%s: adjusting seconds: %li\n",
 			__func__, (long)diff.seconds);
-		diff.nanoseconds = 0;
 	}
 	wrs_adjust_counters(diff.seconds, diff.nanoseconds);
 

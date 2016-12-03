@@ -100,11 +100,11 @@ int pp_lib_may_issue_request(struct pp_instance *ppi)
 
 	pp_timeout_set(ppi, PP_TO_REQUEST);
 	e = msg_issue_request(ppi); /* FIXME: what about multiple vlans? */
-	if (e) {
+	ppi->t3 = ppi->last_snt_time;
+	if (e == PP_SEND_ERROR) {
 		pp_diag(ppi, frames, 1, "could not send request\n");
 		return e;
 	}
-	ppi->t3 = ppi->last_snt_time;
 	return 0;
 }
 

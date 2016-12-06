@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/timex.h>
+#include <signal.h>
 
 #include <minipc.h>
 #include <hal_exports.h>
@@ -85,6 +86,24 @@ int main(int argc, char **argv)
 
 	pp_printf("PPSi. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);
+
+	/* check if there is another instance of PPSi already running */
+	ppsi_head = wrs_shm_get(wrs_shm_ptp, "", WRS_SHM_READ);
+	if (!ppsi_head) {
+		pp_printf("Unable to open shm for PPSi! Unable to check if "
+			  "there is another PPSi instance running. Error: %s\n",
+			  strerror(errno));
+		exit(1);
+	}
+
+	/* check if pid is 0 (shm not filled) or process with provided
+	 * pid does not exist (probably crashed) */
+	if ((ppsi_head->pid != 0) && (kill(ppsi_head->pid, 0) == 0)) {
+		wrs_shm_put(ppsi_head);
+		pp_printf("Fatal: There is another PPSi instance running. "
+			  "Exit...\n\n");
+		exit(1);
+	}
 
 	/* try connecting to HAL multiple times in case it's still not ready */
 	hal_retries = WRSW_HAL_RETRIES;

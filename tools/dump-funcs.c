@@ -57,14 +57,8 @@ static int dump_eth(char *prefix, struct ethhdr *eth)
 	unsigned char *d = eth->h_dest;
 	unsigned char *s = eth->h_source;
 	int proto = ntohs(eth->h_proto);
-	struct pp_vlanhdr *vhdr = (void *)eth;
 	int ret = sizeof(*eth);
 
-	if (proto == 0x8100) {
-		ret = sizeof(*vhdr);
-		proto = ntohs(vhdr->h_proto);
-		printf("%sVLAN %i\n", prefix, ntohs(vhdr->h_tci) & 0xfff);
-	}
 	printf("%sETH: %04x (%02x:%02x:%02x:%02x:%02x:%02x -> "
 	       "%02x:%02x:%02x:%02x:%02x:%02x)\n", prefix, proto,
 	       s[0], s[1], s[2], s[3], s[4], s[5],
@@ -304,6 +298,14 @@ int dump_1588pkt(char *prefix, void *buf, int len, struct TimeInternal *ti)
 		dump_time(prefix, ti);
 	payload = buf + dump_eth(prefix, eth);
 	dump_payload(prefix, payload, len - (payload - buf));
+
+	return 0;
+}
+
+int dump_vlan(char *prefix, int vlan)
+{
+	if (vlan != 0)
+		printf("%sVLAN %i\n", prefix, vlan);
 
 	return 0;
 }

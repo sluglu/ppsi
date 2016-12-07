@@ -21,8 +21,8 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <linux/if_ether.h>
+#include <linux/if_packet.h>
 #include <net/if_arp.h>
-#include <netpacket/packet.h>
 
 #include <ppsi/ieee1588_types.h> /* from ../include */
 #include "decent_types.h"
@@ -58,6 +58,7 @@ int main(int argc, char **argv)
 	struct sockaddr_ll addr;
 	struct ifreq ifr;
 	char *ifname = "eth0";
+	int val;
 
 	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (sock < 0) {
@@ -93,9 +94,18 @@ int main(int argc, char **argv)
 	req.mr_type = PACKET_MR_PROMISC;
 
 
-	if (setsockopt(3, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
+	if (setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
 		       &req, sizeof(req)) < 0) {
 		fprintf(stderr, "%s: set promiscuous(%s): %s\n", argv[0],
+			ifname, strerror(errno));
+		exit(1);
+	}
+
+	/* enable AUXDATA */
+	val = 1;
+	if (setsockopt(sock, SOL_PACKET, PACKET_AUXDATA,
+		       &val, sizeof(val)) < 0) {
+		fprintf(stderr, "%s: set auxdata(%s): %s\n", argv[0],
 			ifname, strerror(errno));
 		exit(1);
 	}
@@ -105,18 +115,33 @@ int main(int argc, char **argv)
 		struct ethhdr *eth;
 		struct pp_vlanhdr *vhdr;
 		struct iphdr *ip;
-		static unsigned char prev[1500];
-		static int prevlen;
 		unsigned char buf[1500];
 		struct TimeInternal ti;
 		struct timeval tv;
-
-		struct sockaddr_in from;
-		socklen_t fromlen = sizeof(from);
+		struct msghdr msg;
+		struct iovec entry;
+		struct sockaddr_ll from_addr;
+		union {
+			struct cmsghdr cm;
+			char buf[CMSG_SPACE(sizeof(struct tpacket_auxdata))];
+		} control;
+		struct cmsghdr *cmsg;
+		struct tpacket_auxdata *aux = NULL;
+		int vlan = 0;
 		int len, proto;
 
-		len = recvfrom(sock, buf, sizeof(buf), MSG_TRUNC,
-			       (struct sockaddr *) &from, &fromlen);
+		memset(&msg, 0, sizeof(msg));
+		memset(&from_addr, 0, sizeof(from_addr));
+		msg.msg_iov = &entry;
+		msg.msg_iovlen = 1;
+		entry.iov_base = buf;
+		entry.iov_len = sizeof(buf);
+		msg.msg_name = (caddr_t)&from_addr;
+		msg.msg_namelen = sizeof(from_addr);
+		msg.msg_control = &control;
+		msg.msg_controllen = sizeof(control);
+
+		len = recvmsg(sock, &msg, MSG_TRUNC);
 
 		/* Get the receive time, copy it to TimeInternal */
 		gettimeofday(&tv, NULL);
@@ -125,22 +150,39 @@ int main(int argc, char **argv)
 
 		if (len > sizeof(buf))
 			len = sizeof(buf);
-		/* for some reasons, we receive it three times, check dups */
-		if (len == prevlen && !memcmp(buf, prev, len))
-			continue;
-		memcpy(prev, buf, len); prevlen = len;
+
+		for (cmsg = CMSG_FIRSTHDR(&msg);
+		     cmsg;
+		     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+			void *dp = CMSG_DATA(cmsg);
+
+			if (cmsg->cmsg_level == SOL_PACKET &&
+			    cmsg->cmsg_type == PACKET_AUXDATA)
+				aux = (struct tpacket_auxdata *)dp;
+		}
 
 		/* now only print ptp packets */
 		if (len < ETH_HLEN)
 			continue;
+
 		eth = (void *)buf;
 		ip = (void *)(buf + ETH_HLEN);
 
 		proto = ntohs(eth->h_proto);
+
+		/* get the VLAN for incomming frames */
+		vlan = 0;
+		if (aux) {
+			/* already in the network order */
+			vlan = aux->tp_vlan_tci & 0xfff;
+		}
+
+		/* Get the VLAN for outgoing frames */
 		if (proto == 0x8100) { /* VLAN is visible (e.g.: outgoing) */
 			vhdr = (void *)buf;
 			proto = ntohs(vhdr->h_proto);
 			ip = (void *)(buf + sizeof(*vhdr));
+			vlan = ntohs(vhdr->h_tci) & 0xfff;
 		}
 
 		switch(proto) {
@@ -166,6 +208,9 @@ int main(int argc, char **argv)
 
 		case ETH_P_1588:
 			print_spaces(&ti);
+			ret = dump_vlan("", vlan);
+			if (ret != 0)
+				break;
 			ret = dump_1588pkt("", buf, len, &ti);
 			break;
 		default:
@@ -179,16 +224,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

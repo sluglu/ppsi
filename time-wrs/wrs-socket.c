@@ -160,7 +160,6 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 			TimeInternal *t)
 {
 	struct ethhdr *hdr = pkt;
-	struct pp_vlanhdr *vhdr = pkt;
 	struct wrs_socket *s;
 	struct msghdr msg;
 	struct iovec entry;
@@ -168,7 +167,8 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	int i;
 	union {
 		struct cmsghdr cm;
-		char control[1024];
+		char aux_buf[CMSG_SPACE(sizeof(struct tpacket_auxdata))];
+		char time_buf[1024];
 	} control;
 	struct cmsghdr *cmsg;
 	struct scm_timestamping *sts = NULL;
@@ -239,32 +239,19 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	}
 
 drop:
-	if (aux) {
-		pp_diag(ppi, frames, 1,"aux: %x   proto %x\n", aux->tp_vlan_tci,
-		       ntohs(hdr->h_proto));
-
-		if (0) {
-			fprintf(stderr,
-				"PPSi error: unexpected auxiliary data\n");
-			errno = EINVAL;
-			return -1;
-		}
-	}
-
 	/* For UDP, avoid all of the following, as we don't have vlans */
 	if (ppi->proto == PPSI_PROTO_UDP)
 		goto out;
 
 	/*
-	 * While on PC-class ethernet driver we see the internal frame,
-	 * our simple WR driver returns the whole frame. No aux pointer
-	 * is there, at this point in time. So unroll vlan header.
+	 * Ethernet driver returns internal frame. Our simple WR driver used to
+	 * return the whole frame, but not anymore. Use aux pointer to get VLAN
 	 */
-	if (vhdr->h_tpid == htons(0x8100)) {
-		int vlan = ntohs(vhdr->h_tci) & 0xfff;
+	if (aux) {
+		int vlan = aux->tp_vlan_tci & 0xfff;
 
 		/* With PROTO_VLAN, we bound to ETH_P_ALL: we got all frames */
-		if (vhdr->h_proto != htons(ETH_P_1588))
+		if (hdr->h_proto != htons(ETH_P_1588))
 			return -2; /* like "dropped", so no error message */
 
 		/* Also, we got the vlan, and we can discard it if not ours */
@@ -617,6 +604,7 @@ static int wrs_enable_timestamps(struct pp_instance *ppi, int fd)
 			strerror(errno));
 		return -1;
 	}
+
 	return 0;
 }
 

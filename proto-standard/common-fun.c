@@ -49,11 +49,7 @@ void pp_prepare_pointers(struct pp_instance *ppi)
 		break;
 	case PPSI_PROTO_VLAN:
 		ppi->tx_offset = sizeof(struct pp_vlanhdr);
-		/* Hack warning: with wrs we get the whole header */
-		if (ARCH_IS_WRS)
-			ppi->rx_offset = sizeof(struct pp_vlanhdr);
-		else
-			ppi->rx_offset = ETH_HLEN;
+		ppi->rx_offset = ETH_HLEN;
 		break;
 	case PPSI_PROTO_UDP:
 		ppi->tx_offset = 0;

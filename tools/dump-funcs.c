@@ -10,6 +10,8 @@
 #include "decent_types.h"
 #include "ptpdump.h"
 
+static int dump_vlan(char *prefix, int vlan);
+
 static int dumpstruct(char *p1, char *p2, char *name, void *ptr, int size)
 {
 	int ret, i;
@@ -257,7 +259,8 @@ out:
 }
 
 /* This dumps a complete udp frame, starting from the eth header */
-int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti)
+int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
+		int vlan)
 {
 	struct ethhdr *eth = buf;
 	struct iphdr *ip;
@@ -266,6 +269,8 @@ int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti)
 
 	if (ti)
 		dump_time(prefix, ti);
+
+	dump_vlan(prefix, vlan);
 
 	ip = buf + dump_eth(prefix, eth);
 	dump_ip(prefix, ip);
@@ -289,22 +294,24 @@ int dump_payloadpkt(char *prefix, void *buf, int len, struct TimeInternal *ti)
 }
 
 /* This dumps everything, used for raw frames with headers and ptp payload */
-int dump_1588pkt(char *prefix, void *buf, int len, struct TimeInternal *ti)
+int dump_1588pkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
+		 int vlan)
 {
 	struct ethhdr *eth = buf;
 	void *payload;
 
 	if (ti)
 		dump_time(prefix, ti);
+	dump_vlan(prefix, vlan);
 	payload = buf + dump_eth(prefix, eth);
 	dump_payload(prefix, payload, len - (payload - buf));
 
 	return 0;
 }
 
-int dump_vlan(char *prefix, int vlan)
+static int dump_vlan(char *prefix, int vlan)
 {
-	if (vlan != 0)
+	if (vlan >= 0)
 		printf("%sVLAN %i\n", prefix, vlan);
 
 	return 0;

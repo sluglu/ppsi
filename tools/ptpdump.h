@@ -13,9 +13,10 @@
 #define printf pp_printf
 #endif
 
-int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti);
+int dump_udppkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
+		int vlan);
 int dump_payloadpkt(char *prefix, void *buf, int len, struct TimeInternal *ti);
-int dump_1588pkt(char *prefix, void *buf, int len, struct TimeInternal *ti);
-int dump_vlan(char *prefix, int vlan);
+int dump_1588pkt(char *prefix, void *buf, int len, struct TimeInternal *ti,
+		 int vlan);
 
 #endif /* __PTPDUMP_H__ */

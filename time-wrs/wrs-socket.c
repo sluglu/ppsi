@@ -295,7 +295,7 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		if (pp_diag_allow(ppi, frames, 2)) {
 			if (ppi->proto == PPSI_PROTO_VLAN)
 				pp_printf("recv: VLAN %i\n", ppi->peer_vid);
-			dump_1588pkt("recv: ", pkt, ret, t);
+			dump_1588pkt("recv: ", pkt, ret, t, -1);
 		}
 		break;
 
@@ -490,7 +490,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", pkt, len, t);
+			dump_1588pkt("send: ", pkt, len, t, -1);
 		pp_diag(ppi, time, 1, "send stamp: (correct %i) %9li.%09li\n",
 			t->correct, (long)t->seconds,
 			(long)t->nanoseconds);
@@ -525,7 +525,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", pkt, len, t);
+			dump_1588pkt("send: ", pkt, len, t, ppi->peer_vid);
 		pp_diag(ppi, time, 1, "send stamp: (correct %i) %9li.%09li\n",
 			t->correct, (long)t->seconds,
 			(long)t->nanoseconds);

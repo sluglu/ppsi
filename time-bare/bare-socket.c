@@ -20,7 +20,7 @@ static int bare_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 	ret = sys_recv(ppi->ch[PP_NP_GEN].fd, pkt, len, 0);
 	if (ret > 0 && pp_diag_allow(ppi, frames, 2))
-		dump_1588pkt("recv: ", pkt, ret, t);
+		dump_1588pkt("recv: ", pkt, ret, t, ppi->peer_vid);
 	return ret;
 }
 
@@ -48,7 +48,7 @@ static int bare_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 	ret = sys_send(ppi->ch[PP_NP_GEN].fd, pkt, len, 0);
 	if (ret > 0 && pp_diag_allow(ppi, frames, 2))
-		dump_1588pkt("send: ", pkt, len, t);
+		dump_1588pkt("send: ", pkt, len, t, ppi->peer_vid);
 	return ret;
 }
 

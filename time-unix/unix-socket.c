@@ -149,7 +149,7 @@ static int unix_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		if (pp_diag_allow(ppi, frames, 2)) {
 			if (ppi->proto == PPSI_PROTO_VLAN)
 				pp_printf("recv: VLAN %i\n", ppi->peer_vid);
-			dump_1588pkt("recv: ", pkt, ret, t);
+			dump_1588pkt("recv: ", pkt, ret, t, -1);
 		}
 		return ret;
 
@@ -223,7 +223,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 			return ret;
 		}
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", pkt, len, t);
+			dump_1588pkt("send: ", pkt, len, t, -1);
 		return ret;
 
 	case PPSI_PROTO_VLAN:
@@ -246,7 +246,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 			return ret;
 		}
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", vhdr, len, t);
+			dump_1588pkt("send: ", vhdr, len, t, ppi->peer_vid);
 
 	case PPSI_PROTO_UDP:
 		addr.sin_family = AF_INET;

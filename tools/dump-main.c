@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 		proto = ntohs(eth->h_proto);
 
 		/* get the VLAN for incomming frames */
-		vlan = 0;
+		vlan = -1;
 		if (aux) {
 			/* already in the network order */
 			vlan = aux->tp_vlan_tci & 0xfff;
@@ -202,16 +202,13 @@ int main(int argc, char **argv)
 			if (udpdest != 319 && udpdest != 320)
 				continue;
 			print_spaces(&ti);
-			ret = dump_udppkt("", buf, len, &ti);
+			ret = dump_udppkt("", buf, len, &ti, vlan);
 			break;
 		}
 
 		case ETH_P_1588:
 			print_spaces(&ti);
-			ret = dump_vlan("", vlan);
-			if (ret != 0)
-				break;
-			ret = dump_1588pkt("", buf, len, &ti);
+			ret = dump_1588pkt("", buf, len, &ti, vlan);
 			break;
 		default:
 			ret = -1;

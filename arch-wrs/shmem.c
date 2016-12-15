@@ -61,8 +61,10 @@ struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
 		return NULL; /* keep errno */
 	/* The file may be too short: enlarge it to the minimum size */
 
-	if (fstat(fd, &stbuf) < 0)
+	if (fstat(fd, &stbuf) < 0) {
+		close(fd);
 		return NULL; /* keep errno */
+	}
 	if (stbuf.st_size < WRS_SHM_MIN_SIZE) {
 		lseek(fd, WRS_SHM_MIN_SIZE - 1, SEEK_SET);
 		write(fd, "", 1);
@@ -71,8 +73,10 @@ struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
 	map = mmap(0, WRS_SHM_MAX_SIZE,
 		   PROT_READ | (write_access ? PROT_WRITE : 0),
 		   MAP_SHARED, fd, 0);
-	if (map == MAP_FAILED)
+	if (map == MAP_FAILED) {
+		close(fd);
 		return NULL; /* keep errno */
+	}
 	head = map;
 
 	if (!write_access) {
@@ -94,6 +98,7 @@ struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
 				continue;
 
 			errno = ETIMEDOUT;
+			close(fd);
 			return NULL;
 		}
 	}
@@ -102,6 +107,7 @@ struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
 	if (head->pid && kill(head->pid, 0) == 0) {
 		munmap(map, WRS_SHM_MAX_SIZE);
 		errno = EBUSY;
+		close(fd);
 		return NULL;
 	}
 	head->fd = fd;
@@ -162,10 +168,14 @@ int wrs_shm_get_and_check(enum wrs_shm_name shm_name,
 	version = (*head)->version;
 	ret = wrs_shm_seqretry(*head, ii);
 	if (ret) {
+		wrs_shm_put(*head);
+		*head = NULL;
 		/* inconsistent data in shmem */
 		return WRS_SHM_INCONSISTENT_DATA;
 	}
 	if (!version) {
+		wrs_shm_put(*head);
+		*head = NULL;
 		/* data in shmem available and version is zero */
 		return WRS_SHM_WRONG_VERSION;
 	}

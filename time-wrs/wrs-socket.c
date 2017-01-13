@@ -17,8 +17,9 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <linux/if_packet.h>
-#include <linux/if_ether.h>
-#include <linux/if_arp.h>
+#include <netinet/if_ether.h>
+#include <net/if_arp.h>
+#include <net/if.h>
 #include <linux/net_tstamp.h>
 #include <linux/sockios.h>
 #include <sys/time.h>
@@ -588,7 +589,7 @@ static int wrs_enable_timestamps(struct pp_instance *ppi, int fd)
 	strncpy(ifr.ifr_name, ppi->iface_name, sizeof(ifr.ifr_name));
 	hwconfig.tx_type = HWTSTAMP_TX_ON;
 	hwconfig.rx_filter = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
-	ifr.ifr_data = &hwconfig;
+	ifr.ifr_data = (void *)&hwconfig;
 
 	if (ioctl(fd, SIOCSHWTSTAMP, &ifr) < 0) {
 		pp_diag(ppi, frames, 1,

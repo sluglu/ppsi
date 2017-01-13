@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/select.h>
-#include <linux/if_ether.h>
+#include <netinet/if_ether.h>
 
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>

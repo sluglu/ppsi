@@ -16,11 +16,12 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
+#define _GNU_SOURCE /* Needed with libmusl to have the udphdr we expect */
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-#include <linux/if_ether.h>
+#include <netinet/if_ether.h>
 #include <linux/if_packet.h>
 #include <net/if_arp.h>
 

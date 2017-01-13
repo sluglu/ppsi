@@ -3,11 +3,12 @@
 
 #include <ppsi/ppsi.h>
 #if __STDC_HOSTED__
+#define _GNU_SOURCE /* Needed with libmusl to have the udphdr we expect */
 #include <time.h>
 #include <sys/time.h>
 #include <netinet/ip.h>		/* struct iphdr */
 #include <netinet/udp.h>	/* struct udphdr */
-#include <linux/if_ether.h>	/* struct ethhdr */
+#include <netinet/if_ether.h>	/* struct ethhdr */
 #else
 #include "../lib/network_types.h"
 #define printf pp_printf

@@ -87,8 +87,9 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	    && actions[msgtype]) {
 		e = actions[msgtype](ppi, pkt, plen);
 	} else {
-		if (plen)
-			pp_diag(ppi, frames, 1, "Ignored frame\n");
+		if (plen && msgtype != PPM_NO_MESSAGE)
+			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
+				msgtype);
 	}
 
 out:

@@ -194,6 +194,9 @@ int wrc_ptp_sync_mech(int e2e_p2p_qry)
 	struct pp_instance *ppi = &ppi_static;
 	int running;
 
+	if (!CONFIG_HAS_P2P)
+		return ppi->mech;
+
 	switch(e2e_p2p_qry) {
 	case PP_E2E_MECH:
 	case PP_P2P_MECH:

@@ -33,16 +33,16 @@
 #define ETH_P_1588     0x88F7
 #endif
 
-void print_spaces(struct TimeInternal *ti)
+void print_spaces(struct pp_time *ti)
 {
-	static struct TimeInternal prev_ti;
+	static struct pp_time prev_ti;
 	int i, diffms;
 
-	if (prev_ti.seconds) {
+	if (prev_ti.secs) {
 
-		diffms = (ti->seconds - prev_ti.seconds) * 1000
-			+ (ti->nanoseconds / 1000 / 1000)
-			- (prev_ti.nanoseconds / 1000 / 1000);
+		diffms = (ti->secs - prev_ti.secs) * 1000
+			+ ((ti->scaled_nsecs >> 16) / 1000 / 1000)
+			- ((prev_ti.scaled_nsecs) / 1000 / 1000);
 		/* empty lines, one every .25 seconds, at most 10 of them */
 		for (i = 250; i < 2500 && i < diffms; i += 250)
 			printf("\n");
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 		struct pp_vlanhdr *vhdr;
 		struct iphdr *ip;
 		unsigned char buf[1500];
-		struct TimeInternal ti;
+		struct pp_time ti;
 		struct timeval tv;
 		struct msghdr msg;
 		struct iovec entry;
@@ -146,8 +146,8 @@ int main(int argc, char **argv)
 
 		/* Get the receive time, copy it to TimeInternal */
 		gettimeofday(&tv, NULL);
-		ti.seconds = tv.tv_sec;
-		ti.nanoseconds = tv.tv_usec * 1000;
+		ti.secs = tv.tv_sec;
+		ti.scaled_nsecs = (tv.tv_usec * 1000LL) << 16;
 
 		if (len > sizeof(buf))
 			len = sizeof(buf);

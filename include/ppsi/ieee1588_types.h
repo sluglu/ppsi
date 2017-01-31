@@ -11,6 +11,7 @@
 #define __PPSI_IEEE_1588_TYPES_H__
 
 #include <stdint.h>
+#include <ppsi/pp-time.h>
 
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
@@ -60,30 +61,6 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 	UInteger48	secondsField;
 	UInteger32	nanosecondsField;
 } Timestamp;
-
-typedef struct TimeInternal {
-	Integer32	seconds;
-	Integer32	nanoseconds;
-	/* White Rabbit extension begin */
-	Integer32	phase;		/* This is the set point */
-	int 		correct;	/* 0 or 1 */
-#if 0
-	/*
-	 * The following two fields may be used for diagnostics, but
-	 * they cost space. So remove them but keep the code around just
-	 * in case it is useful again (they are only set, never read)
-	 */
-	int32_t raw_phase;
-	int32_t raw_nsec;
-#endif
-	int32_t raw_ahead;	/* raw_ahead is used during calibration */
-	/* White Rabbit extension end */
-} TimeInternal;
-
-static inline void clear_TimeInternal(struct TimeInternal *t)
-{
-	memset(t, 0, sizeof(*t));
-}
 
 typedef struct ClockIdentity { /* page 13 (33) */
 	Octet id[8];
@@ -136,7 +113,7 @@ typedef struct MsgHeader {
 	UInteger16	messageLength;
 	UInteger8	domainNumber;
 	Octet		flagField[2];
-	Integer64	correctionfield;
+	struct pp_time	cField;;
 	PortIdentity	sourcePortIdentity;
 	UInteger16	sequenceId;
 	UInteger8	controlField;
@@ -158,40 +135,40 @@ typedef struct MsgAnnounce {
 
 /* Sync Message (table 26, page 129) */
 typedef struct MsgSync {
-	Timestamp originTimestamp;
+	struct pp_time originTimestamp;
 } MsgSync;
 
 /* DelayReq Message (table 26, page 129) */
 typedef struct MsgDelayReq {
-	Timestamp	originTimestamp;
+	struct pp_time	originTimestamp;
 } MsgDelayReq;
 
 /* DelayResp Message (table 27, page 130) */
 typedef struct MsgFollowUp {
-	Timestamp	preciseOriginTimestamp;
+	struct pp_time	preciseOriginTimestamp;
 } MsgFollowUp;
 
 
 /* DelayResp Message (table 28, page 130) */
 typedef struct MsgDelayResp {
-	Timestamp	receiveTimestamp;
+	struct pp_time	receiveTimestamp;
 	PortIdentity	requestingPortIdentity;
 } MsgDelayResp;
 
 /* PdelayReq Message (table 29, page 131) */
 typedef struct MsgPDelayReq {
-	Timestamp	originTimestamp;
+	struct pp_time	originTimestamp;
 } MsgPDelayReq;
 
 /* PdelayResp Message (table 30, page 131) */
 typedef struct MsgPDelayResp {
-	Timestamp	requestReceiptTimestamp;
+	struct pp_time	requestReceiptTimestamp;
 	PortIdentity	requestingPortIdentity;
 } MsgPDelayResp;
 
 /* PdelayRespFollowUp Message (table 31, page 132) */
 typedef struct MsgPDelayRespFollowUp {
-	Timestamp	responseOriginTimestamp;
+	struct pp_time	responseOriginTimestamp;
 	PortIdentity	requestingPortIdentity;
 } MsgPDelayRespFollowUp;
 
@@ -229,8 +206,8 @@ typedef struct DSDefault {		/* page 65 */
 typedef struct DSCurrent {		/* page 67 */
 	/* Dynamic */
 	UInteger16	stepsRemoved;
-	TimeInternal	offsetFromMaster;
-	TimeInternal	meanPathDelay; /* oneWayDelay */
+	struct pp_time	offsetFromMaster;
+	struct pp_time	meanPathDelay; /* oneWayDelay */
 	/* White Rabbit extension begin */
 	UInteger16	primarySlavePortNumber;
 	/* White Rabbit extension end */
@@ -256,7 +233,6 @@ typedef struct DSPort {			/* page 72 */
 	/* Dynamic */
 	/* Enumeration8	portState; -- not used */
 	Integer8	logMinDelayReqInterval; /* -- same as pdelay one */
-	/* TimeInternal	peerMeanPathDelay; -- not used */
 	/* Configurable */
 	Integer8	logAnnounceInterval;
 	UInteger8	announceReceiptTimeout;

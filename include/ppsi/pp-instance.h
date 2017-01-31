@@ -82,14 +82,14 @@ struct pp_frgn_master {
  * where increasing the stiffness (s) lowers the cutoff and increases the delay.
  */
 struct pp_avg_fltr {
-	Integer32 m; /* magnitude */
-	Integer32 y;
-	Integer32 s_exp;
+	int64_t m; /* magnitude */
+	int64_t y;
+	int64_t s_exp;
 };
 
 struct pp_servo {
-	TimeInternal m_to_s_dly;
-	TimeInternal s_to_m_dly;
+	struct pp_time m_to_s_dly;
+	struct pp_time s_to_m_dly;
 	long long obs_drift;
 	struct pp_avg_fltr mpd_fltr;
 };
@@ -149,10 +149,10 @@ struct pp_instance {
 	uint16_t peer_vid;	/* Our peer's VID (for PROTO_VLAN) */
 
 	/* Times, for the various offset computations */
-	TimeInternal t1, t2, t3, t4, t5, t6;		/* *the* stamps */
+	struct pp_time t1, t2, t3, t4, t5, t6;		/* *the* stamps */
 	Integer32 t4_cf, t6_cf;				/* peer delay */
-	TimeInternal cField;				/* transp. clocks */
-	TimeInternal last_rcv_time, last_snt_time;	/* two temporaries */
+	struct pp_time cField;				/* transp. clocks */
+	struct pp_time last_rcv_time, last_snt_time;	/* two temporaries */
 
 	/* Page 85: each port shall maintain an implementation-specific
 	 * foreignMasterDS data set for the purposes of qualifying Announce

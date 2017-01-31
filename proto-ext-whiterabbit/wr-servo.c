@@ -36,105 +36,78 @@ void wr_servo_enable_tracking(int enable)
 
 /* my own timestamp arithmetic functions */
 
-static void dump_timestamp(struct pp_instance *ppi, char *what, TimeInternal ts)
+static void dump_timestamp(struct pp_instance *ppi, char *what,
+			   struct pp_time ts)
 {
-	pp_diag(ppi, servo, 2, "%s = %d:%d:%d\n", what, (int32_t)ts.seconds,
-		  ts.nanoseconds, ts.phase);
+	pp_diag(ppi, servo, 2, "%s = %ld:%ld:%ld\n", what, (long)ts.secs,
+		(long)(ts.scaled_nsecs >> 16),
+		/* unlikely what we had earlier, third field is not phase */
+		((long)(ts.scaled_nsecs & 0xffff) * 1000 + 0x8000) >> 16);
 }
 
-static int64_t ts_to_picos(TimeInternal ts)
+static int64_t ts_to_picos(struct pp_time *ts)
 {
-	return ts.seconds * 1000000000000LL
-		+ ts.nanoseconds * 1000LL
-		+ ts.phase;
+	return ts->secs * PP_NSEC_PER_SEC
+		+ ((ts->scaled_nsecs * 1000 + 0x8000) >> 16);
 }
 
-static TimeInternal picos_to_ts(int64_t picos)
+static void picos_to_ts(int64_t picos, struct pp_time *ts)
 {
-	uint64_t nsec, phase;
-	TimeInternal ts;
+	uint64_t sec, nsec;
+	int phase;
+	int sign = (picos < 0 ? -1 : 1);
 
+	picos *= sign;
 	nsec = picos;
 	phase = __div64_32(&nsec, 1000);
+	sec = nsec;
 
-	ts.nanoseconds = __div64_32(&nsec, PP_NSEC_PER_SEC);
-	ts.seconds = nsec; /* after the division */
-	ts.phase = phase;
-	return ts;
-}
-
-static TimeInternal ts_add(TimeInternal a, TimeInternal b)
-{
-	TimeInternal c;
-
-	c.phase = a.phase + b.phase;
-	c.nanoseconds = a.nanoseconds + b.nanoseconds;
-	c.seconds = a.seconds + b.seconds;
-
-	while (c.phase >= 1000) {
-		c.phase -= 1000;
-		c.nanoseconds++;
-	}
-	while (c.nanoseconds >= PP_NSEC_PER_SEC) {
-		c.nanoseconds -= PP_NSEC_PER_SEC;
-		c.seconds++;
-	}
-	return c;
-}
-
-static TimeInternal ts_sub(TimeInternal a, TimeInternal b)
-{
-	TimeInternal c;
-
-	c.phase = a.phase - b.phase;
-	c.nanoseconds = a.nanoseconds - b.nanoseconds;
-	c.seconds = a.seconds - b.seconds;
-
-	while(c.phase < 0) {
-		c.phase += 1000;
-		c.nanoseconds--;
-	}
-	while(c.nanoseconds < 0) {
-		c.nanoseconds += PP_NSEC_PER_SEC;
-		c.seconds--;
-	}
-	return c;
+	ts->scaled_nsecs = __div64_32(&sec, PP_NSEC_PER_SEC) << 16;
+	ts->scaled_nsecs += (phase << 16) / 1000;
+	ts->scaled_nsecs *= sign;
+	ts->secs = sec * sign;
 }
 
 /* "Hardwarizes" the timestamp - e.g. makes the nanosecond field a multiple
- * of 8ns cycles and puts the extra nanoseconds in the phase field */
-static TimeInternal ts_hardwarize(TimeInternal ts, int clock_period_ps)
+ * of 8/16ns cycles and puts the extra nanoseconds in the picos result */
+static void ts_hardwarize(struct pp_time *time, int clock_period_ps,
+			  int32_t *ticks, int32_t *picos)
 {
-	int32_t q_threshold;
+	int32_t s, ns, ps, clock_ns;
 
-	q_threshold = (clock_period_ps + 999) / 1000;
+	/* clock_period_ps *must* be a multiple of 1000 -- assert()? */
+	clock_ns = clock_period_ps / 1000;
 
-	if (ts.nanoseconds > 0) {
-		int32_t extra_nsec = ts.nanoseconds % q_threshold;
-
-		if(extra_nsec) {
-			ts.nanoseconds -= extra_nsec;
-			ts.phase += extra_nsec * 1000;
-		}
+	/*
+	 * In pp_time, both sec/nsec are positive, or both negative.
+	 * Only 0 secs can have positive or negative nsecs.
+	 *
+	 * Here we need a positive count for both tick and picos. Or not.
+	 * The code here replicates what found in original WR code.
+	 */
+	s = time->secs; /* a difference: known to fit 32 bits (really?) */
+	ps = time->scaled_nsecs & 0xffff; /* fractional nano */
+	ps = (ps * 1000) >> 16; /* now picoseconds 0..999 -- positive*/
+	ns = time->scaled_nsecs >> 16;
+	if (ns > 0) {
+		ps += (ns % clock_ns) * 1000;
+		ns -= (ns % clock_ns);
 	}
-
-	if (ts.nanoseconds < 0) {
-		ts.nanoseconds += PP_NSEC_PER_SEC;
-		ts.seconds--;
+	if (ns < 0) {
+		s--;
+		ns += PP_NSEC_PER_SEC;
 	}
-
-	if (ts.seconds == -1 && ts.nanoseconds > 0) {
-		ts.seconds++;
-		ts.nanoseconds -= PP_NSEC_PER_SEC;
+	if (s == -1 && ns > 0) {
+		s++;
+		ns -= PP_NSEC_PER_SEC;
 	}
-
-	if (ts.nanoseconds < 0 && ts.nanoseconds >= (-q_threshold)
-	    && ts.seconds == 0) {
-		ts.nanoseconds += q_threshold;
-		ts.phase -= q_threshold * 1000;
+	if (ns < 0 && s == 0 && ns >= -clock_ns) {
+		/* originally, ns was a multiple of clock_ns, code differs */
+		ps += ns * 1000;
+		ns = 0;
 	}
-
-	return ts;
+	*ticks = ns;
+	*picos = ps;
 }
 
 /* end my own timestamp arithmetic functions */
@@ -219,22 +192,19 @@ int wr_servo_init(struct pp_instance *ppi)
 	return 0;
 }
 
-int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
-		      TimeInternal *t2)
+int wr_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
+		      struct pp_time *t2)
 {
 	struct wr_servo_state *s =
 			&((struct wr_data *)ppi->ext_data)->servo_state;
 
 	s->t1 = *t1;
-	s->t1.correct = 1;
 	s->t2 = *t2;
-
 	got_sync = 1;
-
 	return 0;
 }
 
-int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
+int wr_servo_got_delay(struct pp_instance *ppi)
 {
 	struct wr_servo_state *s =
 			&((struct wr_data *)ppi->ext_data)->servo_state;
@@ -244,15 +214,11 @@ int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
 	s->t3 = ppi->t3;
 	/*  s->t3.phase = 0; */
 	s->t4 = ppi->t4;
-	s->t4.correct = 1; /* clock->delay_req_receive_time.correct; */
-	s->t4.phase = (int64_t) cf * 1000LL / 65536LL;
+	/* FIXME: verify that cField is already merged */
 
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
 		s->t5 = ppi->t5;
-		s->t5.correct = 1;
-		s->t5.phase = 0;
 		s->t6 = ppi->t6;
-		s->t6.phase = (int64_t) ppi->t6_cf * 1000LL / 65536LL;
 
 		wr_p2p_delay(ppi, s);
 	}
@@ -266,20 +232,28 @@ int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
 	uint64_t big_delta_fix;
 	static int errcount;
 
-	if (!s->t3.correct || !s->t4.correct ||
-	    !s->t5.correct || !s->t6.correct) {
+	if (is_incorrect(&s->t3) || is_incorrect(&s->t4)
+	    || is_incorrect(&s->t5) || is_incorrect(&s->t6)) {
 		errcount++;
 		if (errcount > 5)	/* a 2-3 in a row are expected */
 			pp_error("%s: TimestampsIncorrect: %d %d %d %d\n",
-				 __func__, s->t3.correct, s->t4.correct,
-				 s->t5.correct, s->t6.correct);
+				 __func__, !is_incorrect(&s->t3),
+				 !is_incorrect(&s->t4), !is_incorrect(&s->t5),
+				 !is_incorrect(&s->t6));
 		return 0;
 	}
 	errcount = 0;
 
 	s->update_count++;
 
-	s->mu = ts_sub(ts_sub(s->t6, s->t3), ts_sub(s->t5, s->t4));
+	{ /* avoid modifying stamps in place */
+		struct pp_time mtime, stime;
+
+		stime = s->t6; pp_time_sub(&stime, &s->t3);
+		mtime = s->t5; pp_time_sub(&mtime, &s->t4);
+		s->mu = stime; pp_time_sub(&s->mu, &mtime);
+	}
+
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
@@ -291,30 +265,31 @@ int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
 		dump_timestamp(ppi, "->mdelay", s->mu);
 	}
 
-	s->picos_mu = ts_to_picos(s->mu);
+	s->picos_mu = ts_to_picos(&s->mu);
 	big_delta_fix = s->delta_tx_m + s->delta_tx_s
 	    + s->delta_rx_m + s->delta_rx_s;
 
 	s->delta_ms =
-	    (((int64_t) (ts_to_picos(s->mu) - big_delta_fix) *
+	    (((int64_t) (ts_to_picos(&s->mu) - big_delta_fix) *
 	      (int64_t) s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
-	    + ((ts_to_picos(s->mu) - big_delta_fix) >> 1)
+	    + ((ts_to_picos(&s->mu) - big_delta_fix) >> 1)
 	    + s->delta_tx_m + s->delta_rx_s;
 
 	return 1;
 }
 
 int wr_p2p_offset(struct pp_instance *ppi,
-		  struct wr_servo_state *s, TimeInternal *ts_offset_hw)
+		  struct wr_servo_state *s, struct pp_time *ts_offset)
 {
-	TimeInternal ts_offset;
 	static int errcount;
+	struct pp_time time_ms;
 
-	if (!s->t1.correct || !s->t2.correct) {
+	if (is_incorrect(&s->t1) || is_incorrect(&s->t2)) {
 		errcount++;
 		if (errcount > 5)	/* a 2-3 in a row are expected */
 			pp_error("%s: TimestampsIncorrect: %d %d \n",
-				 __func__, s->t1.correct, s->t2.correct);
+				 __func__, !is_incorrect(&s->t1),
+				 !is_incorrect(&s->t2));
 		return 0;
 	}
 	errcount = 0;
@@ -322,8 +297,10 @@ int wr_p2p_offset(struct pp_instance *ppi,
 
 	s->update_count++;
 
-	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(s->delta_ms));
-	*ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
+	picos_to_ts(s->delta_ms, &time_ms);
+	*ts_offset = s->t1;
+	pp_time_sub(ts_offset, &s->t2);
+	pp_time_add(ts_offset, &time_ms);
 
 	/* is it possible to calculate it in client,
 	 * but then t1 and t2 require shmem locks */
@@ -335,35 +312,41 @@ int wr_p2p_offset(struct pp_instance *ppi,
 }
 
 int wr_e2e_offset(struct pp_instance *ppi,
-		  struct wr_servo_state *s, TimeInternal *ts_offset_hw)
+		  struct wr_servo_state *s, struct pp_time *ts_offset)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	uint64_t big_delta_fix;
 	uint64_t delay_ms_fix;
-	TimeInternal ts_offset;
 	static int errcount;
 
-	if(!s->t1.correct || !s->t2.correct ||
-	   !s->t3.correct || !s->t4.correct) {
+	if (is_incorrect(&s->t1) || is_incorrect(&s->t2)
+	    || is_incorrect(&s->t3) || is_incorrect(&s->t4)) {
 		errcount++;
 		if (errcount > 5) /* a 2-3 in a row are expected */
 			pp_error("%s: TimestampsIncorrect: %d %d %d %d\n",
-				 __func__, s->t1.correct, s->t2.correct,
-				 s->t3.correct, s->t4.correct);
+				 __func__, !is_incorrect(&s->t1),
+				 !is_incorrect(&s->t2), !is_incorrect(&s->t3),
+				 !is_incorrect(&s->t4));
 		return 0;
 	}
 
-	if (wrp->ops->servo_hook)
+	if (wrp->ops->servo_hook) /* FIXME: check this, missing in p2p */
 		wrp->ops->servo_hook(s, WR_SERVO_ENTER);
 
 	errcount = 0;
 
 	s->update_count++;
-	ppi->t_ops->get(ppi, &s->update_time);
+	ppi->t_ops->get(ppi, &s->update_time); /* FIXME: missing in p2p */
 
 	got_sync = 0;
 
-	s->mu = ts_sub(ts_sub(s->t4, s->t1), ts_sub(s->t3, s->t2));
+	{ /* avoid modifying stamps in place */
+		struct pp_time mtime, stime;
+
+		mtime = s->t4; pp_time_sub(&mtime, &s->t1);
+		stime = s->t3; pp_time_sub(&stime, &s->t2);
+		s->mu = mtime; pp_time_sub(&s->mu, &stime);
+	}
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
@@ -373,7 +356,7 @@ int wr_e2e_offset(struct pp_instance *ppi,
 		dump_timestamp(ppi, "->mdelay", s->mu);
 	}
 
-	s->picos_mu = ts_to_picos(s->mu);
+	s->picos_mu = ts_to_picos(&s->mu);
 	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
 		       + s->delta_rx_m + s->delta_rx_s;
 
@@ -382,12 +365,20 @@ int wr_e2e_offset(struct pp_instance *ppi,
 		s->picos_mu = big_delta_fix;
 	}
 
-	delay_ms_fix = (((int64_t)(s->picos_mu - big_delta_fix) * (int64_t) s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
-		+ ((s->picos_mu - big_delta_fix) >> 1)
-		+ s->delta_tx_m + s->delta_rx_s;
+	delay_ms_fix = (((s->picos_mu - big_delta_fix)
+			* s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
+			+ ((s->picos_mu - big_delta_fix) >> 1)
+			+ s->delta_tx_m + s->delta_rx_s;
 
-	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix));
-	*ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
+	{ /* again, use temps to avoid modifying tx in place */
+		struct pp_time tmp = s->t1, tmp2;
+
+		pp_time_sub(&tmp, &s->t2);
+		picos_to_ts(delay_ms_fix, &tmp2);
+		pp_time_add(&tmp, &tmp2);
+
+		*ts_offset = tmp;
+	}
 
 	/* is it possible to calculate it in client,
 	 * but then t1 and t2 require shmem locks */
@@ -408,7 +399,9 @@ int wr_servo_update(struct pp_instance *ppi)
 	int remaining_offset;
 	int64_t picos_mu_prev = 0;
 
-	TimeInternal ts_offset_hw /*, ts_phase_adjust */ ;
+	struct pp_time ts_offset;
+	int32_t  ts_offset_ticks;
+	int32_t  ts_offset_picos;
 
 	if (!got_sync)
 		return 0;
@@ -418,12 +411,19 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	picos_mu_prev = s->picos_mu;
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
-		if (!wr_p2p_offset(ppi, s, &ts_offset_hw))
+		if (!wr_p2p_offset(ppi, s, &ts_offset))
 			goto out;
 	} else {
-		if (!wr_e2e_offset(ppi, s, &ts_offset_hw))
+		if (!wr_e2e_offset(ppi, s, &ts_offset))
 			goto out;
 	}
+
+	ts_hardwarize(&ts_offset, s->clock_period_ps,
+		      &ts_offset_ticks, &ts_offset_picos);
+	pp_diag(ppi, servo, 2, "offset_hw: %li.%09li (+%li)\n",
+		(long)ts_offset.secs, (long)ts_offset_ticks,
+		(long)ts_offset_picos);
+
 
 	if (wrp->ops->locking_poll(ppi, 0) != WR_SPLL_READY) {
 		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
@@ -441,15 +441,11 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 
 	/* So, we didn't return. Choose the right state */
-	if (ts_offset_hw.seconds) /* so bad... */
+	if (ts_offset.secs) /* so bad... */
 		s->state = WR_SYNC_TAI;
-	else if (ts_offset_hw.nanoseconds) /* not that bad */
+	else if (ts_offset_ticks) /* not that bad */
 		s->state = WR_SYNC_NSEC;
 	/* else, let the states below choose the sequence */
-
-	pp_diag(ppi, servo, 2, "offset_hw: %li.%09li (+%li)\n",
-		(long)ts_offset_hw.seconds, (long)ts_offset_hw.nanoseconds,
-		(long)ts_offset_hw.phase);
 
 	pp_diag(ppi, servo, 1, "wr_servo state: %s%s\n",
 		servo_name[s->state],
@@ -460,7 +456,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	switch (s->state) {
 	case WR_SYNC_TAI:
-		wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
+		wrp->ops->adjust_counters(ts_offset.secs, 0);
 		s->flags |= WR_FLAG_WAIT_HW;
 		/*
 		 * If nsec wrong, code above forces SYNC_NSEC,
@@ -471,16 +467,16 @@ int wr_servo_update(struct pp_instance *ppi)
 		break;
 
 	case WR_SYNC_NSEC:
-		wrp->ops->adjust_counters(0, ts_offset_hw.nanoseconds);
+		wrp->ops->adjust_counters(0, ts_offset_ticks);
 		s->flags |= WR_FLAG_WAIT_HW;
 		s->state = WR_SYNC_PHASE;
 		break;
 
 	case WR_SYNC_PHASE:
 		pp_diag(ppi, servo, 2, "oldsetp %i, offset %i:%04i\n",
-			s->cur_setpoint, ts_offset_hw.nanoseconds,
-			ts_offset_hw.phase);
-		s->cur_setpoint += ts_offset_hw.phase;
+			s->cur_setpoint, ts_offset_ticks,
+			ts_offset_picos);
+		s->cur_setpoint += ts_offset_picos;
 		wrp->ops->adjust_phase(s->cur_setpoint);
 
 		s->flags |= WR_FLAG_WAIT_HW;
@@ -496,14 +492,14 @@ int wr_servo_update(struct pp_instance *ppi)
 			 */
 			unix_time_ops.set(ppi, &ppi->t4);
 			pp_diag(ppi, time, 1, "system time set to %li TAI\n",
-				(long)ppi->t4.seconds);
+				(long)ppi->t4.secs);
 		}
 		break;
 
 	case WR_WAIT_OFFSET_STABLE:
 
 		/* ts_to_picos() below returns phase alone */
-		remaining_offset = abs(ts_to_picos(ts_offset_hw));
+		remaining_offset = abs(ts_offset_picos);
 		if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
 			wrp->ops->enable_timing_output(ppi, 1);
 			s->delta_ms_prev = s->delta_ms;
@@ -522,14 +518,14 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		/* Can be disabled for manually tweaking and testing */
 		if(tracking_enabled) {
-			if (abs(ts_offset_hw.phase) >
+			if (abs(ts_offset_picos) >
 			    2 * WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
 				s->state = WR_SYNC_PHASE;
 				break;
 			}
 
 			// adjust phase towards offset = 0 make ck0 0
-			s->cur_setpoint += (ts_offset_hw.phase / 4);
+			s->cur_setpoint += (ts_offset_picos / 4);
 
 			wrp->ops->adjust_phase(s->cur_setpoint);
 			pp_diag(ppi, time, 1, "adjust phase %i\n",

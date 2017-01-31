@@ -22,6 +22,7 @@
 
 #include <arch/arch.h> /* ntohs and so on -- and wr-api.h for wr archs */
 
+
 /* At this point in time, we need ARRAY_SIZE to conditionally build vlan code */
 #undef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -154,8 +155,8 @@ struct pp_ext_hooks {
 	void (*s1)(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
 	int (*execute_slave)(struct pp_instance *ppi);
 	int (*handle_announce)(struct pp_instance *ppi);
-	int (*handle_followup)(struct pp_instance *ppi, TimeInternal *orig,
-			       TimeInternal *correction_field);
+	int (*handle_followup)(struct pp_instance *ppi, struct pp_time *orig,
+			       struct pp_time *correction_field);
 	int (*handle_preq) (struct pp_instance * ppi);
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
@@ -173,7 +174,7 @@ struct pp_network_operations {
 	int (*init)(struct pp_instance *ppi);
 	int (*exit)(struct pp_instance *ppi);
 	int (*recv)(struct pp_instance *ppi, void *pkt, int len,
-		    TimeInternal *t);
+		    struct pp_time *t);
 	int (*send)(struct pp_instance *ppi, void *pkt, int len, int msgtype);
 	int (*check_packet)(struct pp_globals *ppg, int delay_ms);
 };
@@ -192,8 +193,8 @@ extern struct pp_network_operations unix_net_ops;
  * If "set" receives a NULL time value, it should update the TAI offset.
  */
 struct pp_time_operations {
-	int (*get)(struct pp_instance *ppi, TimeInternal *t);
-	int (*set)(struct pp_instance *ppi, TimeInternal *t);
+	int (*get)(struct pp_instance *ppi, struct pp_time *t);
+	int (*set)(struct pp_instance *ppi, const struct pp_time *t);
 	/* freq_ppb is parts per billion */
 	int (*adjust)(struct pp_instance *ppi, long offset_ns, long freq_ppb);
 	int (*adjust_offset)(struct pp_instance *ppi, long offset_ns);
@@ -380,19 +381,16 @@ extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);
 extern int msg_issue_sync_followup(struct pp_instance *ppi);
 extern int msg_issue_request(struct pp_instance *ppi);
-extern int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time);
+extern int msg_issue_delay_resp(struct pp_instance *ppi,
+				struct pp_time *time);
 extern int msg_issue_pdelay_resp_followup(struct pp_instance *ppi,
-					  TimeInternal * time);
-extern int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal * time);
+					  struct pp_time *time);
+extern int msg_issue_pdelay_resp(struct pp_instance *ppi, struct pp_time *time);
 
-/* Functions for timestamp handling (internal to protocol format conversion*/
-/* FIXME: add prefix in function name? */
-extern void cField_to_TimeInternal(TimeInternal *internal, Integer64 bigint);
-extern int from_TimeInternal(TimeInternal *internal, Timestamp *external);
-extern int to_TimeInternal(TimeInternal *internal, Timestamp *external);
-extern void add_TimeInternal(TimeInternal *r, TimeInternal *x, TimeInternal *y);
-extern void sub_TimeInternal(TimeInternal *r, TimeInternal *x, TimeInternal *y);
-extern void div2_TimeInternal(TimeInternal *r);
+/* Functions for time math */
+extern void pp_time_add(struct pp_time *t1, struct pp_time *t2);
+extern void pp_time_sub(struct pp_time *t1, struct pp_time *t2);
+extern void pp_time_div2(struct pp_time *t);
 
 /*
  * The state machine itself is an array of these structures.

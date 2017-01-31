@@ -12,8 +12,7 @@
 #include <ppsi/lib.h>
 #include "wr-constants.h"
 
-#define WRS_PPSI_SHMEM_VERSION 17 /* Changed definition of field mcast_addr of
-				   * struct pp_instance */
+#define WRS_PPSI_SHMEM_VERSION 18 /* New pp_time everywhere */
 
 /*
  * This structure is used as extension-specific data in the DSPort
@@ -133,9 +132,9 @@ enum {
 int wr_servo_init(struct pp_instance *ppi);
 void wr_servo_reset(struct pp_instance *ppi);
 void wr_servo_enable_tracking(int enable);
-int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
-		      TimeInternal *t2);
-int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf);
+int wr_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
+		      struct pp_time *t2);
+int wr_servo_got_delay(struct pp_instance *ppi);
 int wr_servo_update(struct pp_instance *ppi);
 
 struct wr_servo_state {
@@ -156,12 +155,12 @@ struct wr_servo_state {
 	int32_t clock_period_ps;
 
 	/* These fields are used by servo code, across iterations */
-	TimeInternal t1, t2, t3, t4, t5, t6;
+	struct pp_time t1, t2, t3, t4, t5, t6;
 	int64_t delta_ms_prev;
 	int missed_iters;
 
 	/* Following fields are for monitoring/diagnostics (use w/ shmem) */
-	TimeInternal mu;
+	struct pp_time mu;
 	int64_t picos_mu;
 	int32_t cur_setpoint;
 	int64_t delta_ms;
@@ -176,14 +175,14 @@ struct wr_servo_state {
 	uint32_t n_err_state;
 	uint32_t n_err_offset;
 	uint32_t n_err_delta_rtt;
-	TimeInternal update_time;
+	struct pp_time update_time;
 };
 
 int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s);
 int wr_e2e_offset(struct pp_instance *ppi,
-		  struct wr_servo_state *s, TimeInternal *ts_offset_hw);
+		  struct wr_servo_state *s, struct pp_time *ts_offset_hw);
 int wr_p2p_offset(struct pp_instance *ppi,
-		  struct wr_servo_state *s, TimeInternal *ts_offset_hw);
+		  struct wr_servo_state *s, struct pp_time *ts_offset_hw);
 
 
 /* All data used as extension ppsi-wr must be put here */

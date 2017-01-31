@@ -9,22 +9,22 @@
 #include "pps_gen.h" /* in wrpc-sw */
 #include "syscon.h" /* in wrpc-sw */
 
-static int wrpc_time_get(struct pp_instance *ppi, TimeInternal *t)
+static int wrpc_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	uint64_t sec;
 	uint32_t nsec;
 
 	shw_pps_gen_get_time(&sec, &nsec);
 
-	t->seconds = sec;
-	t->nanoseconds = nsec;
+	t->secs = sec;
+	t->scaled_nsecs = (int64_t)nsec << 16;
 	if (!(pp_global_d_flags & PP_FLAG_NOTIMELOG))
 		pp_diag(ppi, time, 2, "%s: %9lu.%09li\n", __func__,
 			(long)sec, (long)nsec);
 	return 0;
 }
 
-static int wrpc_time_set(struct pp_instance *ppi, TimeInternal *t)
+static int wrpc_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	uint64_t sec;
 	unsigned long nsec;
@@ -32,8 +32,8 @@ static int wrpc_time_set(struct pp_instance *ppi, TimeInternal *t)
 	if (!t) /* tai offset changed. We don't have it in wrpc-sw */
 		return 0;
 
-	sec = t->seconds;
-	nsec = t->nanoseconds;
+	sec = t->secs;
+	nsec = t->scaled_nsecs >> 16;
 
 	shw_pps_gen_set_time(sec, nsec, PPSG_SET_ALL);
 	pp_diag(ppi, time, 1, "%s: %9lu.%09li\n", __func__,

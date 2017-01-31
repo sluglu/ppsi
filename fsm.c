@@ -16,7 +16,7 @@ unsigned long pp_global_d_flags; /* This is the only "global" file in ppsi */
 static void pp_fsm_printf(struct pp_instance *ppi, char *fmt, ...)
 {
 	va_list args;
-	TimeInternal t;
+	struct pp_time t;
 	unsigned long oflags = pp_global_d_flags;
 
 	if (!pp_diag_allow(ppi, fsm, 1))
@@ -28,7 +28,7 @@ static void pp_fsm_printf(struct pp_instance *ppi, char *fmt, ...)
 	pp_global_d_flags = oflags;
 
 	pp_printf("diag-fsm-1-%s: %09d.%03d: ", ppi->port_name,
-		  (int)t.seconds, (int)t.nanoseconds / 1000000);
+		  (int)t.secs, (int)((t.scaled_nsecs >> 16)) / 1000000);
 	va_start(args, fmt);
 	pp_vprintf(fmt, args);
 	va_end(args);
@@ -203,10 +203,10 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	if (plen) {
 		msgtype = packet[0] & 0xf;
 		pp_diag(ppi, frames, 1,
-			"RECV %02d bytes at %d.%09d (type %x, %s)\n", plen,
-			(int)ppi->last_rcv_time.seconds,
-			(int)ppi->last_rcv_time.nanoseconds, msgtype,
-			pp_msgtype_info[msgtype].name);
+			"RECV %02d bytes at %9d.%09d (type %x, %s)\n", plen,
+			(int)ppi->last_rcv_time.secs,
+			(int)(ppi->last_rcv_time.scaled_nsecs >> 16),
+			msgtype, pp_msgtype_info[msgtype].name);
 	}
 
 	/*

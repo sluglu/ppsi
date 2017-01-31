@@ -51,10 +51,9 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 		return 0;
 	}
 
-	to_TimeInternal(&ppi->t4, &resp.receiveTimestamp);
-	/* Save delay resp cf in ppi->cField */
-	cField_to_TimeInternal(&ppi->cField,
-			       hdr->correctionfield);
+	ppi->t4 = resp.receiveTimestamp;
+	pp_time_add(&ppi->t4, &hdr->cField);
+	/* NOTE: older code was adding cField later, in hooks.handle_resp */
 
 	if (pp_hooks.handle_resp)
 		e = pp_hooks.handle_resp(ppi);

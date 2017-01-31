@@ -13,7 +13,7 @@
 int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
-
+	uint32_t lsb, msb;
 	hdr->transportSpecific = (*(Nibble *) (buf + 0)) >> 4;
 	hdr->messageType = (*(Enumeration4 *) (buf + 0)) & 0x0F;
 	hdr->versionPTP = (*(UInteger4 *) (buf + 1)) & 0x0F;
@@ -24,10 +24,10 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 
 	memcpy(hdr->flagField, (buf + 6), PP_FLAG_FIELD_LENGTH);
 
-	memcpy(&hdr->correctionfield.msb, (buf + 8), 4);
-	memcpy(&hdr->correctionfield.lsb, (buf + 12), 4);
-	hdr->correctionfield.msb = htonl(hdr->correctionfield.msb);
-	hdr->correctionfield.lsb = htonl(hdr->correctionfield.lsb);
+	memcpy(&msb, (buf + 8), 4);
+	memcpy(&lsb, (buf + 12), 4);
+	hdr->cField.secs = 0LL;
+	hdr->cField.scaled_nsecs = (uint64_t)msb << 32 | (uint64_t)lsb;
 	memcpy(&hdr->sourcePortIdentity.clockIdentity, (buf + 20),
 	       PP_CLOCK_IDENTITY_LENGTH);
 	hdr->sourcePortIdentity.portNumber =
@@ -100,7 +100,7 @@ static int __msg_pack_header(struct pp_instance *ppi, unsigned msgtype)
 }
 
 /* Pack Sync message into out buffer of ppi */
-static int msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
+static int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;;
@@ -112,21 +112,24 @@ static int msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* Sync message */
-	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
-	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
-	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+	*(UInteger16 *)(buf + 34) = htons(orig_tstamp->secs >> 32);
+	*(UInteger32 *)(buf + 36) = htonl(orig_tstamp->secs);
+	*(UInteger32 *)(buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
 	return len;
 }
 
 /* Unpack Sync message from in buffer */
 void msg_unpack_sync(void *buf, MsgSync *sync)
 {
-	sync->originTimestamp.secondsField.msb =
-		htons(*(UInteger16 *) (buf + 34));
-	sync->originTimestamp.secondsField.lsb =
-		htonl(*(UInteger32 *) (buf + 36));
-	sync->originTimestamp.nanosecondsField =
-		htonl(*(UInteger32 *) (buf + 40));
+	int64_t secs, nsecs;
+
+	secs = htons(*(UInteger16 *) (buf + 34));
+	secs <<= 32;
+	secs |= htonl(*(UInteger32 *) (buf + 36));
+	nsecs = htonl(*(UInteger32 *) (buf + 40));
+
+	sync->originTimestamp.secs = secs;
+	sync->originTimestamp.scaled_nsecs = nsecs << 16;
 }
 
 /*
@@ -196,7 +199,7 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->originTimestamp.secondsField.lsb =
 		htonl(*(UInteger32 *) (buf + 36));
 	ann->originTimestamp.nanosecondsField =
-		htonl(*(UInteger32 *) (buf + 40));
+		htonl(*(UInteger32 *) (buf + 40)) << 16;
 	ann->currentUtcOffset = htons(*(UInteger16 *) (buf + 44));
 	ann->grandmasterPriority1 = *(UInteger8 *) (buf + 47);
 	ann->grandmasterClockQuality.clockClass =
@@ -216,7 +219,8 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 }
 
 /* Pack Follow Up message into out buffer of ppi*/
-static int msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tstamp)
+static int msg_pack_follow_up(struct pp_instance *ppi,
+			       struct pp_time *prec_orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	int len = __msg_pack_header(ppi, PPM_FOLLOW_UP);
@@ -225,19 +229,16 @@ static int msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tsta
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* Follow Up message */
-	*(UInteger16 *) (buf + 34) =
-		htons(prec_orig_tstamp->secondsField.msb);
-	*(UInteger32 *) (buf + 36) =
-		htonl(prec_orig_tstamp->secondsField.lsb);
-	*(UInteger32 *) (buf + 40) =
-		htonl(prec_orig_tstamp->nanosecondsField);
+	*(UInteger16 *)(buf + 34) = htons(prec_orig_tstamp->secs >> 32);
+	*(UInteger32 *)(buf + 36) = htonl(prec_orig_tstamp->secs);
+	*(UInteger32 *)(buf + 40) = htonl(prec_orig_tstamp->scaled_nsecs >> 16);
 	return len;
 }
 
 /* Pack PDelay Follow Up message into out buffer of ppi*/
 static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
-					   MsgHeader * hdr,
-					   Timestamp * prec_orig_tstamp)
+					  MsgHeader * hdr,
+					  struct pp_time *prec_orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	int len = __msg_pack_header(ppi, PPM_PDELAY_R_FUP);
@@ -245,14 +246,14 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	/* Header */
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber; /* FIXME: why? */
 	/* copy the correction field, 11.4.3 c.3) */
-	*(Integer32 *) (buf + 8) = htonl(hdr->correctionfield.msb);
-	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
+	*(Integer32 *) (buf + 8) = htonl(hdr->cField.scaled_nsecs >> 32);
+	*(Integer32 *) (buf + 12) = htonl((int)hdr->cField.scaled_nsecs);
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* requestReceiptTimestamp */
-	*(UInteger16 *) (buf + 34) = htons(prec_orig_tstamp->secondsField.msb);
-	*(UInteger32 *) (buf + 36) = htonl(prec_orig_tstamp->secondsField.lsb);
-	*(UInteger32 *) (buf + 40) = htonl(prec_orig_tstamp->nanosecondsField);
+	*(UInteger16 *)(buf + 34) = htons(prec_orig_tstamp->secs >> 32);
+	*(UInteger32 *)(buf + 36) = htonl(prec_orig_tstamp->secs);
+	*(UInteger32 *)(buf + 40) = htonl(prec_orig_tstamp->scaled_nsecs >> 16);
 
 	/* requestingPortIdentity */
 	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
@@ -264,24 +265,32 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 /* Unpack FollowUp message from in buffer of ppi to internal structure */
 void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 {
-	flwup->preciseOriginTimestamp.secondsField.msb =
-		htons(*(UInteger16 *) (buf + 34));
-	flwup->preciseOriginTimestamp.secondsField.lsb =
-		htonl(*(UInteger32 *) (buf + 36));
-	flwup->preciseOriginTimestamp.nanosecondsField =
-		htonl(*(UInteger32 *) (buf + 40));
+	int64_t secs, nsecs;
+
+	secs = htons(*(UInteger16 *) (buf + 34));
+	secs <<= 32;
+	secs |= htonl(*(UInteger32 *) (buf + 36));
+	nsecs = htonl(*(UInteger32 *) (buf + 40));
+
+	flwup->preciseOriginTimestamp.secs = secs;
+	flwup->preciseOriginTimestamp.scaled_nsecs = nsecs << 16;
 }
 
 /* Unpack PDelayRespFollowUp message from in buffer of ppi to internal struct */
 void msg_unpack_pdelay_resp_follow_up(void *buf,
 				      MsgPDelayRespFollowUp * pdelay_resp_flwup)
 {
-	pdelay_resp_flwup->responseOriginTimestamp.secondsField.msb =
-	    htons(*(UInteger16 *) (buf + 34));
-	pdelay_resp_flwup->responseOriginTimestamp.secondsField.lsb =
-	    htonl(*(UInteger32 *) (buf + 36));
-	pdelay_resp_flwup->responseOriginTimestamp.nanosecondsField =
-	    htonl(*(UInteger32 *) (buf + 40));
+	int64_t secs, nsecs;
+
+	secs = htons(*(UInteger16 *) (buf + 34));
+	secs <<= 32;
+	secs |= htonl(*(UInteger32 *) (buf + 36));
+	nsecs = htonl(*(UInteger32 *) (buf + 40));
+
+	pdelay_resp_flwup->responseOriginTimestamp.secs = secs;
+	pdelay_resp_flwup->responseOriginTimestamp.scaled_nsecs =
+		nsecs << 16;
+
 	memcpy(&pdelay_resp_flwup->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
 	pdelay_resp_flwup->requestingPortIdentity.portNumber =
@@ -289,7 +298,8 @@ void msg_unpack_pdelay_resp_follow_up(void *buf,
 }
 
 /* pack DelayReq message into out buffer of ppi */
-static int msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
+static int msg_pack_delay_req(struct pp_instance *ppi,
+			       struct pp_time *orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	int len = __msg_pack_header(ppi, PPM_DELAY_REQ);
@@ -299,15 +309,15 @@ static int msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
 
 	/* Delay_req message */
-	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
-	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
-	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secs >> 32);
+	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secs);
+	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
 	return len;
 }
 
 /* pack DelayReq message into out buffer of ppi */
 static int msg_pack_pdelay_req(struct pp_instance *ppi,
-				Timestamp * orig_tstamp)
+				struct pp_time *orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	int len = __msg_pack_header(ppi, PPM_PDELAY_REQ);
@@ -317,16 +327,16 @@ static int msg_pack_pdelay_req(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_PDELAY_REQ]);
 
 	/* PDelay_req message */
-	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
-	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
-	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secs >> 32);
+	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secs);
+	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
 	memset(buf + 44, 0, 10); /* reserved to match pdelay_resp length */
 	return len;
 }
 
 /* pack PDelayResp message into OUT buffer of ppi */
 static int msg_pack_pdelay_resp(struct pp_instance *ppi,
-				MsgHeader * hdr, Timestamp * rcv_tstamp)
+			  MsgHeader * hdr, struct pp_time *rcv_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;;
@@ -337,9 +347,9 @@ static int msg_pack_pdelay_resp(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* requestReceiptTimestamp */
-	*(UInteger16 *) (buf + 34) = htons(rcv_tstamp->secondsField.msb);
-	*(UInteger32 *) (buf + 36) = htonl(rcv_tstamp->secondsField.lsb);
-	*(UInteger32 *) (buf + 40) = htonl(rcv_tstamp->nanosecondsField);
+	*(UInteger16 *) (buf + 34) = htons(rcv_tstamp->secs >> 32);
+	*(UInteger32 *) (buf + 36) = htonl(rcv_tstamp->secs);
+	*(UInteger32 *) (buf + 40) = htonl(rcv_tstamp->scaled_nsecs >> 16);
 
 	/* requestingPortIdentity */
 	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
@@ -350,22 +360,22 @@ static int msg_pack_pdelay_resp(struct pp_instance *ppi,
 
 /* pack DelayResp message into OUT buffer of ppi */
 static int msg_pack_delay_resp(struct pp_instance *ppi,
-			 MsgHeader *hdr, Timestamp *rcv_tstamp)
+			 MsgHeader *hdr, struct pp_time *rcv_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	int len = __msg_pack_header(ppi, PPM_DELAY_RESP);
 
 	/* Header */
 	/* Copy correctionField of delayReqMessage */
-	*(Integer32 *) (buf + 8) = htonl(hdr->correctionfield.msb);
-	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
+	*(Integer32 *) (buf + 8) = 0;
+	*(Integer32 *) (buf + 12) = htonl(rcv_tstamp->scaled_nsecs & 0xffff);
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* Delay_resp message */
-	*(UInteger16 *) (buf + 34) =
-		htons(rcv_tstamp->secondsField.msb);
-	*(UInteger32 *) (buf + 36) = htonl(rcv_tstamp->secondsField.lsb);
-	*(UInteger32 *) (buf + 40) = htonl(rcv_tstamp->nanosecondsField);
+	*(UInteger16 *)(buf + 34) = htons(rcv_tstamp->secs >> 32);
+	*(UInteger32 *)(buf + 36) = htonl(rcv_tstamp->secs);
+	*(UInteger32 *)(buf + 40) = htonl(rcv_tstamp->scaled_nsecs >> 16);
+
 	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
 		  PP_CLOCK_IDENTITY_LENGTH);
 	*(UInteger16 *) (buf + 52) =
@@ -376,34 +386,44 @@ static int msg_pack_delay_resp(struct pp_instance *ppi,
 /* Unpack delayReq message from in buffer of ppi to internal structure */
 void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req)
 {
-	delay_req->originTimestamp.secondsField.msb =
-		htons(*(UInteger16 *) (buf + 34));
-	delay_req->originTimestamp.secondsField.lsb =
-		htonl(*(UInteger32 *) (buf + 36));
-	delay_req->originTimestamp.nanosecondsField =
-		htonl(*(UInteger32 *) (buf + 40));
+	int64_t secs, nsecs;
+
+	secs = htons(*(UInteger16 *) (buf + 34));
+	secs <<= 32;
+	secs |= htonl(*(UInteger32 *) (buf + 36));
+	nsecs = htonl(*(UInteger32 *) (buf + 40));
+
+	delay_req->originTimestamp.secs = secs;
+	delay_req->originTimestamp.scaled_nsecs = nsecs;
 }
 
 /* Unpack PDelayReq message from in buffer of ppi to internal structure */
 void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req)
 {
-	pdelay_req->originTimestamp.secondsField.msb =
-	    htons(*(UInteger16 *) (buf + 34));
-	pdelay_req->originTimestamp.secondsField.lsb =
-	    htonl(*(UInteger32 *) (buf + 36));
-	pdelay_req->originTimestamp.nanosecondsField =
-	    htonl(*(UInteger32 *) (buf + 40));
+	int64_t secs, nsecs;
+
+	secs = htons(*(UInteger16 *) (buf + 34));
+	secs <<= 32;
+	secs |= htonl(*(UInteger32 *) (buf + 36));
+	nsecs = htonl(*(UInteger32 *) (buf + 40));
+
+	pdelay_req->originTimestamp.secs = secs;
+	pdelay_req->originTimestamp.scaled_nsecs = nsecs << 16;
 }
 
 /* Unpack delayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 {
-	resp->receiveTimestamp.secondsField.msb =
-		htons(*(UInteger16 *) (buf + 34));
-	resp->receiveTimestamp.secondsField.lsb =
-		htonl(*(UInteger32 *) (buf + 36));
-	resp->receiveTimestamp.nanosecondsField =
-		htonl(*(UInteger32 *) (buf + 40));
+	int64_t secs, nsecs;
+
+	secs = htons(*(UInteger16 *) (buf + 34));
+	secs <<= 32;
+	secs |= htonl(*(UInteger32 *) (buf + 36));
+	nsecs = htonl(*(UInteger32 *) (buf + 40));
+
+	resp->receiveTimestamp.secs = secs;
+	resp->receiveTimestamp.scaled_nsecs = nsecs << 16;
+
 	memcpy(&resp->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
 	resp->requestingPortIdentity.portNumber =
@@ -413,12 +433,16 @@ void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 /* Unpack PDelayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp)
 {
-	presp->requestReceiptTimestamp.secondsField.msb =
-	    htons(*(UInteger16 *) (buf + 34));
-	presp->requestReceiptTimestamp.secondsField.lsb =
-	    htonl(*(UInteger32 *) (buf + 36));
-	presp->requestReceiptTimestamp.nanosecondsField =
-	    htonl(*(UInteger32 *) (buf + 40));
+	int64_t secs, nsecs;
+
+	secs = htons(*(UInteger16 *) (buf + 34));
+	secs <<= 32;
+	secs |= htonl(*(UInteger32 *) (buf + 36));
+	nsecs = htonl(*(UInteger32 *) (buf + 40));
+
+	presp->requestReceiptTimestamp.secs = secs;
+	presp->requestReceiptTimestamp.scaled_nsecs = nsecs << 16;
+
 	memcpy(&presp->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
 	presp->requestingPortIdentity.portNumber =
@@ -436,49 +460,37 @@ int msg_issue_announce(struct pp_instance *ppi)
 /* Pack and send on event multicast ip adress a Sync message */
 int msg_issue_sync_followup(struct pp_instance *ppi)
 {
-	Timestamp tstamp;
-	TimeInternal now, *time_snt;
+	struct pp_time now;
 	int e, len;
 
 	/* Send sync on the event channel with the "current" timestamp */
 	ppi->t_ops->get(ppi, &now);
-	from_TimeInternal(&now, &tstamp);
-	len = msg_pack_sync(ppi, &tstamp);
+	len = msg_pack_sync(ppi, &now);
 	e = __send_and_log(ppi, len, PP_NP_EVT);
 	if (e) return e;
 
 	/* Send followup on general channel with sent-stamp of sync */
-	time_snt = &ppi->last_snt_time;
-	from_TimeInternal(time_snt, &tstamp);
-	len = msg_pack_follow_up(ppi, &tstamp);
+	len = msg_pack_follow_up(ppi, &ppi->last_snt_time);
 	return __send_and_log(ppi, len, PP_NP_GEN);
 }
 
 /* Pack and send on general multicast ip address a FollowUp message */
-int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, TimeInternal * time)
+int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, struct pp_time *t)
 {
-	Timestamp prec_orig_tstamp;
 	int len;
 
-	from_TimeInternal(time, &prec_orig_tstamp);
-
-	len = msg_pack_pdelay_resp_follow_up(ppi, &ppi->received_ptp_header,
-					     &prec_orig_tstamp);
-
+	len = msg_pack_pdelay_resp_follow_up(ppi, &ppi->received_ptp_header, t);
 	return __send_and_log(ppi, len, PP_NP_GEN);
 }
 
 /* Pack and send on event multicast ip adress a DelayReq message */
 static int msg_issue_delay_req(struct pp_instance *ppi)
 {
-	Timestamp orig_tstamp;
-	TimeInternal now;
+	struct pp_time now;
 	int len;
 
 	ppi->t_ops->get(ppi, &now);
-	from_TimeInternal(&now, &orig_tstamp);
-
-	len = msg_pack_delay_req(ppi, &orig_tstamp);
+	len = msg_pack_delay_req(ppi, &now);
 
 	return __send_and_log(ppi, len, PP_NP_EVT);
 }
@@ -486,15 +498,11 @@ static int msg_issue_delay_req(struct pp_instance *ppi)
 /* Pack and send on event multicast ip adress a PDelayReq message */
 static int msg_issue_pdelay_req(struct pp_instance *ppi)
 {
-	Timestamp orig_tstamp;
-	TimeInternal now;
+	struct pp_time now;
 	int len;
 
 	ppi->t_ops->get(ppi, &now);
-	from_TimeInternal(&now, &orig_tstamp);
-
-	len = msg_pack_pdelay_req(ppi, &orig_tstamp);
-
+	len = msg_pack_pdelay_req(ppi, &now);
 	return __send_and_log(ppi, len, PP_NP_EVT);
 }
 
@@ -506,27 +514,19 @@ int msg_issue_request(struct pp_instance *ppi)
 }
 
 /* Pack and send on event multicast ip adress a DelayResp message */
-int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time)
+int msg_issue_delay_resp(struct pp_instance *ppi, struct pp_time *t)
 {
-	Timestamp rcv_tstamp;
 	int len;
 
-	from_TimeInternal(time, &rcv_tstamp);
-
-	len = msg_pack_delay_resp(ppi, &ppi->received_ptp_header, &rcv_tstamp);
-
+	len = msg_pack_delay_resp(ppi, &ppi->received_ptp_header, t);
 	return __send_and_log(ppi, len, PP_NP_GEN);
 }
 
 /* Pack and send on event multicast ip adress a DelayResp message */
-int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal * time)
+int msg_issue_pdelay_resp(struct pp_instance *ppi, struct pp_time *t)
 {
-	Timestamp rcv_tstamp;
 	int len;
 
-	from_TimeInternal(time, &rcv_tstamp);
-
-	len = msg_pack_pdelay_resp(ppi, &ppi->received_ptp_header, &rcv_tstamp);
-
+	len = msg_pack_pdelay_resp(ppi, &ppi->received_ptp_header, t);
 	return __send_and_log(ppi, len, PP_NP_EVT);
 }

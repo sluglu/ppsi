@@ -73,7 +73,7 @@ static int pending_received(struct sim_ppg_arch_data *data)
 }
 
 static int sim_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
-			  TimeInternal *t)
+			  struct pp_time *t)
 {
 	ssize_t ret;
 	struct msghdr msg;
@@ -119,7 +119,7 @@ static int sim_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	ppi->t_ops->get(ppi, t);
 	/* This is not really hw... */
 	pp_diag(ppi, time, 2, "recv stamp: %i.%09i (%s)\n",
-		(int)t->seconds, (int)t->nanoseconds, "user");
+		(int)t->secs, (int)(t->scaled_nsecs >> 16), "user");
 	/* If we got a DelayResponse print out the offset from master */
 	if (((*(Enumeration4 *) (pkt + 0)) & 0x0F) == PPM_DELAY_RESP) {
 		master_ns = SIM_PPI_ARCH(INST(ppg, SIM_MASTER))->time.current_ns;
@@ -132,7 +132,7 @@ static int sim_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 }
 
 static int sim_net_recv(struct pp_instance *ppi, void *pkt, int len,
-		   TimeInternal *t)
+		   struct pp_time *t)
 {
 	struct sim_ppg_arch_data *data = SIM_PPG_ARCH(ppi->glbs);
 	struct pp_channel *ch;
@@ -165,7 +165,7 @@ static int sim_net_send(struct pp_instance *ppi, void *pkt, int len,
 			int msgtype)
 {
 	int chtype = pp_msgtype_info[msgtype].chtype;
-	TimeInternal *t = &ppi->last_snt_time;
+	struct pp_time *t = &ppi->last_snt_time;
 	struct sim_ppi_arch_data *data = SIM_PPI_ARCH(ppi);
 	struct sockaddr_in addr;
 	struct sim_pending_pkt pending;

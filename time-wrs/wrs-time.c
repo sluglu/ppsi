@@ -153,10 +153,10 @@ int wrs_locking_poll(struct pp_instance *ppi, int grandmaster)
 	return WR_SPLL_READY;
 }
 
-/* This is a hack: we don't even have taih (struct pp_time come and save me) */
-static int wrdate_get(TimeInternal *t)
+/* This is a hack, but at least the year is 640bit clean */
+static int wrdate_get(struct pp_time *t)
 {
-	unsigned long tail, nsec, tmp;
+	unsigned long tail, taih, nsec, tmp1, tmp2;
 	static volatile uint32_t *pps;
 	int fd;
 
@@ -173,18 +173,22 @@ static int wrdate_get(TimeInternal *t)
 		pps = mapaddr + 0x500; /* pps: 0x10010500 */
 	}
 	memset(t, 0, sizeof(*t));
+
 	do {
+		taih = pps[3];
 		tail = pps[2];
-		nsec = pps[1] * 16; /* we count a 62.5MHz */
-		tmp = pps[2];
-	} while(tmp != tail);
-	t->seconds = tail;
-	t->nanoseconds = nsec;
+		nsec = pps[1] * 16; /* we count at 62.5MHz */
+		tmp1 = pps[3];
+		tmp2 = pps[2];
+	} while((tmp1 != taih) || (tmp2 != tail));
+
+	t->secs = tail | ((uint64_t)taih << 32);
+	t->scaled_nsecs = nsec << 16;
 	return 0;
 }
 
 /* This is only used when the wrs is slave to a non-WR master */
-static int wrs_time_get(struct pp_instance *ppi, TimeInternal *t)
+static int wrs_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	hexp_pps_params_t p;
 	int cmd;
@@ -204,9 +208,8 @@ static int wrs_time_get(struct pp_instance *ppi, TimeInternal *t)
 
 	/* FIXME Don't know whether p.current_phase_shift is to be assigned
 	 * to t->phase or t->raw_phase. I ignore it, it's not useful here. */
-	t->seconds = p.current_sec;
-	t->nanoseconds = p.current_nsec;
-	t->correct = p.pps_valid;
+	t->secs = p.current_sec;
+	t->scaled_nsecs = (long long)p.current_nsec << 16;
 
 	if (!(pp_global_d_flags & PP_FLAG_NOTIMELOG))
 		pp_diag(ppi, time, 2, "%s: (valid %x) %9li.%09li\n", __func__,
@@ -215,9 +218,9 @@ static int wrs_time_get(struct pp_instance *ppi, TimeInternal *t)
 	return rval;
 }
 
-static int wrs_time_set(struct pp_instance *ppi, TimeInternal *t)
+static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
-	TimeInternal diff, now;
+	struct pp_time diff, now;
 	struct timex tx;
 	int tai_offset = 0;
 	int msec;
@@ -238,11 +241,12 @@ static int wrs_time_set(struct pp_instance *ppi, TimeInternal *t)
 	 * normal servo drives us).  So get time to calc a rough difference.
 	 */
 	wrdate_get(&now);
-	sub_TimeInternal(&diff, t, &now);
+	diff = *t;
+	pp_time_sub(&diff, &now);
 	pp_diag(ppi, time, 1, "%s: (weird) %9li.%09li - delta %9li.%09li\n",
 		__func__,
-		(long)t->seconds, (long)t->nanoseconds,
-		(long)diff.seconds, (long)diff.nanoseconds);
+		(long)t->secs, (long)(t->scaled_nsecs >> 16),
+		(long)diff.secs, (long)(diff.scaled_nsecs >> 16));
 
 	/*
 	 * We can adjust nanoseconds or seconds, but not both at the
@@ -251,28 +255,28 @@ static int wrs_time_set(struct pp_instance *ppi, TimeInternal *t)
 	 * servo will call us again later for the seconds part.
 	 * Thus, we fall near, and can then trim frequency (hopefully).
 	 */
-	msec = diff.nanoseconds / 1000 / 1000;;
+	msec = (diff.scaled_nsecs >> 16) / 1000 / 1000;;
 	#define THRESHOLD_MS 20
 	if ((msec > THRESHOLD_MS && msec < (1000 - THRESHOLD_MS))
 	    || (msec < -THRESHOLD_MS && msec > (-1000 + THRESHOLD_MS))) {
 		pp_diag(ppi, time, 1, "%s: adjusting nanoseconds: %li\n",
-			__func__, (long)diff.nanoseconds);
-		diff.seconds = 0;
+			__func__, (long)(diff.scaled_nsecs >> 16));
+		diff.secs = 0;
 	} else {
-		diff.nanoseconds = 0;
+		diff.scaled_nsecs = 0;
 		if (msec > 500)
-			diff.seconds++;
+			diff.secs++;
 		if (msec < -500)
-			diff.seconds--;
+			diff.secs--;
 
 		pp_diag(ppi, time, 1, "%s: adjusting seconds: %li\n",
-			__func__, (long)diff.seconds);
+			__func__, (long)diff.secs);
 	}
-	wrs_adjust_counters(diff.seconds, diff.nanoseconds);
+	wrs_adjust_counters(diff.secs, diff.scaled_nsecs >> 16);
 
 
 	/* If WR time is unrelated to real-world time, we are done. */
-	if (t->seconds < 1420730822 /* "now" as I write this */)
+	if (t->secs < 1420730822 /* "now" as I write this */)
 		return 0;
 
 	/*
@@ -288,8 +292,13 @@ static int wrs_time_set(struct pp_instance *ppi, TimeInternal *t)
 		 */
 		tai_offset = *((int *)(&tx.stbcnt) + 1);
 	}
-	t->seconds -= tai_offset;
-	unix_time_ops.set(ppi, t);
+
+	{
+		struct pp_time utc = *t; /* t is "const". uff.... */
+		utc.secs -= tai_offset;
+		unix_time_ops.set(ppi, &utc);
+	}
+
 	return 0;
 }
 

@@ -109,7 +109,8 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 
 	/* t2 may be overriden by follow-up, cField is always valid */
 	ppi->t2 = ppi->last_rcv_time;
-	cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
+	/* FIXME: merge cField here? */
+	ppi->cField = hdr->cField;
 
 	if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0) {
 		ppi->flags |= PPI_FLAG_WAITING_FOR_F_UP;
@@ -118,8 +119,7 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	}
 	msg_unpack_sync(buf, &sync);
 	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
-	to_TimeInternal(&ppi->t1,
-			&sync.originTimestamp);
+	ppi->t1 = sync.originTimestamp;
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		pp_servo_got_psync(ppi);
 	else
@@ -145,9 +145,9 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	     resp.requestingPortIdentity.portNumber) &&
 	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 
-		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
+		ppi->t4 = resp.requestReceiptTimestamp;
+		pp_time_add(&ppi->t4, &hdr->cField);
 		ppi->t6 = ppi->last_rcv_time;
-		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
 		if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0)
 			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
 		else {
@@ -158,9 +158,6 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 			 */
 			memset(&ppi->t5, 0, sizeof(ppi->t5));
 		}
-
-		/* Save correctionField of pdelay_resp, see 11.4.3 d 3/4 */
-		cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
 
 		if (!(hdr->flagField[0] & PP_TWO_STEP_FLAG)) {
 			if (pp_hooks.handle_presp)
@@ -182,7 +179,6 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
 	int e = 0;
-	TimeInternal tmp;
 
 	if (plen < PP_PDELAY_R_FUP_LENGTH)
 		/* Ignore */
@@ -199,14 +195,12 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	     respFllw.requestingPortIdentity.portNumber) &&
 	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 
-		to_TimeInternal(&ppi->t5,
-				&respFllw.responseOriginTimestamp);
+		ppi->t5 = respFllw.responseOriginTimestamp;
 		/*
 		 * Add correctionField of pdelay_resp_followup to
 		 * cf of pdelay_resp (see 11.4.3 d 4)
 		 */
-		cField_to_TimeInternal(&tmp, hdr->correctionfield);
-		add_TimeInternal(&ppi->cField, &ppi->cField, &tmp);
+		pp_time_add(&ppi->t4, &hdr->cField);
 
 		if (pp_hooks.handle_presp)
 			e = pp_hooks.handle_presp(ppi);
@@ -242,7 +236,6 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 {
 	MsgFollowUp follow;
 	int ret = 0;
-	TimeInternal cField;
 
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
@@ -266,11 +259,10 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 
 	msg_unpack_follow_up(buf, &follow);
 	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
-	to_TimeInternal(&ppi->t1, &follow.preciseOriginTimestamp);
+	ppi->t1 = follow.preciseOriginTimestamp;
 
 	/* Add correctionField in follow-up to sync correctionField, see 11.2 */
-	cField_to_TimeInternal(&cField, hdr->correctionfield);
-	add_TimeInternal(&ppi->cField, &ppi->cField, &cField);
+	pp_time_add(&ppi->cField, &hdr->cField); /* FIXME: check this cField */
 
 	/* Call the extension; it may do it all and ask to return */
 	if (pp_hooks.handle_followup)
@@ -311,10 +303,10 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 	}
 	/* FIXME: diagnosticst should be looped back in the send method */
 	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d (%s)\n", msglen,
-		(int)(ppi->last_snt_time.seconds),
-		(int)(ppi->last_snt_time.nanoseconds),
+		(int)(ppi->last_snt_time.secs),
+		(int)(ppi->last_snt_time.scaled_nsecs >> 16),
 		pp_msgtype_info[msgtype].name);
-	if (chtype == PP_NP_EVT && ppi->last_snt_time.correct == 0)
+	if (chtype == PP_NP_EVT && is_incorrect(&ppi->last_snt_time))
 		return PP_SEND_NO_STAMP;
 
 	/* count sent packets */

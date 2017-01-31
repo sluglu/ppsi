@@ -26,7 +26,7 @@
 
 /* unix_recv_msg uses recvmsg for timestamp query */
 static int unix_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
-			 TimeInternal *t)
+			 struct pp_time *t)
 {
 	struct ethhdr *hdr = pkt;
 	ssize_t ret;
@@ -88,9 +88,8 @@ static int unix_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	}
 
 	if (tv) {
-		t->seconds = tv->tv_sec + DSPRO(ppi)->currentUtcOffset;
-		t->nanoseconds = tv->tv_usec * 1000;
-		t->correct = 1;
+		t->secs = tv->tv_sec + DSPRO(ppi)->currentUtcOffset;
+		t->scaled_nsecs = (uint64_t)(tv->tv_usec * 1000) << 16;
 	} else {
 		/*
 		 * get the recording time here, even though it may  put a big
@@ -122,13 +121,14 @@ static int unix_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 
 	/* This is not really hw... */
 	pp_diag(ppi, time, 2, "recv stamp: %i.%09i (%s)\n",
-		(int)t->seconds, (int)t->nanoseconds, tv ? "kernel" : "user");
+		(int)t->secs, (int)(t->scaled_nsecs >> 16),
+				    tv ? "kernel" : "user");
 	return ret;
 }
 
 /* Receive and send is *not* so trivial */
 static int unix_net_recv(struct pp_instance *ppi, void *pkt, int len,
-		   TimeInternal *t)
+			 struct pp_time *t)
 {
 	struct pp_channel *ch1, *ch2;
 	struct ethhdr *hdr = pkt;
@@ -184,7 +184,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 	struct ethhdr *hdr = pkt;
 	struct pp_vlanhdr *vhdr = pkt;
 	struct pp_channel *ch = ppi->ch + chtype;
-	TimeInternal *t = &ppi->last_snt_time;
+	struct pp_time *t = &ppi->last_snt_time;
 	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
 	static const uint16_t udpport[] = {
 		[PP_NP_GEN] = PP_GEN_PORT,
@@ -652,5 +652,4 @@ struct pp_network_operations unix_net_ops = {
 	.send = unix_net_send,
 	.check_packet = unix_net_check_packet,
 };
-
 

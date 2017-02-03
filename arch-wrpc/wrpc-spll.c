@@ -38,7 +38,8 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
 	}
 	else if(locked && !t24p_calibrated) {
 		/*run t24p calibration if needed*/
-		calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition);
+		if (calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition) < 0)
+			return WR_SPLL_ERROR;
 		t24p_calibrated = 1;
 	}
 

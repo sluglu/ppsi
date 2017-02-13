@@ -5,6 +5,8 @@
 # We are now Kconfig-based
 -include $(CURDIR)/.config
 
+.PHONY: $(CURDIR)/.config
+
 # We still accept command-line choices like we used to do.
 # Also, we must remove the quotes from these Kconfig values
 PROTO_EXT ?= $(patsubst "%",%,$(CONFIG_EXTENSION))

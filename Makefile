@@ -102,6 +102,7 @@ $(OBJ-y): .config $(wildcard include/ppsi/*.h)
 # Finally, "make clean" is expected to work
 clean:
 	rm -f $$(find . -name '*.[oa]' ! -path './scripts/kconfig/*') *.bin $(TARGET) *~ $(TARGET).map*
+	rm -rf include/config include/generated
 
 # following targets from Makefile.kconfig
 silentoldconfig:

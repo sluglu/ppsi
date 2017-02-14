@@ -12,7 +12,7 @@
 #include <ppsi/lib.h>
 #include "wr-constants.h"
 
-#define WRS_PPSI_SHMEM_VERSION 18 /* New pp_time everywhere */
+#define WRS_PPSI_SHMEM_VERSION 19 /* Reorder fields in struct wr_servo_state */
 
 /*
  * This structure is used as extension-specific data in the DSPort
@@ -154,11 +154,6 @@ struct wr_servo_state {
 	int32_t fiber_fix_alpha;
 	int32_t clock_period_ps;
 
-	/* These fields are used by servo code, across iterations */
-	struct pp_time t1, t2, t3, t4, t5, t6;
-	int64_t delta_ms_prev;
-	int missed_iters;
-
 	/* Following fields are for monitoring/diagnostics (use w/ shmem) */
 	struct pp_time mu;
 	int64_t picos_mu;
@@ -176,6 +171,11 @@ struct wr_servo_state {
 	uint32_t n_err_offset;
 	uint32_t n_err_delta_rtt;
 	struct pp_time update_time;
+
+	/* These fields are used by servo code, across iterations */
+	struct pp_time t1, t2, t3, t4, t5, t6;
+	int64_t delta_ms_prev;
+	int missed_iters;
 };
 
 int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s);

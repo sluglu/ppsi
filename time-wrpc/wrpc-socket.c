@@ -7,7 +7,10 @@
 #include <ppsi/ppsi.h>
 #include "ptpdump.h"
 
+#include <syscon.h> /* wrpc-sw */
 #include <ptpd_netif.h> /* wrpc-sw */
+
+int frame_rx_delay_us; /* set by faults.c */
 
 /*
  * we know we create one socket only in wrpc. The buffer size used to be
@@ -79,6 +82,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		pp_diag(ppi, frames, 1, "Drop received frame\n");
 		return -2;
 	}
+	usleep(frame_rx_delay_us);
 	return got;
 }
 

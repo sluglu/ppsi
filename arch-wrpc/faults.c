@@ -11,6 +11,7 @@
 #include "syscon.h"
 
 extern struct pp_instance ppi_static;
+extern int frame_rx_delay_us;
 
 static int cmd_fault(const char *args[])
 {
@@ -26,7 +27,14 @@ static int cmd_fault(const char *args[])
 			  ppg->rxdrop, ppg->txdrop);
 		return 0;
 	}
+	if (args[0] && !strcmp(args[0], "delay")) {
+		if (args[1])
+			fromdec(args[1], &frame_rx_delay_us);
+		pp_printf("delaying %i us on rx frame\n", frame_rx_delay_us);
+		return 0;
+	}
 	pp_printf("Use: \"fault drop [<rxdrop> <txdrop>]\" (0..999)\n");
+	pp_printf("     \"fault delay [<usecs>]\"\n");
 	return -EINVAL;
 }
 

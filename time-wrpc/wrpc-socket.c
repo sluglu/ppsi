@@ -57,6 +57,8 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	struct wr_sockaddr addr;
 	sock = ppi->ch[PP_NP_EVT].custom;
 	got = ptpd_netif_recvfrom(sock, &addr, pkt, len, &wr_ts);
+	if (got <= 0)
+		return got;
 
 	if (t) {
 		t->secs = wr_ts.sec;
@@ -69,17 +71,21 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 /* wrpc-sw may pass this in USER_CFLAGS, to remove footprint */
 #ifndef CONFIG_NO_PTPDUMP
 	/* The header is separate, so dump payload only */
-	if (got > 0 && pp_diag_allow(ppi, frames, 2))
+	if (pp_diag_allow(ppi, frames, 2))
 		dump_payloadpkt("recv: ", pkt, got, t);
 #endif
 
+	if (ppsi_drop_rx()) {
+		pp_diag(ppi, frames, 1, "Drop received frame\n");
+		return -2;
+	}
 	return got;
 }
 
 static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 			 int msgtype)
 {
-	int snt;
+	int snt, drop;
 	struct wrpc_socket *sock;
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
@@ -90,10 +96,21 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
 	};
 
+	/*
+	 * To fake a packet loss, we must corrupt the frame; we need
+	 * to transmit it for real, if we want to get back our
+	 * hardware stamp. Thus, remember if we drop, and use this info.
+	 */
+	drop = ppsi_drop_tx();
+
 	sock = ppi->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = htons(ETH_P_1588);
 	memcpy(&addr.mac, macaddr[is_pdelay], sizeof(mac_addr_t));
+	if (drop) {
+		addr.ethertype = 1;
+		addr.mac[0] = 0x22; /* pfilter uses mac; drop for nodes too */
+	}
 
 	snt = ptpd_netif_sendto(sock, &addr, pkt, len, &wr_ts);
 
@@ -107,6 +124,11 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 			__func__, snt, (long)t->secs,
 			(long)(t->scaled_nsecs >> 16));
 	}
+	if (drop) {
+		pp_diag(ppi, frames, 1, "Drop sent frame\n");
+		return -2;
+	}
+
 /* wrpc-sw may pass this in USER_CFLAGS, to remove footprint */
 #ifndef CONFIG_NO_PTPDUMP
 	/* The header is separate, so dump payload only */

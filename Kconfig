@@ -197,3 +197,11 @@ config OPTIMIZATION
 	int
 	default 0 if DISABLE_OPTIMIZATION
 	default 2
+
+config WRPC_FAULTS
+	bool "Add the fault injection mechanism and shell command for wrpc"
+	depends on ARCH_WRPC
+	help
+	  This adds a "fault" shell command, with subcommands.
+	  The same mechanisms are available in the wr switch, through
+	  the configuration file.

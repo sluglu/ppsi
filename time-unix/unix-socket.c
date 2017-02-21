@@ -264,6 +264,8 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 				strerror(errno));
 			return ret;
 		}
+		if (pp_diag_allow(ppi, frames, 2))
+			dump_payloadpkt("send: ", pkt, len, t);
 		return ret;
 
 	default:

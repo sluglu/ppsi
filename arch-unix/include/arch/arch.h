@@ -5,5 +5,6 @@
 
 #include <arpa/inet.h> /* ntohs etc */
 #include <stdlib.h>    /* abs */
+#include <ppsi/assert.h>
 
 #endif /* __ARCH_H__ */

@@ -21,6 +21,7 @@ OBJ-y += $A/crt0.o \
 	lib/libc-functions.o \
 	lib/dump-funcs.o \
 	lib/cmdline.o \
+	lib/assert.o \
 	lib/div64.o
 
 # We only support "bare" time operations

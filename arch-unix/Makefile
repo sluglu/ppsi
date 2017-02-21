@@ -13,6 +13,7 @@ OBJ-y += $A/unix-startup.o \
 	lib/libc-functions.o \
 	lib/dump-funcs.o \
 	lib/drop.o \
+	lib/assert.o \
 	lib/div64.o
 
 # The user can set TIME=, but we pick unix time by default

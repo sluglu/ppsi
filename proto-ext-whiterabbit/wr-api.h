@@ -9,10 +9,14 @@
 #ifndef __WREXT_WR_API_H__
 #define __WREXT_WR_API_H__
 
+/* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
+ * structure */
+#define WRS_PPSI_SHMEM_VERSION 19 /* Reorder fields in struct wr_servo_state */
+
+/* Don't include the Following when this file is included in assembler. */
+#ifndef __ASSEMBLY__
 #include <ppsi/lib.h>
 #include "wr-constants.h"
-
-#define WRS_PPSI_SHMEM_VERSION 19 /* Reorder fields in struct wr_servo_state */
 
 /*
  * This structure is used as extension-specific data in the DSPort
@@ -190,4 +194,5 @@ struct wr_data {
 	struct wr_servo_state servo_state;
 };
 
+#endif /* __ASSEMBLY__ */
 #endif /* __WREXT_WR_API_H__ */

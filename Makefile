@@ -101,6 +101,10 @@ $(OBJ-y): .config $(wildcard include/ppsi/*.h)
 clean:
 	rm -f $$(find . -name '*.[oa]' ! -path './scripts/kconfig/*') *.bin $(TARGET) *~ $(TARGET).map*
 
+distclean: clean
+	rm -rf include/config include/generated
+	rm -f .config
+
 # following targets from Makefile.kconfig
 silentoldconfig:
 	@mkdir -p include/config

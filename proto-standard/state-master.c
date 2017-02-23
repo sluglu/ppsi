@@ -101,8 +101,7 @@ out:
 			ppi->next_state = PPS_LISTENING;
 		break;
 	case PP_SEND_ERROR:
-		goto out_fault;
-
+		/* fall through: a lost frame is not the end of the world */
 	case PP_SEND_NO_STAMP:
 		/* nothing, just keep the ball rolling */
 		e = 0;
@@ -112,11 +111,6 @@ out:
 	/* we also use TO_QUALIFICATION, but avoid counting it here */
 	ppi->next_delay = pp_next_delay_3(ppi,
 		PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
-	return e;
-
-out_fault:
-	ppi->next_state = PPS_FAULTY;
-	ppi->next_delay = 500; /* just a delay to releif the system */
 	return e;
 }
 

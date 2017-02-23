@@ -51,8 +51,9 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (e == 0)
 		e = st_com_execute_slave(ppi);
 
-	if (e != 0)
-		ppi->next_state = PPS_FAULTY;
+	if (e != 0) {
+		/* ignore: a lost frame is not the end of the world */
+	}
 
 	ppi->next_delay = PP_DEFAULT_NEXT_DELAY_MS;
 

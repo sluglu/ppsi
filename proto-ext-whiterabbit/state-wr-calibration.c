@@ -136,5 +136,5 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	ppi->next_delay = wrp->wrStateTimeout;
 
-	return e;
+	return 0; /* ignore error */
 }

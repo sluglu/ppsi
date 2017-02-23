@@ -49,8 +49,9 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (e == 0)
 		st_com_execute_slave(ppi);
-	else
-		ppi->next_state = PPS_FAULTY;
+	else {
+		/* nothing, just stay here again */
+	}
 
 	ppi->next_delay = WR_DSPOR(ppi)->wrStateTimeout;
 

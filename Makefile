@@ -105,6 +105,11 @@ distclean: clean
 	rm -rf include/config include/generated
 	rm -f .config
 
+# Explicit rule for $(CURDIR)/.config
+# needed since -include XXX triggers build for XXX
+$(CURDIR)/.config:
+	@# Keep this dummy comment
+
 # following targets from Makefile.kconfig
 silentoldconfig:
 	@mkdir -p include/config

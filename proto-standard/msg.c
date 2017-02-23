@@ -199,7 +199,7 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->originTimestamp.secondsField.lsb =
 		htonl(*(UInteger32 *) (buf + 36));
 	ann->originTimestamp.nanosecondsField =
-		htonl(*(UInteger32 *) (buf + 40)) << 16;
+		htonl(*(UInteger32 *) (buf + 40));
 	ann->currentUtcOffset = htons(*(UInteger16 *) (buf + 44));
 	ann->grandmasterPriority1 = *(UInteger8 *) (buf + 47);
 	ann->grandmasterClockQuality.clockClass =
@@ -394,7 +394,7 @@ void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req)
 	nsecs = htonl(*(UInteger32 *) (buf + 40));
 
 	delay_req->originTimestamp.secs = secs;
-	delay_req->originTimestamp.scaled_nsecs = nsecs;
+	delay_req->originTimestamp.scaled_nsecs = nsecs << 16;;
 }
 
 /* Unpack PDelayReq message from in buffer of ppi to internal structure */

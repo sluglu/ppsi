@@ -110,7 +110,7 @@ silentoldconfig:
 scripts_basic config:
 	$(MAKE) -f Makefile.kconfig $@
 
-%config:
+%_config %_defconfig:
 	$(MAKE) -f Makefile.kconfig $@
 
 defconfig:

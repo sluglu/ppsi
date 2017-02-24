@@ -33,7 +33,6 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 	hdr->sourcePortIdentity.portNumber =
 		htons(*(UInteger16 *) (buf + 28));
 	hdr->sequenceId = htons(*(UInteger16 *) (buf + 30));
-	hdr->controlField = (*(UInteger8 *) (buf + 32));
 	hdr->logMessageInterval = (*(Integer8 *) (buf + 33));
 
 

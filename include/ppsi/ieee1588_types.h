@@ -116,7 +116,7 @@ typedef struct MsgHeader {
 	struct pp_time	cField;;
 	PortIdentity	sourcePortIdentity;
 	UInteger16	sequenceId;
-	UInteger8	controlField;
+	/* UInteger8	controlField; -- receiver must ignore it */
 	Integer8	logMessageInterval;
 } MsgHeader;
 

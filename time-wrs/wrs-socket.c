@@ -103,8 +103,8 @@ static inline int inside_range(int min, int max, int x)
 static char *fmt_time(struct pp_time *t)
 {
 	static char buf[64];
-	sprintf(buf, "(correct %i) %9li.%09li",
-		!is_incorrect(t), (long)t->secs,
+	sprintf(buf, "(correct %i) %9lli.%09li",
+		!is_incorrect(t), (long long)t->secs,
 		(long)(t->scaled_nsecs >> 16));
 	return buf;
 }

@@ -24,8 +24,8 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 
 	memcpy(hdr->flagField, (buf + 6), PP_FLAG_FIELD_LENGTH);
 
-	memcpy(&msb, (buf + 8), 4);
-	memcpy(&lsb, (buf + 12), 4);
+	msb = htonl(*(uint32_t *)(buf + 8));
+	lsb = htonl(*(uint32_t *)(buf + 12));
 	hdr->cField.secs = 0LL;
 	hdr->cField.scaled_nsecs = (uint64_t)msb << 32 | (uint64_t)lsb;
 	memcpy(&hdr->sourcePortIdentity.clockIdentity, (buf + 20),

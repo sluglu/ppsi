@@ -411,16 +411,15 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 
 	case ARG_INT:
 		if (sscanf(line, "%i", &(cfg_arg.i)) != 1) {
-			pp_diag(NULL, config, 1, "line %i: \"%s\": not int\n",
-				lineno, word);
+			pp_error("line %i: \"%s\": not int\n", lineno, word);
 			return -1;
 		}
 		break;
 
 	case ARG_INT2:
 		if (sscanf(line, "%i,%i", cfg_arg.i2, &cfg_arg.i2[1]) < 0) {
-			pp_diag(NULL, config, 1, "line %i: wrong arg \"%s\""
-				" for \"%s\"\n", lineno, line, word);
+			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
+				 lineno, line, word);
 			return -1;
 		}
 		break;
@@ -437,8 +436,8 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 			if (!strcmp(line, n->name))
 				break;
 		if (!n->name) {
-			pp_diag(NULL, config, 1, "line %i: wrong arg \"%s\""
-				" for \"%s\"\n", lineno, line, word);
+			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
+				 lineno, line, word);
 			return -1;
 		}
 		cfg_arg.i = n->value;
@@ -446,8 +445,8 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 
 	case ARG_TIME:
 		if(parse_time(&cfg_arg.ts, line)) {
-			pp_diag(NULL, config, 1, "line %i: wrong arg \"%s\" for "
-				"\"%s\"\n", lineno, line, word);
+			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
+				 lineno, line, word);
 			return -1;
 		}
 		break;

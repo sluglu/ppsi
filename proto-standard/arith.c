@@ -9,7 +9,7 @@
 #include <limits.h>
 #include <ppsi/ppsi.h>
 
-static void normalize_pp_time(struct pp_time *t)
+void normalize_pp_time(struct pp_time *t)
 {
 	/* no 64b division please, we'll rather loop a few times */
 	#define SNS_PER_S ((1000LL * 1000 * 1000) << 16)

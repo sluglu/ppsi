@@ -113,7 +113,7 @@ typedef struct MsgHeader {
 	UInteger16	messageLength;
 	UInteger8	domainNumber;
 	Octet		flagField[2];
-	struct pp_time	cField;;
+	struct pp_time	cField;
 	PortIdentity	sourcePortIdentity;
 	UInteger16	sequenceId;
 	/* UInteger8	controlField; -- receiver must ignore it */

@@ -161,8 +161,7 @@ struct pp_ext_hooks {
 	void (*s1)(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
 	int (*execute_slave)(struct pp_instance *ppi);
 	int (*handle_announce)(struct pp_instance *ppi);
-	int (*handle_followup)(struct pp_instance *ppi, struct pp_time *orig,
-			       struct pp_time *correction_field);
+	int (*handle_followup)(struct pp_instance *ppi, struct pp_time *orig);
 	int (*handle_preq) (struct pp_instance * ppi);
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
@@ -394,6 +393,7 @@ extern int msg_issue_pdelay_resp_followup(struct pp_instance *ppi,
 extern int msg_issue_pdelay_resp(struct pp_instance *ppi, struct pp_time *time);
 
 /* Functions for time math */
+extern void normalize_pp_time(struct pp_time *t);
 extern void pp_time_add(struct pp_time *t1, struct pp_time *t2);
 extern void pp_time_sub(struct pp_time *t1, struct pp_time *t2);
 extern void pp_time_div2(struct pp_time *t);

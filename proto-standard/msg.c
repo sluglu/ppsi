@@ -279,7 +279,7 @@ void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 void msg_unpack_pdelay_resp_follow_up(void *buf,
 				      MsgPDelayRespFollowUp * pdelay_resp_flwup)
 {
-	int64_t secs, nsecs;
+	int64_t secs, nsecs, cf;
 
 	secs = htons(*(UInteger16 *) (buf + 34));
 	secs <<= 32;
@@ -289,6 +289,14 @@ void msg_unpack_pdelay_resp_follow_up(void *buf,
 	pdelay_resp_flwup->responseOriginTimestamp.secs = secs;
 	pdelay_resp_flwup->responseOriginTimestamp.scaled_nsecs =
 		nsecs << 16;
+
+	/* add correction factor, already_scaled */
+	cf = ntohl(*(UInteger32 *) (buf + 8));
+	cf <<= 32;
+	cf |= ntohl(*(UInteger32 *) (buf + 12));
+	pdelay_resp_flwup->responseOriginTimestamp += cf;
+	/* FIXME: normalize? */
+
 
 	memcpy(&pdelay_resp_flwup->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
@@ -413,7 +421,7 @@ void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req)
 /* Unpack delayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 {
-	int64_t secs, nsecs;
+	int64_t secs, nsecs, cf;
 
 	secs = htons(*(UInteger16 *) (buf + 34));
 	secs <<= 32;
@@ -422,6 +430,13 @@ void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 
 	resp->receiveTimestamp.secs = secs;
 	resp->receiveTimestamp.scaled_nsecs = nsecs << 16;
+
+	/* add correction factor, already_scaled */
+	cf = ntohl(*(UInteger32 *) (buf + 8));
+	cf <<= 32;
+	cf |= ntohl(*(UInteger32 *) (buf + 12));
+	resp->receiveTimestamp.scaled_nsecs += cf;
+	/* FIXME: normalize? */
 
 	memcpy(&resp->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
@@ -432,15 +447,22 @@ void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 /* Unpack PDelayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp)
 {
-	int64_t secs, nsecs;
+	int64_t secs, nsecs, cf;
 
-	secs = htons(*(UInteger16 *) (buf + 34));
+	secs = ntohs(*(UInteger16 *) (buf + 34));
 	secs <<= 32;
-	secs |= htonl(*(UInteger32 *) (buf + 36));
-	nsecs = htonl(*(UInteger32 *) (buf + 40));
+	secs |= ntohl(*(UInteger32 *) (buf + 36));
+	nsecs = ntohl(*(UInteger32 *) (buf + 40));
 
 	presp->requestReceiptTimestamp.secs = secs;
 	presp->requestReceiptTimestamp.scaled_nsecs = nsecs << 16;
+
+	/* add correction factor, already_scaled */
+	cf = ntohl(*(UInteger32 *) (buf + 8));
+	cf <<= 32;
+	cf |= ntohl(*(UInteger32 *) (buf + 12));
+	presp->requestReceiptTimestamp.scaled_nsecs += cf;
+	/* FIXME: normalize? */
 
 	memcpy(&presp->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);

@@ -214,7 +214,6 @@ int wr_servo_got_delay(struct pp_instance *ppi)
 	s->t3 = ppi->t3;
 	/*  s->t3.phase = 0; */
 	s->t4 = ppi->t4;
-	/* FIXME: verify that cField is already merged */
 
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
 		s->t5 = ppi->t5;

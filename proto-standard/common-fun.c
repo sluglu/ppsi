@@ -146,7 +146,6 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 
 		ppi->t4 = resp.requestReceiptTimestamp;
-		pp_time_add(&ppi->t4, &hdr->cField);
 		ppi->t6 = ppi->last_rcv_time;
 		if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0)
 			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
@@ -192,11 +191,6 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 
 		ppi->t5 = respFllw.responseOriginTimestamp;
-		/*
-		 * Add correctionField of pdelay_resp_followup to
-		 * cf of pdelay_resp (see 11.4.3 d 4)
-		 */
-		pp_time_add(&ppi->t4, &hdr->cField);
 
 		if (pp_hooks.handle_presp)
 			e = pp_hooks.handle_presp(ppi);

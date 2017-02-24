@@ -180,10 +180,6 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	MsgPDelayRespFollowUp respFllw;
 	int e = 0;
 
-	if (plen < PP_PDELAY_R_FUP_LENGTH)
-		/* Ignore */
-		return e;
-
 	msg_unpack_pdelay_resp_follow_up(buf, &respFllw);
 
 	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,

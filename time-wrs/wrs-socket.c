@@ -137,6 +137,11 @@ static void wrs_linearize_rx_timestamp(struct pp_time *ts,
 	int trip_lo, trip_hi;
 	int phase;
 
+	pp_diag(NULL, ext, 3, "linearize  ts %s and phase %i\n",
+		fmt_time(ts), dmtd_phase);
+	pp_diag(NULL, ext, 3, "    (ahead %i tpoint %i, period %i\n",
+		cntr_ahead, transition_point, clock_period);
+
 	phase = clock_period - 1 - dmtd_phase;
 
 	/* calculate the range within which falling edge timestamp is stable
@@ -146,6 +151,8 @@ static void wrs_linearize_rx_timestamp(struct pp_time *ts,
 
 	trip_hi = transition_point + clock_period / 4;
 	if(trip_hi >= clock_period) trip_hi -= clock_period;
+	pp_diag(NULL, ext, 3, "    phase now %i (tripl %i, triph %i)\n",
+		phase, trip_lo, trip_hi);
 
 	if(inside_range(trip_lo, trip_hi, phase))
 	{
@@ -156,6 +163,7 @@ static void wrs_linearize_rx_timestamp(struct pp_time *ts,
 
 		if (cntr_ahead)
 			ts->scaled_nsecs -= (clock_period / 1000LL) << 16;
+		pp_diag(NULL, ext, 3, "    ts became %s\n", fmt_time(ts));
 
 		/* check if the phase is before the counter transition value
 		 * and eventually increase the counter by 1 to simulate a
@@ -163,6 +171,7 @@ static void wrs_linearize_rx_timestamp(struct pp_time *ts,
 		 * DMTD phase value */
 		if(inside_range(trip_lo, transition_point, phase))
 			ts->scaled_nsecs += (clock_period / 1000LL) << 16;
+		pp_diag(NULL, ext, 3, "    ts became %s\n", fmt_time(ts));
 
 	}
 
@@ -171,6 +180,7 @@ static void wrs_linearize_rx_timestamp(struct pp_time *ts,
 		phase += clock_period;
 	phase = clock_period - 1 - phase;
 	ts->scaled_nsecs += (phase << 16) / 1000;
+	pp_diag(NULL, ext, 3, "    ts final  %s\n", fmt_time(ts));
 }
 
 

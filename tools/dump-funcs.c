@@ -173,6 +173,7 @@ static void dump_payload(char *prefix, void *pl, int len)
 	int donelen = 34; /* packet length before tlv */
 	int version = h->versionPTP_and_reserved & 0xf;
 	int messageType = h->type_and_transport_specific & 0xf;
+	char *cfptr = (void *)&h->correctionField;
 
 	if (version != 2) {
 		printf("%sVERSION: unsupported (%i)\n", prefix, version);
@@ -181,8 +182,11 @@ static void dump_payload(char *prefix, void *pl, int len)
 	printf("%sVERSION: %i (type %i, len %i, domain %i)\n", prefix,
 	       version, messageType,
 	       ntohs(h->messageLength), h->domainNumber);
-	printf("%sFLAGS: 0x%04x (correction %08lu)\n", prefix, h->flagField,
-	       (unsigned long)h->correctionField);
+	printf("%sFLAGS: 0x%04x (correction 0x%08x:%08x %08u)\n",
+	       prefix, h->flagField,
+	       ntohl(*(int *)cfptr),
+	       ntohl(*(int *)(cfptr + 4)),
+	       ntohl(*(int *)(cfptr + 4)));
 	dump_1port(prefix, "PORT: ", h->sourcePortIdentity);
 	printf("%sREST: seq %i, ctrl %i, log-interval %i\n", prefix,
 	       ntohs(h->sequenceId), h->controlField, h->logMessageInterval);

@@ -78,11 +78,13 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		dump_payloadpkt("recv: ", pkt, got, t);
 #endif
 
-	if (ppsi_drop_rx()) {
+	if (CONFIG_HAS_WRPC_FAULTS && ppsi_drop_rx()) {
 		pp_diag(ppi, frames, 1, "Drop received frame\n");
 		return -2;
 	}
-	usleep(frame_rx_delay_us);
+
+	if (CONFIG_HAS_WRPC_FAULTS)
+		usleep(frame_rx_delay_us);
 	return got;
 }
 
@@ -105,13 +107,14 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 	 * to transmit it for real, if we want to get back our
 	 * hardware stamp. Thus, remember if we drop, and use this info.
 	 */
-	drop = ppsi_drop_tx();
+	if (CONFIG_HAS_WRPC_FAULTS)
+		drop = ppsi_drop_tx();
 
 	sock = ppi->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = htons(ETH_P_1588);
 	memcpy(&addr.mac, macaddr[is_pdelay], sizeof(mac_addr_t));
-	if (drop) {
+	if (CONFIG_HAS_WRPC_FAULTS && drop) {
 		addr.ethertype = 1;
 		addr.mac[0] = 0x22; /* pfilter uses mac; drop for nodes too */
 	}
@@ -128,7 +131,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 			__func__, snt, (long)t->secs,
 			(long)(t->scaled_nsecs >> 16));
 	}
-	if (drop) {
+	if (CONFIG_HAS_WRPC_FAULTS && drop) {
 		pp_diag(ppi, frames, 1, "Drop sent frame\n");
 		return -2;
 	}

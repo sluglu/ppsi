@@ -37,9 +37,10 @@ static inline struct hal_port_state *pp_wrs_lookup_port(char *name)
  * whole ppsi */
 
 /* White Rabbit softpll status values */
-#define WR_SPLL_OK	0
-#define WR_SPLL_READY	1
-#define WR_SPLL_ERROR	-1
+#define WR_SPLL_OK		0
+#define WR_SPLL_READY		1
+#define WR_SPLL_CALIB_NOT_READY	2
+#define WR_SPLL_ERROR		-1
 
 /* White Rabbit calibration defines */
 #define WR_HW_CALIB_TX	1

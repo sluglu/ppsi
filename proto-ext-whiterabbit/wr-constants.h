@@ -49,9 +49,10 @@
 #define WR_DEFAULT_PHY_CALIBRATION_REQUIRED FALSE
 
 /* White Rabbit softpll status values */
-#define WR_SPLL_OK	0
-#define WR_SPLL_READY	1
-#define WR_SPLL_ERROR	-1
+#define WR_SPLL_OK		0
+#define WR_SPLL_READY		1
+#define WR_SPLL_CALIB_NOT_READY	2
+#define WR_SPLL_ERROR		-1
 
 /* White Rabbit calibration defines */
 #define WR_HW_CALIB_TX	1

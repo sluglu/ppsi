@@ -19,6 +19,7 @@ int wrpc_spll_locking_enable(struct pp_instance *ppi)
 {
 	spll_init(SPLL_MODE_SLAVE, 0, 1);
 	spll_enable_ptracker(0, 1);
+	rxts_calibration_start();
 	return WR_SPLL_OK;
 }
 
@@ -39,7 +40,7 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
 	else if(locked && !t24p_calibrated) {
 		/*run t24p calibration if needed*/
 		if (calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition) < 0)
-			return WR_SPLL_ERROR;
+			return WR_SPLL_CALIB_NOT_READY;
 		t24p_calibrated = 1;
 	}
 

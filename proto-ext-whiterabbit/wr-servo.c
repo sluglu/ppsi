@@ -402,6 +402,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	struct pp_time ts_offset;
 	int32_t  ts_offset_ticks;
 	int32_t  ts_offset_picos;
+	int locking_poll_ret;
 
 	if (!got_sync)
 		return 0;
@@ -424,8 +425,9 @@ int wr_servo_update(struct pp_instance *ppi)
 		(long)ts_offset.secs, (long)ts_offset_ticks,
 		(long)ts_offset_picos);
 
-
-	if (wrp->ops->locking_poll(ppi, 0) != WR_SPLL_READY) {
+	locking_poll_ret = wrp->ops->locking_poll(ppi, 0);
+	if (locking_poll_ret != WR_SPLL_READY
+	    && locking_poll_ret != WR_SPLL_CALIB_NOT_READY) {
 		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
 		wrp->ops->enable_timing_output(ppi, 0);
 		/* TODO check

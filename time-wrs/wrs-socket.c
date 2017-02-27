@@ -246,6 +246,8 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 		} else {
 			mark_incorrect(t);
 		}
+	} else {
+		mark_incorrect(t);
 	}
 
 drop:

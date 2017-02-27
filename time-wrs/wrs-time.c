@@ -183,7 +183,7 @@ static int wrdate_get(struct pp_time *t)
 	} while((tmp1 != taih) || (tmp2 != tail));
 
 	t->secs = tail | ((uint64_t)taih << 32);
-	t->scaled_nsecs = nsec << 16;
+	t->scaled_nsecs = (int64_t)nsec << 16;
 	return 0;
 }
 

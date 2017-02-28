@@ -1,5 +1,14 @@
 #ifndef __ARCH_H__
 #define __ARCH_H__
+#include <ppsi/assert.h>
+
+static inline int sleep(unsigned int seconds)
+{
+	static volatile int i;
+	for (i = 0; i < 1000 * 1000 * seconds; i++)
+		;
+	return 0;
+}
 
 /* Architecture-specific defines, included by top-level stuff */
 

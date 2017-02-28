@@ -43,8 +43,6 @@ int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			ppi->next_state = WRS_CALIBRATION;
 	}
 
-	if (e != 0)
-		ppi->next_state = PPS_FAULTY;
 	ppi->next_delay = wrp->wrStateTimeout;
 
 	return e;

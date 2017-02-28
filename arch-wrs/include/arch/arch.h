@@ -1,5 +1,6 @@
 #ifndef __ARCH_H__
 #define __ARCH_H__
+#include <ppsi/assert.h>
 
 /* This arch exports wr functions, so include this for consistency checking */
 #include "../proto-ext-whiterabbit/wr-api.h"

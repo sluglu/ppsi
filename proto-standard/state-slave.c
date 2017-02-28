@@ -87,7 +87,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			goto out;
 	}
 
-	e  = pp_lib_may_issue_request(ppi);
+	pp_lib_may_issue_request(ppi);
 
 	/*
 	 * The management of messages is now table-driven
@@ -100,8 +100,6 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				hdr->messageType);
 	}
-	if (e)
-		goto out;
 
 	/*
 	 * This function, common to passive,listening etc,
@@ -114,7 +112,7 @@ out:
 	case PP_SEND_OK: /* 0 */
 		break;
 	case PP_SEND_ERROR:
-		ppi->next_state = PPS_FAULTY;
+		/* ignore: a lost frame is not the end of the world */
 		break;
 	case PP_SEND_NO_STAMP:
 		/* nothing, just keep the ball rolling */

@@ -200,7 +200,7 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	int state, err = 0;
 	int msgtype;
 
-	if (plen) {
+	if (plen > 0) {
 		msgtype = packet[0] & 0xf;
 		pp_diag(ppi, frames, 1,
 			"RECV %02d bytes at %9d.%09d (type %x, %s)\n", plen,

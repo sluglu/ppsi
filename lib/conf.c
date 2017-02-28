@@ -221,7 +221,7 @@ static struct pp_argname arg_mech[] = {
 	{"request-response", PP_E2E_MECH},
 	{"delay", PP_E2E_MECH},
 	{"e2e", PP_E2E_MECH},
-#ifdef CONFIG_HAS_P2P
+#if CONFIG_HAS_P2P == 1
 	{"peer-delay", PP_P2P_MECH},
 	{"pdelay", PP_P2P_MECH},
 	{"p2p", PP_P2P_MECH},

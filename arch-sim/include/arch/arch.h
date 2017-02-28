@@ -1,5 +1,6 @@
 #ifndef __ARCH_H__
 #define __ARCH_H__
+#include <ppsi/assert.h>
 
 /* Architecture-specific defines, included by top-level stuff */
 

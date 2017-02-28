@@ -27,6 +27,12 @@
 #undef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+#ifdef CONFIG_WRPC_FAULTS
+#   define CONFIG_HAS_WRPC_FAULTS 1
+#else
+#   define CONFIG_HAS_WRPC_FAULTS 0
+#endif
+
 /* We can't include pp-printf.h when building freestading, so have it here */
 extern int pp_printf(const char *fmt, ...)
 	__attribute__((format(printf, 1, 2)));

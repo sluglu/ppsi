@@ -12,6 +12,7 @@ OBJ-y += $A/sim-startup.o \
 	lib/conf.o \
 	lib/dump-funcs.o \
 	lib/libc-functions.o \
+	lib/assert.o \
 	lib/div64.o
 
 # Support only "sim" time operations

@@ -23,7 +23,10 @@ OBJ-y += \
 	$A/wrpc-calibration.o \
 	$A/wrc_ptp_ppsi.o \
 	lib/dump-funcs.o \
+	lib/drop.o \
 	lib/div64.o
+
+OBJ-$(CONFIG_WRPC_FAULTS) += $A/faults.o
 
 # We only support "wrpc" time operations
 TIME := wrpc

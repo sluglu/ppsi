@@ -71,18 +71,9 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	return 0;
 }
 
-static int wr_handle_preq(struct pp_instance *ppi)
-{
-	/* FIXME: why do we save this fractional part? */
-	clear_time(&ppi->cField);
-	ppi->cField.scaled_nsecs = ppi->last_rcv_time.scaled_nsecs & 0xffff;
-	return 0;
-}
-
 static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 			 int msgtype)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSignaling wrsig_msg;
 	struct pp_time *time = &ppi->last_rcv_time;
 
@@ -93,16 +84,12 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 	/* This case is modified from the default one */
 	case PPM_DELAY_REQ:
-		/* there is no cField now, we pp_time includes it all */
-		clear_time(&hdr->cField);
 		msg_issue_delay_resp(ppi, time); /* no error check */
 		msgtype = PPM_NO_MESSAGE;
 		break;
 
 	case PPM_PDELAY_REQ:
-		if (CONFIG_HAS_P2P)
-			wr_handle_preq(ppi);
-		/* normal management continues  */
+		/* nothing to do */
 		break;
 
 	/* This is missing in the standard protocol */
@@ -202,8 +189,7 @@ static int wr_handle_announce(struct pp_instance *ppi)
 }
 
 static int wr_handle_followup(struct pp_instance *ppi,
-			      struct pp_time *precise_orig_timestamp,
-			      struct pp_time *correction_field)
+			      struct pp_time *precise_orig_timestamp)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if (!WR_DSPOR(ppi)->wrModeOn)
@@ -285,7 +271,6 @@ struct pp_ext_hooks pp_hooks = {
 	.handle_announce = wr_handle_announce,
 	.handle_followup = wr_handle_followup,
 #if CONFIG_HAS_P2P
-	.handle_preq = wr_handle_preq,
 	.handle_presp = wr_handle_presp,
 #endif
 	.pack_announce = wr_pack_announce,

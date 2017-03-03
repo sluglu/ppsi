@@ -127,6 +127,7 @@ void msg_unpack_sync(void *buf, MsgSync *sync)
 	secs |= htonl(*(UInteger32 *) (buf + 36));
 	nsecs = htonl(*(UInteger32 *) (buf + 40));
 
+	/* The cField is added in the caller according to 1-step vs. 2-step */
 	sync->originTimestamp.secs = secs;
 	sync->originTimestamp.scaled_nsecs = nsecs << 16;
 }
@@ -231,6 +232,9 @@ static int msg_pack_follow_up(struct pp_instance *ppi,
 	*(UInteger16 *)(buf + 34) = htons(prec_orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(prec_orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(prec_orig_tstamp->scaled_nsecs >> 16);
+	/* Fractional part in cField */
+	*(UInteger32 *)(buf + 12) =
+		htonl(prec_orig_tstamp->scaled_nsecs & 0xffff);
 	return len;
 }
 
@@ -244,9 +248,13 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 
 	/* Header */
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber; /* FIXME: why? */
-	/* copy the correction field, 11.4.3 c.3) */
+	/* We should copy the correction field and add our fractional part */
+	hdr->cField.scaled_nsecs
+		+= htonl(prec_orig_tstamp->scaled_nsecs & 0xffff);
+	normalize_pp_time(&hdr->cField);
 	*(Integer32 *) (buf + 8) = htonl(hdr->cField.scaled_nsecs >> 32);
 	*(Integer32 *) (buf + 12) = htonl((int)hdr->cField.scaled_nsecs);
+
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* requestReceiptTimestamp */
@@ -271,6 +279,7 @@ void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 	secs |= htonl(*(UInteger32 *) (buf + 36));
 	nsecs = htonl(*(UInteger32 *) (buf + 40));
 
+	/* cField add1ed by the caller, from already-converted header */
 	flwup->preciseOriginTimestamp.secs = secs;
 	flwup->preciseOriginTimestamp.scaled_nsecs = nsecs << 16;
 }
@@ -286,6 +295,7 @@ void msg_unpack_pdelay_resp_follow_up(void *buf,
 	secs |= htonl(*(UInteger32 *) (buf + 36));
 	nsecs = htonl(*(UInteger32 *) (buf + 40));
 
+	/* cField added by the caller, as it's already converted */
 	pdelay_resp_flwup->responseOriginTimestamp.secs = secs;
 	pdelay_resp_flwup->responseOriginTimestamp.scaled_nsecs =
 		nsecs << 16;
@@ -298,7 +308,7 @@ void msg_unpack_pdelay_resp_follow_up(void *buf,
 
 /* pack DelayReq message into out buffer of ppi */
 static int msg_pack_delay_req(struct pp_instance *ppi,
-			       struct pp_time *orig_tstamp)
+			       struct pp_time *now)
 {
 	void *buf = ppi->tx_ptp;
 	int len = __msg_pack_header(ppi, PPM_DELAY_REQ);
@@ -307,16 +317,16 @@ static int msg_pack_delay_req(struct pp_instance *ppi,
 	/* Header */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
 
-	/* Delay_req message */
-	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secs >> 32);
-	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secs);
-	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
+	/* Delay_req message - we may send zero instead */
+	*(UInteger16 *) (buf + 34) = htons(now->secs >> 32);
+	*(UInteger32 *) (buf + 36) = htonl(now->secs);
+	*(UInteger32 *) (buf + 40) = htonl(now->scaled_nsecs >> 16);
 	return len;
 }
 
 /* pack DelayReq message into out buffer of ppi */
 static int msg_pack_pdelay_req(struct pp_instance *ppi,
-				struct pp_time *orig_tstamp)
+				struct pp_time *now)
 {
 	void *buf = ppi->tx_ptp;
 	int len = __msg_pack_header(ppi, PPM_PDELAY_REQ);
@@ -325,10 +335,10 @@ static int msg_pack_pdelay_req(struct pp_instance *ppi,
 	/* Header */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_PDELAY_REQ]);
 
-	/* PDelay_req message */
-	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secs >> 32);
-	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secs);
-	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
+	/* PDelay_req message - we may send zero instead */
+	*(UInteger16 *) (buf + 34) = htons(now->secs >> 32);
+	*(UInteger32 *) (buf + 36) = htonl(now->secs);
+	*(UInteger32 *) (buf + 40) = htonl(now->scaled_nsecs >> 16);
 	memset(buf + 44, 0, 10); /* reserved to match pdelay_resp length */
 	return len;
 }
@@ -344,6 +354,10 @@ static int msg_pack_pdelay_resp(struct pp_instance *ppi,
 	/* Header */
 	flags8[0] = PP_TWO_STEP_FLAG; /* Table 20) */
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
+
+	/* cField: shdould be the fractional negated (see README-cfield) */
+	*(UInteger32 *) (buf + 12)
+		= htonl(rcv_tstamp->scaled_nsecs & 0xffff);
 
 	/* requestReceiptTimestamp */
 	*(UInteger16 *) (buf + 34) = htons(rcv_tstamp->secs >> 32);
@@ -365,7 +379,10 @@ static int msg_pack_delay_resp(struct pp_instance *ppi,
 	int len = __msg_pack_header(ppi, PPM_DELAY_RESP);
 
 	/* Header */
-	/* Copy correctionField of delayReqMessage */
+	/*
+	 * We should copy the cField of the request, and then subract
+	 * our fractional part. However, we add it (see README-cfield::BUG)
+	 */
 	*(Integer32 *) (buf + 8) = 0;
 	*(Integer32 *) (buf + 12) = htonl(rcv_tstamp->scaled_nsecs & 0xffff);
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
@@ -420,6 +437,7 @@ void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 	secs |= htonl(*(UInteger32 *) (buf + 36));
 	nsecs = htonl(*(UInteger32 *) (buf + 40));
 
+	/* cfield added in the caller */
 	resp->receiveTimestamp.secs = secs;
 	resp->receiveTimestamp.scaled_nsecs = nsecs << 16;
 
@@ -434,11 +452,12 @@ void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp)
 {
 	int64_t secs, nsecs;
 
-	secs = htons(*(UInteger16 *) (buf + 34));
+	secs = ntohs(*(UInteger16 *) (buf + 34));
 	secs <<= 32;
-	secs |= htonl(*(UInteger32 *) (buf + 36));
-	nsecs = htonl(*(UInteger32 *) (buf + 40));
+	secs |= ntohl(*(UInteger32 *) (buf + 36));
+	nsecs = ntohl(*(UInteger32 *) (buf + 40));
 
+	/* cfield added in the caller */
 	presp->requestReceiptTimestamp.secs = secs;
 	presp->requestReceiptTimestamp.scaled_nsecs = nsecs << 16;
 

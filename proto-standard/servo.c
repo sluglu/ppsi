@@ -61,16 +61,11 @@ void pp_servo_got_sync(struct pp_instance *ppi)
 	struct pp_time *m_to_s_dly = &SRV(ppi)->m_to_s_dly;
 
 	/*
-	 * calc 'master_to_slave_delay', removing the correction field
-	 * added by transparent clocks in the path.
-	 * cField contains the sum of sync and followup messages
-	 * correctionField(s)
+	 * calc 'master_to_slave_delay'; no correction field
+	 * appears in the formulas because it's already merged with t1
 	 */
 	*m_to_s_dly = ppi->t2;
 	pp_time_sub(m_to_s_dly, &ppi->t1);
-	pp_time_sub(m_to_s_dly, &ppi->cField); /* FIXME: check cField */
-	pp_diag(ppi, servo, 3, "correction field 1: %s\n",
-		fmt_ppt(&ppi->cField));
 }
 
 /* Called by slave and uncalib when we have t1 and t2 */
@@ -85,14 +80,11 @@ void pp_servo_got_psync(struct pp_instance *ppi)
 	pp_diag(ppi, servo, 2, "T2: %s\n", fmt_ppt(&ppi->t2));
 
 	/*
-	 * calc 'master_to_slave_delay', removing the correction field
-	 * added by transparent clocks in the path.
+	 * calc 'master_to_slave_delay'; no correction field
+	 * appears in the formulas because it's already merged with t1
 	 */
 	*m_to_s_dly = ppi->t2;
 	pp_time_sub(m_to_s_dly, &ppi->t1);
-	pp_time_sub(m_to_s_dly, &ppi->cField); /* FIXME: check cField */
-	pp_diag(ppi, servo, 3, "correction field 1: %s\n",
-		fmt_ppt(&ppi->cField));
 
 	/* update 'offsetFromMaster' and possibly jump in time */
 	if (pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly))
@@ -136,9 +128,6 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	 */
 	*s_to_m_dly = ppi->t4;
 	pp_time_sub(s_to_m_dly, &ppi->t3);
-	pp_time_sub(s_to_m_dly, &ppi->cField); /* FIXME: cField check */
-	pp_diag(ppi, servo, 3, "correction field 2: %s\n",
-		fmt_ppt(&ppi->cField));
 
 	pp_diag(ppi, servo, 2, "T1: %s\n", fmt_ppt(&ppi->t1));
 	pp_diag(ppi, servo, 2, "T2: %s\n", fmt_ppt(&ppi->t2));
@@ -193,9 +182,6 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	 */
 	*s_to_m_dly = ppi->t6;
 	pp_time_sub(s_to_m_dly, &ppi->t5);
-	pp_time_sub(s_to_m_dly,  &ppi->cField); /* FIXME: check cField */
-	pp_diag(ppi, servo, 3, "correction field 2: %s\n",
-		fmt_ppt(&ppi->cField));
 
 	*m_to_s_dly = ppi->t4;
 	pp_time_sub(m_to_s_dly, &ppi->t3);

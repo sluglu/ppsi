@@ -53,7 +53,7 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 
 	ppi->t4 = resp.receiveTimestamp;
 	pp_time_add(&ppi->t4, &hdr->cField);
-	/* NOTE: older code was adding cField later, in hooks.handle_resp */
+	/* WARNING: should be "sub" (see README-cfield::BUG)  */
 
 	if (pp_hooks.handle_resp)
 		e = pp_hooks.handle_resp(ppi);

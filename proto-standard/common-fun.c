@@ -107,19 +107,22 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT))
 		return 0;
 
-	/* t2 may be overriden by follow-up, cField is always valid */
+	/* t2 may be overriden by follow-up, save it immediately */
 	ppi->t2 = ppi->last_rcv_time;
-	/* FIXME: merge cField here? */
-	ppi->cField = hdr->cField;
+	msg_unpack_sync(buf, &sync);
 
 	if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0) {
 		ppi->flags |= PPI_FLAG_WAITING_FOR_F_UP;
 		ppi->recv_sync_sequence_id = hdr->sequenceId;
+		/* for two-step, the stamp comes later */
+		ppi->t1 = hdr->cField; /* most likely 0 */
 		return 0;
 	}
-	msg_unpack_sync(buf, &sync);
+	/* one-step folllows */
 	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
 	ppi->t1 = sync.originTimestamp;
+	pp_time_add(&ppi->t1, &hdr->cField);
+	ppi->syncCF = 0;
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		pp_servo_got_psync(ppi);
 	else
@@ -147,6 +150,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 
 		ppi->t4 = resp.requestReceiptTimestamp;
 		pp_time_add(&ppi->t4, &hdr->cField);
+		/* WARNING: should be "sub" (see README-cfield::BUG)  */
 		ppi->t6 = ppi->last_rcv_time;
 		if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0)
 			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
@@ -192,11 +196,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
 
 		ppi->t5 = respFllw.responseOriginTimestamp;
-		/*
-		 * Add correctionField of pdelay_resp_followup to
-		 * cf of pdelay_resp (see 11.4.3 d 4)
-		 */
-		pp_time_add(&ppi->t4, &hdr->cField);
+		pp_time_add(&ppi->t5, &hdr->cField);
 
 		if (pp_hooks.handle_presp)
 			e = pp_hooks.handle_presp(ppi);
@@ -255,14 +255,14 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 
 	msg_unpack_follow_up(buf, &follow);
 	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
-	ppi->t1 = follow.preciseOriginTimestamp;
-
-	/* Add correctionField in follow-up to sync correctionField, see 11.2 */
-	pp_time_add(&ppi->cField, &hdr->cField); /* FIXME: check this cField */
+	/* t1 for calculations is T1 + Csyn + Cful -- see README-cfield */
+	pp_time_add(&ppi->t1, &follow.preciseOriginTimestamp);
+	pp_time_add(&ppi->t1, &hdr->cField);
+	ppi->syncCF = hdr->cField.scaled_nsecs; /* for diag about TC */
 
 	/* Call the extension; it may do it all and ask to return */
 	if (pp_hooks.handle_followup)
-		ret = pp_hooks.handle_followup(ppi, &ppi->t1, &ppi->cField);
+		ret = pp_hooks.handle_followup(ppi, &ppi->t1);
 	if (ret == 1)
 		return 0;
 	if (ret < 0)

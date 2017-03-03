@@ -11,7 +11,8 @@
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
  * structure */
-#define WRS_PPSI_SHMEM_VERSION 19 /* Reorder fields in struct wr_servo_state */
+#define WRS_PPSI_SHMEM_VERSION 20 /* Replace cField, t4_cf and t6_cf with
+				     syncCF */
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__

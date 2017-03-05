@@ -215,8 +215,8 @@ void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
 	if (mpd_fltr->s_exp < 1) {
 		/* First time, keep what we have */
 		mpd_fltr->y = mpd->scaled_nsecs;
-		if (mpd->scaled_nsecs > 0)
-			mpd_fltr->y = mpd->scaled_nsecs;
+		if (mpd->scaled_nsecs < 0)
+			mpd_fltr->y = 0;
 	}
 	/* avoid overflowing filter: calculate number of bits */
 	s = OPTS(ppi)->s;

@@ -364,8 +364,8 @@ int wr_e2e_offset(struct pp_instance *ppi,
 		s->picos_mu = big_delta_fix;
 	}
 
-	delay_ms_fix = (((s->picos_mu - big_delta_fix)
-			* s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
+	delay_ms_fix = (((int64_t)(s->picos_mu - big_delta_fix)
+			* (int64_t)s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
 			+ ((s->picos_mu - big_delta_fix) >> 1)
 			+ s->delta_tx_m + s->delta_rx_s;
 

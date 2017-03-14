@@ -134,35 +134,7 @@ static int got_sync = 0;
 
 void wr_servo_reset(struct pp_instance *ppi)
 {
-	/* values from servo_state to be preserved */
-	uint32_t n_err_state;
-	uint32_t n_err_offset;
-	uint32_t n_err_delta_rtt;
-
-	struct wr_servo_state *s;
-
-	s = &((struct wr_data *)ppi->ext_data)->servo_state;
-	if (!s) {
-		/* Don't clean servo state when is not available */
-		return;
-	}
-	/* shmem lock */
-	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
-	ppi->flags = 0;
-
-	/* preserve some values from servo_state */
-	n_err_state = s->n_err_state;
-	n_err_offset = s->n_err_offset;
-	n_err_delta_rtt = s->n_err_delta_rtt;
-	/* clear servo_state to display empty fields in wr_mon and SNMP */
-	memset(s, 0, sizeof(struct wr_servo_state));
-	/* restore values from servo_state */
-	s->n_err_state = n_err_state;
-	s->n_err_offset = n_err_offset;
-	s->n_err_delta_rtt = n_err_delta_rtt;
-
-	/* shmem unlock */
-	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
+	wr_servo_init(ppi);
 }
 
 static inline int32_t delta_to_ps(struct FixedDelta d)

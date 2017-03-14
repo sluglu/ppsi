@@ -103,7 +103,7 @@ endmenu
 
 config ASSERT
 	bool "Build assertion checks in the code"
-	default y
+	default n
 	  help
 	    Build assertions in the code, to catch unexpected situations.
 	    When an assertion fails the code loops over repeating the

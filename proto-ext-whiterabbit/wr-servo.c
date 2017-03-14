@@ -261,6 +261,7 @@ int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
 	errcount = 0;
 
 	s->update_count++;
+	ppi->t_ops->get(ppi, &s->update_time);
 
 	{ /* avoid modifying stamps in place */
 		struct pp_time mtime, stime;
@@ -352,7 +353,7 @@ int wr_e2e_offset(struct pp_instance *ppi,
 	errcount = 0;
 
 	s->update_count++;
-	ppi->t_ops->get(ppi, &s->update_time); /* FIXME: missing in p2p */
+	ppi->t_ops->get(ppi, &s->update_time);
 
 	got_sync = 0;
 

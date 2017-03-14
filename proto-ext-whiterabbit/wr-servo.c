@@ -159,10 +159,16 @@ int wr_servo_init(struct pp_instance *ppi)
 	wrp->ops->enable_timing_output(ppi, 0);
 
 	strncpy(s->if_name, ppi->cfg.iface_name, sizeof(s->if_name));
-	s->cur_setpoint = 0;
+	/*
+	 * Do not reset cur_setpoint, but trim it to be less than one tick.
+	 * The softpll code uses the module anyways, but if we unplug-replug
+	 * the fiber it will always increase, so don't scare the user
+	 */
+	if (s->cur_setpoint > s->clock_period_ps)
+		s->cur_setpoint %= s->clock_period_ps;
 	wrp->ops->adjust_phase(s->cur_setpoint);
 	s->missed_iters = 0;
-	s->state = WR_SYNC_TAI;
+	s->state = WR_UNINITIALIZED;
 
 	s->delta_tx_m = delta_to_ps(wrp->otherNodeDeltaTx);
 	s->delta_rx_m = delta_to_ps(wrp->otherNodeDeltaRx);
@@ -436,6 +442,11 @@ int wr_servo_update(struct pp_instance *ppi)
 		s->state = WR_SYNC_TAI;
 	else if (ts_offset_ticks) /* not that bad */
 		s->state = WR_SYNC_NSEC;
+	else if (s->state == WR_UNINITIALIZED) {
+		/* Likely a restart; already good, but force phase fsm */
+		s->state = WR_SYNC_PHASE;
+	}
+
 	/* else, let the states below choose the sequence */
 
 	pp_diag(ppi, servo, 1, "wr_servo state: %s%s\n",

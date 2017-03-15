@@ -179,6 +179,7 @@ int wr_servo_init(struct pp_instance *ppi)
 
 	s->flags |= WR_FLAG_VALID;
 	s->update_count = 0;
+	ppi->t_ops->get(ppi, &s->update_time);
 	s->tracking_enabled = tracking_enabled;
 
 	got_sync = 0;
@@ -291,6 +292,7 @@ int wr_p2p_offset(struct pp_instance *ppi,
 	got_sync = 0;
 
 	s->update_count++;
+	ppi->t_ops->get(ppi, &s->update_time);
 
 	picos_to_ts(s->delta_ms, &time_ms);
 	*ts_offset = s->t1;

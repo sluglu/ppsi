@@ -381,6 +381,8 @@ extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req);
 #define PP_SEND_OK		0
 #define PP_SEND_ERROR		-1
 #define PP_SEND_NO_STAMP	1
+#define PP_SEND_DROP		-2
+#define PP_RECV_DROP	PP_SEND_DROP
 
 extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);

@@ -274,25 +274,25 @@ drop:
 
 		/* With PROTO_VLAN, we bound to ETH_P_ALL: we got all frames */
 		if (hdr->h_proto != htons(ETH_P_1588))
-			return -2; /* like "dropped", so no error message */
+			return PP_RECV_DROP; /* no error message */
 
 		/* Also, we got the vlan, and we can discard it if not ours */
 		for (i = 0; i < ppi->nvlans; i++)
 			if (ppi->vlans[i] == vlan)
 				break; /* ok */
 		if (i == ppi->nvlans)
-			return -2; /* not ours: say it's dropped */
+			return PP_RECV_DROP; /* not ours: say it's dropped */
 		ppi->peer_vid = ppi->vlans[i];
 	} else {
 		if (hdr->h_proto != htons(ETH_P_1588))
-			return -2; /* again: drop unrelated frames */
+			return PP_RECV_DROP; /* again: drop unrelated frames */
 		ppi->peer_vid = 0;
 	}
 
 out:
 	if (ppsi_drop_rx()) {
 		pp_diag(ppi, frames, 1, "Drop received frame\n");
-		return -2;
+		return PP_RECV_DROP;
 	}
 
 	return ret;

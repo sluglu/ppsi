@@ -80,7 +80,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 	if (CONFIG_HAS_WRPC_FAULTS && ppsi_drop_rx()) {
 		pp_diag(ppi, frames, 1, "Drop received frame\n");
-		return -2;
+		return PP_RECV_DROP;
 	}
 
 	if (CONFIG_HAS_WRPC_FAULTS)
@@ -133,7 +133,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 	}
 	if (CONFIG_HAS_WRPC_FAULTS && drop) {
 		pp_diag(ppi, frames, 1, "Drop sent frame\n");
-		return -2;
+		return PP_SEND_DROP;
 	}
 
 /* wrpc-sw may pass this in USER_CFLAGS, to remove footprint */

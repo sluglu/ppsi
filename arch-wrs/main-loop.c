@@ -148,7 +148,7 @@ void wrs_main_loop(struct pp_globals *ppg)
 						PP_MAX_FRAME_LENGTH - 4,
 						&ppi->last_rcv_time);
 
-				if (i == -2) {
+				if (i == PP_RECV_DROP) {
 					continue; /* dropped or not for us */
 				}
 				if (i == -1) {

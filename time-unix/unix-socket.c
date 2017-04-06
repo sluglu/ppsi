@@ -66,7 +66,7 @@ static int unix_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 		/* If we are in VLAN mode, we get everything. This is ok */
 		if (ppi->proto != PPSI_PROTO_VLAN)
 			pp_error("%s: truncated message\n", __func__);
-		return -2; /* like "dropped" */
+		return PP_RECV_DROP; /* like "dropped" */
 	}
 	/* get time stamp of packet */
 	if (msg.msg_flags & MSG_CTRUNC) {
@@ -102,13 +102,13 @@ static int unix_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	if (aux) {
 		/* With PROTO_VLAN, we bound to ETH_P_ALL: we got all frames */
 		if (hdr->h_proto != htons(ETH_P_1588))
-			return -2; /* like "dropped", so no error message */
+			return PP_RECV_DROP; /* no error message */
 		/* Also, we got the vlan, and we can discard it if not ours */
 		for (i = 0; i < ppi->nvlans; i++)
 			if (ppi->vlans[i] == (aux->tp_vlan_tci & 0xfff))
 				break; /* ok */
 		if (i == ppi->nvlans)
-			return -2; /* not ours: say it's dropped */
+			return PP_RECV_DROP; /* not ours: say it's dropped */
 		ppi->peer_vid = ppi->vlans[i];
 	} else {
 		ppi->peer_vid = 0;
@@ -116,7 +116,7 @@ static int unix_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 
 	if (ppsi_drop_rx()) {
 		pp_diag(ppi, frames, 1, "Drop received frame\n");
-		return -2;
+		return PP_RECV_DROP;
 	}
 
 	/* This is not really hw... */
@@ -143,7 +143,7 @@ static int unix_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		if (ret <= 0)
 			return ret;
 		if (hdr->h_proto != htons(ETH_P_1588))
-			return -2; /* like "dropped", so no error message */
+			return PP_RECV_DROP; /* like "dropped", so no error message */
 
 		memcpy(ppi->peer, hdr->h_source, ETH_ALEN);
 		if (pp_diag_allow(ppi, frames, 2)) {

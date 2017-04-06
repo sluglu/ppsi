@@ -297,9 +297,13 @@ int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 {
 	int msgtype = ((char *)ppi->tx_ptp)[0] & 0xf;
+	int ret;
 
-	if (ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,
-			     msgtype) < msglen) {
+	ret = ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,
+			       msgtype);
+	if (ret == PP_SEND_DROP)
+		return 0; /* don't report as error, nor count nor log as sent */
+	if (ret < msglen) {
 		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
 			pp_msgtype_info[msgtype].name, msgtype);
 		return PP_SEND_ERROR;

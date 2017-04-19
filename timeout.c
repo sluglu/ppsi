@@ -22,6 +22,7 @@ struct timeout_config {
 static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 	[PP_TO_REQUEST] =	{"REQUEST",	RAND_0_200,},
 	[PP_TO_SYNC_SEND] =	{"SYNC_SEND",	RAND_70_130,},
+	[PP_TO_BMC] =		{"BMC",		RAND_NONE,},
 	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	RAND_NONE,},
 	[PP_TO_ANN_SEND] =	{"ANN_SEND",	RAND_70_130,},
 	[PP_TO_FAULT] =		{"FAULT",	RAND_NONE, 4000},
@@ -40,6 +41,7 @@ void pp_timeout_init(struct pp_instance *ppi)
 	to_configs[PP_TO_FAULT].value =
 		1 << (port->logMinDelayReqInterval + 12); /* 0 -> 4096ms */
 	to_configs[PP_TO_SYNC_SEND].value = port->logSyncInterval;
+	to_configs[PP_TO_BMC].value = 1000 * (1 << port->logAnnounceInterval);
 	to_configs[PP_TO_ANN_RECEIPT].value = 1000 * (
 		port->announceReceiptTimeout << port->logAnnounceInterval);
 	to_configs[PP_TO_ANN_SEND].value = port->logAnnounceInterval;
@@ -54,6 +56,10 @@ void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
 		to_configs[index].name, millisec);
 }
 
+void pp_timeout_clear(struct pp_instance *ppi, int index)
+{
+	__pp_timeout_set(ppi, index, 0);
+}
 
 void pp_timeout_set(struct pp_instance *ppi, int index)
 {
@@ -111,8 +117,11 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 void pp_timeout_setall(struct pp_instance *ppi)
 {
 	int i;
-	for (i = 0; i < __PP_TO_ARRAY_SIZE; i++)
-		pp_timeout_set(ppi, i);
+	for (i = 0; i < __PP_TO_ARRAY_SIZE; i++) {
+		/* keep BMC timeout */
+		if (i != PP_TO_BMC)
+			pp_timeout_set(ppi, i);
+	}
 	/* but announce_send must be send soon */
 	__pp_timeout_set(ppi, PP_TO_ANN_SEND, 20);
 }

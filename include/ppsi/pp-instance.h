@@ -65,6 +65,11 @@ struct pp_channel {
  */
 struct pp_frgn_master {
 	PortIdentity port_id;	/* used to identify old/new masters */
+	PortIdentity source_id;	/* used for the dataset comparisment */
+
+	/* how many announce messages from this port where received in the
+	 * interval */
+	int ann_cnt[PP_FOREIGN_MASTER_TIME_WINDOW];
 
 	/* We don't need all fields of the following ones */
 	MsgAnnounce ann;

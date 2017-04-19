@@ -231,6 +231,7 @@ extern struct pp_time_operations unix_time_ops;
  */
 extern void pp_timeout_init(struct pp_instance *ppi);
 extern void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec);
+extern void pp_timeout_clear(struct pp_instance *ppi, int index);
 extern void pp_timeout_set(struct pp_instance *ppi, int index);
 extern void pp_timeout_setall(struct pp_instance *ppi);
 extern int pp_timeout(struct pp_instance *ppi, int index)
@@ -360,7 +361,9 @@ extern void pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
 /* bmc.c */
 extern void m1(struct pp_instance *ppi);
 extern int bmc(struct pp_instance *ppi);
-
+extern int bmc_dataset_cmp(struct pp_instance *ppi,
+			   struct pp_frgn_master *a,
+			   struct pp_frgn_master *b);
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);
 extern int __attribute__((warn_unused_result))
@@ -383,7 +386,7 @@ extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req);
 #define PP_SEND_ERROR		-1
 #define PP_SEND_NO_STAMP	1
 #define PP_SEND_DROP		-2
-#define PP_RECV_DROP	PP_SEND_DROP
+#define PP_RECV_DROP		PP_SEND_DROP
 
 extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);

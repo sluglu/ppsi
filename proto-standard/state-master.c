@@ -47,6 +47,10 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	/* upgrade from pre-master to master */
 	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {
 		ppi->next_state = PPS_MASTER;
+		/* start sending imediately and reenter */
+		pp_timeout_clear(ppi, PP_TO_SYNC_SEND);
+		pp_timeout_clear(ppi, PP_TO_ANN_SEND);
+		ppi->next_delay = 0;
 		return 0;
 	}
 
@@ -108,9 +112,13 @@ out:
 		break;
 	}
 
-	/* we also use TO_QUALIFICATION, but avoid counting it here */
-	ppi->next_delay = pp_next_delay_3(ppi,
-		PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
+	if (pre) {
+		ppi->next_delay = pp_next_delay_2(ppi,
+			PP_TO_QUALIFICATION, PP_TO_REQUEST);
+	} else {
+		ppi->next_delay = pp_next_delay_3(ppi,
+			PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
+	}
 	return e;
 }
 

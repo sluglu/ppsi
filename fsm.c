@@ -167,7 +167,7 @@ static int type_length[__PP_NR_MESSAGES_TYPES] = {
 	[PPM_DELAY_RESP]	= PP_DELAY_RESP_LENGTH,
 	[PPM_PDELAY_R_FUP]	= PP_PDELAY_R_FUP_LENGTH,
 	[PPM_ANNOUNCE]		= PP_ANNOUNCE_LENGTH,
-	[PPM_SIGNALING]		=   PP_HEADER_LENGTH,
+	[PPM_SIGNALING]		= PP_HEADER_LENGTH,
 	[PPM_MANAGEMENT]	= PP_MANAGEMENT_LENGTH,
 };
 
@@ -253,11 +253,18 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 			plen = 0;
 		}
 	}
+
+	/* run bmc independent of state, and since not message driven do this
+	 * here 9.2.6.8 */
+	if (pp_timeout(ppi, PP_TO_BMC))
+		ppi->next_state = bmc(ppi);
+
 	if (ppi->state != ppi->next_state)
 		return leave_current_state(ppi);
 
 	if (!plen)
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
+
 	err = ip->f1(ppi, packet, plen);
 	if (err)
 		pp_printf("fsm for %s: Error %i in %s\n",
@@ -268,5 +275,10 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 		return leave_current_state(ppi);
 
 	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
+
+	/* check if the BMC timeout is the next to run */
+	if (pp_next_delay_1(ppi, PP_TO_BMC) < ppi->next_delay)
+		ppi->next_delay = pp_next_delay_1(ppi, PP_TO_BMC);
+
 	return ppi->next_delay;
 }

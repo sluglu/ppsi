@@ -85,14 +85,13 @@ int st_com_execute_slave(struct pp_instance *ppi)
 
 	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)
 	    || pp_timeout(ppi, PP_TO_FAULT)) {
-		/* 
+		/*
 		 * Note: TO_FAULTY == SYNCHRONIZATION_FAULT
 		 * should move us to UNCALIBRATED (not implemented)
 		 */
-		ppi->frgn_rec_num = 0;
 		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			ppi->next_state = PPS_MASTER;
+			ppi->next_state =  PPS_MASTER;
 		} else {
 			ppi->next_state = PPS_LISTENING;
 			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);

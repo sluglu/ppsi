@@ -16,7 +16,7 @@ static void init_parent_ds(struct pp_instance *ppi)
 	/* 8.2.3.2 */
 	DSPAR(ppi)->parentPortIdentity.clockIdentity =
 		DSDEF(ppi)->clockIdentity;
-	/* FIXME: portNumber ? */
+	DSPAR(ppi)->parentPortIdentity.portNumber = 0;
 	/* 8.2.3.3 skipped (parentStats is not used) */
 	/* 8.2.3.4 */
 	DSPAR(ppi)->observedParentOffsetScaledLogVariance = 0xffff;

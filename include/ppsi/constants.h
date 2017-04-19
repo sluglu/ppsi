@@ -23,11 +23,11 @@
 #define PP_DEFAULT_AP				10
 #define PP_DEFAULT_AI				1000
 #define PP_DEFAULT_DELAY_S			6
-#define PP_DEFAULT_ANNOUNCE_INTERVAL		1		/* 0 in 802.1AS */
+#define PP_DEFAULT_ANNOUNCE_INTERVAL		1	/* 0 in 802.1AS */
 #define PP_DEFAULT_DELAYREQ_INTERVAL		0
-#define PP_DEFAULT_SYNC_INTERVAL		0			/* -7 in 802.1AS */
+#define PP_DEFAULT_SYNC_INTERVAL		0	/* -7 in 802.1AS */
 #define PP_DEFAULT_SYNC_RECEIPT_TIMEOUT		3
-#define PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT	20	/* 3 by default */
+#define PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT	3	/* 3 by default */
 
 /* Clock classes (pag 55, PTP-2008). See ppsi-manual for an explanation */
 #define PP_CLASS_SLAVE_ONLY			255
@@ -43,12 +43,15 @@
 						       * same value as in ptpdv1
 						       */
 #define PP_NR_FOREIGN_RECORDS			5
+#define PP_FOREIGN_MASTER_TIME_WINDOW		4
+#define PP_FOREIGN_MASTER_THRESHOLD		2
 #define PP_DEFAULT_TTL				1
 
 /* We use an array of timeouts, with these indexes */
 enum pp_timeouts {
 	PP_TO_REQUEST = 0,
 	PP_TO_SYNC_SEND,
+	PP_TO_BMC,
 	PP_TO_ANN_RECEIPT,
 	PP_TO_ANN_SEND,
 	PP_TO_FAULT,

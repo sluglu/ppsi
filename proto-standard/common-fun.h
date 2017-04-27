@@ -13,22 +13,6 @@
 
 /* Contains all functions common to more than one state */
 
-/* returns -1 in case of error, see below */
-int st_com_execute_slave(struct pp_instance *ppi);
-
-/* Each of the following "handle" functions" return 0 in case of correct
- * message, -1 in case the message contained in buf is not proper (e.g. size
- * is not the expected one
- */
-int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			     int len);
-
-int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			      int len);
-
-int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
-				 int len);
-
 int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 			    int len);
 

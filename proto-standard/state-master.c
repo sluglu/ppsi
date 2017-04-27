@@ -13,7 +13,7 @@ static int master_handle_delay_request(struct pp_instance *ppi,
 				       unsigned char *pkt, int plen);
 
 static pp_action *actions[] = {
-	[PPM_SYNC]		= st_com_master_handle_sync,
+	[PPM_SYNC]		= 0,
 	[PPM_DELAY_REQ]		= master_handle_delay_request,
 #if CONFIG_HAS_P2P
 	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
@@ -43,6 +43,9 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	int msgtype;
 	int pre = (ppi->state == PPS_PRE_MASTER);
 	int e = 0; /* error var, to check errors in msg handling */
+
+	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
+					   * passive */
 
 	/* upgrade from pre-master to master */
 	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {
@@ -95,6 +98,9 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				msgtype);
 	}
+
+	if (pp_timeout(ppi, PP_TO_FAULT))
+		ppi->next_state = PPS_FAULTY;
 
 out:
 	switch(e) {

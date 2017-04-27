@@ -193,7 +193,7 @@ static int bmc_gm_cmp(struct pp_instance *ppi,
 		return -1;
 	}
 
-	/* if a is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
+	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
 	if ((qualifiedb >= PP_FOREIGN_MASTER_THRESHOLD)
 	    && (qualifieda < PP_FOREIGN_MASTER_THRESHOLD)) {
 		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
@@ -263,7 +263,7 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 		return -1;
 	}
 
-	/* if a is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
+	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
 	if ((qualifiedb >= PP_FOREIGN_MASTER_THRESHOLD)
 	    && (qualifieda < PP_FOREIGN_MASTER_THRESHOLD)) {
 		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
@@ -338,6 +338,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 {
 	int cmpres;
 	struct pp_frgn_master d0;
+	struct DSParent *parent = DSPAR(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
 	struct pp_instance *ppi_best;
 	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
@@ -432,18 +433,24 @@ check_boundary_clk:
 	return PPS_FAULTY;
 
 passive_p1:
-	p1(ppi);
 	pp_diag(ppi, bmc, 1, "%s: passive p1\n", __func__);
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+		return PPS_LISTENING;
+	p1(ppi);
 	return PPS_PASSIVE;
 
 passive_p2:
-	p2(ppi);
 	pp_diag(ppi, bmc, 1, "%s: passive p2\n", __func__);
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+		return PPS_LISTENING;
+	p2(ppi);
 	return PPS_PASSIVE;
 
 master_m1:
-	m1(ppi);
 	pp_diag(ppi, bmc, 1, "%s: master m1\n", __func__);
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+		return PPS_LISTENING;
+	m1(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
@@ -455,8 +462,10 @@ master_m1:
 		return PPS_MASTER;
 
 master_m2:
-	m2(ppi);
 	pp_diag(ppi, bmc, 1, "%s: master m2\n", __func__);
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+		return PPS_LISTENING;
+	m2(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
@@ -468,8 +477,10 @@ master_m2:
 		return PPS_MASTER;
 
 master_m3:
-	m3(ppi);
 	pp_diag(ppi, bmc, 1, "%s: master m3\n", __func__);
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+		return PPS_LISTENING;
+	m3(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
@@ -481,12 +492,31 @@ master_m3:
 		return PPS_MASTER;
 
 slave_s1:
-	/* only update parent dataset if best master is on this port */
-	if (ppi->port_idx == GLBS(ppi)->ebest_idx)
-		s1(ppi, &ebest->hdr, &ebest->ann);
 	pp_diag(ppi, bmc, 1, "%s: slave s1\n", __func__);
-	return PPS_SLAVE;
-
+	/* only update parent dataset if best master is on this port */
+	if (ppi->port_idx == GLBS(ppi)->ebest_idx) {
+		/* check if we have a new master */
+		cmpres = pidcmp(&parent->parentPortIdentity,
+				&ebest->hdr.sourcePortIdentity);
+		s1(ppi, &ebest->hdr, &ebest->ann);
+	} else {
+		/* set that to zero in the case we don't have the master master
+		 * on that port */
+		cmpres = 0;
+	}
+	/* if we are not comming from the slave state we go to uncalibrated
+	 * first */
+	if (ppi->state != PPS_SLAVE) {
+		return PPS_UNCALIBRATED;
+	} else {
+		/* if the master changed we go to uncalibrated*/
+		if (cmpres) {
+			pp_diag(ppi, bmc, 1,
+				"new master, change to uncalibrated\n");
+			return PPS_UNCALIBRATED;
+		} else
+			return PPS_SLAVE;
+	}
 }
 
 static void bmc_age_frgn_master(struct pp_instance *ppi)

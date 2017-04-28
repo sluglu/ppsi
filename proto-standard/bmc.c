@@ -210,22 +210,47 @@ static int bmc_gm_cmp(struct pp_instance *ppi,
 	qa = &aa->grandmasterClockQuality;
 	qb = &ab->grandmasterClockQuality;
 
-	if (aa->grandmasterPriority1 != ab->grandmasterPriority1)
+	if (aa->grandmasterPriority1 != ab->grandmasterPriority1) {
+		pp_diag(ppi, bmc, 3, "Priority1 A: %i, Priority1 B: %i\n",
+			aa->grandmasterPriority1, ab->grandmasterPriority1);
 		return aa->grandmasterPriority1 - ab->grandmasterPriority1;
+	}
 
-	if (qa->clockClass != qb->clockClass)
+	if (qa->clockClass != qb->clockClass) {
+		pp_diag(ppi, bmc, 3, "ClockClass A: %i, ClockClass B: %i\n",
+			qa->clockClass, qb->clockClass);
 		return qa->clockClass - qb->clockClass;
+	}
 
-	if (qa->clockAccuracy != qb->clockAccuracy)
+	if (qa->clockAccuracy != qb->clockAccuracy) {
+		pp_diag(ppi, bmc, 3, "ClockAccuracy A: %i, ClockAccuracy B: %i\n",
+			qa->clockAccuracy, qb->clockAccuracy);
 		return qa->clockAccuracy - qb->clockAccuracy;
+	}
 
-	if (qa->offsetScaledLogVariance != qb->offsetScaledLogVariance)
+	if (qa->offsetScaledLogVariance != qb->offsetScaledLogVariance) {
+		pp_diag(ppi, bmc, 3, "Variance A: %i, Variance B: %i\n",
+			qa->offsetScaledLogVariance, qb->offsetScaledLogVariance);
 		return qa->offsetScaledLogVariance
 				- qb->offsetScaledLogVariance;
+	}
 
-	if (aa->grandmasterPriority2 != ab->grandmasterPriority2)
+	if (aa->grandmasterPriority2 != ab->grandmasterPriority2) {
+		pp_diag(ppi, bmc, 3, "Priority2 A: %i, Priority2 B: %i\n",
+			aa->grandmasterPriority2, ab->grandmasterPriority2);
 		return aa->grandmasterPriority2 - ab->grandmasterPriority2;
+	}
 
+	pp_diag(ppi, bmc, 3, "GmId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x,\n"
+		"GmId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+		aa->grandmasterIdentity.id[0], aa->grandmasterIdentity.id[1],
+		aa->grandmasterIdentity.id[2], aa->grandmasterIdentity.id[3],
+		aa->grandmasterIdentity.id[4], aa->grandmasterIdentity.id[5],
+		aa->grandmasterIdentity.id[6], aa->grandmasterIdentity.id[7],
+		ab->grandmasterIdentity.id[0], ab->grandmasterIdentity.id[1],
+		ab->grandmasterIdentity.id[2], ab->grandmasterIdentity.id[3],
+		ab->grandmasterIdentity.id[4], ab->grandmasterIdentity.id[5],
+		ab->grandmasterIdentity.id[6], ab->grandmasterIdentity.id[7]);
 	return idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity);
 }
 
@@ -278,8 +303,11 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 	}
 
 	diff = aa->stepsRemoved - ab->stepsRemoved;
-	if (diff > 1 || diff < -1)
+	if (diff > 1 || diff < -1) {
+		pp_diag(ppi, bmc, 3, "StepsRemoved A: %i, StepsRemoved B: %i\n",
+			aa->stepsRemoved, ab->stepsRemoved);
 		return diff;
+	}
 
 	if (diff > 0) {
 		if (!pidcmp(pidtxa, pidrxa)) {
@@ -287,6 +315,8 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 				__func__, __LINE__);
 			return 0;
 		}
+		pp_diag(ppi, bmc, 3, "StepsRemoved A: %i, StepsRemoved B: %i\n",
+			aa->stepsRemoved, ab->stepsRemoved);
 		return 1;
 
 	}
@@ -296,15 +326,42 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 				__func__, __LINE__);
 			return 0;
 		}
+		pp_diag(ppi, bmc, 3, "StepsRemoved A: %i, StepsRemoved B: %i\n",
+			aa->stepsRemoved, ab->stepsRemoved);
 		return -1;
 	}
 	/* stepsRemoved is equal, compare identities */
 	diff = pidcmp(pidtxa, pidtxb);
-	if (diff)
+	if (diff) {
+		pp_diag(ppi, bmc, 3, "TxId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n"
+			"TxId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n",
+			pidtxa->clockIdentity.id[0], pidtxa->clockIdentity.id[1],
+			pidtxa->clockIdentity.id[2], pidtxa->clockIdentity.id[3],
+			pidtxa->clockIdentity.id[4], pidtxa->clockIdentity.id[5],
+			pidtxa->clockIdentity.id[6], pidtxa->clockIdentity.id[7],
+			pidtxa->portNumber,
+			pidtxb->clockIdentity.id[0], pidtxb->clockIdentity.id[1],
+			pidtxb->clockIdentity.id[2], pidtxb->clockIdentity.id[3],
+			pidtxb->clockIdentity.id[4], pidtxb->clockIdentity.id[5],
+			pidtxb->clockIdentity.id[6], pidtxb->clockIdentity.id[7],
+			pidtxb->portNumber);
 		return diff;
+	}
 
 	/* sourcePortIdentity is equal, compare receive port identites, which
 	 * is the last decision maker, which has to be different */
+	pp_diag(ppi, bmc, 3, "RxId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n"
+		"RxId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n",
+		pidrxa->clockIdentity.id[0], pidrxa->clockIdentity.id[1],
+		pidrxa->clockIdentity.id[2], pidrxa->clockIdentity.id[3],
+		pidrxa->clockIdentity.id[4], pidrxa->clockIdentity.id[5],
+		pidrxa->clockIdentity.id[6], pidrxa->clockIdentity.id[7],
+		pidrxa->portNumber,
+		pidrxb->clockIdentity.id[0], pidrxb->clockIdentity.id[1],
+		pidrxb->clockIdentity.id[2], pidrxb->clockIdentity.id[3],
+		pidrxb->clockIdentity.id[4], pidrxb->clockIdentity.id[5],
+		pidrxb->clockIdentity.id[6], pidrxb->clockIdentity.id[7],
+		pidrxb->portNumber);
 	return pidcmp(pidrxa, pidrxb);
 }
 

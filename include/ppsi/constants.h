@@ -38,10 +38,10 @@
 #define PP_DEFAULT_CLOCK_ACCURACY		0xFE
 #define PP_DEFAULT_PRIORITY1			128
 #define PP_DEFAULT_PRIORITY2			128
-#define PP_DEFAULT_CLOCK_VARIANCE		-4000 /* To be determined in
-						       * 802.1AS. We use the
-						       * same value as in ptpdv1
-						       */
+#define PP_DEFAULT_CLOCK_VARIANCE		0x8000 /* take the middle
+							* between min and max
+							*/
+
 #define PP_NR_FOREIGN_RECORDS			5
 #define PP_FOREIGN_MASTER_TIME_WINDOW		4
 #define PP_FOREIGN_MASTER_THRESHOLD		2

@@ -243,6 +243,7 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	ppi->next_delay = 0;
 	if (ppi->is_new_state)
 		pp_diag_fsm(ppi, ip->name, STATE_ENTER, plen);
+
 	/*
 	 * Possibly filter out packet and maybe update port state
 	 */
@@ -253,11 +254,6 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 			plen = 0;
 		}
 	}
-
-	/* run bmc independent of state, and since not message driven do this
-	 * here 9.2.6.8 */
-	if (pp_timeout(ppi, PP_TO_BMC))
-		ppi->next_state = bmc(ppi);
 
 	if (ppi->state != ppi->next_state)
 		return leave_current_state(ppi);
@@ -273,6 +269,16 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	/* done: if new state mark it, and enter it now (0 ms) */
 	if (ppi->state != ppi->next_state)
 		return leave_current_state(ppi);
+
+	/* run bmc independent of state, and since not message driven do this
+	 * here 9.2.6.8 */
+	if (pp_timeout(ppi, PP_TO_BMC)) {
+		ppi->next_state = bmc(ppi);
+
+		/* done: if new state mark it, and enter it now (0 ms) */
+		if (ppi->state != ppi->next_state)
+			return leave_current_state(ppi);
+	}
 
 	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
 

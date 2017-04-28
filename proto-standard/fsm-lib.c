@@ -115,6 +115,8 @@ static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 	struct pp_frgn_master frgn_master;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
+	pp_diag(ppi, bmc, 2, "%s\n", __func__);
+
 	/* if we are a configured master don't add*/
 	if (ppi->role == PPSI_ROLE_MASTER)
 		return;
@@ -136,12 +138,18 @@ static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 	/* Check if announce from a port from this clock 9.3.2.5 a) */
 	if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
 		    &DSDEF(ppi)->clockIdentity,
-		    sizeof(DSDEF(ppi)->clockIdentity)))
+		    sizeof(DSDEF(ppi)->clockIdentity))) {
+		pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
 		return;
+	}
 
 	/* Check if announce has steps removed larger than 255 9.3.2.5 d) */
-	if (frgn_master.ann.stepsRemoved >= 255)
+	if (frgn_master.ann.stepsRemoved >= 255) {
+		pp_diag(ppi, bmc, 2, "Announce frame steps removed" 
+			"larger or equal 255: %i\n", 
+			frgn_master.ann.stepsRemoved);
 		return;
+	}
 
 	/* Check if foreign master is already known */
 	for (i = 0; i < ppi->frgn_rec_num; i++) {

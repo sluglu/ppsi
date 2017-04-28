@@ -211,7 +211,9 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->grandmasterPriority2 = *(UInteger8 *) (buf + 52);
 	memcpy(&ann->grandmasterIdentity, (buf + 53),
 	       PP_CLOCK_IDENTITY_LENGTH);
-	ann->stepsRemoved = htons(*(UInteger16 *) (buf + 61));
+	/* WORKAROUND htons doesn't seem to work on unaligned addresses */
+	ann->stepsRemoved = *(UInteger8 *)(buf + 61);
+	ann->stepsRemoved = (ann->stepsRemoved << 8) + *(UInteger8 *)(buf + 62);
 	ann->timeSource = *(Enumeration8 *) (buf + 63);
 
 	if (pp_hooks.unpack_announce)

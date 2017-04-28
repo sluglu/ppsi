@@ -45,7 +45,7 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	int e = 0; /* error var, to check errors in msg handling */
 
 	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
-					   * passive */
+					   * master */
 
 	/* upgrade from pre-master to master */
 	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {

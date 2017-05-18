@@ -123,6 +123,8 @@ enum {
 	WR_PORT_CALIBRATION_6,
 	WR_PORT_CALIBRATION_7,
 	WR_PORT_CALIBRATION_8,
+	/* A special send-sync-only state for absolute calibration */
+	WRS_ABSCAL,
 };
 
 /* White Rabbit commands (for new implementation, single FSM), see table 38 */

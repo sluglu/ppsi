@@ -15,3 +15,5 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-wr-link-on.o \
 	$D/wr-msg.o \
 	$D/wr-servo.o
+
+OBJ-$(CONFIG_ABSCAL) += $D/state-wr-abscal.o

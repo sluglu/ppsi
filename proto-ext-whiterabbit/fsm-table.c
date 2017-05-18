@@ -30,5 +30,8 @@ struct pp_state_table_item pp_state_table[] = {
 	{ WRS_CALIBRATED,	"wr-calibrated",	wr_calibrated,},
 	{ WRS_RESP_CALIB_REQ,	"wr-resp-calib-req",	wr_resp_calib_req,},
 	{ WRS_WR_LINK_ON,	"wr-link-on",		wr_link_on,},
+#ifdef CONFIG_ABSCAL
+	{ WRS_ABSCAL,		"absolute-calibration",	wr_abscal,},
+#endif
 	{ PPS_END_OF_TABLE,}
 };

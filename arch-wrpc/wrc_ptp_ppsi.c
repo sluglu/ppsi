@@ -131,6 +131,7 @@ int wrc_ptp_set_mode(int mode)
 
 	switch (mode) {
 	case WRC_MODE_GM:
+	case WRC_MODE_ABSCAL: /* absolute calibration, gm-lookalike */
 		wrp->wrConfig = WR_M_ONLY;
 		ppi->role = PPSI_ROLE_MASTER;
 		*class_ptr = PP_CLASS_WR_GM_LOCKED;

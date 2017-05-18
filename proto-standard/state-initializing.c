@@ -97,6 +97,14 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->next_state = PPS_LISTENING;
 	else
 		ppi->next_state = PPS_MASTER;
+
+#ifdef CONFIG_ABSCAL
+	/* absolute calibration only exists in arch-wrpc, so far */
+	extern int ptp_mode;
+	if (ptp_mode == 4 /* WRC_MODE_ABSCAL */)
+		ppi->next_state = WRS_WR_LINK_ON;
+#endif
+
 	return 0;
 
 failure:

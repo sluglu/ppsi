@@ -7,11 +7,17 @@
 #include <ppsi/ppsi.h>
 #include "ptpdump.h"
 
+#include "../arch-wrpc/wrpc.h"
 #include <syscon.h> /* wrpc-sw */
+#include <endpoint.h> /* wrpc-sw */
 #include <ptpd_netif.h> /* wrpc-sw */
 
 int frame_rx_delay_us; /* set by faults.c */
 
+#define HAS_ABSCAL 0
+#ifdef CONFIG_ABSCAL
+#define HAS_ABSCAL 1
+#endif
 /*
  * we know we create one socket only in wrpc. The buffer size used to be
  * 512. Let's keep it unchanged, because we might enqueue a few frames.
@@ -67,7 +73,8 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		t->secs = wr_ts.sec;
 		t->scaled_nsecs = (int64_t)wr_ts.nsec << 16;
 		t->scaled_nsecs += wr_ts.phase * (1 << 16) / 1000;
-		if (!wr_ts.correct)
+		/* avoid "incorrect" stamps when abscal is running */
+		if (!wr_ts.correct && ptp_mode != WRC_MODE_ABSCAL)
 			mark_incorrect(t);
 	}
 
@@ -77,6 +84,24 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	if (pp_diag_allow(ppi, frames, 2))
 		dump_payloadpkt("recv: ", pkt, got, t);
 #endif
+	if (HAS_ABSCAL && ptp_mode == WRC_MODE_ABSCAL) {
+		struct pp_time t4, t_bts;
+		int bitslide;
+
+		/* WR counts bitslide later, in fixed-delta, so subtract it */
+		t4 = *t;
+		bitslide = ep_get_bitslide();
+		t_bts.secs = 0;
+		t_bts.scaled_nsecs = (bitslide << 16) / 1000;
+		pp_time_sub(&t4, &t_bts);
+		pp_printf("%09d %09d %03d",
+			  (int)t4.secs, (int)(t4.scaled_nsecs >> 16),
+			  ((int)(t4.scaled_nsecs & 0xffff) * 1000) >> 16);
+		/* Print the difference from T1, too */
+		pp_time_sub(&t4, &ppi->last_snt_time);
+		pp_printf("   %9d.%3d\n", (int)(t4.scaled_nsecs >> 16),
+			  ((int)(t4.scaled_nsecs & 0xffff) * 1000) >> 16);
+	}
 
 	if (CONFIG_HAS_WRPC_FAULTS && ppsi_drop_rx()) {
 		pp_diag(ppi, frames, 1, "Drop received frame\n");
@@ -131,6 +156,11 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 			__func__, snt, (long)t->secs,
 			(long)(t->scaled_nsecs >> 16));
 	}
+	if (HAS_ABSCAL && ptp_mode == WRC_MODE_ABSCAL)
+		pp_printf("%09d %09d %03d ", /* first half of a line */
+			  (int)t->secs, (int)(t->scaled_nsecs >> 16),
+			  ((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16);
+
 	if (CONFIG_HAS_WRPC_FAULTS && drop) {
 		pp_diag(ppi, frames, 1, "Drop sent frame\n");
 		return PP_SEND_DROP;

@@ -94,6 +94,7 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen);
 int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen);
 int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen);
 int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen);
+int wr_abscal(struct pp_instance *ppi, unsigned char *pkt, int plen);
 
 /* Common functions, used by various states and hooks */
 void wr_handshake_init(struct pp_instance *ppi, int mode);

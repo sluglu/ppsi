@@ -99,7 +99,7 @@ static int __msg_pack_header(struct pp_instance *ppi, unsigned msgtype)
 }
 
 /* Pack Sync message into out buffer of ppi */
-static int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
+int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;;

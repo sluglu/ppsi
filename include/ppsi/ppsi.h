@@ -366,6 +366,7 @@ extern void msg_init_header(struct pp_instance *ppi, void *buf);
 extern int __attribute__((warn_unused_result))
 	msg_unpack_header(struct pp_instance *ppi, void *buf, int plen);
 extern void msg_unpack_sync(void *buf, MsgSync *sync);
+extern int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp);
 extern void msg_unpack_announce(void *buf, MsgAnnounce *ann);
 extern void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup);
 extern void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req);

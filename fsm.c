@@ -197,15 +197,16 @@ static int fsm_unpack_verify_frame(struct pp_instance *ppi,
 int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 {
 	struct pp_state_table_item *ip;
+	struct pp_time *t = &ppi->last_rcv_time;
 	int state, err = 0;
 	int msgtype;
 
 	if (plen > 0) {
 		msgtype = packet[0] & 0xf;
 		pp_diag(ppi, frames, 1,
-			"RECV %02d bytes at %9d.%09d (type %x, %s)\n", plen,
-			(int)ppi->last_rcv_time.secs,
-			(int)(ppi->last_rcv_time.scaled_nsecs >> 16),
+			"RECV %02d bytes at %9d.%09d.%03d (type %x, %s)\n",
+			plen, (int)t->secs, (int)(t->scaled_nsecs >> 16),
+			((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
 			msgtype, pp_msgtype_info[msgtype].name);
 	}
 

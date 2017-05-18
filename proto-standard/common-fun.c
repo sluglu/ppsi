@@ -304,6 +304,7 @@ int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 {
 	int msgtype = ((char *)ppi->tx_ptp)[0] & 0xf;
+	struct pp_time *t = &ppi->last_snt_time;
 	int ret;
 
 	ret = ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,
@@ -316,9 +317,9 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 		return PP_SEND_ERROR;
 	}
 	/* FIXME: diagnosticst should be looped back in the send method */
-	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d (%s)\n", msglen,
-		(int)(ppi->last_snt_time.secs),
-		(int)(ppi->last_snt_time.scaled_nsecs >> 16),
+	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d.%03d (%s)\n",
+		msglen, (int)t->secs, (int)(t->scaled_nsecs >> 16),
+		((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
 		pp_msgtype_info[msgtype].name);
 	if (chtype == PP_NP_EVT && is_incorrect(&ppi->last_snt_time))
 		return PP_SEND_NO_STAMP;

@@ -519,6 +519,7 @@ static int msg_issue_pdelay_req(struct pp_instance *ppi)
 	struct pp_time now;
 	int len;
 
+	mark_incorrect(&ppi->t4); /* see commit message */
 	ppi->t_ops->get(ppi, &now);
 	len = msg_pack_pdelay_req(ppi, &now);
 	return __send_and_log(ppi, len, PP_NP_EVT);

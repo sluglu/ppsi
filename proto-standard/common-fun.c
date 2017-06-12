@@ -135,6 +135,18 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
+static int presp_call_servo(struct pp_instance *ppi)
+{
+	int ret = 0;
+
+	pp_timeout_set(ppi, PP_TO_FAULT);
+	if (pp_hooks.handle_presp)
+		ret = pp_hooks.handle_presp(ppi);
+	else
+		pp_servo_got_presp(ppi);
+	return ret;
+}
+
 int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 			    int len)
 {
@@ -168,13 +180,8 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 			memset(&ppi->t5, 0, sizeof(ppi->t5));
 		}
 
-		if (!(hdr->flagField[0] & PP_TWO_STEP_FLAG)) {
-			pp_timeout_set(ppi, PP_TO_FAULT);
-			if (pp_hooks.handle_presp)
-				e = pp_hooks.handle_presp(ppi);
-			else
-				pp_servo_got_presp(ppi);
-		}
+		if (!(hdr->flagField[0] & PP_TWO_STEP_FLAG))
+			e = presp_call_servo(ppi);
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
 			"PDelay Resp doesn't match PDelay Req\n");
@@ -204,11 +211,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 		ppi->t5 = respFllw.responseOriginTimestamp;
 		pp_time_add(&ppi->t5, &hdr->cField);
 
-		pp_timeout_set(ppi, PP_TO_FAULT);
-		if (pp_hooks.handle_presp)
-			e = pp_hooks.handle_presp(ppi);
-		else
-			pp_servo_got_presp(ppi);
+		e = presp_call_servo(ppi);
 	} else {
 		pp_diag(ppi, frames, 2, "%s: "
 			"PDelay Resp F-up doesn't match PDelay Req\n",

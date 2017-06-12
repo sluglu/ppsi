@@ -139,11 +139,19 @@ static int presp_call_servo(struct pp_instance *ppi)
 {
 	int ret = 0;
 
+	if (is_incorrect(&ppi->t4) || is_incorrect(&ppi->t5))
+		return 0; /* not an error, just no data */
+
 	pp_timeout_set(ppi, PP_TO_FAULT);
 	if (pp_hooks.handle_presp)
 		ret = pp_hooks.handle_presp(ppi);
 	else
 		pp_servo_got_presp(ppi);
+
+	/* Avoid re-using the stamps if presp is lost but f-up is recvd */
+	mark_incorrect(&ppi->t4);
+	mark_incorrect(&ppi->t5);
+
 	return ret;
 }
 

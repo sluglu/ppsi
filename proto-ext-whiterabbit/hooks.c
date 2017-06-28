@@ -1,6 +1,5 @@
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
-#include "../proto-standard/common-fun.h"
 
 /* ext-whiterabbit must offer its own hooks */
 
@@ -164,7 +163,7 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 		DSPOR(ppi)->portIdentity.portNumber;
 }
 
-static int wr_execute_slave(struct pp_instance *ppi)
+int wr_execute_slave(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
@@ -261,6 +260,28 @@ static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 		msg_unpack_announce_wr_tlv(buf, ann);
 }
 
+/* State decision algorithm 9.3.3 Fig 26 with extension for wr */
+static int wr_bmc_state_decision(struct pp_instance *ppi, int next_state)
+{
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	
+	/* 
+	 * if in one of the WR states stay in them, 
+	 * they will eventually go back to the normal states 
+	 */
+	if ((ppi->state == WRS_PRESENT) ||
+		(ppi->state == WRS_M_LOCK) ||
+		(ppi->state == WRS_S_LOCK) ||
+		(ppi->state == WRS_LOCKED) ||
+		(ppi->state == WRS_CALIBRATION) ||
+		(ppi->state == WRS_CALIBRATED) ||
+		(ppi->state == WRS_RESP_CALIB_REQ) ||
+		(ppi->state == WRS_WR_LINK_ON))
+		return ppi->state;
+	
+	/* else do the normal statemachine */
+	return next_state;
+}
 
 struct pp_ext_hooks pp_hooks = {
 	.init = wr_init,
@@ -278,4 +299,5 @@ struct pp_ext_hooks pp_hooks = {
 #endif
 	.pack_announce = wr_pack_announce,
 	.unpack_announce = wr_unpack_announce,
+	.bmc_state_decision = wr_bmc_state_decision,
 };

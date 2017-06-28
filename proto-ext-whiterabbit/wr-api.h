@@ -100,7 +100,7 @@ int wr_abscal(struct pp_instance *ppi, unsigned char *pkt, int plen);
 void wr_handshake_init(struct pp_instance *ppi, int mode);
 void wr_handshake_fail(struct pp_instance *ppi); /* goto non-wr */
 int wr_handshake_retry(struct pp_instance *ppi); /* 1 == retry; 0 == failed */
-
+int wr_execute_slave(struct pp_instance *ppi);
 struct wr_servo_state;
 
 /* White Rabbit hw-dependent functions (code in arch-wrpc and arch-wrs) */

@@ -166,6 +166,7 @@ struct pp_ext_hooks {
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
+	int (*bmc_state_decision)(struct pp_instance *ppi, int next_state);
 };
 
 extern struct pp_ext_hooks pp_hooks; /* The one for the extension we build */
@@ -359,8 +360,22 @@ extern void pp_servo_got_psync(struct pp_instance *ppi); /* got t1 and t2 */
 extern void pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
 
 /* bmc.c */
-extern void m1(struct pp_instance *ppi);
+extern void bmc_m1(struct pp_instance *ppi);
+extern void bmc_m2(struct pp_instance *ppi);
+extern void bmc_m3(struct pp_instance *ppi);
+extern void bmc_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
+extern void bmc_p1(struct pp_instance *ppi);
+extern void bmc_p2(struct pp_instance *ppi);
+extern void bmc_copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m);
+extern int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b);
+extern int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b);
 extern int bmc(struct pp_instance *ppi);
+extern int bmc_gm_cmp(struct pp_instance *ppi,
+			   struct pp_frgn_master *a,
+			   struct pp_frgn_master *b);
+extern int bmc_topology_cmp(struct pp_instance *ppi,
+			   struct pp_frgn_master *a,
+			   struct pp_frgn_master *b);
 extern int bmc_dataset_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b);

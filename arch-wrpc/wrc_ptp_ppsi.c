@@ -139,7 +139,7 @@ int wrc_ptp_set_mode(int mode)
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_GM;
 		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_WR_GM_LOCKED;
-		m1(ppi);
+		bmc_m1(ppi);
 		break;
 
 	case WRC_MODE_MASTER:
@@ -150,7 +150,7 @@ int wrc_ptp_set_mode(int mode)
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_FM;
 		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_DEFAULT;
-		m1(ppi);
+		bmc_m1(ppi);
 		break;
 
 	case WRC_MODE_SLAVE:

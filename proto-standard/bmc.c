@@ -17,7 +17,7 @@
 #define FFB_FTRA	0x20
 
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
-void m1(struct pp_instance *ppi)
+void bmc_m1(struct pp_instance *ppi)
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSDefault *defds = DSDEF(ppi);
@@ -44,7 +44,7 @@ void m1(struct pp_instance *ppi)
 }
 
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
-static void m2(struct pp_instance *ppi)
+void bmc_m2(struct pp_instance *ppi)
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSDefault *defds = DSDEF(ppi);
@@ -71,7 +71,7 @@ static void m2(struct pp_instance *ppi)
 }
 
 /* ppi->port_idx port is becoming Master. Table 14 (9.3.5) of the spec. */
-static void m3(struct pp_instance *ppi)
+void bmc_m3(struct pp_instance *ppi)
 {
 	/* In the default implementation, nothing should be done when a port
 	 * goes to master state at m3. This empty function is a placeholder for
@@ -79,7 +79,7 @@ static void m3(struct pp_instance *ppi)
 }
 
 /* ppi->port_idx port is synchronized to Ebest Table 16 (9.3.5) of the spec. */
-static void s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
+void bmc_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
@@ -113,14 +113,14 @@ static void s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 		pp_hooks.s1(ppi, hdr, ann);
 }
 
-static void p1(struct pp_instance *ppi)
+void bmc_p1(struct pp_instance *ppi)
 {
 	/* In the default implementation, nothing should be done when a port
 	 * goes to passive state. This empty function is a placeholder for
 	 * extension-specific needs, to be implemented as a hook */
 }
 
-static void p2(struct pp_instance *ppi)
+void bmc_p2(struct pp_instance *ppi)
 {
 	/* In the default implementation, nothing should be done when a port
 	 * goes to passive state. This empty function is a placeholder for
@@ -128,7 +128,7 @@ static void p2(struct pp_instance *ppi)
 }
 
 /* Copy local data set into header and ann message. 9.3.4 table 12. */
-static void copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
+void bmc_copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
 {
 	int i;
 	struct DSDefault *defds = DSDEF(ppi);
@@ -154,18 +154,18 @@ static void copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
 	hdr->sourcePortIdentity.clockIdentity = defds->clockIdentity;
 }
 
-static int idcmp(struct ClockIdentity *a, struct ClockIdentity *b)
+int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b)
 {
 	return memcmp(a, b, sizeof(*a));
 }
 
-static int pidcmp(struct PortIdentity *a, struct PortIdentity *b)
+int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b)
 {
 	return memcmp(a, b, sizeof(*a));
 }
 
 /* compare part2 of the datasets which is the topology, fig 27, page 89 */
-static int bmc_gm_cmp(struct pp_instance *ppi,
+int bmc_gm_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
@@ -251,11 +251,11 @@ static int bmc_gm_cmp(struct pp_instance *ppi,
 		ab->grandmasterIdentity.id[2], ab->grandmasterIdentity.id[3],
 		ab->grandmasterIdentity.id[4], ab->grandmasterIdentity.id[5],
 		ab->grandmasterIdentity.id[6], ab->grandmasterIdentity.id[7]);
-	return idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity);
+	return bmc_idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity);
 }
 
 /* compare part2 of the datasets which is the topology, fig 28, page 90 */
-static int bmc_topology_cmp(struct pp_instance *ppi,
+int bmc_topology_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
@@ -310,7 +310,7 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 	}
 
 	if (diff > 0) {
-		if (!pidcmp(pidtxa, pidrxa)) {
+		if (!bmc_pidcmp(pidtxa, pidrxa)) {
 			pp_diag(ppi, bmc, 1, "%s:%i: Error 1\n",
 				__func__, __LINE__);
 			return 0;
@@ -321,7 +321,7 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 
 	}
 	if (diff < 0) {
-		if (!pidcmp(pidtxb, pidrxb)) {
+		if (!bmc_pidcmp(pidtxb, pidrxb)) {
 			pp_diag(ppi, bmc, 1, "%s:%i: Error 1\n",
 				__func__, __LINE__);
 			return 0;
@@ -331,7 +331,7 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 		return -1;
 	}
 	/* stepsRemoved is equal, compare identities */
-	diff = pidcmp(pidtxa, pidtxb);
+	diff = bmc_pidcmp(pidtxa, pidtxb);
 	if (diff) {
 		pp_diag(ppi, bmc, 3, "TxId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n"
 			"TxId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n",
@@ -362,7 +362,7 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 		pidrxb->clockIdentity.id[4], pidrxb->clockIdentity.id[5],
 		pidrxb->clockIdentity.id[6], pidrxb->clockIdentity.id[7],
 		pidrxb->portNumber);
-	return pidcmp(pidrxa, pidrxb);
+	return bmc_pidcmp(pidrxa, pidrxb);
 }
 
 /*
@@ -381,7 +381,7 @@ int bmc_dataset_cmp(struct pp_instance *ppi,
 	/* dataset_cmp is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
-	if (!idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity)) {
+	if (!bmc_idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity)) {
 		/* Check topology */
 		return bmc_topology_cmp(ppi, a, b);
 	} else {
@@ -416,7 +416,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		return PPS_LISTENING;
 
 	/* copy local information to a foreign_master structure */
-	copy_d0(ppi, &d0);
+	bmc_copy_d0(ppi, &d0);
 
 
 	if (ppi->role == PPSI_ROLE_MASTER) {
@@ -493,21 +493,21 @@ passive_p1:
 	pp_diag(ppi, bmc, 1, "%s: passive p1\n", __func__);
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
 		return PPS_LISTENING;
-	p1(ppi);
+	bmc_p1(ppi);
 	return PPS_PASSIVE;
 
 passive_p2:
 	pp_diag(ppi, bmc, 1, "%s: passive p2\n", __func__);
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
 		return PPS_LISTENING;
-	p2(ppi);
+	bmc_p2(ppi);
 	return PPS_PASSIVE;
 
 master_m1:
 	pp_diag(ppi, bmc, 1, "%s: master m1\n", __func__);
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
 		return PPS_LISTENING;
-	m1(ppi);
+	bmc_m1(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
@@ -522,7 +522,7 @@ master_m2:
 	pp_diag(ppi, bmc, 1, "%s: master m2\n", __func__);
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
 		return PPS_LISTENING;
-	m2(ppi);
+	bmc_m2(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
@@ -537,7 +537,7 @@ master_m3:
 	pp_diag(ppi, bmc, 1, "%s: master m3\n", __func__);
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
 		return PPS_LISTENING;
-	m3(ppi);
+	bmc_m3(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
@@ -553,9 +553,9 @@ slave_s1:
 	/* only update parent dataset if best master is on this port */
 	if (ppi->port_idx == GLBS(ppi)->ebest_idx) {
 		/* check if we have a new master */
-		cmpres = pidcmp(&parent->parentPortIdentity,
+		cmpres = bmc_pidcmp(&parent->parentPortIdentity,
 				&ebest->hdr.sourcePortIdentity);
-		s1(ppi, &ebest->hdr, &ebest->ann);
+		bmc_s1(ppi, &ebest->hdr, &ebest->ann);
 	} else {
 		/* set that to zero in the case we don't have the master master
 		 * on that port */
@@ -759,6 +759,7 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 int bmc(struct pp_instance *ppi)
 {
 	struct pp_globals *ppg = GLBS(ppi);
+	int next_state;
 
 	/* bmc is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
@@ -784,6 +785,12 @@ int bmc(struct pp_instance *ppi)
 	/* Calulate Ebest Figure 25 */
 	bmc_update_ebest(ppg);
 
-	/* Make state decision*/
-	return bmc_state_decision(ppi);
+	/* Make state decision */
+	next_state = bmc_state_decision(ppi);
+	
+	/* Extra states handled here */
+	if (pp_hooks.bmc_state_decision)
+		next_state = pp_hooks.bmc_state_decision(ppi, next_state);
+	
+	return next_state;
 }

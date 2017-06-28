@@ -8,21 +8,6 @@
 
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
-#include "../proto-standard/common-fun.h"
-
-int wr_slave_execute(struct pp_instance *ppi)
-{
-	int ret = 0;
-
-	if (pp_hooks.execute_slave)
-		ret = pp_hooks.execute_slave(ppi);
-	if (ret == 1) /* done: just return */
-		return 0;
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
 
 /*
  * WRS_PRESENT is the entry point for a WR slave
@@ -36,7 +21,7 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	MsgSignaling wrsig_msg;
-
+	
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
 		sendmsg = 1;
@@ -62,7 +47,7 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (e == 0)
-		wr_slave_execute(ppi);
+		wr_execute_slave(ppi);
 	else {
 		/* nothing, just stay here again */
 	}

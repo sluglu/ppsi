@@ -228,7 +228,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
 		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			ppi->next_state =  PPS_MASTER;
+			ppi->next_state = PPS_MASTER;
 		} else {
 			ppi->next_state = PPS_LISTENING;
 			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);

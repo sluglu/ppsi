@@ -74,7 +74,8 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		t->scaled_nsecs = (int64_t)wr_ts.nsec << 16;
 		t->scaled_nsecs += wr_ts.phase * (1 << 16) / 1000;
 		/* avoid "incorrect" stamps when abscal is running */
-		if (!wr_ts.correct && ptp_mode != WRC_MODE_ABSCAL)
+		if (!wr_ts.correct
+		    && (!HAS_ABSCAL || ptp_mode != WRC_MODE_ABSCAL))
 			mark_incorrect(t);
 	}
 

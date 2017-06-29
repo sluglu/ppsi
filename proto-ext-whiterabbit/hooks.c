@@ -170,6 +170,14 @@ int wr_execute_slave(struct pp_instance *ppi)
 	if (pp_timeout(ppi, PP_TO_FAULT))
 		wr_servo_reset(ppi); /* the caller handles ptp state machine */
 
+	if ((ppi->state == PPS_SLAVE) &&
+		(WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
+		(WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
+	    (!WR_DSPOR(ppi)->wrModeOn || !WR_DSPOR(ppi)->parentWrModeOn)) {
+		/* We must start the handshake as a WR slave */
+		wr_handshake_init(ppi, PPS_SLAVE);
+	}
+	
 	/* The doRestart thing is not  used, it seems */
 	if (!WR_DSPOR(ppi)->doRestart)
 		return 0;
@@ -181,13 +189,8 @@ int wr_execute_slave(struct pp_instance *ppi)
 static int wr_handle_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	if ((WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
-	    (1 /* FIXME: Recommended State, see page 33*/) &&
-	    (WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
-	    (!WR_DSPOR(ppi)->wrModeOn || !WR_DSPOR(ppi)->parentWrModeOn)) {
-		/* We must start the handshake as a WR slave */
-		wr_handshake_init(ppi, PPS_SLAVE);
-	}
+
+	/* handshake is started in slave mode */
 	return 0;
 }
 
@@ -263,6 +266,10 @@ static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 /* State decision algorithm 9.3.3 Fig 26 with extension for wr */
 static int wr_bmc_state_decision(struct pp_instance *ppi, int next_state)
 {
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	struct pp_globals *ppg = GLBS(ppi);
+
+	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	
 	/* 
@@ -279,6 +286,21 @@ static int wr_bmc_state_decision(struct pp_instance *ppi, int next_state)
 		(ppi->state == WRS_WR_LINK_ON))
 		return ppi->state;
 	
+	/* if we are leaving the WR locked states reset the WR process */
+	if ((next_state != ppi->state) &&	
+		(WR_DSPOR(ppi)->wrModeOn == TRUE) &&
+		((ppi->state == PPS_SLAVE) ||
+		 (ppi->state == PPS_MASTER))) {
+		wrp->wrModeOn = FALSE;
+		wrp->parentWrConfig = NON_WR;
+		wrp->parentWrModeOn = FALSE;
+		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
+		
+		if ((ppi->state == PPS_SLAVE) &&
+			(ppg->ebest_idx == ppi->port_idx))
+			wr_servo_reset(ppi);
+	}
+		 
 	/* else do the normal statemachine */
 	return next_state;
 }

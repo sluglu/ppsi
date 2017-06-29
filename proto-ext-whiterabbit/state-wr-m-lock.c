@@ -35,7 +35,6 @@ int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-
 		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
 			 &(wrp->msgTmpWrMessageID));
 
@@ -43,6 +42,7 @@ int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			ppi->next_state = WRS_CALIBRATION;
 	}
 
+	
 	ppi->next_delay = wrp->wrStateTimeout;
 
 	return e;

@@ -151,7 +151,8 @@ void bmc_copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
 	ann->grandmasterPriority2 = defds->priority2;
 	ann->stepsRemoved = 0;
 
-	hdr->sourcePortIdentity.clockIdentity = defds->clockIdentity;
+	//hdr->sourcePortIdentity.clockIdentity = defds->clockIdentity;
+	hdr->sourcePortIdentity = DSPOR(ppi)->portIdentity;
 }
 
 int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b)
@@ -430,7 +431,6 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		}
 	}
 
-
 	/* if there is a foreign master take it otherwise just go to master */
 	if (ppg->ebest_idx >= 0) {
 		ppi_best = INST(ppg, ppg->ebest_idx);
@@ -452,6 +452,19 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		if (cmpres > 0)
 			goto passive_p1;
 	} else {
+		/* when a boundary clock, check if from own port 
+		 * and set into passive mode according to 9.5.2.3
+		 */
+		if (DSDEF(ppi)->numberPorts > 1) {
+			/* message received from the own clock */
+			if (!bmc_idcmp(&erbest->hdr.sourcePortIdentity.clockIdentity, &DSDEF(ppi)->clockIdentity)) {
+				/* is this port worse than the other */
+				cmpres = bmc_pidcmp(&erbest->hdr.sourcePortIdentity, &DSPOR(ppi)->portIdentity);
+				if (cmpres > 0)
+					goto passive_p1;
+			}
+		} 
+		
 		/* dataset_cmp D0 with Ebest */
 		cmpres = bmc_dataset_cmp(ppi, &d0, ebest);
 		if (cmpres < 0)
@@ -463,6 +476,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 			else
 				goto check_boundary_clk;
 		}
+
 	}
 	pp_diag(ppi, bmc, 1, "%s: error\n", __func__);
 

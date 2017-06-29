@@ -38,7 +38,6 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-
 		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
 			 &(wrp->msgTmpWrMessageID));
 

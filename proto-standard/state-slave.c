@@ -11,10 +11,10 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf, int len);
-int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf, int len);
+static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 			  int len);
-int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
+static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 			  int plen);
 
 static pp_action *actions[] = {
@@ -31,7 +31,7 @@ static pp_action *actions[] = {
 	/* skip signaling and management, for binary size */
 };
 
-int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 			     int len)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -63,7 +63,7 @@ int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 				 int len)
 {
 	MsgFollowUp follow;
@@ -113,7 +113,7 @@ int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
+static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 				 int plen)
 {
 	int e = 0;
@@ -158,7 +158,7 @@ int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 	return 0;
 }
 
-int slave_execute(struct pp_instance *ppi)
+static int slave_execute(struct pp_instance *ppi)
 {
 	int ret = 0;
 

@@ -135,14 +135,29 @@ static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 	memcpy(&frgn_master.source_id,
 	       &DSPOR(ppi)->portIdentity, sizeof(DSPOR(ppi)->portIdentity));
 
-	/* Check if announce from a port from this clock 9.3.2.5 a) */
-	if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
-		    &DSDEF(ppi)->clockIdentity,
-		    sizeof(DSDEF(ppi)->clockIdentity))) {
-		pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
-		return;
+	if (DSDEF(ppi)->numberPorts > 1) {
+		/* Check if announce from the same port from this clock 9.3.2.5 a) 
+		 * from another port of this clock we still handle even though it 
+		 * states something different in IEEE1588 because in 9.5.2.3 
+		 * there is a special handling described for boundary clocks
+		 * which is done in the BMC
+		 */
+		if (!memcmp(&hdr->sourcePortIdentity,
+				&DSPOR(ppi)->portIdentity,
+				sizeof(DSPOR(ppi)->portIdentity))) {
+			pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
+			return;
+		}
+	} else {
+		/* Check if announce from a port from this clock 9.3.2.5 a) */
+		if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
+				&DSDEF(ppi)->clockIdentity,
+				sizeof(DSDEF(ppi)->clockIdentity))) {
+			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+			return;
+		}
 	}
-
+	
 	/* Check if announce has steps removed larger than 255 9.3.2.5 d) */
 	if (frgn_master.ann.stepsRemoved >= 255) {
 		pp_diag(ppi, bmc, 2, "Announce frame steps removed" 

@@ -82,6 +82,8 @@ include proto-standard/Makefile
 CFLAGS += -DDEFAULT_TIME_OPS=$(TIME)_time_ops
 CFLAGS += -DDEFAULT_NET_OPS=$(TIME)_net_ops
 
+CFLAGS-$(CONFIG_ABSCAL) += -DCONFIG_ABSCAL=1
+CFLAGS += $(CFLAGS-y)
 export CFLAGS
 
 # And this is the rule to build our target.o file. The architecture may

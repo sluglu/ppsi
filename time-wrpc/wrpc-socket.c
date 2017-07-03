@@ -14,9 +14,10 @@
 
 int frame_rx_delay_us; /* set by faults.c */
 
-#define HAS_ABSCAL 0
 #ifdef CONFIG_ABSCAL
 #define HAS_ABSCAL 1
+#else
+#define HAS_ABSCAL 0
 #endif
 /*
  * we know we create one socket only in wrpc. The buffer size used to be

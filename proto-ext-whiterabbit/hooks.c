@@ -190,6 +190,17 @@ static int wr_handle_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
+	if ((ppi->state == WRS_PRESENT) ||
+		(ppi->state == WRS_S_LOCK) ||
+		(ppi->state == WRS_LOCKED) ||
+		(ppi->state == WRS_CALIBRATION) ||
+		(ppi->state == WRS_CALIBRATED) ||
+		(ppi->state == WRS_RESP_CALIB_REQ) ||
+		(ppi->state == WRS_WR_LINK_ON)) {
+		/* reset announce timeout when in the WR slave states */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+	}
+
 	/* handshake is started in slave mode */
 	return 0;
 }

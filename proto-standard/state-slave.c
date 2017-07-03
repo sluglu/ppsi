@@ -14,8 +14,9 @@
 static int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf, int len);
 static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 			  int len);
-static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
-			  int plen);
+static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
+			  int len);
+static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len);
 
 static pp_action *actions[] = {
 	[PPM_SYNC]		= slave_handle_sync,
@@ -27,7 +28,7 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= slave_handle_followup,
 	[PPM_DELAY_RESP]	= slave_handle_response,
-	[PPM_ANNOUNCE]		= pp_lib_handle_announce,
+	[PPM_ANNOUNCE]		= slave_handle_announce,
 	/* skip signaling and management, for binary size */
 };
 
@@ -113,14 +114,14 @@ static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
-				 int plen)
+static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
+				 int len)
 {
 	int e = 0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
-	MsgDelayResp resp;
-
-	msg_unpack_delay_resp(pkt, &resp);
+	MsgDelayResp resp;	
+	
+	msg_unpack_delay_resp(buf, &resp);
 
 	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
 		    &resp.requestingPortIdentity.clockIdentity,
@@ -155,6 +156,27 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 		/* new value for logMin */
 		pp_timeout_init(ppi);
 	}
+	return 0;
+}
+
+static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
+{
+	int ret = 0;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	MsgAnnounce ann;
+	
+	ret = pp_lib_handle_announce(ppi, buf, len);
+	if (ret)
+		return ret;
+	
+	if (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT) {		
+		/* 9.2.6.11 a) reset timeout */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+		/* 9.5.3 Figure 29 update data set if announce from current master */
+		msg_unpack_announce(buf, &ann);	
+		bmc_s1(ppi, hdr, &ann);
+	}
+	
 	return 0;
 }
 
@@ -206,7 +228,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	pp_lib_may_issue_request(ppi);
-
+	
 	/*
 	 * The management of messages is now table-driven
 	 */
@@ -226,12 +248,13 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	 e = slave_execute(ppi);
 
 	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
 			ppi->next_state = PPS_MASTER;
 		} else {
 			ppi->next_state = PPS_LISTENING;
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		}
 	}
 

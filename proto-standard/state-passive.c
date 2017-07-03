@@ -9,6 +9,8 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+static int passive_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len);
+
 static pp_action *actions[] = {
 	[PPM_SYNC]		= 0,
 	[PPM_DELAY_REQ]		= 0,
@@ -19,9 +21,32 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
-	[PPM_ANNOUNCE]		= pp_lib_handle_announce,
+	[PPM_ANNOUNCE]		= passive_handle_announce,
 	/* skip signaling and management, for binary size */
 };
+
+static int passive_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
+{
+	int ret = 0;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
+	
+	ret = pp_lib_handle_announce(ppi, buf, len);
+	if (ret)
+		return ret;
+	
+	if (!memcmp(&hdr->sourcePortIdentity,
+		&erbest->port_id,
+		sizeof(PortIdentity))) {
+		/* 
+		 * 9.2.6.11 d) reset timeout when an announce
+		 * is received from the clock putting it into passive (erbest)
+		 */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+	}
+	
+	return 0;
+}
 
 int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
@@ -48,12 +73,13 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
 			ppi->next_state =  PPS_MASTER;
 		} else {
 			ppi->next_state = PPS_LISTENING;
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		}
 	}
 

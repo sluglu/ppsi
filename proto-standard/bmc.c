@@ -460,7 +460,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 			if (!bmc_idcmp(&erbest->hdr.sourcePortIdentity.clockIdentity, &DSDEF(ppi)->clockIdentity)) {
 				/* is this port worse than the other */
 				cmpres = bmc_pidcmp(&erbest->hdr.sourcePortIdentity, &DSPOR(ppi)->portIdentity);
-				if (cmpres > 0)
+				if (cmpres < 0)
 					goto passive_p1;
 			}
 		} 
@@ -505,27 +505,45 @@ check_boundary_clk:
 
 passive_p1:
 	pp_diag(ppi, bmc, 1, "%s: passive p1\n", __func__);
-	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
+		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+		if (ppi->state != PPS_LISTENING)
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
 		return PPS_LISTENING;
+	}
+	/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+	if (ppi->state != PPS_PASSIVE)
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
 	bmc_p1(ppi);
 	return PPS_PASSIVE;
 
 passive_p2:
 	pp_diag(ppi, bmc, 1, "%s: passive p2\n", __func__);
-	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
+		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+		if (ppi->state != PPS_LISTENING)
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
 		return PPS_LISTENING;
+	}
+	/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+	if (ppi->state != PPS_PASSIVE)
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
 	bmc_p2(ppi);
 	return PPS_PASSIVE;
 
 master_m1:
 	pp_diag(ppi, bmc, 1, "%s: master m1\n", __func__);
-	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
+		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+		if (ppi->state != PPS_LISTENING)
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
 		return PPS_LISTENING;
+	}
 	bmc_m1(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
-			/* 9.2.6.11 a) timeout 0 */
+			/* 9.2.6.10 a) timeout 0 */
 			pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
 		}
 		return PPS_PRE_MASTER;
@@ -534,13 +552,17 @@ master_m1:
 
 master_m2:
 	pp_diag(ppi, bmc, 1, "%s: master m2\n", __func__);
-	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
+		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+		if (ppi->state != PPS_LISTENING)
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
 		return PPS_LISTENING;
+	}
 	bmc_m2(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
-			/* 9.2.6.11 a) timeout 0 */
+			/* 9.2.6.10 a) timeout 0 */
 			pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
 		}
 		return PPS_PRE_MASTER;
@@ -549,13 +571,19 @@ master_m2:
 
 master_m3:
 	pp_diag(ppi, bmc, 1, "%s: master m3\n", __func__);
-	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY)
+	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
+		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+		if (ppi->state != PPS_LISTENING)
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
 		return PPS_LISTENING;
+	}
 	bmc_m3(ppi);
 	if (ppi->state != PPS_MASTER) {
 		/* if not already in pre master state start qualification */
 		if (ppi->state != PPS_PRE_MASTER) {
-			/* 9.2.6.11 b) timeout steps removed+1 */
+			/* timeout reinit */
+			pp_timeout_init(ppi);
+			/* 9.2.6.11 b) timeout steps removed+1*/
 			pp_timeout_set(ppi, PP_TO_QUALIFICATION);
 		}
 		return PPS_PRE_MASTER;
@@ -577,16 +605,26 @@ slave_s1:
 	}
 	/* if we are not comming from the slave state we go to uncalibrated
 	 * first */
-	if (ppi->state != PPS_SLAVE) {
+	if ((ppi->state != PPS_SLAVE) &&
+		(ppi->state != PPS_UNCALIBRATED)) {
+		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
 		return PPS_UNCALIBRATED;
 	} else {
 		/* if the master changed we go to uncalibrated*/
 		if (cmpres) {
 			pp_diag(ppi, bmc, 1,
 				"new master, change to uncalibrated\n");
+			/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+			if (ppi->state != PPS_UNCALIBRATED)
+				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
 			return PPS_UNCALIBRATED;
-		} else
+		} else {
+			/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
+			if (ppi->state != PPS_SLAVE)
+				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
 			return PPS_SLAVE;
+		}
 	}
 }
 

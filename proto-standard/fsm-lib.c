@@ -120,6 +120,13 @@ static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 	/* if we are a configured master don't add*/
 	if (ppi->role == PPSI_ROLE_MASTER)
 		return;
+	
+	/* if in DISABLED, INITIALIZING or FAULTY ignore announce */
+	if ((ppi->state == PPS_DISABLED) ||
+		(ppi->state == PPS_FAULTY) ||
+		(ppi->state == PPS_INITIALIZING))
+		return;
+		
 	/*
 	 * header and announce field of each Foreign Master are
 	 * useful to run Best Master Clock Algorithm
@@ -144,7 +151,7 @@ static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 		 */
 		if (!memcmp(&hdr->sourcePortIdentity,
 				&DSPOR(ppi)->portIdentity,
-				sizeof(DSPOR(ppi)->portIdentity))) {
+				sizeof(PortIdentity))) {
 			pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
 			return;
 		}
@@ -152,7 +159,7 @@ static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 		/* Check if announce from a port from this clock 9.3.2.5 a) */
 		if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
 				&DSDEF(ppi)->clockIdentity,
-				sizeof(DSDEF(ppi)->clockIdentity))) {
+				sizeof(ClockIdentity))) {
 			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
 			return;
 		}
@@ -170,7 +177,7 @@ static void __lib_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 	for (i = 0; i < ppi->frgn_rec_num; i++) {
 		if (!memcmp(&hdr->sourcePortIdentity,
 			    &ppi->frgn_master[i].port_id,
-			    sizeof(hdr->sourcePortIdentity))) {
+			    sizeof(PortIdentity))) {
 
 			pp_diag(ppi, bmc, 2, "Foreign Master %i updated\n", i);
 

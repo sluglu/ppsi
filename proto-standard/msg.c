@@ -111,6 +111,7 @@ int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* Sync message */
+	memset((buf + 34), 0, 10);
 	*(UInteger16 *)(buf + 34) = htons(orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
@@ -173,7 +174,7 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
 
 	/* Announce message */
-	memset((buf + 34), 0, 10);
+	memset((buf + 34), 0, 30);
 	*(Integer16 *) (buf + 44) = htons(DSPRO(ppi)->currentUtcOffset);
 	*(UInteger8 *) (buf + 47) = DSPAR(ppi)->grandmasterPriority1;
 	*(UInteger8 *) (buf + 48) = DSPAR(ppi)->grandmasterClockQuality.clockClass;
@@ -231,6 +232,7 @@ static int msg_pack_follow_up(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* Follow Up message */
+	memset((buf + 34), 0, 10);
 	*(UInteger16 *)(buf + 34) = htons(prec_orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(prec_orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(prec_orig_tstamp->scaled_nsecs >> 16);
@@ -260,6 +262,7 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* requestReceiptTimestamp */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *)(buf + 34) = htons(prec_orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(prec_orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(prec_orig_tstamp->scaled_nsecs >> 16);
@@ -320,6 +323,7 @@ static int msg_pack_delay_req(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
 
 	/* Delay_req message - we may send zero instead */
+	memset((buf + 34), 0, 10);
 	*(UInteger16 *) (buf + 34) = htons(now->secs >> 32);
 	*(UInteger32 *) (buf + 36) = htonl(now->secs);
 	*(UInteger32 *) (buf + 40) = htonl(now->scaled_nsecs >> 16);
@@ -338,10 +342,10 @@ static int msg_pack_pdelay_req(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_PDELAY_REQ]);
 
 	/* PDelay_req message - we may send zero instead */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *) (buf + 34) = htons(now->secs >> 32);
 	*(UInteger32 *) (buf + 36) = htonl(now->secs);
 	*(UInteger32 *) (buf + 40) = htonl(now->scaled_nsecs >> 16);
-	memset(buf + 44, 0, 10); /* reserved to match pdelay_resp length */
 	return len;
 }
 
@@ -362,6 +366,7 @@ static int msg_pack_pdelay_resp(struct pp_instance *ppi,
 		= htonl(rcv_tstamp->scaled_nsecs & 0xffff);
 
 	/* requestReceiptTimestamp */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *) (buf + 34) = htons(rcv_tstamp->secs >> 32);
 	*(UInteger32 *) (buf + 36) = htonl(rcv_tstamp->secs);
 	*(UInteger32 *) (buf + 40) = htonl(rcv_tstamp->scaled_nsecs >> 16);
@@ -390,6 +395,7 @@ static int msg_pack_delay_resp(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* Delay_resp message */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *)(buf + 34) = htons(rcv_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(rcv_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(rcv_tstamp->scaled_nsecs >> 16);

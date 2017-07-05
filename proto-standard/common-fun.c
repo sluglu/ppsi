@@ -94,6 +94,10 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	int e = 0;
 
+	/* if not in P2P mode, just return */
+	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+		return 0;
+	
 	msg_unpack_pdelay_resp(buf, &resp);
 
 	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
@@ -136,6 +140,10 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	MsgPDelayRespFollowUp respFllw;
 	int e = 0;
 
+	/* if not in P2P mode, just return */
+	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+		return 0;
+	
 	msg_unpack_pdelay_resp_follow_up(buf, &respFllw);
 
 	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
@@ -164,6 +172,10 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 {
 	int e = 0;
 
+	/* if not in P2P mode, just return */
+	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+		return 0;
+	
 	if (pp_hooks.handle_preq)
 		e = pp_hooks.handle_preq(ppi);
 	if (e)

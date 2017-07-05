@@ -227,6 +227,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			goto out;
 	}
 
+	/* do a delay mesurement either in p2p or e2e delay mode */
 	pp_lib_may_issue_request(ppi);
 	
 	/*

@@ -56,7 +56,7 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
 					   * passive */
 
-	/* when the clock is using peer-delay, listening must send it too */
+	/* when the clock is using peer-delay, passive must send it too */
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		e  = pp_lib_may_issue_request(ppi);
 

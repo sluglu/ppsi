@@ -12,7 +12,7 @@
  * Initialize parentDS
  */
 static void init_parent_ds(struct pp_instance *ppi)
-{
+{	
 	/* 8.2.3.2 */
 	DSPAR(ppi)->parentPortIdentity.clockIdentity =
 		DSDEF(ppi)->clockIdentity;
@@ -41,12 +41,24 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	unsigned char *id, *mac;
 	struct DSPort *port = DSPOR(ppi);
 	struct pp_runtime_opts *opt = OPTS(ppi);
+	struct pp_globals *ppg = GLBS(ppi);
+	int init_dspar = 1;
 	int ret = 0;
+	int i;
 
 	if (ppi->n_ops->init(ppi) < 0) /* it must handle being called twice */
 		goto failure;
 
-	init_parent_ds(ppi);
+	/* only fill in the parent data set when initializing */
+	if (DSDEF(ppi)->numberPorts > 1) {
+		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+			if (INST(ppg, i)->state != PPS_INITIALIZING)
+				init_dspar = 0;
+		}				
+	}
+	
+	if (init_dspar)
+		init_parent_ds(ppi);
 
 	/* Clock identity comes from mac address with 0xff:0xfe intermixed */
 	id = (unsigned char *)&DSDEF(ppi)->clockIdentity;
@@ -63,7 +75,8 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	/*
 	 * Initialize parent data set
 	 */
-	init_parent_ds(ppi);
+	if (init_dspar)
+		init_parent_ds(ppi);
 
 	/*
 	 * Initialize port data set

@@ -219,6 +219,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	/* when entering uncalibrated init servo */
 	if ((ppi->state == PPS_UNCALIBRATED) && (ppi->is_new_state)) {
 		memset(&ppi->t1, 0, sizeof(ppi->t1));
+		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");	
 		pp_servo_init(ppi);
 
 		if (pp_hooks.new_slave)
@@ -246,18 +247,9 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	 * This function, common to uncalibrated and slave,
 	 * is the core of the slave: hook
 	 */
-	 e = slave_execute(ppi);
+	e = slave_execute(ppi);
 
-	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
-		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
-		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			ppi->next_state = PPS_MASTER;
-		} else {
-			ppi->next_state = PPS_LISTENING;
-		}
-	}
+	st_com_check_announce_receive_timeout(ppi);
 
 out:
 	switch(e) {
@@ -272,11 +264,6 @@ out:
 		break;
 	}
 
-	if ((ppi->next_state == PPS_UNCALIBRATED)
-	    && (ppi->next_state != ppi->state)) {
-		pp_servo_init(ppi);
-		return e;
-	}
 	ppi->next_delay = pp_next_delay_2(ppi,
 					  PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
 	return e;

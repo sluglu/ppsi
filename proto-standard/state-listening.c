@@ -49,16 +49,7 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 				hdr->messageType);
 	}
 
-	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
-		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
-		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			ppi->next_state =  PPS_MASTER;
-		} else {
-			ppi->next_state = PPS_LISTENING;
-		}
-	}
+	st_com_check_announce_receive_timeout(ppi);
 
 	if (pp_timeout(ppi, PP_TO_FAULT))
 		ppi->next_state = PPS_FAULTY;

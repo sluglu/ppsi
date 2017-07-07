@@ -56,24 +56,39 @@ static inline UInteger16 get_be16(void *ptr)
 void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 {
 	void *buf;
+	int i;
 	UInteger16 wr_flags = 0;
 	int locked, class = DSDEF(ppi)->clockQuality.clockClass;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	struct pp_globals *ppg = GLBS(ppi);
+	int is_gm = 1;
 
 	buf = ppi->tx_ptp;
 
 	/* GM: update clock Class, according to whether we are locked or not */
 	if (class < PP_CLASS_DEFAULT) {
-		locked = wrp->ops->locking_poll(ppi, 1);
-		if (locked == WR_SPLL_READY)
-			class = PP_CLASS_WR_GM_LOCKED;
-		else
-			class = PP_CLASS_WR_GM_UNLOCKED;
-		bmc_m1(ppi);
-		if (class != DSDEF(ppi)->clockQuality.clockClass) {
-			pp_error("New class %i\n", class);
-			DSDEF(ppi)->clockQuality.clockClass = class;
-			*(UInteger8 *) (buf + 48) = class;
+		if (DSDEF(ppi)->numberPorts > 1) {
+			for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+				if ((INST(ppg, i)->state == PPS_UNCALIBRATED) ||
+					(INST(ppg, i)->state == PPS_SLAVE))
+					is_gm = 0;
+			}				
+		}	
+			
+		if (is_gm) {	
+			locked = wrp->ops->locking_poll(ppi, 1);
+			if (locked == WR_SPLL_READY)
+				class = PP_CLASS_WR_GM_LOCKED;
+			else
+				class = PP_CLASS_WR_GM_UNLOCKED;
+			
+			bmc_m1(ppi);
+			
+			if (class != DSDEF(ppi)->clockQuality.clockClass) {
+				pp_error("New class %i\n", class);
+				DSDEF(ppi)->clockQuality.clockClass = class;
+				*(UInteger8 *) (buf + 48) = class;
+			}
 		}
 	}
 

@@ -243,7 +243,7 @@ int pp_lib_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
 {
 	__lib_add_foreign(ppi, buf);
 
-	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+	//TODO pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 
 	if (pp_hooks.handle_announce)
 		return pp_hooks.handle_announce(ppi);

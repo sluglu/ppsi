@@ -12,6 +12,8 @@
 #include <ppsi/ppsi.h>
 
 /* Contains all functions common to more than one state */
+int st_com_check_announce_receive_timeout(struct pp_instance *ppi);
+
 
 int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 			    int len);

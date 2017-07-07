@@ -87,6 +87,39 @@ static int presp_call_servo(struct pp_instance *ppi)
 	return ret;
 }
 
+int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
+{
+	struct pp_globals *ppg = GLBS(ppi);
+	int is_gm = 1;
+	int i;
+	
+	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
+		    && (ppi->role != PPSI_ROLE_SLAVE)) {
+			if (DSDEF(ppi)->numberPorts > 1) {
+				for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+					if ((INST(ppg, i)->state == PPS_UNCALIBRATED) ||
+						(INST(ppg, i)->state == PPS_SLAVE))
+						is_gm = 0;
+				}				
+				if (is_gm)
+					bmc_m1(ppi);
+				else
+					bmc_m3(ppi);				
+			} else
+				bmc_m1(ppi);	
+			
+			ppi->next_state = PPS_MASTER;
+		} else {
+			ppi->next_state = PPS_LISTENING;
+		}
+	}
+	return 0;
+}
+
+
 int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 			    int len)
 {

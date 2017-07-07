@@ -184,7 +184,9 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(UInteger8 *) (buf + 52) = DSPAR(ppi)->grandmasterPriority2;
 	memcpy((buf + 53), &DSPAR(ppi)->grandmasterIdentity,
 	       PP_CLOCK_IDENTITY_LENGTH);
-	*(UInteger16 *) (buf + 61) = htons(DSCUR(ppi)->stepsRemoved);
+	/* WORKAROUND 16bit casting doesn't seem to work on unaligned addresses */
+	*(UInteger8 *) (buf + 61) = (UInteger8)(DSCUR(ppi)->stepsRemoved >> 8);
+	*(UInteger8 *) (buf + 62) = (UInteger8)DSCUR(ppi)->stepsRemoved;
 	*(Enumeration8 *) (buf + 63) = DSPRO(ppi)->timeSource;
 
 	if (pp_hooks.pack_announce)

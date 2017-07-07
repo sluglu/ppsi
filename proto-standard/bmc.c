@@ -599,7 +599,7 @@ slave_s1:
 				&ebest->hdr.sourcePortIdentity);
 		bmc_s1(ppi, &ebest->hdr, &ebest->ann);
 	} else {
-		/* set that to zero in the case we don't have the master master
+		/* set that to zero in the case we don't have the master
 		 * on that port */
 		cmpres = 0;
 	}

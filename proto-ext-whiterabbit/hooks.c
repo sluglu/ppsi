@@ -149,16 +149,16 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	return 0;
 }
 
-static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
+static void wr_s1(struct pp_instance *ppi, struct pp_frgn_master *frgn_master)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
-		((ann->ext_specific & WR_NODE_MODE) != NON_WR);
+		((frgn_master->ext_specific & WR_NODE_MODE) != NON_WR);
 	WR_DSPOR(ppi)->parentWrModeOn =
-		(ann->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
+		(frgn_master->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
 	WR_DSPOR(ppi)->parentCalibrated =
-			((ann->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
-	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
+			((frgn_master->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
+	WR_DSPOR(ppi)->parentWrConfig = frgn_master->ext_specific & WR_NODE_MODE;
 	DSCUR(ppi)->primarySlavePortNumber =
 		DSPOR(ppi)->portIdentity.portNumber;
 }
@@ -275,7 +275,7 @@ static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 }
 
 /* State decision algorithm 9.3.3 Fig 26 with extension for wr */
-static int wr_bmc_state_decision(struct pp_instance *ppi, int next_state)
+static int wr_state_decision(struct pp_instance *ppi, int next_state)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
@@ -332,5 +332,5 @@ struct pp_ext_hooks pp_hooks = {
 #endif
 	.pack_announce = wr_pack_announce,
 	.unpack_announce = wr_unpack_announce,
-	.bmc_state_decision = wr_bmc_state_decision,
+	.state_decision = wr_state_decision,
 };

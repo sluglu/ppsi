@@ -24,6 +24,10 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 				     unsigned char *buf, int len);
 
+int st_com_handle_announce(struct pp_instance *ppi, unsigned char *buf, 
+				int len);
+
+
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype);
 
 /* Count successfully received PTP packets */

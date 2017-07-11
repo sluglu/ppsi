@@ -64,16 +64,23 @@ struct pp_channel {
  * it is called foreignMasterDS, see 9.3.2.4
  */
 struct pp_frgn_master {
-	PortIdentity port_id;	/* used to identify old/new masters */
-	PortIdentity source_id;	/* used for the dataset comparisment */
-
 	/* how many announce messages from this port where received in the
 	 * interval */
 	int ann_cnt[PP_FOREIGN_MASTER_TIME_WINDOW];
-
-	/* We don't need all fields of the following ones */
-	MsgAnnounce ann;
-	MsgHeader hdr;
+	/* on which port we received the frame */
+	PortIdentity receivePortIdentity;
+	/* BMC related information */
+	UInteger16 sequenceId;
+	PortIdentity sourcePortIdentity;
+	Octet flagField[2];
+	Integer16 currentUtcOffset;
+	UInteger8 grandmasterPriority1;
+	ClockQuality grandmasterClockQuality;
+	UInteger8 grandmasterPriority2;
+	ClockIdentity grandmasterIdentity;
+	UInteger16 stepsRemoved;
+	Enumeration8 timeSource;
+	unsigned long ext_specific;	/* used by extension */
 };
 
 /*

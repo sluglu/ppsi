@@ -220,6 +220,15 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
+int st_com_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
+{
+	bmc_add_frgn_master(ppi, buf, len);
+
+	if (pp_hooks.handle_announce)
+		return pp_hooks.handle_announce(ppi);
+	return 0;
+}
+
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 {
 	int msgtype = ((char *)ppi->tx_ptp)[0] & 0xf;

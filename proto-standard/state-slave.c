@@ -19,7 +19,7 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
 static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len);
 
 static pp_action *actions[] = {
-	[PPM_SYNC]		= slave_handle_sync,
+	[PPM_SYNC]			= slave_handle_sync,
 	[PPM_DELAY_REQ]		= 0,
 #if CONFIG_HAS_P2P
 	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
@@ -162,10 +162,9 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
 static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
 {
 	int ret = 0;
-	MsgHeader *hdr = &ppi->received_ptp_header;
-	MsgAnnounce ann;
-	
-	ret = pp_lib_handle_announce(ppi, buf, len);
+	struct pp_frgn_master frgn_master;
+					  
+	ret = st_com_handle_announce(ppi, buf, len);
 	if (ret)
 		return ret;
 	
@@ -173,8 +172,8 @@ static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, in
 		/* 9.2.6.11 a) reset timeout */
 		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		/* 9.5.3 Figure 29 update data set if announce from current master */
-		msg_unpack_announce(buf, &ann);	
-		bmc_s1(ppi, hdr, &ann);
+		bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+		bmc_s1(ppi, &frgn_master);
 	}
 	
 	return 0;

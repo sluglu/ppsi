@@ -11,8 +11,7 @@
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
  * structure */
-#define WRS_PPSI_SHMEM_VERSION 21 /* Added source_id and ann_cnt to struct
-				   * pp_frgn_master */
+#define WRS_PPSI_SHMEM_VERSION 22 /* Changed struct pp_frgn_master */
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__

@@ -219,8 +219,11 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->stepsRemoved = (ann->stepsRemoved << 8) + *(UInteger8 *)(buf + 62);
 	ann->timeSource = *(Enumeration8 *) (buf + 63);
 
+	/* this can fill in extention specific flags otherwise just zero them*/
 	if (pp_hooks.unpack_announce)
 		pp_hooks.unpack_announce(buf, ann);
+	else
+		ann->ext_specific = 0;
 }
 
 /* Pack Follow Up message into out buffer of ppi*/

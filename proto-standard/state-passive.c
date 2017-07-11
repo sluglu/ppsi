@@ -31,12 +31,12 @@ static int passive_handle_announce(struct pp_instance *ppi, unsigned char *buf, 
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
 	
-	ret = pp_lib_handle_announce(ppi, buf, len);
+	ret = st_com_handle_announce(ppi, buf, len);
 	if (ret)
 		return ret;
 	
 	if (!memcmp(&hdr->sourcePortIdentity,
-		&erbest->port_id,
+		&erbest->sourcePortIdentity,
 		sizeof(PortIdentity))) {
 		/* 
 		 * 9.2.6.11 d) reset timeout when an announce

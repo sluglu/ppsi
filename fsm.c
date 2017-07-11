@@ -145,7 +145,8 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 		&DSPOR(ppi)->portIdentity.clockIdentity,
 		sizeof(ClockIdentity))) {
 		if (DSDEF(ppi)->numberPorts > 1) {
-			/* Announces are handled by the BMC, since otherwise the state is overwritten */
+			/* Announces are handled by the BMC, since otherwise the state 
+			 * also the PASSIVE states in this case is overwritten */
 			if (hdr->messageType != PPM_ANNOUNCE) {
 				/* ignore messages, except announce coming from its own clock */
 				return -1;	

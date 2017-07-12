@@ -9,6 +9,18 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+/* return 1 if the frame is from the current master, else 0 */
+int msg_from_current_master(struct pp_instance *ppi)
+{
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	
+	if (!bmc_pidcmp(&DSPAR(ppi)->parentPortIdentity,
+			&hdr->sourcePortIdentity))
+		return 1;
+	else
+		return 0;
+}
+
 /* Unpack header from in buffer to receieved_ptp_header field */
 int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 {
@@ -35,20 +47,6 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 	hdr->sequenceId = htons(*(UInteger16 *) (buf + 30));
 	hdr->logMessageInterval = (*(Integer8 *) (buf + 33));
 
-
-	/*
-	 * This FLAG_FROM_CURRENT_PARENT must be killed. Meanwhile, say it's
-	 * from current parent if we have no current parent, so the rest works
-	 */
-	if (!DSPAR(ppi)->parentPortIdentity.portNumber ||
-	    (!memcmp(&DSPAR(ppi)->parentPortIdentity.clockIdentity,
-			&hdr->sourcePortIdentity.clockIdentity,
-			PP_CLOCK_IDENTITY_LENGTH) &&
-			(DSPAR(ppi)->parentPortIdentity.portNumber ==
-			 hdr->sourcePortIdentity.portNumber)))
-		ppi->flags |= PPI_FLAG_FROM_CURRENT_PARENT;
-	else
-		ppi->flags &= ~PPI_FLAG_FROM_CURRENT_PARENT;
 	return 0;
 }
 

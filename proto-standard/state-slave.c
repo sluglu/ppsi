@@ -38,7 +38,7 @@ static int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
 
-	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT))
+	if (!msg_from_current_master(ppi))
 		return 0;
 
 	/* t2 may be overriden by follow-up, save it immediately */
@@ -72,7 +72,7 @@ static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+	if (!msg_from_current_master(ppi)) {
 		pp_error("%s: Follow up message is not from current parent\n",
 			__func__);
 		return 0;
@@ -130,7 +130,7 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
 	     hdr->sequenceId) ||
 	    (DSPOR(ppi)->portIdentity.portNumber !=
 	     resp.requestingPortIdentity.portNumber) ||
-	    !(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+	    (!msg_from_current_master(ppi))) {
 		pp_diag(ppi, frames, 1, "pp_slave : "
 			"Delay Resp doesn't match Delay Req (f %x)\n",
 			ppi->flags);
@@ -168,13 +168,14 @@ static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, in
 	if (ret)
 		return ret;
 	
-	if (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT) {		
-		/* 9.2.6.11 a) reset timeout */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-		/* 9.5.3 Figure 29 update data set if announce from current master */
-		bmc_store_frgn_master(ppi, &frgn_master, buf, len);
-		bmc_s1(ppi, &frgn_master);
-	}
+	if (!msg_from_current_master(ppi))
+		return 0;
+	
+	/* 9.2.6.11 a) reset timeout */
+	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+	/* 9.5.3 Figure 29 update data set if announce from current master */
+	bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+	bmc_s1(ppi, &frgn_master);
 	
 	return 0;
 }

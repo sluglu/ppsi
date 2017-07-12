@@ -140,7 +140,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	     hdr->sequenceId) &&
 	    (DSPOR(ppi)->portIdentity.portNumber ==
 	     resp.requestingPortIdentity.portNumber) &&
-	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+	    (msg_from_current_master(ppi))) {
 
 		ppi->t4 = resp.requestReceiptTimestamp;
 		pp_time_add(&ppi->t4, &hdr->cField);
@@ -186,7 +186,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	     hdr->sequenceId) &&
 	    (DSPOR(ppi)->portIdentity.portNumber ==
 	     respFllw.requestingPortIdentity.portNumber) &&
-	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+	    (msg_from_current_master(ppi))) {
 
 		ppi->t5 = respFllw.responseOriginTimestamp;
 		pp_time_add(&ppi->t5, &hdr->cField);

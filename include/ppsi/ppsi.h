@@ -385,6 +385,7 @@ extern void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
 			    int len);
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);
+extern int msg_from_current_master(struct pp_instance *ppi);
 extern int __attribute__((warn_unused_result))
 	msg_unpack_header(struct pp_instance *ppi, void *buf, int plen);
 extern void msg_unpack_sync(void *buf, MsgSync *sync);

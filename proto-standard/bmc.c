@@ -694,17 +694,15 @@ void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
 		 * there is a special handling described for boundary clocks
 		 * which is done in the BMC
 		 */
-		if (!memcmp(&hdr->sourcePortIdentity,
-				&DSPOR(ppi)->portIdentity,
-				sizeof(PortIdentity))) {
+		if (!bmc_pidcmp(&hdr->sourcePortIdentity,
+				&DSPOR(ppi)->portIdentity)) {
 			pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
 			return;
 		}
 	} else {
 		/* Check if announce from a port from this clock 9.3.2.5 a) */
-		if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
-				&DSDEF(ppi)->clockIdentity,
-				sizeof(ClockIdentity))) {
+		if (!bmc_idcmp(&hdr->sourcePortIdentity.clockIdentity,
+				&DSDEF(ppi)->clockIdentity)) {
 			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
 			return;
 		}
@@ -720,9 +718,8 @@ void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
 
 	/* Check if foreign master is already known */
 	for (i = 0; i < ppi->frgn_rec_num; i++) {
-		if (!memcmp(&hdr->sourcePortIdentity,
-			    &ppi->frgn_master[i].sourcePortIdentity,
-			    sizeof(PortIdentity))) {
+		if (!bmc_pidcmp(&hdr->sourcePortIdentity,
+			    &ppi->frgn_master[i].sourcePortIdentity)) {
 
 			pp_diag(ppi, bmc, 2, "Foreign Master %i updated\n", i);
 

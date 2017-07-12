@@ -120,7 +120,7 @@ int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 }
 
 
-int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
+int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 			    int len)
 {
 	MsgPDelayResp resp;
@@ -167,7 +167,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 }
 
 int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
-				     unsigned char *buf, int plen)
+				     void *buf, int len)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
@@ -200,7 +200,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	return e;
 }
 
-int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
+int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 			    int len)
 {
 	int e = 0;
@@ -220,7 +220,7 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-int st_com_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
+int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	bmc_add_frgn_master(ppi, buf, len);
 

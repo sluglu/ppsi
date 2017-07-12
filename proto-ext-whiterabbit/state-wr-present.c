@@ -15,7 +15,7 @@
  * Here we send SLAVE_PRESENT and wait for LOCK. If timeout,
  * resent SLAVE_PRESENT from WR_STATE_RETRY times
  */
-int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_present(struct pp_instance *ppi, void *buf, int len)
 {
 	int e = 0, sendmsg = 0;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
@@ -38,7 +38,7 @@ int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
+		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
 			 &(wrp->msgTmpWrMessageID));
 
 		if (wrp->msgTmpWrMessageID == LOCK)

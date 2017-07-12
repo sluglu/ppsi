@@ -11,12 +11,12 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-static int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf, int len);
-static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_sync(struct pp_instance *ppi, void *buf, int len);
+static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 			  int len);
-static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_response(struct pp_instance *ppi, void *buf,
 			  int len);
-static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len);
+static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len);
 
 static pp_action *actions[] = {
 	[PPM_SYNC]			= slave_handle_sync,
@@ -32,7 +32,7 @@ static pp_action *actions[] = {
 	/* skip signaling and management, for binary size */
 };
 
-static int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 			     int len)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -64,7 +64,7 @@ static int slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 				 int len)
 {
 	MsgFollowUp follow;
@@ -114,7 +114,7 @@ static int slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
+static int slave_handle_response(struct pp_instance *ppi, void *buf,
 				 int len)
 {
 	int e = 0;
@@ -159,7 +159,7 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-static int slave_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
+static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	int ret = 0;
 	struct pp_frgn_master frgn_master;
@@ -198,7 +198,7 @@ static int slave_execute(struct pp_instance *ppi)
  * SLAVE and UNCALIBRATED have many things in common. This function implements
  * both states. We set "uncalibrated" internally to 0 or 1.
  */
-int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_slave(struct pp_instance *ppi, void *buf, int len)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 	int uncalibrated = (ppi->state == PPS_UNCALIBRATED);
@@ -223,7 +223,7 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		pp_servo_init(ppi);
 
 		if (pp_hooks.new_slave)
-			e = pp_hooks.new_slave(ppi, pkt, plen);
+			e = pp_hooks.new_slave(ppi, buf, len);
 		if (e)
 			goto out;
 	}
@@ -236,9 +236,9 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	 */
 	if (hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
-		e = actions[hdr->messageType](ppi, pkt, plen);
+		e = actions[hdr->messageType](ppi, buf, len);
 	} else {
-		if (plen)
+		if (len)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				hdr->messageType);
 	}

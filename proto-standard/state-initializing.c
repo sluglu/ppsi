@@ -36,7 +36,7 @@ static void init_parent_ds(struct pp_instance *ppi)
  * Initializes network and other stuff
  */
 
-int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 {
 	unsigned char *id, *mac;
 	struct DSPort *port = DSPOR(ppi);
@@ -93,7 +93,7 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	pp_timeout_init(ppi);
 
 	if (pp_hooks.init)
-		ret = pp_hooks.init(ppi, pkt, plen);
+		ret = pp_hooks.init(ppi, buf, len);
 	if (ret) {
 		pp_diag(ppi, ext, 1, "%s: can't init extension\n", __func__);
 		goto failure;

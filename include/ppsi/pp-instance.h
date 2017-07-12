@@ -66,7 +66,7 @@ struct pp_channel {
 struct pp_frgn_master {
 	/* how many announce messages from this port where received in the
 	 * interval */
-	int ann_cnt[PP_FOREIGN_MASTER_TIME_WINDOW];
+	UInteger16 foreignMasterAnnounceMessages[PP_FOREIGN_MASTER_TIME_WINDOW];
 	/* on which port we received the frame */
 	PortIdentity receivePortIdentity;
 	/* BMC related information */

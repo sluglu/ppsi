@@ -23,14 +23,14 @@ static pp_action *actions[] = {
 	/* skip signaling and management, for binary size */
 };
 
-int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_listening(struct pp_instance *ppi, void *buf, int len)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
 	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we listen */
 	if (pp_hooks.listening)
-		e = pp_hooks.listening(ppi, pkt, plen);
+		e = pp_hooks.listening(ppi, buf, len);
 	if (e)
 		goto out;
 
@@ -42,9 +42,9 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	 */
 	if (hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
-		e = actions[hdr->messageType](ppi, pkt, plen);
+		e = actions[hdr->messageType](ppi, buf, len);
 	} else {
-		if (plen)
+		if (len)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				hdr->messageType);
 	}

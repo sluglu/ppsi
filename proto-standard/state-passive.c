@@ -9,7 +9,7 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-static int passive_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len);
+static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len);
 
 static pp_action *actions[] = {
 	[PPM_SYNC]		= 0,
@@ -25,7 +25,7 @@ static pp_action *actions[] = {
 	/* skip signaling and management, for binary size */
 };
 
-static int passive_handle_announce(struct pp_instance *ppi, unsigned char *buf, int len)
+static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	int ret = 0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -48,7 +48,7 @@ static int passive_handle_announce(struct pp_instance *ppi, unsigned char *buf, 
 	return 0;
 }
 
-int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_passive(struct pp_instance *ppi, void *buf, int len)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -65,9 +65,9 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	 */
 	if (hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
-		e = actions[hdr->messageType](ppi, pkt, plen);
+		e = actions[hdr->messageType](ppi, buf, len);
 	} else {
-		if (plen)
+		if (len)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				hdr->messageType);
 	}

@@ -9,7 +9,7 @@
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
 
-int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	MsgSignaling wrsig_msg;
@@ -37,7 +37,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
 
-		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
+		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
 			 &(wrp->msgTmpWrMessageID));
 
 		if (wrp->msgTmpWrMessageID == CALIBRATED) {

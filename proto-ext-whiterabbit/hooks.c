@@ -3,7 +3,7 @@
 
 /* ext-whiterabbit must offer its own hooks */
 
-static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_init(struct pp_instance *ppi, void *buf, int len)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
@@ -61,7 +61,7 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 	return 0;
 }
 
-static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_listening(struct pp_instance *ppi, void *buf, int len)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
@@ -70,7 +70,7 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	return 0;
 }
 
-static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
+static int wr_master_msg(struct pp_instance *ppi, void *buf, int len,
 			 int msgtype)
 {
 	MsgSignaling wrsig_msg;
@@ -93,7 +93,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 	/* This is missing in the standard protocol */
 	case PPM_SIGNALING:
-		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
+		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
 				 &(WR_DSPOR(ppi)->msgTmpWrMessageID));
 		if ((WR_DSPOR(ppi)->msgTmpWrMessageID == SLAVE_PRESENT) &&
 		    (WR_DSPOR(ppi)->wrConfig & WR_M_ONLY)) {
@@ -107,7 +107,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 	return msgtype;
 }
 
-static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_new_slave(struct pp_instance *ppi, void *buf, int len)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wr_servo_init(ppi);

@@ -148,13 +148,13 @@ extern void pp_prepare_pointers(struct pp_instance *ppi);
  * allow NULL pointers.
  */
 struct pp_ext_hooks {
-	int (*init)(struct pp_instance *ppg, unsigned char *pkt, int plen);
+	int (*init)(struct pp_instance *ppg, void *buf, int len);
 	int (*open)(struct pp_globals *ppi, struct pp_runtime_opts *rt_opts);
 	int (*close)(struct pp_globals *ppg);
-	int (*listening)(struct pp_instance *ppi, unsigned char *pkt, int plen);
-	int (*master_msg)(struct pp_instance *ppi, unsigned char *pkt,
-			  int plen, int msgtype);
-	int (*new_slave)(struct pp_instance *ppi, unsigned char *pkt, int plen);
+	int (*listening)(struct pp_instance *ppi, void *buf, int len);
+	int (*master_msg)(struct pp_instance *ppi, void *buf,
+			  int len, int msgtype);
+	int (*new_slave)(struct pp_instance *ppi, void *buf, int len);
 	int (*handle_resp)(struct pp_instance *ppi);
 	void (*s1)(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
 	int (*execute_slave)(struct pp_instance *ppi);
@@ -380,14 +380,14 @@ extern int bmc_dataset_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b);
 extern void bmc_store_frgn_master(struct pp_instance *ppi, 
-		       struct pp_frgn_master *frgn_master, unsigned char *buf, int len);
-extern void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
+		       struct pp_frgn_master *frgn_master, void *buf, int len);
+extern void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			    int len);
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);
 extern int msg_from_current_master(struct pp_instance *ppi);
 extern int __attribute__((warn_unused_result))
-	msg_unpack_header(struct pp_instance *ppi, void *buf, int plen);
+	msg_unpack_header(struct pp_instance *ppi, void *buf, int len);
 extern void msg_unpack_sync(void *buf, MsgSync *sync);
 extern int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp);
 extern void msg_unpack_announce(void *buf, MsgAnnounce *ann);
@@ -429,7 +429,7 @@ extern void pp_time_div2(struct pp_time *t);
  */
 
 /* Use a typedef, to avoid long prototypes */
-typedef int pp_action(struct pp_instance *ppi, uint8_t *packet, int plen);
+typedef int pp_action(struct pp_instance *ppi, void *buf, int len);
 
 struct pp_state_table_item {
 	int state;
@@ -445,7 +445,7 @@ extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
 		 pp_slave, pp_pclock;;
 
 /* The engine */
-extern int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen);
+extern int pp_state_machine(struct pp_instance *ppi, void *buf, int len);
 
 /* Frame-drop support -- rx before tx, alphabetically */
 extern void ppsi_drop_init(struct pp_globals *ppg, unsigned long seed);

@@ -22,7 +22,7 @@ int msg_from_current_master(struct pp_instance *ppi)
 }
 
 /* Unpack header from in buffer to receieved_ptp_header field */
-int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
+int msg_unpack_header(struct pp_instance *ppi, void *buf, int len)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	uint32_t lsb, msb;

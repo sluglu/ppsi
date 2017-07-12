@@ -10,7 +10,7 @@
 #include "common-fun.h"
 
 static int master_handle_delay_request(struct pp_instance *ppi,
-				       unsigned char *pkt, int plen);
+				       void *buf, int len);
 
 static pp_action *actions[] = {
 	[PPM_SYNC]		= 0,
@@ -27,7 +27,7 @@ static pp_action *actions[] = {
 };
 
 static int master_handle_delay_request(struct pp_instance *ppi,
-				       unsigned char *pkt, int plen)
+				       void *buf, int len)
 {
 	if (ppi->state == PPS_MASTER) /* not pre-master */
 		msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
@@ -38,7 +38,7 @@ static int master_handle_delay_request(struct pp_instance *ppi,
  * MASTER and PRE_MASTER have many things in common. This function implements
  * both states. We set "pre" internally to 0 or 1.
  */
-int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
+int pp_master(struct pp_instance *ppi, void *buf, int len)
 {
 	int msgtype;
 	int pre = (ppi->state == PPS_PRE_MASTER);
@@ -79,10 +79,10 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	 */
 	msgtype = ppi->received_ptp_header.messageType;
 	if (pp_hooks.master_msg)
-		msgtype = pp_hooks.master_msg(ppi, pkt, plen, msgtype);
+		msgtype = pp_hooks.master_msg(ppi, buf, len, msgtype);
 	if (msgtype < 0) {
 		e = msgtype;
-		plen = 0;
+		len = 0;
 		e = PP_SEND_ERROR; /* well, "error" in general */
 		goto out;
 	}
@@ -92,9 +92,9 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	 */
 	if (msgtype < ARRAY_SIZE(actions)
 	    && actions[msgtype]) {
-		e = actions[msgtype](ppi, pkt, plen);
+		e = actions[msgtype](ppi, buf, len);
 	} else {
-		if (plen && msgtype != PPM_NO_MESSAGE)
+		if (len && msgtype != PPM_NO_MESSAGE)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				msgtype);
 	}

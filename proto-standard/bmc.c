@@ -136,7 +136,7 @@ void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 
 	/* this shall be always qualified */
 	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master->ann_cnt[i] = 1;
+		frgn_master->foreignMasterAnnounceMessages[i] = 1;
 		
 	memcpy(&frgn_master->receivePortIdentity,
 	       &DSPOR(ppi)->portIdentity, sizeof(PortIdentity));
@@ -177,8 +177,8 @@ int bmc_gm_cmp(struct pp_instance *ppi,
 	int i;
 	struct ClockQuality *qa = &a->grandmasterClockQuality;
 	struct ClockQuality *qb = &b->grandmasterClockQuality;
-	int *ca = a->ann_cnt;
-	int *cb = b->ann_cnt;
+	UInteger16 *ca = a->foreignMasterAnnounceMessages;
+	UInteger16 *cb = b->foreignMasterAnnounceMessages;
 	int qualifieda = 0;
 	int qualifiedb = 0;
 
@@ -265,8 +265,8 @@ int bmc_topology_cmp(struct pp_instance *ppi,
 	struct PortIdentity *pidtxb = &b->sourcePortIdentity;
 	struct PortIdentity *pidrxa = &a->receivePortIdentity;
 	struct PortIdentity *pidrxb = &b->receivePortIdentity;
-	int *ca = a->ann_cnt;
-	int *cb = b->ann_cnt;
+	UInteger16 *ca = a->foreignMasterAnnounceMessages;
+	UInteger16 *cb = b->foreignMasterAnnounceMessages;
 	int qualifieda = 0;
 	int qualifiedb = 0;
 	int diff;
@@ -623,7 +623,7 @@ slave_s1:
 }
 
 void bmc_store_frgn_master(struct pp_instance *ppi, 
-		       struct pp_frgn_master *frgn_master, unsigned char *buf, int len)
+		       struct pp_frgn_master *frgn_master, void *buf, int len)
 {
 	int i;
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -631,7 +631,7 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 
 	/* clear qualification timeouts */
 	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master->ann_cnt[i] = 0;
+		frgn_master->foreignMasterAnnounceMessages[i] = 0;
 	
 	/*
 	 * header and announce field of each Foreign Master are
@@ -662,7 +662,7 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 	
 }
 
-void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
+void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			    int len)
 {
 	int i, j, worst, sel;
@@ -725,13 +725,14 @@ void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
 
 			/* fill in number of announce received */
 			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
-				frgn_master.ann_cnt[j] = ppi->frgn_master[i].ann_cnt[j];
+				frgn_master.foreignMasterAnnounceMessages[j] = 
+				ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
 			
 			/* update the number of announce received if correct
 			 * sequence number 9.3.2.5 b) */
 			if (hdr->sequenceId
 				  == (ppi->frgn_master[i].sequenceId + 1))
-				frgn_master.ann_cnt[0]++;
+				frgn_master.foreignMasterAnnounceMessages[0]++;
 			
 			/* already in Foreign master data set, update info */
 			memcpy(&ppi->frgn_master[i], &frgn_master, 
@@ -742,7 +743,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
 
 	/* set qualification timeouts as valid to compare against worst*/
 	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master.ann_cnt[i] = 1;
+		frgn_master.foreignMasterAnnounceMessages[i] = 1;
 
 	/* New foreign master */
 	if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS) {
@@ -773,10 +774,10 @@ void bmc_add_frgn_master(struct pp_instance *ppi, unsigned char *buf,
 
 	/* clear qualification timeouts */
 	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master.ann_cnt[i] = 0;
+		frgn_master.foreignMasterAnnounceMessages[i] = 0;
 
 	/* This is the first one qualified 9.3.2.5 e)*/
-	frgn_master.ann_cnt[0] = 1;
+	frgn_master.foreignMasterAnnounceMessages[0] = 1;
 
 	/* Copy the temporary foreign master entry */
 	memcpy(&ppi->frgn_master[sel], &frgn_master, 
@@ -798,17 +799,17 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 		/* get qualification */
 		qualified = 0;
 		for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
-			qualified += ppi->frgn_master[i].ann_cnt[j];
+			qualified += ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
 
 		/* shift qualification */
 		for (j = 1; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
-			ppi->frgn_master[i].ann_cnt[
+			ppi->frgn_master[i].foreignMasterAnnounceMessages[
 				      (PP_FOREIGN_MASTER_TIME_WINDOW - j)] =
-				ppi->frgn_master[i].ann_cnt[
+				ppi->frgn_master[i].foreignMasterAnnounceMessages[
 				      (PP_FOREIGN_MASTER_TIME_WINDOW - j - 1)];
 
 		/* clear lowest */
-		ppi->frgn_master[i].ann_cnt[0] = 0;
+		ppi->frgn_master[i].foreignMasterAnnounceMessages[0] = 0;
 
 		/* remove aged out and shift foreign masters*/
 		if (qualified == 0) {

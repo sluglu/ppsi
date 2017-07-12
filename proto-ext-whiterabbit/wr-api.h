@@ -11,7 +11,7 @@
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
  * structure */
-#define WRS_PPSI_SHMEM_VERSION 22 /* Changed struct pp_frgn_master */
+#define WRS_PPSI_SHMEM_VERSION 23 /* Changed struct pp_frgn_master */
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__
@@ -85,14 +85,14 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 int msg_issue_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id);
 
 /* White rabbit state functions */
-int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_s_lock(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_locked(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen);
+int wr_present(struct pp_instance *ppi, void *buf, int len);
+int wr_m_lock(struct pp_instance *ppi, void *buf, int len);
+int wr_s_lock(struct pp_instance *ppi, void *buf, int len);
+int wr_locked(struct pp_instance *ppi, void *buf, int len);
+int wr_calibration(struct pp_instance *ppi, void *buf, int len);
+int wr_calibrated(struct pp_instance *ppi, void *buf, int len);
+int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len);
+int wr_link_on(struct pp_instance *ppi, void *buf, int len);
 int wr_abscal(struct pp_instance *ppi, unsigned char *pkt, int plen);
 
 /* Common functions, used by various states and hooks */

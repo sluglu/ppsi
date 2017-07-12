@@ -44,12 +44,12 @@ enum {
 };
 
 static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
-			int plen)
+			int len)
 {
 	if (sequence == STATE_ENTER) {
 		/* enter with or without a packet len */
 		pp_fsm_printf(ppi, "ENTER %s, packet len %i\n",
-			  name, plen);
+			  name, len);
 		return;
 	}
 	if (sequence == STATE_LOOP) {
@@ -172,17 +172,17 @@ static int type_length[__PP_NR_MESSAGES_TYPES] = {
 };
 
 static int fsm_unpack_verify_frame(struct pp_instance *ppi,
-				   uint8_t *packet, int plen)
+				   void *buf, int len)
 {
 	int msgtype = 0;
 
-	if (plen)
-		msgtype = packet[0] & 0xf;
-	if (msgtype >= __PP_NR_MESSAGES_TYPES || plen < type_length[msgtype])
+	if (len)
+		msgtype = ((*(UInteger8 *) (buf + 0)) & 0x0F);
+	if (msgtype >= __PP_NR_MESSAGES_TYPES || len < type_length[msgtype])
 		return 1; /* too short */
-	if ((packet[1] & 0xf) != 2)
+	if (((*(UInteger8 *) (buf + 1)) & 0x0F) != 2)
 		return 1; /* wrong ptp version */
-	return msg_unpack_header(ppi, packet, plen);
+	return msg_unpack_header(ppi, buf, len);
 }
 
 /*
@@ -194,18 +194,18 @@ static int fsm_unpack_verify_frame(struct pp_instance *ppi,
  * is that of the extension, otherwise the one in state-table-default.c
  */
 
-int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
+int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 {
 	struct pp_state_table_item *ip;
 	struct pp_time *t = &ppi->last_rcv_time;
 	int state, err = 0;
 	int msgtype;
 
-	if (plen > 0) {
-		msgtype = packet[0] & 0xf;
+	if (len > 0) {
+		msgtype = ((*(UInteger8 *) (buf + 0)) & 0x0F);
 		pp_diag(ppi, frames, 1,
 			"RECV %02d bytes at %9d.%09d.%03d (type %x, %s)\n",
-			plen, (int)t->secs, (int)(t->scaled_nsecs >> 16),
+			len, (int)t->secs, (int)(t->scaled_nsecs >> 16),
 			((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
 			msgtype, pp_msgtype_info[msgtype].name);
 	}
@@ -213,9 +213,9 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	/*
 	 * Discard too short packets
 	 */
-	if (plen < PP_HEADER_LENGTH) {
-		plen = 0;
-		packet = NULL;
+	if (len < PP_HEADER_LENGTH) {
+		len = 0;
+		buf = NULL;
 	}
 
 	/*
@@ -224,10 +224,10 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	 * In case of error continue without a frame, so the current
 	 * ptp state can update ppi->next_delay and return a proper value
 	 */
-	err = fsm_unpack_verify_frame(ppi, packet, plen);
+	err = fsm_unpack_verify_frame(ppi, buf, len);
 	if (err) {
-		plen = 0;
-		packet = NULL;
+		len = 0;
+		buf = NULL;
 	}
 
 	state = ppi->state;
@@ -242,26 +242,26 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	ppi->next_state = state;
 	ppi->next_delay = 0;
 	if (ppi->is_new_state)
-		pp_diag_fsm(ppi, ip->name, STATE_ENTER, plen);
+		pp_diag_fsm(ppi, ip->name, STATE_ENTER, len);
 
 	/*
-	 * Possibly filter out packet and maybe update port state
+	 * Possibly filter out buf and maybe update port state
 	 */
-	if (packet) {
+	if (buf) {
 		err = pp_packet_prefilter(ppi);
 		if (err < 0) {
-			packet = NULL;
-			plen = 0;
+			buf = NULL;
+			len = 0;
 		}
 	}
 
 	if (ppi->state != ppi->next_state)
 		return leave_current_state(ppi);
 
-	if (!plen)
+	if (!len)
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
 
-	err = ip->f1(ppi, packet, plen);
+	err = ip->f1(ppi, buf, len);
 	if (err)
 		pp_printf("fsm for %s: Error %i in %s\n",
 			  ppi->port_name, err, ip->name);

@@ -21,6 +21,7 @@ void bmc_m1(struct pp_instance *ppi)
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSDefault *defds = DSDEF(ppi);
+	struct DSTimeProperties *prop = DSPRO(ppi);
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved = 0;
@@ -39,8 +40,17 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterPriority2 = defds->priority2;
 
 	/* Time Properties data set */
-	DSPRO(ppi)->ptpTimescale = TRUE;
-	DSPRO(ppi)->timeSource = INTERNAL_OSCILLATOR;
+	/* TODO get the time properties from somewhere, 
+	 * these are the default according to 9.4
+	 */	
+	prop->currentUtcOffset = 37;
+	prop->currentUtcOffsetValid = FALSE;
+	prop->leap59 = FALSE;
+	prop->leap61 = FALSE;
+	prop->timeTraceable = FALSE;
+	prop->frequencyTraceable = FALSE;
+	prop->ptpTimescale = TRUE;	
+	prop->timeSource = INTERNAL_OSCILLATOR;
 }
 
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
@@ -48,6 +58,7 @@ void bmc_m2(struct pp_instance *ppi)
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSDefault *defds = DSDEF(ppi);
+	struct DSTimeProperties *prop = DSPRO(ppi);
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved = 0;
@@ -66,8 +77,17 @@ void bmc_m2(struct pp_instance *ppi)
 	parent->grandmasterPriority2 = defds->priority2;
 
 	/* Time Properties data set */
-	DSPRO(ppi)->ptpTimescale = TRUE;  //TODO get them from somwhere
-	DSPRO(ppi)->timeSource = INTERNAL_OSCILLATOR; //TODO get them from somwhere
+	/* TODO get the time properties from somewhere, 
+	 * these are the default according to 9.4
+	 */	
+	prop->currentUtcOffset = 37;
+	prop->currentUtcOffsetValid = FALSE;
+	prop->leap59 = FALSE;
+	prop->leap61 = FALSE;
+	prop->timeTraceable = FALSE;
+	prop->frequencyTraceable = FALSE;
+	prop->ptpTimescale = TRUE;	
+	prop->timeSource = INTERNAL_OSCILLATOR;
 }
 
 /* ppi->port_idx port is becoming Master. Table 14 (9.3.5) of the spec. */
@@ -96,7 +116,6 @@ void bmc_s1(struct pp_instance *ppi,
 	parent->grandmasterPriority2 = frgn_master->grandmasterPriority2;
 
 	/* Timeproperties DS */
-	prop->timeSource = frgn_master->timeSource;
 	if (prop->currentUtcOffset != frgn_master->currentUtcOffset) {
 		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
 			frgn_master->currentUtcOffset);
@@ -109,6 +128,7 @@ void bmc_s1(struct pp_instance *ppi,
 	prop->timeTraceable = ((frgn_master->flagField[1] & FFB_TTRA) != 0);
 	prop->frequencyTraceable = ((frgn_master->flagField[1] & FFB_FTRA) != 0);
 	prop->ptpTimescale = ((frgn_master->flagField[1] & FFB_PTP) != 0);
+	prop->timeSource = frgn_master->timeSource;
 
 	if (pp_hooks.s1)
 		pp_hooks.s1(ppi, frgn_master);

@@ -265,7 +265,7 @@ out:
 	}
 
 	ppi->next_delay = pp_next_delay_2(ppi,
-					  PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+		PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
 	return e;
 }
 

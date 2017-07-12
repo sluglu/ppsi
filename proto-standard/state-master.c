@@ -69,8 +69,6 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	/* when the clock is using peer-delay, the master must send it too */
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
-	else /* please check commit '6d7bf7e3' about below, I'm not sure */
-		pp_timeout_set(ppi, PP_TO_REQUEST);
 
 	/*
 	 * An extension can do special treatment of this message type,
@@ -119,12 +117,23 @@ out:
 	}
 
 	if (pre) {
-		ppi->next_delay = pp_next_delay_2(ppi,
-			PP_TO_QUALIFICATION, PP_TO_REQUEST);
+		if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+			ppi->next_delay = pp_next_delay_2(ppi,
+				PP_TO_QUALIFICATION, PP_TO_REQUEST);
+		} else {
+			ppi->next_delay = pp_next_delay_1(ppi,
+				PP_TO_QUALIFICATION);			
+		}		
 	} else {
-		ppi->next_delay = pp_next_delay_3(ppi,
-			PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
+		if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+			ppi->next_delay = pp_next_delay_3(ppi,
+				PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
+		} else {
+			ppi->next_delay = pp_next_delay_2(ppi,
+				PP_TO_ANN_SEND, PP_TO_SYNC_SEND);			
+		}		
 	}
+	
 	return e;
 }
 

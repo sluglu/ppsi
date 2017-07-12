@@ -58,7 +58,13 @@ out:
 	if (e != 0)
 		ppi->next_state = PPS_FAULTY;
 
-	ppi->next_delay = pp_next_delay_1(ppi, PP_TO_ANN_RECEIPT);
-
+	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+		ppi->next_delay = pp_next_delay_2(ppi, 
+			PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+	} else {
+		ppi->next_delay = pp_next_delay_1(ppi, 
+			PP_TO_ANN_RECEIPT);
+	}
+	
 	return e;
 }

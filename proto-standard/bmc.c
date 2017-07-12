@@ -388,6 +388,7 @@ int bmc_dataset_cmp(struct pp_instance *ppi,
 /* State decision algorithm 9.3.3 Fig 26 */
 static int bmc_state_decision(struct pp_instance *ppi)
 {
+	int i;
 	int cmpres;
 	struct pp_frgn_master d0;
 	struct DSParent *parent = DSPAR(ppi);
@@ -395,6 +396,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	struct pp_instance *ppi_best;
 	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
 	struct pp_frgn_master *ebest;
+	int qualified = 0;
 
 	/* bmc_state_decision is called several times, so report only at
 	 * level 2 */
@@ -451,10 +453,13 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		 */
 		if (DSDEF(ppi)->numberPorts > 1) {
 			/* message received from the own clock */
-			if (!bmc_idcmp(&erbest->sourcePortIdentity.clockIdentity, &DSDEF(ppi)->clockIdentity)) {
+			if ((ppi->frgn_rec_num > 0) && (!bmc_idcmp(&erbest->sourcePortIdentity.clockIdentity, &DSDEF(ppi)->clockIdentity))) {
+				for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
+					qualified += erbest->foreignMasterAnnounceMessages[i];
+				
 				/* is this port worse than the other */
 				cmpres = bmc_pidcmp(&erbest->sourcePortIdentity, &DSPOR(ppi)->portIdentity);
-				if (cmpres < 0)
+				if ((qualified >= PP_FOREIGN_MASTER_THRESHOLD) && (cmpres < 0))
 					goto passive_p1;
 			}
 		} 
@@ -724,10 +729,10 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			pp_diag(ppi, bmc, 2, "Foreign Master %i updated\n", i);
 
 			/* fill in number of announce received */
-			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
+			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
 				frgn_master.foreignMasterAnnounceMessages[j] = 
-				ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
-			
+					ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
+			}
 			/* update the number of announce received if correct
 			 * sequence number 9.3.2.5 b) */
 			if (hdr->sequenceId

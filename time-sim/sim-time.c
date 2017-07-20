@@ -46,6 +46,13 @@ int sim_fast_forward_ns(struct pp_globals *ppg, int64_t ff_ns)
 	return 0;
 }
 
+static int sim_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+{
+	/* no UTC offset */
+	*offset = 0;
+	return -1;	
+}
+
 static int sim_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	t->scaled_nsecs = (SIM_PPI_ARCH(ppi)->time.current_ns %
@@ -113,6 +120,7 @@ static unsigned long sim_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations sim_time_ops = {
+	.get_utc_offset = sim_time_get_utc_offset,
 	.get = sim_time_get,
 	.set = sim_time_set,
 	.adjust = sim_time_adjust,

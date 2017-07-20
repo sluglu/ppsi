@@ -225,7 +225,8 @@ int wrc_ptp_start()
 	delay_ms = pp_state_machine(ppi, NULL, 0);
 	start_tics = timer_get_tics();
 
-	WR_DSPOR(ppi)->linkUP = FALSE;
+	/* just tell that the link is up, if not it will anyhow not receive anything */
+	ppi->linkUP = TRUE;
 	wr_servo_reset(ppi);
 
 	ptp_enabled = 1;
@@ -244,6 +245,8 @@ int wrc_ptp_stop()
 	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
 	ppi->frgn_rec_num = 0;          /* no known master */
 
+	/* just tell that the link is down now */
+	ppi->linkUP = FALSE;
 	ptp_enabled = 0;
 	wr_servo_reset(ppi);
 	pp_close_globals(&ppg_static);

@@ -22,6 +22,8 @@ void bmc_m1(struct pp_instance *ppi)
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSDefault *defds = DSDEF(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
+	int ret = 0;
+	int offset;
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved = 0;
@@ -38,16 +40,31 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterClockQuality = defds->clockQuality;
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
-
+	
+	ret = ppi->t_ops->get_utc_offset(ppi, &offset);
+	if (ret)
+		offset = PP_DEFAULT_UTC_OFFSET;	
 	/* Time Properties data set */
-	/* TODO get the time properties from somewhere, 
-	 * these are the default according to 9.4
-	 */	
-	prop->currentUtcOffset = 37;
-	prop->currentUtcOffsetValid = FALSE;
+	if (prop->currentUtcOffset != offset) {
+		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
+			offset);
+		prop->currentUtcOffset = offset;
+		ppi->t_ops->set(ppi, NULL);
+	}
+	if (ret)
+	{
+		prop->timeTraceable = FALSE;
+		prop->currentUtcOffsetValid = FALSE;
+	}
+	else
+	{
+		prop->timeTraceable = TRUE;
+		prop->currentUtcOffsetValid = TRUE;
+	}
+	
+	/* these are the default according to 9.4 */				
 	prop->leap59 = FALSE;
 	prop->leap61 = FALSE;
-	prop->timeTraceable = FALSE;
 	prop->frequencyTraceable = FALSE;
 	prop->ptpTimescale = TRUE;	
 	prop->timeSource = INTERNAL_OSCILLATOR;
@@ -59,6 +76,8 @@ void bmc_m2(struct pp_instance *ppi)
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSDefault *defds = DSDEF(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
+	int ret = 0;
+	int offset;
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved = 0;
@@ -75,16 +94,31 @@ void bmc_m2(struct pp_instance *ppi)
 	parent->grandmasterClockQuality = defds->clockQuality;
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
-
+	
+	ret = ppi->t_ops->get_utc_offset(ppi, &offset);
+	if (ret)
+		offset = PP_DEFAULT_UTC_OFFSET;	
 	/* Time Properties data set */
-	/* TODO get the time properties from somewhere, 
-	 * these are the default according to 9.4
-	 */	
-	prop->currentUtcOffset = 37;
-	prop->currentUtcOffsetValid = FALSE;
+	if (prop->currentUtcOffset != offset) {
+		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
+			offset);
+		prop->currentUtcOffset = offset;
+		ppi->t_ops->set(ppi, NULL);
+	}
+	if (ret)
+	{
+		prop->timeTraceable = FALSE;
+		prop->currentUtcOffsetValid = FALSE;
+	}
+	else
+	{
+		prop->timeTraceable = TRUE;
+		prop->currentUtcOffsetValid = TRUE;
+	}
+			
+	/* these are the default according to 9.4 */	
 	prop->leap59 = FALSE;
 	prop->leap61 = FALSE;
-	prop->timeTraceable = FALSE;
 	prop->frequencyTraceable = FALSE;
 	prop->ptpTimescale = TRUE;	
 	prop->timeSource = INTERNAL_OSCILLATOR;
@@ -559,15 +593,16 @@ master_m1:
 		return PPS_LISTENING;
 	}
 	bmc_m1(ppi);
-	if (ppi->state != PPS_MASTER) {
-		/* if not already in pre master state start qualification */
-		if (ppi->state != PPS_PRE_MASTER) {
-			/* 9.2.6.10 a) timeout 0 */
-			pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
-		}
+	if ((ppi->state != PPS_MASTER) &&
+		(ppi->state != PPS_PRE_MASTER)) {
+		/* 9.2.6.10 a) timeout 0 */
+		pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
 		return PPS_PRE_MASTER;
-	} else
-		return PPS_MASTER;
+	} else {
+		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is 
+		 * done outside the BMC, so just return the current state */
+		return ppi->state; 
+	}
 
 master_m2:
 	pp_diag(ppi, bmc, 1, "%s: master m2\n", __func__);
@@ -578,15 +613,16 @@ master_m2:
 		return PPS_LISTENING;
 	}
 	bmc_m2(ppi);
-	if (ppi->state != PPS_MASTER) {
-		/* if not already in pre master state start qualification */
-		if (ppi->state != PPS_PRE_MASTER) {
-			/* 9.2.6.10 a) timeout 0 */
-			pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
-		}
+	if ((ppi->state != PPS_MASTER) &&
+		(ppi->state != PPS_PRE_MASTER)) {
+		/* 9.2.6.10 a) timeout 0 */
+		pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
 		return PPS_PRE_MASTER;
-	} else
-		return PPS_MASTER;
+	} else {
+		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is 
+		 * done outside the BMC, so just return the current state */
+		return ppi->state; 
+	}
 
 master_m3:
 	pp_diag(ppi, bmc, 1, "%s: master m3\n", __func__);
@@ -597,17 +633,18 @@ master_m3:
 		return PPS_LISTENING;
 	}
 	bmc_m3(ppi);
-	if (ppi->state != PPS_MASTER) {
-		/* if not already in pre master state start qualification */
-		if (ppi->state != PPS_PRE_MASTER) {
-			/* timeout reinit */
-			pp_timeout_init(ppi);
-			/* 9.2.6.11 b) timeout steps removed+1*/
-			pp_timeout_set(ppi, PP_TO_QUALIFICATION);
-		}
+	if ((ppi->state != PPS_MASTER) &&
+		(ppi->state != PPS_PRE_MASTER)) {
+		/* timeout reinit */
+		pp_timeout_init(ppi);
+		/* 9.2.6.11 b) timeout steps removed+1*/
+		pp_timeout_set(ppi, PP_TO_QUALIFICATION);
 		return PPS_PRE_MASTER;
-	} else
-		return PPS_MASTER;
+	} else {
+		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is 
+		 * done outside the BMC, so just return the current state */
+		return ppi->state; 
+	}
 
 slave_s1:
 	pp_diag(ppi, bmc, 1, "%s: slave s1\n", __func__);
@@ -642,7 +679,9 @@ slave_s1:
 			/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 			if (ppi->state != PPS_SLAVE)
 				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
-			return PPS_SLAVE;
+			/* the decision to go from UNCALIBRATED to SLAVEW is 
+			 * done outside the BMC, so just return the current state */
+			return ppi->state; 
 		}
 	}
 }
@@ -811,6 +850,14 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", sel);
 }
 
+static void bmc_flush_frgn_master(struct pp_instance *ppi)
+{
+	pp_diag(ppi, bmc, 2, "%s\n", __func__);
+	
+	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
+	ppi->frgn_rec_num = 0;
+}
+
 static void bmc_age_frgn_master(struct pp_instance *ppi)
 {
 	int i, j;
@@ -877,8 +924,7 @@ static int bmc_any_port_initializing(struct pp_globals *ppg)
 
 		ppi = INST(ppg, i);
 
-		if ((WR_DSPOR(ppi)->linkUP)
-		    && (ppi->state == PPS_INITIALIZING)) {
+		if (ppi->linkUP && (ppi->state == PPS_INITIALIZING)) {
 			pp_diag(ppi, bmc, 2, "The first port in INITIALIZING "
 				"state is %i\n", i);
 			return 1;
@@ -903,6 +949,10 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 
 		ppi = INST(ppg, i);
 		frgn_master = ppi->frgn_master;
+
+		/* if link is down clear foreign master table */
+		if (!ppi->linkUP)
+			bmc_flush_frgn_master(ppi);	
 
 		if (ppi->frgn_rec_num > 0) {
 			/* Only if port is not in the FAULTY or DISABLED
@@ -1020,8 +1070,13 @@ int bmc(struct pp_instance *ppi)
 	/* Calulate Ebest Figure 25 */
 	bmc_update_ebest(ppg);
 
-	/* Make state decision */
-	next_state = bmc_state_decision(ppi);
+	if (ppi->linkUP) {
+		/* Make state decision */
+		next_state = bmc_state_decision(ppi);
+	} else {
+		/* Set it back to initializing */
+		next_state = PPS_INITIALIZING;
+	}
 	
 	/* Extra states handled here */
 	if (pp_hooks.state_decision)

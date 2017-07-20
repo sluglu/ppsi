@@ -307,9 +307,11 @@ static int wr_state_decision(struct pp_instance *ppi, int next_state)
 		wrp->parentWrModeOn = FALSE;
 		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 		
+		/* if we are leaving the slave state reset the servo */
 		if ((ppi->state == PPS_SLAVE) &&
-			(ppg->ebest_idx == ppi->port_idx))
+			(ppg->ebest_idx == ppi->port_idx)) {
 			wr_servo_reset(ppi);
+		}
 	}
 		 
 	/* else do the normal statemachine */

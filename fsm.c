@@ -87,8 +87,11 @@ get_current_state_table_item(struct pp_instance *ppi)
  */
 static int leave_current_state(struct pp_instance *ppi)
 {
+	/* if the next or old state is non standard PTP reset all timeouts */
+	if ((ppi->state > PPS_SLAVE) || (ppi->next_state > PPS_SLAVE))
+		pp_timeout_setall(ppi);
+
 	ppi->state = ppi->next_state;
-	pp_timeout_setall(ppi);
 	ppi->flags &= ~PPI_FLAGS_WAITING;
 	pp_diag_fsm(ppi, ppi->current_state_item->name, STATE_LEAVE, 0);
 	/* next_delay unused: go to new state now */

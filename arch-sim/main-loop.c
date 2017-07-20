@@ -51,6 +51,8 @@ void sim_main_loop(struct pp_globals *ppg)
 	for (j = 0; j < ppg->nlinks; j++) {
 		ppi = INST(ppg, j);
 		ppi->is_new_state = 1;
+		/* just tell that the links are up */
+		ppi->linkUp = TRUE; 
 	}
 
 	delay_ns = run_all_state_machines(ppg) * 1000LL * 1000LL;

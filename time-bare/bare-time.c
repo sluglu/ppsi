@@ -8,6 +8,22 @@
 #include <ppsi/ppsi.h>
 #include "bare-linux.h"
 
+static int bare_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+{
+	struct bare_timex t;
+	/*
+	 * Get the UTC/TAI difference
+	 */
+	memset(&t, 0, sizeof(t));
+	if (adjtimex(&t) >= 0) {
+		*offset = (int)t.tai;
+		return 0;
+	} else {
+		*offset = 0;
+		return -1;
+	}		
+}
+
 static int bare_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct bare_timeval tv;
@@ -100,6 +116,7 @@ static unsigned long bare_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations bare_time_ops = {
+	.get_utc_offset = bare_time_get_utc_offset,
 	.get = bare_time_get,
 	.set = bare_time_set,
 	.adjust = bare_time_adjust,

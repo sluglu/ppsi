@@ -91,6 +91,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	port->logSyncInterval = opt->sync_intvl;
 	port->versionNumber = PP_VERSION_PTP;
 	pp_timeout_init(ppi);
+	pp_timeout_setall(ppi);
 
 	if (pp_hooks.init)
 		ret = pp_hooks.init(ppi, buf, len);
@@ -105,7 +106,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 			DSDEF(ppi)->clockQuality.clockAccuracy);
 
 	msg_init_header(ppi, ppi->tx_ptp); /* This is used for all tx */
-
+	
 	if (ppi->role != PPSI_ROLE_MASTER)
 		ppi->next_state = PPS_LISTENING;
 	else

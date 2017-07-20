@@ -187,6 +187,27 @@ static int wrdate_get(struct pp_time *t)
 	return 0;
 }
 
+static int wrs_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+{
+	struct timex t;
+	/*
+	 * Get the UTC/TAI difference
+	 */
+	memset(&t, 0, sizeof(t));
+	if (adjtimex(&t) >= 0) {
+		/*
+		 * Our WRS kernel has tai support, but our compiler does not.
+		 * We are 32-bit only, and we know for sure that tai is
+		 * exactly after stbcnt. It's a bad hack, but it works
+		 */
+		*offset = *((int *)(&t.stbcnt) + 1);
+		return 0;
+	} else {
+		*offset = 0;
+		return -1;
+	}		
+}
+
 /* This is only used when the wrs is slave to a non-WR master */
 static int wrs_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
@@ -371,6 +392,7 @@ static unsigned long wrs_calc_timeout(struct pp_instance *ppi,
 }
 
 struct pp_time_operations wrs_time_ops = {
+	.get_utc_offset = wrs_time_get_utc_offset,
 	.get = wrs_time_get,
 	.set = wrs_time_set,
 	.adjust = wrs_time_adjust,

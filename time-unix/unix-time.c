@@ -23,6 +23,27 @@ static void clock_fatal_error(char *context)
 	exit(1);
 }
 
+static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+{
+	struct timex t;
+	/*
+	 * Get the UTC/TAI difference
+	 */
+	memset(&t, 0, sizeof(t));
+	if (adjtimex(&t) >= 0) {
+		/*
+		 * Our WRS kernel has tai support, but our compiler does not.
+		 * We are 32-bit only, and we know for sure that tai is
+		 * exactly after stbcnt. It's a bad hack, but it works
+		 */
+		*offset = *((int *)(&t.stbcnt) + 1);
+		return 0;
+	} else {
+		*offset = 0;
+		return -1;
+	}		
+}
+
 static int unix_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct timespec tp;
@@ -124,6 +145,7 @@ static unsigned long unix_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations unix_time_ops = {
+	.get_utc_offset = unix_time_get_utc_offset,
 	.get = unix_time_get,
 	.set = unix_time_set,
 	.adjust = unix_time_adjust,

@@ -11,7 +11,7 @@
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
  * structure */
-#define WRS_PPSI_SHMEM_VERSION 23 /* Changed struct pp_frgn_master */
+#define WRS_PPSI_SHMEM_VERSION 25 /* linkUp added to pp_instance */
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__
@@ -51,7 +51,6 @@ struct wr_dsport {
 	FixedDelta otherNodeDeltaTx;
 	FixedDelta otherNodeDeltaRx;
 	Boolean doRestart;
-	Boolean linkUP;
 };
 
 /* This uppercase name matches "DSPOR(ppi)" used by standard protocol */

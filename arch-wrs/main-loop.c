@@ -29,7 +29,7 @@ static int run_all_state_machines(struct pp_globals *ppg)
 
 	for (j = 0; j < ppg->nlinks; j++) {
 		struct pp_instance *ppi = INST(ppg, j);
-		int old_lu = WR_DSPOR(ppi)->linkUP;
+		int old_lu = ppi->linkUP;
 		struct hal_port_state *p;
 
 		/* FIXME: we should save this pointer in the ppi itself */
@@ -40,16 +40,16 @@ static int run_all_state_machines(struct pp_globals *ppg)
 			continue;
 		}
 
-		WR_DSPOR(ppi)->linkUP =
+		ppi->linkUP =
 			(p->state != HAL_PORT_STATE_LINK_DOWN &&
 			 p->state != HAL_PORT_STATE_DISABLED);
 
-		if (old_lu != WR_DSPOR(ppi)->linkUP) {
+		if (old_lu != ppi->linkUP) {
 
 			pp_diag(ppi, fsm, 1, "iface %s went %s\n",
-				ppi->iface_name, WR_DSPOR(ppi)->linkUP ? "up":"down");
+				ppi->iface_name, ppi->linkUP ? "up":"down");
 
-			if (WR_DSPOR(ppi)->linkUP) {
+			if (ppi->linkUP) {
 				ppi->state = PPS_INITIALIZING;
 			}
 			else {
@@ -62,7 +62,7 @@ static int run_all_state_machines(struct pp_globals *ppg)
 		}
 
 		/* Do not call state machine if link is down */
-		if (WR_DSPOR(ppi)->linkUP)
+		if (ppi->linkUP)
 			delay_ms_j = pp_state_machine(ppi, NULL, 0);
 		else
 			delay_ms_j = PP_DEFAULT_NEXT_DELAY_MS;

@@ -28,6 +28,7 @@
 #define PP_DEFAULT_SYNC_INTERVAL		0	/* -7 in 802.1AS */
 #define PP_DEFAULT_SYNC_RECEIPT_TIMEOUT		3
 #define PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT	3	/* 3 by default */
+#define PP_DEFAULT_UTC_OFFSET		37
 
 /* Clock classes (pag 55, PTP-2008). See ppsi-manual for an explanation */
 #define PP_CLASS_SLAVE_ONLY			255

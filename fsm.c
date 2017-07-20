@@ -87,6 +87,10 @@ get_current_state_table_item(struct pp_instance *ppi)
  */
 static int leave_current_state(struct pp_instance *ppi)
 {
+	/* If something has to be done in an extension */
+	if (pp_hooks.state_change)
+		pp_hooks.state_change(ppi);
+	
 	/* if the next or old state is non standard PTP reset all timeouts */
 	if ((ppi->state > PPS_SLAVE) || (ppi->next_state > PPS_SLAVE))
 		pp_timeout_setall(ppi);

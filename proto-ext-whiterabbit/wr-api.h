@@ -11,7 +11,7 @@
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
  * structure */
-#define WRS_PPSI_SHMEM_VERSION 25 /* linkUp added to pp_instance */
+#define WRS_PPSI_SHMEM_VERSION 27 /* added locking_reset to wr_operations */
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__
@@ -106,6 +106,7 @@ struct wr_operations {
 	int (*locking_enable)(struct pp_instance *ppi);
 	int (*locking_poll)(struct pp_instance *ppi, int grandmaster);
 	int (*locking_disable)(struct pp_instance *ppi);
+	int (*locking_reset)(struct pp_instance *ppi);
 	int (*enable_ptracker)(struct pp_instance *ppi);
 
 	int (*adjust_in_progress)(void);

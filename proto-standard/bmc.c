@@ -23,7 +23,7 @@ void bmc_m1(struct pp_instance *ppi)
 	struct DSDefault *defds = DSDEF(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
 	int ret = 0;
-	int offset;
+	int offset, leap59, leap61;
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved = 0;
@@ -41,9 +41,13 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
 	
-	ret = ppi->t_ops->get_utc_offset(ppi, &offset);
-	if (ret)
+	ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+	if (ret) {
 		offset = PP_DEFAULT_UTC_OFFSET;	
+		pp_diag(ppi, bmc, 1, 
+			"Could not get UTC offset from system, taking default: %i\n",
+			offset);
+	}
 	/* Time Properties data set */
 	if (prop->currentUtcOffset != offset) {
 		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
@@ -55,16 +59,18 @@ void bmc_m1(struct pp_instance *ppi)
 	{
 		prop->timeTraceable = FALSE;
 		prop->currentUtcOffsetValid = FALSE;
+		prop->leap59 = FALSE;
+		prop->leap61 = FALSE;
 	}
 	else
 	{
 		prop->timeTraceable = TRUE;
 		prop->currentUtcOffsetValid = TRUE;
+		prop->leap59 = (leap59 != 0);
+		prop->leap61 = (leap61 != 0);
 	}
 	
 	/* these are the default according to 9.4 */				
-	prop->leap59 = FALSE;
-	prop->leap61 = FALSE;
 	prop->frequencyTraceable = FALSE;
 	prop->ptpTimescale = TRUE;	
 	prop->timeSource = INTERNAL_OSCILLATOR;
@@ -77,7 +83,7 @@ void bmc_m2(struct pp_instance *ppi)
 	struct DSDefault *defds = DSDEF(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
 	int ret = 0;
-	int offset;
+	int offset, leap59, leap61;
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved = 0;
@@ -95,9 +101,13 @@ void bmc_m2(struct pp_instance *ppi)
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
 	
-	ret = ppi->t_ops->get_utc_offset(ppi, &offset);
-	if (ret)
+	ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+	if (ret) {
 		offset = PP_DEFAULT_UTC_OFFSET;	
+		pp_diag(ppi, bmc, 1, 
+			"Could not get UTC offset from system, taking default: %i\n",
+			offset);
+	}
 	/* Time Properties data set */
 	if (prop->currentUtcOffset != offset) {
 		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
@@ -109,16 +119,18 @@ void bmc_m2(struct pp_instance *ppi)
 	{
 		prop->timeTraceable = FALSE;
 		prop->currentUtcOffsetValid = FALSE;
+		prop->leap59 = FALSE;
+		prop->leap61 = FALSE;
 	}
 	else
 	{
 		prop->timeTraceable = TRUE;
 		prop->currentUtcOffsetValid = TRUE;
+		prop->leap59 = (leap59 != 0);
+		prop->leap61 = (leap61 != 0);
 	}
 			
 	/* these are the default according to 9.4 */	
-	prop->leap59 = FALSE;
-	prop->leap61 = FALSE;
 	prop->frequencyTraceable = FALSE;
 	prop->ptpTimescale = TRUE;	
 	prop->timeSource = INTERNAL_OSCILLATOR;
@@ -951,7 +963,7 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 		frgn_master = ppi->frgn_master;
 
 		/* if link is down clear foreign master table */
-		if (!ppi->linkUP)
+		if ((!ppi->linkUP) && (ppi->frgn_rec_num > 0))
 			bmc_flush_frgn_master(ppi);	
 
 		if (ppi->frgn_rec_num > 0) {

@@ -9,9 +9,11 @@
 #include "pps_gen.h" /* in wrpc-sw */
 #include "syscon.h" /* in wrpc-sw */
 
-static int wrpc_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+static int wrpc_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
 	/* no UTC offset */
+	*leap59 = 0;
+	*leap61 = 0;
 	*offset = 0;
 	return -1;	
 }

@@ -47,6 +47,13 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
 	return locked ? WR_SPLL_READY : WR_SPLL_ERROR;
 }
 
+int wrpc_spll_locking_reset(struct pp_instance *ppi)
+{
+	//TODO?
+	return WR_SPLL_OK;
+}
+
+
 int wrpc_spll_locking_disable(struct pp_instance *ppi)
 {
 	/* softpll_disable(); */

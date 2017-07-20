@@ -136,6 +136,21 @@ int wrs_locking_enable(struct pp_instance *ppi)
 	return WR_SPLL_OK;
 }
 
+int wrs_locking_reset(struct pp_instance *ppi)
+{
+	int ret, rval;
+
+	pp_diag(ppi, time, 1, "Reset locking\n");
+
+	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
+			  &rval, ppi->iface_name, HEXP_LOCK_CMD_RESET, 0);
+
+	if ((ret < 0) || (rval < 0))
+		return WR_SPLL_ERROR;
+
+	return WR_SPLL_OK;
+}
+
 int wrs_locking_poll(struct pp_instance *ppi, int grandmaster)
 {
 	int ret, rval;
@@ -187,14 +202,26 @@ static int wrdate_get(struct pp_time *t)
 	return 0;
 }
 
-static int wrs_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+static int wrs_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
+	int ret;
 	struct timex t;
 	/*
 	 * Get the UTC/TAI difference
 	 */
 	memset(&t, 0, sizeof(t));
-	if (adjtimex(&t) >= 0) {
+	ret = adjtimex(&t);
+	if (ret >= 0) {
+		if (ret == TIME_INS) {
+			*leap59 = 0;
+			*leap61 = 1;
+		} else if (ret == TIME_DEL) {
+			*leap59 = 1;
+			*leap61 = 0;
+		} else {
+			*leap59 = 0;
+			*leap61 = 0;
+		}		
 		/*
 		 * Our WRS kernel has tai support, but our compiler does not.
 		 * We are 32-bit only, and we know for sure that tai is

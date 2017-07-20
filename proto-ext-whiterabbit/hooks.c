@@ -277,10 +277,6 @@ static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 /* State decision algorithm 9.3.3 Fig 26 with extension for wr */
 static int wr_state_decision(struct pp_instance *ppi, int next_state)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	struct pp_globals *ppg = GLBS(ppi);
-
-	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	
 	/* 
@@ -297,25 +293,42 @@ static int wr_state_decision(struct pp_instance *ppi, int next_state)
 		(ppi->state == WRS_WR_LINK_ON))
 		return ppi->state;
 	
+	/* else do the normal statemachine */
+	return next_state;
+}
+
+static void wr_state_change(struct pp_instance *ppi)
+{
+	struct pp_globals *ppg = GLBS(ppi);
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	
+	if ((ppi->next_state == WRS_PRESENT) ||
+		(ppi->next_state == WRS_M_LOCK) ||
+		(ppi->next_state == WRS_S_LOCK) ||
+		(ppi->next_state == WRS_LOCKED) ||
+		(ppi->next_state == WRS_CALIBRATION) ||
+		(ppi->next_state == WRS_CALIBRATED) ||
+		(ppi->next_state == WRS_RESP_CALIB_REQ) ||
+		(ppi->next_state == WRS_WR_LINK_ON))
+		return;
+	
 	/* if we are leaving the WR locked states reset the WR process */
-	if ((next_state != ppi->state) &&	
-		(WR_DSPOR(ppi)->wrModeOn == TRUE) &&
+	if ((ppi->next_state != ppi->state) &&	
+		(wrp->wrModeOn == TRUE) &&
 		((ppi->state == PPS_SLAVE) ||
 		 (ppi->state == PPS_MASTER))) {
+		
+		wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
+		wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
 		wrp->wrModeOn = FALSE;
 		wrp->parentWrConfig = NON_WR;
 		wrp->parentWrModeOn = FALSE;
 		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 		
-		/* if we are leaving the slave state reset the servo */
-		if ((ppi->state == PPS_SLAVE) &&
-			(ppg->ebest_idx == ppi->port_idx)) {
-			wr_servo_reset(ppi);
-		}
-	}
-		 
-	/* else do the normal statemachine */
-	return next_state;
+		wrp->ops->locking_reset(ppi);		
+	}		 
 }
 
 struct pp_ext_hooks pp_hooks = {
@@ -335,4 +348,5 @@ struct pp_ext_hooks pp_hooks = {
 	.pack_announce = wr_pack_announce,
 	.unpack_announce = wr_unpack_announce,
 	.state_decision = wr_state_decision,
+	.state_change = wr_state_change,
 };

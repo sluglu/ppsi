@@ -23,14 +23,26 @@ static void clock_fatal_error(char *context)
 	exit(1);
 }
 
-static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
+	int ret;
 	struct timex t;
 	/*
 	 * Get the UTC/TAI difference
 	 */
 	memset(&t, 0, sizeof(t));
-	if (adjtimex(&t) >= 0) {
+	ret = adjtimex(&t);
+	if (ret >= 0) {
+		if (ret == TIME_INS) {
+			*leap59 = 0;
+			*leap61 = 1;
+		} else if (ret == TIME_DEL) {
+			*leap59 = 1;
+			*leap61 = 0;
+		} else {
+			*leap59 = 0;
+			*leap61 = 0;
+		}		
 		/*
 		 * Our WRS kernel has tai support, but our compiler does not.
 		 * We are 32-bit only, and we know for sure that tai is

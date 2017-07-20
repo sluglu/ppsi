@@ -46,9 +46,11 @@ int sim_fast_forward_ns(struct pp_globals *ppg, int64_t ff_ns)
 	return 0;
 }
 
-static int sim_time_get_utc_offset(struct pp_instance *ppi, int *offset)
+static int sim_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
 	/* no UTC offset */
+	*leap59 = 0;
+	*leap61 = 0;
 	*offset = 0;
 	return -1;	
 }

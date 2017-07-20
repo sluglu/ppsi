@@ -32,6 +32,7 @@ static struct wr_operations wrpc_wr_operations = {
 	.locking_enable = wrpc_spll_locking_enable,
 	.locking_poll = wrpc_spll_locking_poll,
 	.locking_disable = wrpc_spll_locking_disable,
+	.locking_reset = wrpc_spll_locking_reset,
 	.enable_ptracker = wrpc_spll_enable_ptracker,
 
 	.adjust_in_progress = wrpc_adjust_in_progress,

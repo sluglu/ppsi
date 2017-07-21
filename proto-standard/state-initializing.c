@@ -38,47 +38,50 @@ static void init_parent_ds(struct pp_instance *ppi)
 
 int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 {
-	unsigned char *id, *mac;
+	unsigned char *mac;
+	unsigned char mac_port1[6];
 	struct DSPort *port = DSPOR(ppi);
 	struct pp_runtime_opts *opt = OPTS(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
-	int init_dspar = 1;
 	int ret = 0;
-	int i;
+	int i, j;
+	unsigned int portidx;
+	unsigned int remainder;
 
 	if (ppi->n_ops->init(ppi) < 0) /* it must handle being called twice */
 		goto failure;
 
-	/* only fill in the parent data set when initializing */
+	/* only fill in the data set when initializing */
 	if (DSDEF(ppi)->numberPorts > 1) {
 		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
-			if (INST(ppg, i)->state != PPS_INITIALIZING)
-				init_dspar = 0;
+			if (INST(ppg, i)->state != PPS_INITIALIZING) {
+				/* Clock identity comes from mac address with 0xff:0xfe intermixed */
+				mac = ppi->ch[PP_NP_GEN].addr;
+				/* calculate MAC of Port 0 */
+				portidx = ppi - ppi->glbs->pp_instances;
+				remainder = portidx;
+				for (j = 5; j >= 0; j--) {
+					mac_port1[j] = mac[j] - remainder;
+					if (mac[j] >= remainder)
+						remainder = 0;
+					else
+						remainder = 1;
+				}
+
+				DSDEF(ppi)->clockIdentity.id[0] = mac_port1[0];
+				DSDEF(ppi)->clockIdentity.id[1] = mac_port1[1];
+				DSDEF(ppi)->clockIdentity.id[2] = mac_port1[2];
+				DSDEF(ppi)->clockIdentity.id[3] = 0xff;
+				DSDEF(ppi)->clockIdentity.id[4] = 0xfe;
+				DSDEF(ppi)->clockIdentity.id[5] = mac_port1[3];
+				DSDEF(ppi)->clockIdentity.id[6] = mac_port1[4];
+				DSDEF(ppi)->clockIdentity.id[7] = mac_port1[5];
+
+				init_parent_ds(ppi);			
+			}
 		}				
 	}
-	
-	if (init_dspar)
-		init_parent_ds(ppi);
-
-	/* Clock identity comes from mac address with 0xff:0xfe intermixed */
-	id = (unsigned char *)&DSDEF(ppi)->clockIdentity;
-	/* we always take the one from the first port */
-	mac = INST(ppg, 0)->ch[PP_NP_GEN].addr;
-	id[0] = mac[0];
-	id[1] = mac[1];
-	id[2] = mac[2];
-	id[3] = 0xff;
-	id[4] = 0xfe;
-	id[5] = mac[3];
-	id[6] = mac[4];
-	id[7] = mac[5];
-
-	/*
-	 * Initialize parent data set
-	 */
-	if (init_dspar)
-		init_parent_ds(ppi);
-
+		
 	/*
 	 * Initialize port data set
 	 */

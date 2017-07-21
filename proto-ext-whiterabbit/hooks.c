@@ -326,7 +326,8 @@ static void wr_state_change(struct pp_instance *ppi)
 		wrp->parentWrModeOn = FALSE;
 		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 		
-		wrp->ops->locking_reset(ppi);		
+		if (ppi->state == PPS_SLAVE)
+			wrp->ops->locking_reset(ppi);		
 	}		 
 }
 

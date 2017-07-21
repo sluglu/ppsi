@@ -988,7 +988,7 @@ static int bmc_any_port_initializing(struct pp_globals *ppg)
 
 		ppi = INST(ppg, i);
 
-		if (ppi->linkUP && (ppi->state == PPS_INITIALIZING)) {
+		if (ppi->link_up && (ppi->state == PPS_INITIALIZING)) {
 			pp_diag(ppi, bmc, 2, "The first port in INITIALIZING "
 				"state is %i\n", i);
 			return 1;
@@ -1015,7 +1015,7 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 		frgn_master = ppi->frgn_master;
 
 		/* if link is down clear foreign master table */
-		if ((!ppi->linkUP) && (ppi->frgn_rec_num > 0))
+		if ((!ppi->link_up) && (ppi->frgn_rec_num > 0))
 			bmc_flush_frgn_master(ppi);	
 
 		if (ppi->frgn_rec_num > 0) {
@@ -1139,7 +1139,7 @@ int bmc(struct pp_instance *ppi)
 	/* Calulate Ebest Figure 25 */
 	bmc_update_ebest(ppg);
 
-	if (!ppi->linkUP) {
+	if (!ppi->link_up) {
 		/* Set it back to initializing */
 		next_state = PPS_INITIALIZING;
 	} else if (ret == 1) {

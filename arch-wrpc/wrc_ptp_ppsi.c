@@ -227,7 +227,7 @@ int wrc_ptp_start()
 	start_tics = timer_get_tics();
 
 	/* just tell that the link is up, if not it will anyhow not receive anything */
-	ppi->linkUP = TRUE;
+	ppi->link_up = TRUE;
 	wr_servo_reset(ppi);
 
 	ptp_enabled = 1;
@@ -247,7 +247,7 @@ int wrc_ptp_stop()
 	ppi->frgn_rec_num = 0;          /* no known master */
 
 	/* just tell that the link is down now */
-	ppi->linkUP = FALSE;
+	ppi->link_up = FALSE;
 	ptp_enabled = 0;
 	wr_servo_reset(ppi);
 	pp_close_globals(&ppg_static);

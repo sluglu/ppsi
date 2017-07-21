@@ -270,7 +270,7 @@ static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 	int msg_len = htons(*(UInteger16 *) (buf + 2));
 
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
-	if (msg_len > PP_ANNOUNCE_LENGTH)
+	if (msg_len >= WR_ANNOUNCE_LENGTH)
 		msg_unpack_announce_wr_tlv(buf, ann);
 }
 
@@ -299,7 +299,6 @@ static int wr_state_decision(struct pp_instance *ppi, int next_state)
 
 static void wr_state_change(struct pp_instance *ppi)
 {
-	struct pp_globals *ppg = GLBS(ppi);
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);

@@ -474,8 +474,16 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		ebest = erbest;
 		goto slave_s1;
 	}
+	
+	/* check if the erbest is qualified */
+	if (ppi->frgn_rec_num)
+	{
+		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
+			qualified += erbest->foreignMasterAnnounceMessages[i];
+	}
 
-	if ((!ppi->frgn_rec_num) && (ppi->state == PPS_LISTENING))
+
+	if (((!ppi->frgn_rec_num) || (qualified < PP_FOREIGN_MASTER_THRESHOLD))&& (ppi->state == PPS_LISTENING))
 		return PPS_LISTENING;
 
 	/* copy local information to a foreign_master structure */
@@ -514,22 +522,6 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		if (cmpres > 0)
 			goto passive_p1;
 	} else {
-		/* when a boundary clock, check if from own port 
-		 * and set into passive mode according to 9.5.2.3
-		 */
-		if (DSDEF(ppi)->numberPorts > 1) {
-			/* message received from the own clock */
-			if ((ppi->frgn_rec_num > 0) && (!bmc_idcmp(&erbest->sourcePortIdentity.clockIdentity, &DSDEF(ppi)->clockIdentity))) {
-				for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-					qualified += erbest->foreignMasterAnnounceMessages[i];
-				
-				/* is this port worse than the other */
-				cmpres = bmc_pidcmp(&erbest->sourcePortIdentity, &DSPOR(ppi)->portIdentity);
-				if ((qualified >= PP_FOREIGN_MASTER_THRESHOLD) && (cmpres < 0))
-					goto passive_p1;
-			}
-		} 
-		
 		/* dataset_cmp D0 with Ebest */
 		cmpres = bmc_dataset_cmp(ppi, &d0, ebest);
 		if (cmpres < 0)
@@ -741,10 +733,12 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			    int len)
 {
+	int cmpres;
 	int i, j, worst, sel;
 	struct pp_frgn_master frgn_master;
 	MsgHeader *hdr = &ppi->received_ptp_header;
-
+	struct PortIdentity *pid = &hdr->sourcePortIdentity;
+	
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
 	/* if we are a configured master don't add*/
@@ -763,6 +757,14 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	 */
 	bmc_store_frgn_master(ppi, &frgn_master, buf, len);
 	
+	pp_diag(ppi, bmc, 3, "Foreign Master Port Id: "
+		"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n",
+		pid->clockIdentity.id[0], pid->clockIdentity.id[1],
+		pid->clockIdentity.id[2], pid->clockIdentity.id[3],
+		pid->clockIdentity.id[4], pid->clockIdentity.id[5],
+		pid->clockIdentity.id[6], pid->clockIdentity.id[7],
+		pid->portNumber);
+			
 	if (DSDEF(ppi)->numberPorts > 1) {
 		/* Check if announce from the same port from this clock 9.3.2.5 a) 
 		 * from another port of this clock we still handle even though it 
@@ -770,14 +772,29 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		 * there is a special handling described for boundary clocks
 		 * which is done in the BMC
 		 */
-		if (!bmc_pidcmp(&hdr->sourcePortIdentity,
-				&DSPOR(ppi)->portIdentity)) {
-			pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
-			return;
+		if (!bmc_idcmp(&pid->clockIdentity,
+				&DSDEF(ppi)->clockIdentity)) {
+			cmpres = bmc_pidcmp(pid, &DSPOR(ppi)->portIdentity);
+		
+			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+			
+			if (cmpres < 0) {
+				pp_diag(ppi, bmc, 2, "Announce frame from a better port on this clock\n");
+				bmc_p1(ppi);
+				ppi->next_state = PPS_PASSIVE;
+				/* as long as we receive that reset the announce timeout */
+				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+			} else if (cmpres > 0) {
+				pp_diag(ppi, bmc, 2, "Announce frame from a worse port on this clock\n");
+				return;
+			} else {
+				pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
+				return;
+			} 
 		}
 	} else {
 		/* Check if announce from a port from this clock 9.3.2.5 a) */
-		if (!bmc_idcmp(&hdr->sourcePortIdentity.clockIdentity,
+		if (!bmc_idcmp(&pid->clockIdentity,
 				&DSDEF(ppi)->clockIdentity)) {
 			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
 			return;
@@ -794,7 +811,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 
 	/* Check if foreign master is already known */
 	for (i = 0; i < ppi->frgn_rec_num; i++) {
-		if (!bmc_pidcmp(&hdr->sourcePortIdentity,
+		if (!bmc_pidcmp(pid,
 			    &ppi->frgn_master[i].sourcePortIdentity)) {
 
 			pp_diag(ppi, bmc, 2, "Foreign Master %i updated\n", i);
@@ -920,6 +937,41 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 			i--;
 		}
 	}
+}
+
+/* returns 0 if erbest is not from another port of the device, 
+ * 1 if the port shall go to passive
+ */
+int bmc_check_frgn_master(struct pp_instance *ppi)
+{
+	int i;
+	struct PortIdentity *pid; 
+
+	/* bmc is called several times, so report only at level 2 */
+	pp_diag(ppi, bmc, 1, "%s\n", __func__);
+	
+	if (ppi->frgn_rec_num > 0) {
+		for (i =0; i < ppi->frgn_rec_num; i++) {
+			/* from the same clock */
+			if (!bmc_idcmp(&ppi->frgn_master[i].sourcePortIdentity.clockIdentity,
+					&DSDEF(ppi)->clockIdentity)) {
+				/* from a better port */
+				if(0 > bmc_pidcmp(&ppi->frgn_master[i].sourcePortIdentity,
+						&DSPOR(ppi)->portIdentity)) {
+					pid = &ppi->frgn_master[i].sourcePortIdentity;
+					pp_diag(ppi, bmc, 3, "Better Master on same Clock Port Id:" 
+						"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n",
+						pid->clockIdentity.id[0], pid->clockIdentity.id[1],
+						pid->clockIdentity.id[2], pid->clockIdentity.id[3],
+						pid->clockIdentity.id[4], pid->clockIdentity.id[5],
+						pid->clockIdentity.id[6], pid->clockIdentity.id[7],
+						pid->portNumber);
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;			
 }
 
 /* Check if any port is in initilaizing state */
@@ -1057,6 +1109,7 @@ int bmc(struct pp_instance *ppi)
 {
 	struct pp_globals *ppg = GLBS(ppi);
 	int next_state;
+	int ret = 0;
 
 	/* bmc is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
@@ -1075,19 +1128,26 @@ int bmc(struct pp_instance *ppi)
 		pp_diag(ppi, bmc, 2, "A Port is in intializing\n");
 		return ppi->state;
 	}
-
+	
 	/* Calculate Erbest of all ports Figure 25 */
 	bmc_update_erbest(ppg);
-
+	
+	if (DSDEF(ppi)->numberPorts > 1) {
+		ret = bmc_check_frgn_master(ppi);
+	}
+	
 	/* Calulate Ebest Figure 25 */
 	bmc_update_ebest(ppg);
 
-	if (ppi->linkUP) {
-		/* Make state decision */
-		next_state = bmc_state_decision(ppi);
-	} else {
+	if (!ppi->linkUP) {
 		/* Set it back to initializing */
 		next_state = PPS_INITIALIZING;
+	} else if (ret == 1) {
+		bmc_p1(ppi);
+		next_state = PPS_PASSIVE;
+	} else {
+		/* Make state decision */
+		next_state = bmc_state_decision(ppi);
 	}
 	
 	/* Extra states handled here */

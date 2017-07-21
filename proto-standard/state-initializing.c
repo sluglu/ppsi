@@ -62,7 +62,8 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 
 	/* Clock identity comes from mac address with 0xff:0xfe intermixed */
 	id = (unsigned char *)&DSDEF(ppi)->clockIdentity;
-	mac = ppi->ch[PP_NP_GEN].addr;
+	/* we always take the one from the first port */
+	mac = INST(ppg, 0)->ch[PP_NP_GEN].addr;
 	id[0] = mac[0];
 	id[1] = mac[1];
 	id[2] = mac[2];

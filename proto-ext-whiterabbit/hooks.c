@@ -41,7 +41,10 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 		/* FIXME check if correct: assign to each instance the same
 		 * wr_data. May I move it to pp_globals? */
 		INST(ppg, i)->ext_data = ppg->global_ext_data;
-
+		/* store clock class */
+		DSDEF(INST(ppg, i))->ext_specific =
+			DSDEF(INST(ppg, i))->clockQuality.clockClass;
+		
 		if (ppi->cfg.ext == PPSI_EXT_WR) {
 			switch (ppi->role) {
 				case PPSI_ROLE_MASTER:
@@ -299,6 +302,10 @@ static int wr_state_decision(struct pp_instance *ppi, int next_state)
 
 static void wr_state_change(struct pp_instance *ppi)
 {
+	int i;
+	int nr_of_ports = 0;
+	int is_gm = 1;
+	struct pp_globals *ppg = GLBS(ppi);
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
@@ -327,7 +334,27 @@ static void wr_state_change(struct pp_instance *ppi)
 		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 		
 		if (ppi->state == PPS_SLAVE)
-			wrp->ops->locking_reset(ppi);		
+			wrp->ops->locking_reset(ppi);
+		
+		if (ppi->state == PPS_MASTER) {
+			if (DSDEF(ppi)->numberPorts > 1) {
+				for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+					if (INST(ppg, i)->link_up == TRUE) {
+						nr_of_ports++;
+						if (INST(ppg, i)->state != PPS_MASTER)
+							is_gm = 0;
+					}
+				}				
+			} else
+				nr_of_ports = 1;
+			
+			/* if we change the state reset the clock class if we are not GM anymore */
+			if ((!is_gm) || (nr_of_ports == 0) || 
+				(DSDEF(ppi)->numberPorts == 1))
+				DSDEF(ppi)->clockQuality.clockClass =
+					DSDEF(ppi)->ext_specific;
+		}
+
 	}		 
 }
 

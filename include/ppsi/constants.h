@@ -39,7 +39,10 @@
 #define PP_DEFAULT_CLOCK_ACCURACY		0xFE
 #define PP_DEFAULT_PRIORITY1			128
 #define PP_DEFAULT_PRIORITY2			128
-#define PP_DEFAULT_CLOCK_VARIANCE		0xFFFF /* not computed */
+#define PP_DEFAULT_CLOCK_VARIANCE		0x8000 /* FIXME shall be set to
+											    * 0xFFFF once getting calculated,
+												* defining it is not yet calculated 
+												*/
 
 #define PP_NR_FOREIGN_RECORDS			5
 #define PP_FOREIGN_MASTER_TIME_WINDOW		4

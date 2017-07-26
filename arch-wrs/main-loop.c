@@ -53,6 +53,8 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				ppi->state = PPS_INITIALIZING;
 			}
 			else {
+				ppi->next_state = PPS_DISABLED;
+				pp_leave_current_state(ppi);
 				ppi->n_ops->exit(ppi);
 				ppi->frgn_rec_num = 0;
 				ppi->frgn_rec_best = 0;

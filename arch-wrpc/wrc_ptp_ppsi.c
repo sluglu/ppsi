@@ -228,8 +228,8 @@ int wrc_ptp_start()
 
 	/* just tell that the link is up, if not it will anyhow not receive anything */
 	ppi->link_up = TRUE;
+	ppi->state = PPS_INITIALIZING;
 	wr_servo_reset(ppi);
-
 	ptp_enabled = 1;
 	return 0;
 }
@@ -249,6 +249,8 @@ int wrc_ptp_stop()
 	/* just tell that the link is down now */
 	ppi->link_up = FALSE;
 	ptp_enabled = 0;
+	ppi->next_state = PPS_DISABLED;
+	pp_leave_current_state(ppi);
 	wr_servo_reset(ppi);
 	pp_close_globals(&ppg_static);
 

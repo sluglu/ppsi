@@ -85,7 +85,7 @@ get_current_state_table_item(struct pp_instance *ppi)
 /*
  * Returns delay to next state, which is always zero.
  */
-static int leave_current_state(struct pp_instance *ppi)
+int pp_leave_current_state(struct pp_instance *ppi)
 {
 	/* If something has to be done in an extension */
 	if (pp_hooks.state_change)
@@ -263,7 +263,7 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	if (ppi->state != ppi->next_state)
-		return leave_current_state(ppi);
+		return pp_leave_current_state(ppi);
 
 	if (!len)
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
@@ -275,7 +275,7 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 
 	/* done: if new state mark it, and enter it now (0 ms) */
 	if (ppi->state != ppi->next_state)
-		return leave_current_state(ppi);
+		return pp_leave_current_state(ppi);
 
 	/* run bmc independent of state, and since not message driven do this
 	 * here 9.2.6.8 */
@@ -284,7 +284,7 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 
 		/* done: if new state mark it, and enter it now (0 ms) */
 		if (ppi->state != ppi->next_state)
-			return leave_current_state(ppi);
+			return pp_leave_current_state(ppi);
 	}
 
 	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);

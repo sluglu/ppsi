@@ -448,6 +448,9 @@ extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
 		 pp_master, pp_passive, pp_uncalibrated,
 		 pp_slave, pp_pclock;;
 
+/* Enforce a state change */
+extern int pp_leave_current_state(struct pp_instance *ppi);
+
 /* The engine */
 extern int pp_state_machine(struct pp_instance *ppi, void *buf, int len);
 

@@ -65,25 +65,28 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 
 	buf = ppi->tx_ptp;
 
-	/* GM: update clock Class, according to whether we are locked or not */
-	if (class < PP_CLASS_DEFAULT) {
+	/* GM: update clock Class, according to whether we are locked or not 
+	 * but only for grandmaster clocks in specific clocks that can anyhow
+	 * be only master
+	 */
+	if (class <= 127) { 
 		if (DSDEF(ppi)->numberPorts > 1) {
 			for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
-				if ((INST(ppg, i)->state == PPS_UNCALIBRATED) ||
-					(INST(ppg, i)->state == PPS_SLAVE))
-					is_gm = 0;
+				if ((INST(ppg, i)->link_up == TRUE) &&
+					(INST(ppg, i)->state != PPS_MASTER))
+					 is_gm = 0;
 			}				
 		}	
-			
+		
 		if (is_gm) {	
 			locked = wrp->ops->locking_poll(ppi, 1);
 			if (locked == WR_SPLL_READY)
 				class = PP_CLASS_WR_GM_LOCKED;
 			else
 				class = PP_CLASS_WR_GM_UNLOCKED;
-			
+
 			bmc_m1(ppi);
-			
+
 			if (class != DSDEF(ppi)->clockQuality.clockClass) {
 				pp_error("New class %i\n", class);
 				DSDEF(ppi)->clockQuality.clockClass = class;

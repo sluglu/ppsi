@@ -91,6 +91,9 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 				pp_error("New class %i\n", class);
 				DSDEF(ppi)->clockQuality.clockClass = class;
 				*(UInteger8 *) (buf + 48) = class;
+				
+				if (DSDEF(ppi)->numberPorts > 1)
+					pp_error("Configuring GM clock class while in BC mode\n");
 			}
 		}
 	}

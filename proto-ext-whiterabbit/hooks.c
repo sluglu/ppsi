@@ -336,23 +336,25 @@ static void wr_state_change(struct pp_instance *ppi)
 		if (ppi->state == PPS_SLAVE)
 			wrp->ops->locking_reset(ppi);
 		
-		if (ppi->state == PPS_MASTER) {
-			if (DSDEF(ppi)->numberPorts > 1) {
-				for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
-					if (INST(ppg, i)->link_up == TRUE) {
-						nr_of_ports++;
-						if (INST(ppg, i)->state != PPS_MASTER)
-							is_gm = 0;
-					}
-				}				
-			} else
-				nr_of_ports = 1;
-			
-			/* if we change the state reset the clock class if we are not GM anymore */
-			if ((!is_gm) || (nr_of_ports == 0) || 
-				(DSDEF(ppi)->numberPorts == 1))
-				DSDEF(ppi)->clockQuality.clockClass =
-					DSDEF(ppi)->ext_specific;
+		if (DSDEF(ppi)->clockQuality.clockClass <= 127) {
+			if (ppi->state == PPS_MASTER) {
+				if (DSDEF(ppi)->numberPorts > 1) {
+					for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+						if (INST(ppg, i)->link_up == TRUE) {
+							nr_of_ports++;
+							if (INST(ppg, i)->state != PPS_MASTER)
+								is_gm = 0;
+						}
+					}				
+				} else
+					nr_of_ports = 1;
+
+				/* if we change the state reset the clock class if we are not GM anymore */
+				if ((!is_gm) || (nr_of_ports == 0) || 
+					(DSDEF(ppi)->numberPorts == 1))
+					DSDEF(ppi)->clockQuality.clockClass =
+						DSDEF(ppi)->ext_specific;
+			}
 		}
 
 	}		 

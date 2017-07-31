@@ -35,7 +35,8 @@ static int cmd_fault(const char *args[])
 		return 0;
 	}
 	if (args[0] && !strcmp(args[0], "stamp")) {
-		int i, v;
+		int i;
+		int64_t v;
 		struct pp_time *t;
 
 		/* input is hex, output is decimal (ps) */
@@ -43,7 +44,7 @@ static int cmd_fault(const char *args[])
 		for (i = 0; i < 6; i++) {
 			t = faulty_stamps + i;
 			if (args[i + 1]) {
-				fromhex(args[i + 1], &v);
+				fromhex64(args[i + 1], &v);
 				t->scaled_nsecs = v;
 			}
 			pp_printf("   %i ps",

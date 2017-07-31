@@ -14,7 +14,10 @@ void normalize_pp_time(struct pp_time *t)
 	/* no 64b division please, we'll rather loop a few times */
 	#define SNS_PER_S ((1000LL * 1000 * 1000) << 16)
 
-	int sign = (t->secs < 0 || (t->secs == 0 && t->scaled_nsecs < 0))
+	/* For whatever reason we perform a normalization on an incorrect
+	 * timestamp, don't treat is as an negative value. */
+	int64_t sign = ((t->secs < 0 && !is_incorrect(t))
+			|| (t->secs == 0 && t->scaled_nsecs < 0))
 		? -1 : 1;
 
 	/* turn into positive, to make code shorter (don't replicate loops) */

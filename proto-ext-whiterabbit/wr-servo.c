@@ -80,7 +80,7 @@ static void picos_to_ts(int64_t picos, struct pp_time *ts)
 	phase = __div64_32(&nsec, 1000);
 	sec = nsec;
 
-	ts->scaled_nsecs = __div64_32(&sec, PP_NSEC_PER_SEC) << 16;
+	ts->scaled_nsecs = ((int64_t)__div64_32(&sec, PP_NSEC_PER_SEC)) << 16;
 	ts->scaled_nsecs += (phase << 16) / 1000;
 	ts->scaled_nsecs *= sign;
 	ts->secs = sec * sign;

@@ -119,12 +119,14 @@ int wrc_ptp_set_mode(int mode)
 	struct pp_globals *ppg = ppi->glbs;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	typeof(ppg->rt_opts->clock_quality.clockClass) *class_ptr;
+	typeof(ppg->rt_opts->clock_quality.clockAccuracy) *accuracy_ptr;
 	int error = 0;
 	/*
 	 * We need to change the class in the default options.
 	 * Unfortunately, ppg->rt_opts may be yet unassigned when this runs
 	 */
 	class_ptr = &__pp_default_rt_opts.clock_quality.clockClass;
+	accuracy_ptr = &__pp_default_rt_opts.clock_quality.clockAccuracy;
 
 	ptp_mode = 0;
 
@@ -136,10 +138,12 @@ int wrc_ptp_set_mode(int mode)
 		wrp->wrConfig = WR_M_ONLY;
 		ppi->role = PPSI_ROLE_MASTER;
 		*class_ptr = PP_PTP_CLASS_GM_LOCKED;
+		*accuracy_ptr = PP_PTP_ACCURACY_GM_LOCKED;
 		spll_init(SPLL_MODE_GRAND_MASTER, 0, 1);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_GM;
 		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
+		DSDEF(ppi)->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED;
 		bmc_m1(ppi);
 		break;
 
@@ -147,10 +151,12 @@ int wrc_ptp_set_mode(int mode)
 		wrp->wrConfig = WR_M_ONLY;
 		ppi->role = PPSI_ROLE_MASTER;
 		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
+		*accuracy_ptr = PP_PTP_ACCURACY_GM_UNLOCKED;
 		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, 1);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_FM;
 		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
+		DSDEF(ppi)->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED;
 		bmc_m1(ppi);
 		break;
 
@@ -158,8 +164,11 @@ int wrc_ptp_set_mode(int mode)
 		wrp->wrConfig = WR_S_ONLY;
 		ppi->role = PPSI_ROLE_SLAVE;
 		*class_ptr = PP_CLASS_SLAVE_ONLY;
+		*accuracy_ptr = PP_ACCURACY_DEFAULT;
 		spll_init(SPLL_MODE_SLAVE, 0, 1);
 		shw_pps_gen_unmask_output(0);
+		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
+		DSDEF(ppi)->clockQuality.clockAccuracy = PP_ACCURACY_DEFAULT;
 		break;
 	}
 
@@ -181,8 +190,10 @@ int wrc_ptp_set_mode(int mode)
 	pp_printf("\n");
 
 	/* If we can't lock to the atomic/gps, we say it in the class */
-	if (error && mode == WRC_MODE_GM)
+	if (error && mode == WRC_MODE_GM) {
 		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
+		*accuracy_ptr = PP_PTP_ACCURACY_GM_UNLOCKED;
+	}
 
 	ptp_mode = mode;
 	return error;

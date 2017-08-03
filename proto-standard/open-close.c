@@ -14,7 +14,7 @@
 struct pp_runtime_opts __pp_default_rt_opts = {
 	.clock_quality = {
 			.clockClass = PP_CLASS_DEFAULT,
-			.clockAccuracy = PP_DEFAULT_CLOCK_ACCURACY,
+			.clockAccuracy = PP_ACCURACY_DEFAULT,
 			.offsetScaledLogVariance = PP_DEFAULT_CLOCK_VARIANCE,
 	},
 	.flags =		PP_DEFAULT_FLAGS,

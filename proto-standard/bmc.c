@@ -1144,16 +1144,20 @@ static void bmc_update_clock_quality(struct pp_instance *ppi)
 			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
+					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED;
 					pp_diag(ppi, bmc, 1, 
-						"Servo locked, new clock class: %i\n",
-						ppg->defaultDS->clockQuality.clockClass);
+						"Servo locked, new clock class: %i, new clock accuracy: %i\n",
+						ppg->defaultDS->clockQuality.clockClass,
+					        ppg->defaultDS->clockQuality.clockAccuracy);
 				}				
 			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_LOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_LOCKED;
+					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_LOCKED;
 					pp_diag(ppi, bmc, 1, 
-						"Servo locked, new clock class: %i\n",
-						ppg->defaultDS->clockQuality.clockClass);
+						"Servo locked, new clock class: %i, new clock accuracy: %i\n",
+						ppg->defaultDS->clockQuality.clockClass,
+					        ppg->defaultDS->clockQuality.clockAccuracy);
 				}				
 			}	
 			break;
@@ -1162,16 +1166,20 @@ static void bmc_update_clock_quality(struct pp_instance *ppi)
 			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_HOLDOVER) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_HOLDOVER;
+					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_HOLDOVER;
 					pp_diag(ppi, bmc, 1, 
-						"Servo in holdover, new clock class: %i\n",
-						ppg->defaultDS->clockQuality.clockClass);
+						"Servo in holdover, new clock class: %i, new clock accuracy: %i\n",
+						ppg->defaultDS->clockQuality.clockClass,
+					        ppg->defaultDS->clockQuality.clockAccuracy);
 				}				
 			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_HOLDOVER) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_HOLDOVER;
+					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_HOLDOVER;
 					pp_diag(ppi, bmc, 1, 
-						"Servo in holdover, new clock class: %i\n",
-						ppg->defaultDS->clockQuality.clockClass);
+						"Servo in holdover, new clock class: %i, new clock accuracy: %i\n",
+						ppg->defaultDS->clockQuality.clockClass,
+					        ppg->defaultDS->clockQuality.clockAccuracy);
 				}				
 			}	
 			break;
@@ -1180,16 +1188,20 @@ static void bmc_update_clock_quality(struct pp_instance *ppi)
 			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_UNLOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
+					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED;
 					pp_diag(ppi, bmc, 1, 
-						"Servo unlocked, new clock class: %i\n",
-						ppg->defaultDS->clockQuality.clockClass);
+						"Servo unlocked, new clock class: %i, new clock accuracy: %i\n",
+						ppg->defaultDS->clockQuality.clockClass,
+					        ppg->defaultDS->clockQuality.clockAccuracy);
 				}				
 			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_UNLOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_UNLOCKED;
+					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED;
 					pp_diag(ppi, bmc, 1, 
-						"Servo unlocked, new clock class: %i\n",
-						ppg->defaultDS->clockQuality.clockClass);
+						"Servo unlocked, new clock class: %i, new clock accuracy: %i\n",
+						ppg->defaultDS->clockQuality.clockClass,
+					        ppg->defaultDS->clockQuality.clockAccuracy);
 				}				
 			}	
 			break;

@@ -36,6 +36,12 @@ static int bare_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 	}		
 }
 
+static int bare_time_get_servo_state(struct pp_instance *ppi, int *state)
+{
+	*state = PP_SERVO_UNKNOWN;
+	return 0;
+}
+
 static int bare_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct bare_timeval tv;
@@ -129,6 +135,7 @@ static unsigned long bare_calc_timeout(struct pp_instance *ppi, int millisec)
 
 struct pp_time_operations bare_time_ops = {
 	.get_utc_offset = bare_time_get_utc_offset,
+	.get_servo_state = bare_time_get_servo_state,
 	.get = bare_time_get,
 	.set = bare_time_set,
 	.adjust = bare_time_adjust,

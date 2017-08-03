@@ -235,6 +235,19 @@ static int wrs_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *le
 	}		
 }
 
+static int wrs_time_get_servo_state(struct pp_instance *ppi, int *state)
+{
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	int locked;
+	
+	locked = wrp->ops->locking_poll(ppi, 1);
+	if (locked == WR_SPLL_READY)
+		*state = PP_SERVO_LOCKED;
+	else
+		*state = PP_SERVO_UNLOCKED;
+	return 0;
+}
+
 /* This is only used when the wrs is slave to a non-WR master */
 static int wrs_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
@@ -419,6 +432,7 @@ static unsigned long wrs_calc_timeout(struct pp_instance *ppi,
 }
 
 struct pp_time_operations wrs_time_ops = {
+	.get_servo_state = wrs_time_get_servo_state,
 	.get_utc_offset = wrs_time_get_utc_offset,
 	.get = wrs_time_get,
 	.set = wrs_time_set,

@@ -18,6 +18,19 @@ static int wrpc_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 	return -1;	
 }
 
+static int wrpc_time_get_servo_state(struct pp_instance *ppi, int *state)
+{
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	int locked;
+	
+	locked = wrp->ops->locking_poll(ppi, 1);
+	if (locked == WR_SPLL_READY)
+		*state = PP_SERVO_LOCKED;
+	else
+		*state = PP_SERVO_UNLOCKED;
+	return 0;
+}
+
 static int wrpc_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	uint64_t sec;
@@ -74,6 +87,7 @@ static unsigned long wrpc_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations wrpc_time_ops = {
+	.get_servo_state = wrpc_time_get_servo_state,
 	.get_utc_offset = wrpc_time_get_utc_offset,
 	.get = wrpc_time_get,
 	.set = wrpc_time_set,

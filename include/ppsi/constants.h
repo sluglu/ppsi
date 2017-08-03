@@ -28,21 +28,30 @@
 #define PP_DEFAULT_SYNC_INTERVAL		0	/* -7 in 802.1AS */
 #define PP_DEFAULT_SYNC_RECEIPT_TIMEOUT		3
 #define PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT	3	/* 3 by default */
-#define PP_DEFAULT_UTC_OFFSET		37
+#define PP_DEFAULT_UTC_OFFSET			37
 
 /* Clock classes (pag 55, PTP-2008). See ppsi-manual for an explanation */
 #define PP_CLASS_SLAVE_ONLY			255
-#define PP_CLASS_DEFAULT			187
-#define PP_CLASS_WR_GM_LOCKED			6
-#define PP_CLASS_WR_GM_UNLOCKED			52
+#define PP_CLASS_DEFAULT			248
+#define PP_PTP_CLASS_GM_LOCKED			6
+#define PP_PTP_CLASS_GM_HOLDOVER		7
+#define PP_PTP_CLASS_GM_UNLOCKED		52
+#define PP_ARB_CLASS_GM_LOCKED			13
+#define PP_ARB_CLASS_GM_HOLDOVER		14
+#define PP_ARB_CLASS_GM_UNLOCKED		58
 
 #define PP_DEFAULT_CLOCK_ACCURACY		0xFE
 #define PP_DEFAULT_PRIORITY1			128
 #define PP_DEFAULT_PRIORITY2			128
 #define PP_DEFAULT_CLOCK_VARIANCE		0x8000 /* FIXME shall be set to
-											    * 0xFFFF once getting calculated,
-												* defining it is not yet calculated 
-												*/
+							* 0xFFFF once getting calculated,
+							* defining it is not yet calculated 
+							*/
+
+#define PP_SERVO_UNKNOWN			0
+#define PP_SERVO_LOCKED				1
+#define PP_SERVO_HOLDOVER			2
+#define PP_SERVO_UNLOCKED			3
 
 #define PP_NR_FOREIGN_RECORDS			5
 #define PP_FOREIGN_MASTER_TIME_WINDOW		4

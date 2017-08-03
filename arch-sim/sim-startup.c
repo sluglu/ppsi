@@ -12,7 +12,7 @@
 
 static struct pp_runtime_opts sim_master_rt_opts = {
 	.clock_quality = {
-			.clockClass = PP_CLASS_WR_GM_LOCKED,
+			.clockClass = PP_PTP_CLASS_GM_LOCKED,
 			.clockAccuracy = PP_DEFAULT_CLOCK_ACCURACY,
 			.offsetScaledLogVariance = PP_DEFAULT_CLOCK_VARIANCE,
 	},

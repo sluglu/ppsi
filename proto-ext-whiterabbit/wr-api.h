@@ -11,7 +11,7 @@
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
  * structure */
-#define WRS_PPSI_SHMEM_VERSION 28 /* added extension to default dataset */
+#define WRS_PPSI_SHMEM_VERSION 29 /* added get_servo_state to time ops */
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__

@@ -1105,6 +1105,107 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 	}
 }
 
+static void bmc_update_clock_quality(struct pp_instance *ppi)
+{
+	struct pp_globals *ppg = GLBS(ppi);
+	struct pp_runtime_opts *rt_opts = ppi->glbs->rt_opts;
+	int ret = 0;
+	int state;
+	
+	if (rt_opts->clock_quality.clockClass < 128) {
+		
+		if ((rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
+		    (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED)) {
+			pp_diag(ppi, bmc, 2, 
+				"GM locked class configured, checking servo state\n");
+
+		} else if ((rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_UNLOCKED) ||
+			   (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_UNLOCKED)) {
+			pp_diag(ppi, bmc, 2, 
+				"GM unlocked class configured, skipping checking servo state\n");
+			return;
+		} else {
+			pp_diag(ppi, bmc, 2, 
+				" GM unknown clock class configured, skipping checking servo state\n");
+			return;				
+		}
+		
+		
+		ret = ppi->t_ops->get_servo_state(ppi, &state);
+		if (ret) {
+			pp_diag(ppi, bmc, 1, 
+				"Could not get servo state, taking old clock class: %i\n",
+				ppg->defaultDS->clockQuality.clockClass);
+			return;
+		} 
+		
+		switch (state) {
+		case PP_SERVO_LOCKED:				
+			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
+				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
+					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
+					pp_diag(ppi, bmc, 1, 
+						"Servo locked, new clock class: %i\n",
+						ppg->defaultDS->clockQuality.clockClass);
+				}				
+			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
+				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_LOCKED) {
+					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_LOCKED;
+					pp_diag(ppi, bmc, 1, 
+						"Servo locked, new clock class: %i\n",
+						ppg->defaultDS->clockQuality.clockClass);
+				}				
+			}	
+			break;
+				
+		case PP_SERVO_HOLDOVER:				
+			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
+				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_HOLDOVER) {
+					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_HOLDOVER;
+					pp_diag(ppi, bmc, 1, 
+						"Servo in holdover, new clock class: %i\n",
+						ppg->defaultDS->clockQuality.clockClass);
+				}				
+			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
+				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_HOLDOVER) {
+					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_HOLDOVER;
+					pp_diag(ppi, bmc, 1, 
+						"Servo in holdover, new clock class: %i\n",
+						ppg->defaultDS->clockQuality.clockClass);
+				}				
+			}	
+			break;
+				
+		case PP_SERVO_UNLOCKED:
+			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
+				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_UNLOCKED) {
+					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
+					pp_diag(ppi, bmc, 1, 
+						"Servo unlocked, new clock class: %i\n",
+						ppg->defaultDS->clockQuality.clockClass);
+				}				
+			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
+				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_UNLOCKED) {
+					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_UNLOCKED;
+					pp_diag(ppi, bmc, 1, 
+						"Servo unlocked, new clock class: %i\n",
+						ppg->defaultDS->clockQuality.clockClass);
+				}				
+			}	
+			break;
+				
+		case PP_SERVO_UNKNOWN:
+		default:
+			pp_diag(ppi, bmc, 2, 
+				"Unknown servo state, taking old clock class: %i\n",
+				ppg->defaultDS->clockQuality.clockClass);
+			
+			break;
+			
+		}
+	}
+}
+
 int bmc(struct pp_instance *ppi)
 {
 	struct pp_globals *ppg = GLBS(ppi);
@@ -1113,6 +1214,9 @@ int bmc(struct pp_instance *ppi)
 
 	/* bmc is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
+	
+	/* check if we shall update the clock qualities */
+	bmc_update_clock_quality(ppi);
 
 	/* Age table only based on timeouts*/
 	if (pp_timeout(ppi, PP_TO_BMC)) {

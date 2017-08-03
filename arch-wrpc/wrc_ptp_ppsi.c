@@ -135,22 +135,22 @@ int wrc_ptp_set_mode(int mode)
 	case WRC_MODE_ABSCAL: /* absolute calibration, gm-lookalike */
 		wrp->wrConfig = WR_M_ONLY;
 		ppi->role = PPSI_ROLE_MASTER;
-		*class_ptr = PP_CLASS_WR_GM_LOCKED;
+		*class_ptr = PP_PTP_CLASS_GM_LOCKED;
 		spll_init(SPLL_MODE_GRAND_MASTER, 0, 1);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_GM;
-		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_WR_GM_LOCKED;
+		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
 		bmc_m1(ppi);
 		break;
 
 	case WRC_MODE_MASTER:
 		wrp->wrConfig = WR_M_ONLY;
 		ppi->role = PPSI_ROLE_MASTER;
-		*class_ptr = PP_CLASS_DEFAULT;
+		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
 		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, 1);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_FM;
-		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_DEFAULT;
+		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
 		bmc_m1(ppi);
 		break;
 
@@ -182,7 +182,7 @@ int wrc_ptp_set_mode(int mode)
 
 	/* If we can't lock to the atomic/gps, we say it in the class */
 	if (error && mode == WRC_MODE_GM)
-		*class_ptr = PP_CLASS_WR_GM_UNLOCKED;
+		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
 
 	ptp_mode = mode;
 	return error;

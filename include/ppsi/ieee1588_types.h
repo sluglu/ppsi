@@ -200,7 +200,6 @@ typedef struct DSDefault {		/* page 65 */
 	UInteger8	priority2;
 	UInteger8	domainNumber;
 	Boolean		slaveOnly;
-	unsigned long	ext_specific;	/* used by extension */
 } DSDefault;
 
 /* Current Data Set */

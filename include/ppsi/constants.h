@@ -29,6 +29,8 @@
 #define PP_DEFAULT_SYNC_RECEIPT_TIMEOUT		3
 #define PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT	3	/* 3 by default */
 #define PP_DEFAULT_UTC_OFFSET			37
+#define PP_DEFAULT_PRIORITY1			128
+#define PP_DEFAULT_PRIORITY2			128
 
 /* Clock classes (pag 55, PTP-2008). See ppsi-manual for an explanation */
 #define PP_CLASS_SLAVE_ONLY			255
@@ -41,19 +43,21 @@
 #define PP_ARB_CLASS_GM_UNLOCKED		58
 
 #define PP_ACCURACY_DEFAULT			0xFE
-#define PP_PTP_ACCURACY_GM_LOCKED		0x20	/* FIXME real values */
-#define PP_PTP_ACCURACY_GM_HOLDOVER		0x2F	/* FIXME real values */
-#define PP_PTP_ACCURACY_GM_UNLOCKED		0xFE	/* FIXME real values */
-#define PP_ARB_ACCURACY_GM_LOCKED		0x20	/* FIXME real values */
-#define PP_ARB_ACCURACY_GM_HOLDOVER		0x2F	/* FIXME real values */
-#define PP_ARB_ACCURACY_GM_UNLOCKED		0xFE	/* FIXME real values */
+#define PP_PTP_ACCURACY_GM_LOCKED		0x21
+#define PP_PTP_ACCURACY_GM_HOLDOVER		0x21
+#define PP_PTP_ACCURACY_GM_UNLOCKED		0xFE
+#define PP_ARB_ACCURACY_GM_LOCKED		0x21
+#define PP_ARB_ACCURACY_GM_HOLDOVER		0x21
+#define PP_ARB_ACCURACY_GM_UNLOCKED		0xFE
 
-#define PP_DEFAULT_PRIORITY1			128
-#define PP_DEFAULT_PRIORITY2			128
-#define PP_DEFAULT_CLOCK_VARIANCE		0x8000 /* FIXME shall be set to
-							* 0xFFFF once getting calculated,
-							* defining it is not yet calculated 
-							*/
+#define PP_VARIANCE_DEFAULT			0xC71D
+#define PP_PTP_VARIANCE_GM_LOCKED		0xB900
+#define PP_PTP_VARIANCE_GM_HOLDOVER		0xC71D
+#define PP_PTP_VARIANCE_GM_UNLOCKED		0xC71D
+#define PP_ARB_VARIANCE_GM_LOCKED		0xB900
+#define PP_ARB_VARIANCE_GM_HOLDOVER		0xC71D
+#define PP_ARB_VARIANCE_GM_UNLOCKED		0xC71D
+
 #define PP_SERVO_UNKNOWN			0
 #define PP_SERVO_LOCKED				1
 #define PP_SERVO_HOLDOVER			2

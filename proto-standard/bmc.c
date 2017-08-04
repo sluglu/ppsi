@@ -40,11 +40,11 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterClockQuality = defds->clockQuality;
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
-	
+
 	ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
 	if (ret) {
-		offset = PP_DEFAULT_UTC_OFFSET;	
-		pp_diag(ppi, bmc, 1, 
+		offset = PP_DEFAULT_UTC_OFFSET;
+		pp_diag(ppi, bmc, 1,
 			"Could not get UTC offset from system, taking default: %i\n",
 			offset);
 	}
@@ -69,11 +69,39 @@ void bmc_m1(struct pp_instance *ppi)
 		prop->leap59 = (leap59 != 0);
 		prop->leap61 = (leap61 != 0);
 	}
-	
-	/* these are the default according to 9.4 */				
-	prop->frequencyTraceable = FALSE;
-	prop->ptpTimescale = TRUE;	
-	prop->timeSource = INTERNAL_OSCILLATOR;
+
+	/* based on the clock class we set the frequency traceable flags */
+	if ((defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
+	    (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED))
+		prop->frequencyTraceable = TRUE;
+	else
+		prop->frequencyTraceable = FALSE;
+
+	switch (defds->clockQuality.clockClass) {
+		case PP_PTP_CLASS_GM_LOCKED:
+		case PP_PTP_CLASS_GM_HOLDOVER:
+			prop->ptpTimescale = TRUE;
+			prop->timeSource = GPS;
+			break;
+		case PP_PTP_CLASS_GM_UNLOCKED:
+			prop->ptpTimescale = TRUE;
+			prop->timeSource = INTERNAL_OSCILLATOR;
+			break;
+		case PP_ARB_CLASS_GM_LOCKED:
+		case PP_ARB_CLASS_GM_HOLDOVER:
+			prop->ptpTimescale = FALSE;
+			prop->timeSource = GPS;
+			break;
+		case PP_ARB_CLASS_GM_UNLOCKED:
+			prop->ptpTimescale = FALSE;
+			prop->timeSource = INTERNAL_OSCILLATOR;
+			break;
+		default:
+			/* FIXME: if we don't know better we stay with this */
+			prop->ptpTimescale = TRUE;
+			prop->timeSource = INTERNAL_OSCILLATOR;
+			break;
+	}
 }
 
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
@@ -100,11 +128,11 @@ void bmc_m2(struct pp_instance *ppi)
 	parent->grandmasterClockQuality = defds->clockQuality;
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
-	
+
 	ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
 	if (ret) {
-		offset = PP_DEFAULT_UTC_OFFSET;	
-		pp_diag(ppi, bmc, 1, 
+		offset = PP_DEFAULT_UTC_OFFSET;
+		pp_diag(ppi, bmc, 1,
 			"Could not get UTC offset from system, taking default: %i\n",
 			offset);
 	}
@@ -129,11 +157,39 @@ void bmc_m2(struct pp_instance *ppi)
 		prop->leap59 = (leap59 != 0);
 		prop->leap61 = (leap61 != 0);
 	}
-			
-	/* these are the default according to 9.4 */	
-	prop->frequencyTraceable = FALSE;
-	prop->ptpTimescale = TRUE;	
-	prop->timeSource = INTERNAL_OSCILLATOR;
+
+	/* based on the clock class we set the frequency traceable flags */
+	if ((defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
+	    (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED))
+		prop->frequencyTraceable = TRUE;
+	else
+		prop->frequencyTraceable = FALSE;
+
+	switch (defds->clockQuality.clockClass) {
+		case PP_PTP_CLASS_GM_LOCKED:
+		case PP_PTP_CLASS_GM_HOLDOVER:
+			prop->ptpTimescale = TRUE;
+			prop->timeSource = GPS;
+			break;
+		case PP_PTP_CLASS_GM_UNLOCKED:
+			prop->ptpTimescale = TRUE;
+			prop->timeSource = INTERNAL_OSCILLATOR;
+			break;
+		case PP_ARB_CLASS_GM_LOCKED:
+		case PP_ARB_CLASS_GM_HOLDOVER:
+			prop->ptpTimescale = FALSE;
+			prop->timeSource = GPS;
+			break;
+		case PP_ARB_CLASS_GM_UNLOCKED:
+			prop->ptpTimescale = FALSE;
+			prop->timeSource = INTERNAL_OSCILLATOR;
+			break;
+		default:
+			/* FIXME: if we don't know better we stay with this */
+			prop->ptpTimescale = TRUE;
+			prop->timeSource = INTERNAL_OSCILLATOR;
+			break;
+	}
 }
 
 /* ppi->port_idx port is becoming Master. Table 14 (9.3.5) of the spec. */
@@ -145,7 +201,7 @@ void bmc_m3(struct pp_instance *ppi)
 }
 
 /* ppi->port_idx port is synchronized to Ebest Table 16 (9.3.5) of the spec. */
-void bmc_s1(struct pp_instance *ppi, 
+void bmc_s1(struct pp_instance *ppi,
 			struct pp_frgn_master *frgn_master)
 {
 	struct DSParent *parent = DSPAR(ppi);
@@ -195,7 +251,7 @@ void bmc_p2(struct pp_instance *ppi)
 }
 
 /* Copy local data set into header and ann message. 9.3.4 table 12. */
-void bmc_setup_local_frgn_master(struct pp_instance *ppi, 
+void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 			   struct pp_frgn_master *frgn_master)
 {
 	int i;
@@ -203,12 +259,12 @@ void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 	/* this shall be always qualified */
 	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
 		frgn_master->foreignMasterAnnounceMessages[i] = 1;
-		
+
 	memcpy(&frgn_master->receivePortIdentity,
 	       &DSPOR(ppi)->portIdentity, sizeof(PortIdentity));
 	frgn_master->sequenceId = 0;
-	
-	memcpy(&frgn_master->sourcePortIdentity, 
+
+	memcpy(&frgn_master->sourcePortIdentity,
 		   &DSPOR(ppi)->portIdentity, sizeof(PortIdentity));
 	memset(&frgn_master->flagField,
 		   0, sizeof(frgn_master->flagField));
@@ -217,11 +273,11 @@ void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 	memcpy(&frgn_master->grandmasterClockQuality,
 	       &DSDEF(ppi)->clockQuality, sizeof(ClockQuality));
 	frgn_master->grandmasterPriority2 = DSDEF(ppi)->priority2;
-	memcpy(&frgn_master->grandmasterIdentity, 
+	memcpy(&frgn_master->grandmasterIdentity,
 		   &DSDEF(ppi)->clockIdentity, sizeof(ClockIdentity));
 	frgn_master->stepsRemoved = 0;
 	frgn_master->timeSource = INTERNAL_OSCILLATOR; //TODO get this from somewhere
-	
+
 	frgn_master->ext_specific = 0;
 }
 
@@ -474,7 +530,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		ebest = erbest;
 		goto slave_s1;
 	}
-	
+
 	/* check if the erbest is qualified */
 	if (ppi->frgn_rec_num)
 	{
@@ -565,12 +621,12 @@ passive_p1:
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
 		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 		if (ppi->state != PPS_LISTENING)
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		return PPS_LISTENING;
 	}
 	/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 	if (ppi->state != PPS_PASSIVE)
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 	bmc_p1(ppi);
 	return PPS_PASSIVE;
 
@@ -579,12 +635,12 @@ passive_p2:
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
 		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 		if (ppi->state != PPS_LISTENING)
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		return PPS_LISTENING;
 	}
 	/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 	if (ppi->state != PPS_PASSIVE)
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 	bmc_p2(ppi);
 	return PPS_PASSIVE;
 
@@ -593,7 +649,7 @@ master_m1:
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
 		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 		if (ppi->state != PPS_LISTENING)
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		return PPS_LISTENING;
 	}
 	bmc_m1(ppi);
@@ -603,9 +659,9 @@ master_m1:
 		pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
 		return PPS_PRE_MASTER;
 	} else {
-		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is 
+		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is
 		 * done outside the BMC, so just return the current state */
-		return ppi->state; 
+		return ppi->state;
 	}
 
 master_m2:
@@ -613,7 +669,7 @@ master_m2:
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
 		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 		if (ppi->state != PPS_LISTENING)
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		return PPS_LISTENING;
 	}
 	bmc_m2(ppi);
@@ -623,9 +679,9 @@ master_m2:
 		pp_timeout_clear(ppi, PP_TO_QUALIFICATION);
 		return PPS_PRE_MASTER;
 	} else {
-		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is 
+		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is
 		 * done outside the BMC, so just return the current state */
-		return ppi->state; 
+		return ppi->state;
 	}
 
 master_m3:
@@ -633,7 +689,7 @@ master_m3:
 	if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY) {
 		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 		if (ppi->state != PPS_LISTENING)
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);	
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		return PPS_LISTENING;
 	}
 	bmc_m3(ppi);
@@ -645,9 +701,9 @@ master_m3:
 		pp_timeout_set(ppi, PP_TO_QUALIFICATION);
 		return PPS_PRE_MASTER;
 	} else {
-		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is 
+		/* the decision to go from PPS_PRE_MASTER to PPS_MASTER is
 		 * done outside the BMC, so just return the current state */
-		return ppi->state; 
+		return ppi->state;
 	}
 
 slave_s1:
@@ -668,7 +724,7 @@ slave_s1:
 	if ((ppi->state != PPS_SLAVE) &&
 		(ppi->state != PPS_UNCALIBRATED)) {
 		/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		return PPS_UNCALIBRATED;
 	} else {
 		/* if the master changed we go to uncalibrated*/
@@ -677,20 +733,20 @@ slave_s1:
 				"new master, change to uncalibrated\n");
 			/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 			if (ppi->state != PPS_UNCALIBRATED)
-				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
+				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 			return PPS_UNCALIBRATED;
 		} else {
 			/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 			if (ppi->state != PPS_SLAVE)
-				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);		
-			/* the decision to go from UNCALIBRATED to SLAVEW is 
+				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+			/* the decision to go from UNCALIBRATED to SLAVEW is
 			 * done outside the BMC, so just return the current state */
-			return ppi->state; 
+			return ppi->state;
 		}
 	}
 }
 
-void bmc_store_frgn_master(struct pp_instance *ppi, 
+void bmc_store_frgn_master(struct pp_instance *ppi,
 		       struct pp_frgn_master *frgn_master, void *buf, int len)
 {
 	int i;
@@ -700,18 +756,18 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 	/* clear qualification timeouts */
 	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
 		frgn_master->foreignMasterAnnounceMessages[i] = 0;
-	
+
 	/*
 	 * header and announce field of each Foreign Master are
 	 * useful to run Best Master Clock Algorithm
 	 */
 	msg_unpack_announce(buf, &ann);
-	
+
 	memcpy(&frgn_master->receivePortIdentity,
 	       &DSPOR(ppi)->portIdentity, sizeof(PortIdentity));
 	frgn_master->sequenceId = hdr->sequenceId;
-	
-	memcpy(&frgn_master->sourcePortIdentity, 
+
+	memcpy(&frgn_master->sourcePortIdentity,
 		   &hdr->sourcePortIdentity, sizeof(PortIdentity));
 	memcpy(&frgn_master->flagField,
 		   &hdr->flagField, sizeof(frgn_master->flagField));
@@ -720,14 +776,14 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 	memcpy(&frgn_master->grandmasterClockQuality,
 	       &ann.grandmasterClockQuality, sizeof(ClockQuality));
 	frgn_master->grandmasterPriority2 = ann.grandmasterPriority2;
-	memcpy(&frgn_master->grandmasterIdentity, 
+	memcpy(&frgn_master->grandmasterIdentity,
 		   &ann.grandmasterIdentity, sizeof(ClockIdentity));
 	frgn_master->stepsRemoved = ann.stepsRemoved;
 	frgn_master->timeSource = ann.timeSource;
-	
+
 	//TODO do we need a hook for this?
 	frgn_master->ext_specific = ann.ext_specific;
-	
+
 }
 
 void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
@@ -738,25 +794,25 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	struct pp_frgn_master frgn_master;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	struct PortIdentity *pid = &hdr->sourcePortIdentity;
-	
+
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
 	/* if we are a configured master don't add*/
 	if (ppi->role == PPSI_ROLE_MASTER)
 		return;
-	
+
 	/* if in DISABLED, INITIALIZING or FAULTY ignore announce */
 	if ((ppi->state == PPS_DISABLED) ||
 		(ppi->state == PPS_FAULTY) ||
 		(ppi->state == PPS_INITIALIZING))
 		return;
-		
+
 	/*
 	 * header and announce field of each Foreign Master are
 	 * useful to run Best Master Clock Algorithm
 	 */
 	bmc_store_frgn_master(ppi, &frgn_master, buf, len);
-	
+
 	pp_diag(ppi, bmc, 3, "Foreign Master Port Id: "
 		"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n",
 		pid->clockIdentity.id[0], pid->clockIdentity.id[1],
@@ -764,20 +820,20 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		pid->clockIdentity.id[4], pid->clockIdentity.id[5],
 		pid->clockIdentity.id[6], pid->clockIdentity.id[7],
 		pid->portNumber);
-			
+
 	if (DSDEF(ppi)->numberPorts > 1) {
-		/* Check if announce from the same port from this clock 9.3.2.5 a) 
-		 * from another port of this clock we still handle even though it 
-		 * states something different in IEEE1588 because in 9.5.2.3 
+		/* Check if announce from the same port from this clock 9.3.2.5 a)
+		 * from another port of this clock we still handle even though it
+		 * states something different in IEEE1588 because in 9.5.2.3
 		 * there is a special handling described for boundary clocks
 		 * which is done in the BMC
 		 */
 		if (!bmc_idcmp(&pid->clockIdentity,
 				&DSDEF(ppi)->clockIdentity)) {
 			cmpres = bmc_pidcmp(pid, &DSPOR(ppi)->portIdentity);
-		
+
 			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
-			
+
 			if (cmpres < 0) {
 				pp_diag(ppi, bmc, 2, "Announce frame from a better port on this clock\n");
 				bmc_p1(ppi);
@@ -790,7 +846,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			} else {
 				pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
 				return;
-			} 
+			}
 		}
 	} else {
 		/* Check if announce from a port from this clock 9.3.2.5 a) */
@@ -800,11 +856,11 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			return;
 		}
 	}
-	
+
 	/* Check if announce has steps removed larger than 255 9.3.2.5 d) */
 	if (frgn_master.stepsRemoved >= 255) {
-		pp_diag(ppi, bmc, 2, "Announce frame steps removed" 
-			"larger or equal 255: %i\n", 
+		pp_diag(ppi, bmc, 2, "Announce frame steps removed"
+			"larger or equal 255: %i\n",
 			frgn_master.stepsRemoved);
 		return;
 	}
@@ -818,7 +874,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 
 			/* fill in number of announce received */
 			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
-				frgn_master.foreignMasterAnnounceMessages[j] = 
+				frgn_master.foreignMasterAnnounceMessages[j] =
 					ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
 			}
 			/* update the number of announce received if correct
@@ -826,9 +882,9 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			if (hdr->sequenceId
 				  == (ppi->frgn_master[i].sequenceId + 1))
 				frgn_master.foreignMasterAnnounceMessages[0]++;
-			
+
 			/* already in Foreign master data set, update info */
-			memcpy(&ppi->frgn_master[i], &frgn_master, 
+			memcpy(&ppi->frgn_master[i], &frgn_master,
 				   sizeof(frgn_master));
 			return;
 		}
@@ -873,7 +929,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	frgn_master.foreignMasterAnnounceMessages[0] = 1;
 
 	/* Copy the temporary foreign master entry */
-	memcpy(&ppi->frgn_master[sel], &frgn_master, 
+	memcpy(&ppi->frgn_master[sel], &frgn_master,
 		   sizeof(frgn_master));
 
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", sel);
@@ -882,7 +938,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 static void bmc_flush_frgn_master(struct pp_instance *ppi)
 {
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
-	
+
 	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
 	ppi->frgn_rec_num = 0;
 }
@@ -939,17 +995,17 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 	}
 }
 
-/* returns 0 if erbest is not from another port of the device, 
+/* returns 0 if erbest is not from another port of the device,
  * 1 if the port shall go to passive
  */
 int bmc_check_frgn_master(struct pp_instance *ppi)
 {
 	int i;
-	struct PortIdentity *pid; 
+	struct PortIdentity *pid;
 
 	/* bmc is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 1, "%s\n", __func__);
-	
+
 	if (ppi->frgn_rec_num > 0) {
 		for (i =0; i < ppi->frgn_rec_num; i++) {
 			/* from the same clock */
@@ -959,7 +1015,7 @@ int bmc_check_frgn_master(struct pp_instance *ppi)
 				if(0 > bmc_pidcmp(&ppi->frgn_master[i].sourcePortIdentity,
 						&DSPOR(ppi)->portIdentity)) {
 					pid = &ppi->frgn_master[i].sourcePortIdentity;
-					pp_diag(ppi, bmc, 3, "Better Master on same Clock Port Id:" 
+					pp_diag(ppi, bmc, 3, "Better Master on same Clock Port Id:"
 						"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n",
 						pid->clockIdentity.id[0], pid->clockIdentity.id[1],
 						pid->clockIdentity.id[2], pid->clockIdentity.id[3],
@@ -971,7 +1027,7 @@ int bmc_check_frgn_master(struct pp_instance *ppi)
 			}
 		}
 	}
-	return 0;			
+	return 0;
 }
 
 /* Check if any port is in initilaizing state */
@@ -1016,7 +1072,7 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 
 		/* if link is down clear foreign master table */
 		if ((!ppi->link_up) && (ppi->frgn_rec_num > 0))
-			bmc_flush_frgn_master(ppi);	
+			bmc_flush_frgn_master(ppi);
 
 		if (ppi->frgn_rec_num > 0) {
 			/* Only if port is not in the FAULTY or DISABLED
@@ -1111,109 +1167,133 @@ static void bmc_update_clock_quality(struct pp_instance *ppi)
 	struct pp_runtime_opts *rt_opts = ppi->glbs->rt_opts;
 	int ret = 0;
 	int state;
-	
+
 	if (rt_opts->clock_quality.clockClass < 128) {
-		
+
 		if ((rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
 		    (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED)) {
-			pp_diag(ppi, bmc, 2, 
+			pp_diag(ppi, bmc, 2,
 				"GM locked class configured, checking servo state\n");
 
 		} else if ((rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_UNLOCKED) ||
 			   (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_UNLOCKED)) {
-			pp_diag(ppi, bmc, 2, 
+			pp_diag(ppi, bmc, 2,
 				"GM unlocked class configured, skipping checking servo state\n");
 			return;
 		} else {
-			pp_diag(ppi, bmc, 2, 
+			pp_diag(ppi, bmc, 2,
 				" GM unknown clock class configured, skipping checking servo state\n");
-			return;				
+			return;
 		}
-		
-		
+
+
 		ret = ppi->t_ops->get_servo_state(ppi, &state);
 		if (ret) {
-			pp_diag(ppi, bmc, 1, 
+			pp_diag(ppi, bmc, 1,
 				"Could not get servo state, taking old clock class: %i\n",
 				ppg->defaultDS->clockQuality.clockClass);
 			return;
-		} 
-		
+		}
+
 		switch (state) {
-		case PP_SERVO_LOCKED:				
+		case PP_SERVO_LOCKED:
 			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED;
-					pp_diag(ppi, bmc, 1, 
-						"Servo locked, new clock class: %i, new clock accuracy: %i\n",
+					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_PTP_VARIANCE_GM_LOCKED;
+					pp_diag(ppi, bmc, 1,
+						"Servo locked, new clock class: %i,"
+						"new clock accuracy: %i,"
+						"new clock variance: %04x,",
 						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy);
-				}				
+					        ppg->defaultDS->clockQuality.clockAccuracy,
+					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+				}
 			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_LOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_LOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_LOCKED;
-					pp_diag(ppi, bmc, 1, 
-						"Servo locked, new clock class: %i, new clock accuracy: %i\n",
+					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_ARB_VARIANCE_GM_LOCKED;
+					pp_diag(ppi, bmc, 1,
+						"Servo locked, new clock class: %i,"
+						"new clock accuracy: %i,"
+						"new clock variance: %04x,",
 						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy);
-				}				
-			}	
+					        ppg->defaultDS->clockQuality.clockAccuracy,
+					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+				}
+			}
 			break;
-				
-		case PP_SERVO_HOLDOVER:				
+
+		case PP_SERVO_HOLDOVER:
 			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_HOLDOVER) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_HOLDOVER;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_HOLDOVER;
-					pp_diag(ppi, bmc, 1, 
-						"Servo in holdover, new clock class: %i, new clock accuracy: %i\n",
+					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_PTP_VARIANCE_GM_HOLDOVER;
+					pp_diag(ppi, bmc, 1,
+						"Servo in holdover, new clock class: %i,"
+						"new clock accuracy: %i,"
+						"new clock variance: %04x,",
 						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy);
-				}				
+					        ppg->defaultDS->clockQuality.clockAccuracy,
+					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+				}
 			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_HOLDOVER) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_HOLDOVER;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_HOLDOVER;
-					pp_diag(ppi, bmc, 1, 
-						"Servo in holdover, new clock class: %i, new clock accuracy: %i\n",
+					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_ARB_VARIANCE_GM_HOLDOVER;
+					pp_diag(ppi, bmc, 1,
+						"Servo in holdover, new clock class: %i,"
+						"new clock accuracy: %i,"
+						"new clock variance: %04x,",
 						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy);
-				}				
-			}	
+					        ppg->defaultDS->clockQuality.clockAccuracy,
+					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+				}
+			}
 			break;
-				
+
 		case PP_SERVO_UNLOCKED:
 			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_UNLOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED;
-					pp_diag(ppi, bmc, 1, 
-						"Servo unlocked, new clock class: %i, new clock accuracy: %i\n",
+					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED;
+					pp_diag(ppi, bmc, 1,
+						"Servo unlocked, new clock class: %i,"
+						"new clock accuracy: %i,"
+						"new clock variance: %04x,",
 						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy);
-				}				
+					        ppg->defaultDS->clockQuality.clockAccuracy,
+					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+				}
 			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
 				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_UNLOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_UNLOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED;
-					pp_diag(ppi, bmc, 1, 
-						"Servo unlocked, new clock class: %i, new clock accuracy: %i\n",
+					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_ARB_VARIANCE_GM_UNLOCKED;
+					pp_diag(ppi, bmc, 1,
+						"Servo unlocked, new clock class: %i,"
+						"new clock accuracy: %i,"
+						"new clock variance: %04x,",
 						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy);
-				}				
-			}	
+					        ppg->defaultDS->clockQuality.clockAccuracy,
+					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+				}
+			}
 			break;
-				
+
 		case PP_SERVO_UNKNOWN:
 		default:
-			pp_diag(ppi, bmc, 2, 
+			pp_diag(ppi, bmc, 2,
 				"Unknown servo state, taking old clock class: %i\n",
 				ppg->defaultDS->clockQuality.clockClass);
-			
+
 			break;
-			
+
 		}
 	}
 }
@@ -1226,7 +1306,7 @@ int bmc(struct pp_instance *ppi)
 
 	/* bmc is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
-	
+
 	/* check if we shall update the clock qualities */
 	bmc_update_clock_quality(ppi);
 
@@ -1244,14 +1324,14 @@ int bmc(struct pp_instance *ppi)
 		pp_diag(ppi, bmc, 2, "A Port is in intializing\n");
 		return ppi->state;
 	}
-	
+
 	/* Calculate Erbest of all ports Figure 25 */
 	bmc_update_erbest(ppg);
-	
+
 	if (DSDEF(ppi)->numberPorts > 1) {
 		ret = bmc_check_frgn_master(ppi);
 	}
-	
+
 	/* Calulate Ebest Figure 25 */
 	bmc_update_ebest(ppg);
 
@@ -1265,10 +1345,10 @@ int bmc(struct pp_instance *ppi)
 		/* Make state decision */
 		next_state = bmc_state_decision(ppi);
 	}
-	
+
 	/* Extra states handled here */
 	if (pp_hooks.state_decision)
 		next_state = pp_hooks.state_decision(ppi, next_state);
-	
+
 	return next_state;
 }

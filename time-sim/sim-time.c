@@ -46,6 +46,15 @@ int sim_fast_forward_ns(struct pp_globals *ppg, int64_t ff_ns)
 	return 0;
 }
 
+static int sim_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
+{
+	/* no UTC time */
+	*hours = 0;
+	*minutes = 0;
+	*seconds = 0;
+	return -1;
+}
+
 static int sim_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
 	/* no UTC offset */
@@ -53,6 +62,12 @@ static int sim_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *le
 	*leap61 = 0;
 	*offset = 0;
 	return -1;	
+}
+
+static int sim_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+{
+	/* no UTC offset */
+	return -1;
 }
 
 static int sim_time_get_servo_state(struct pp_instance *ppi, int *state)
@@ -128,8 +143,10 @@ static unsigned long sim_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations sim_time_ops = {
-	.get_servo_state = sim_time_get_servo_state,
+	.get_utc_time = sim_time_get_utc_time,
 	.get_utc_offset = sim_time_get_utc_offset,
+	.set_utc_offset = sim_time_set_utc_offset,
+	.get_servo_state = sim_time_get_servo_state,
 	.get = sim_time_get,
 	.set = sim_time_set,
 	.adjust = sim_time_adjust,

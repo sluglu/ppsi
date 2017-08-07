@@ -9,6 +9,15 @@
 #include "pps_gen.h" /* in wrpc-sw */
 #include "syscon.h" /* in wrpc-sw */
 
+static int wrpc_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
+{
+	/* no UTC time */
+	*hours = 0;
+	*minutes = 0;
+	*seconds = 0;
+	return -1;
+}
+
 static int wrpc_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
 	/* no UTC offset */
@@ -16,6 +25,12 @@ static int wrpc_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 	*leap61 = 0;
 	*offset = 0;
 	return -1;	
+}
+
+static int wrpc_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+{
+	/* no UTC offset */
+	return -1;
 }
 
 static int wrpc_time_get_servo_state(struct pp_instance *ppi, int *state)
@@ -87,8 +102,10 @@ static unsigned long wrpc_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations wrpc_time_ops = {
-	.get_servo_state = wrpc_time_get_servo_state,
+	.get_utc_time = wrpc_time_get_utc_time,
 	.get_utc_offset = wrpc_time_get_utc_offset,
+	.set_utc_offset = wrpc_time_set_utc_offset,
+	.get_servo_state = wrpc_time_get_servo_state,
 	.get = wrpc_time_get,
 	.set = wrpc_time_set,
 	.adjust = wrpc_time_adjust,

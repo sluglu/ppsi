@@ -8,6 +8,12 @@
 #include <ppsi/ppsi.h>
 #include "bare-linux.h"
 
+static int bare_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
+{
+	/* TODO */
+	return -1;
+}
+
 static int bare_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
 	int ret;
@@ -31,9 +37,17 @@ static int bare_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 		*offset = (int)t.tai;
 		return 0;
 	} else {
+		*leap59 = 0;
+		*leap61 = 0;
 		*offset = 0;
 		return -1;
 	}		
+}
+
+static int bare_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+{
+	/* TODO */
+	return -1;
 }
 
 static int bare_time_get_servo_state(struct pp_instance *ppi, int *state)
@@ -134,7 +148,9 @@ static unsigned long bare_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations bare_time_ops = {
+	.get_utc_time = bare_time_get_utc_time,
 	.get_utc_offset = bare_time_get_utc_offset,
+	.set_utc_offset = bare_time_set_utc_offset,
 	.get_servo_state = bare_time_get_servo_state,
 	.get = bare_time_get,
 	.set = bare_time_set,

@@ -41,35 +41,7 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
 
-	ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
-	if (ret) {
-		offset = PP_DEFAULT_UTC_OFFSET;
-		pp_diag(ppi, bmc, 1,
-			"Could not get UTC offset from system, taking default: %i\n",
-			offset);
-	}
 	/* Time Properties data set */
-	if (prop->currentUtcOffset != offset) {
-		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
-			offset);
-		prop->currentUtcOffset = offset;
-		ppi->t_ops->set(ppi, NULL);
-	}
-	if (ret)
-	{
-		prop->timeTraceable = FALSE;
-		prop->currentUtcOffsetValid = FALSE;
-		prop->leap59 = FALSE;
-		prop->leap61 = FALSE;
-	}
-	else
-	{
-		prop->timeTraceable = TRUE;
-		prop->currentUtcOffsetValid = TRUE;
-		prop->leap59 = (leap59 != 0);
-		prop->leap61 = (leap61 != 0);
-	}
-
 	/* based on the clock class we set the frequency traceable flags */
 	if ((defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
 	    (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED))
@@ -93,6 +65,7 @@ void bmc_m1(struct pp_instance *ppi)
 			prop->timeSource = GPS;
 			break;
 		case PP_ARB_CLASS_GM_UNLOCKED:
+
 			prop->ptpTimescale = FALSE;
 			prop->timeSource = INTERNAL_OSCILLATOR;
 			break;
@@ -101,95 +74,55 @@ void bmc_m1(struct pp_instance *ppi)
 			prop->ptpTimescale = TRUE;
 			prop->timeSource = INTERNAL_OSCILLATOR;
 			break;
+	}
+	
+	if (prop->ptpTimescale) {
+		ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+		if (ret) {
+			offset = PP_DEFAULT_UTC_OFFSET;
+			pp_diag(ppi, bmc, 1,
+				"Could not get UTC offset from system, taking default: %i\n",
+				offset);
+		
+		}
+		
+		if (prop->currentUtcOffset != offset) {
+			pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
+				offset);
+			prop->currentUtcOffset = offset;
+			ppi->t_ops->set(ppi, NULL);
+		}
+		
+		if (ret)
+		{
+			prop->timeTraceable = FALSE;
+			prop->currentUtcOffsetValid = FALSE;
+			prop->leap59 = FALSE;
+			prop->leap61 = FALSE;
+		}
+		else
+		{
+			prop->timeTraceable = TRUE;
+			prop->currentUtcOffsetValid = TRUE;
+			prop->leap59 = (leap59 != 0);
+			prop->leap61 = (leap61 != 0);
+		}
+	} else {
+		/* 9.4 for ARB just take the value when built */
+		prop->currentUtcOffset = PP_DEFAULT_UTC_OFFSET;
+		/* always false */
+		prop->timeTraceable = FALSE;
+		prop->currentUtcOffsetValid = FALSE;
+		prop->leap59 = FALSE;
+		prop->leap61 = FALSE;
 	}
 }
 
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
 void bmc_m2(struct pp_instance *ppi)
 {
-	struct DSParent *parent = DSPAR(ppi);
-	struct DSDefault *defds = DSDEF(ppi);
-	struct DSTimeProperties *prop = DSPRO(ppi);
-	int ret = 0;
-	int offset, leap59, leap61;
-
-	/* Current data set update */
-	DSCUR(ppi)->stepsRemoved = 0;
-	clear_time(&DSCUR(ppi)->offsetFromMaster);
-	clear_time(&DSCUR(ppi)->meanPathDelay);
-
-	/* Parent data set: we are the parent */
-	memset(parent, 0, sizeof(*parent));
-	parent->parentPortIdentity.clockIdentity = defds->clockIdentity;
-	parent->parentPortIdentity.portNumber = 0;
-
-	/* Copy grandmaster params from our defds (FIXME: is ir right?) */
-	parent->grandmasterIdentity = defds->clockIdentity;
-	parent->grandmasterClockQuality = defds->clockQuality;
-	parent->grandmasterPriority1 = defds->priority1;
-	parent->grandmasterPriority2 = defds->priority2;
-
-	ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
-	if (ret) {
-		offset = PP_DEFAULT_UTC_OFFSET;
-		pp_diag(ppi, bmc, 1,
-			"Could not get UTC offset from system, taking default: %i\n",
-			offset);
-	}
-	/* Time Properties data set */
-	if (prop->currentUtcOffset != offset) {
-		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
-			offset);
-		prop->currentUtcOffset = offset;
-		ppi->t_ops->set(ppi, NULL);
-	}
-	if (ret)
-	{
-		prop->timeTraceable = FALSE;
-		prop->currentUtcOffsetValid = FALSE;
-		prop->leap59 = FALSE;
-		prop->leap61 = FALSE;
-	}
-	else
-	{
-		prop->timeTraceable = TRUE;
-		prop->currentUtcOffsetValid = TRUE;
-		prop->leap59 = (leap59 != 0);
-		prop->leap61 = (leap61 != 0);
-	}
-
-	/* based on the clock class we set the frequency traceable flags */
-	if ((defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
-	    (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED))
-		prop->frequencyTraceable = TRUE;
-	else
-		prop->frequencyTraceable = FALSE;
-
-	switch (defds->clockQuality.clockClass) {
-		case PP_PTP_CLASS_GM_LOCKED:
-		case PP_PTP_CLASS_GM_HOLDOVER:
-			prop->ptpTimescale = TRUE;
-			prop->timeSource = GPS;
-			break;
-		case PP_PTP_CLASS_GM_UNLOCKED:
-			prop->ptpTimescale = TRUE;
-			prop->timeSource = INTERNAL_OSCILLATOR;
-			break;
-		case PP_ARB_CLASS_GM_LOCKED:
-		case PP_ARB_CLASS_GM_HOLDOVER:
-			prop->ptpTimescale = FALSE;
-			prop->timeSource = GPS;
-			break;
-		case PP_ARB_CLASS_GM_UNLOCKED:
-			prop->ptpTimescale = FALSE;
-			prop->timeSource = INTERNAL_OSCILLATOR;
-			break;
-		default:
-			/* FIXME: if we don't know better we stay with this */
-			prop->ptpTimescale = TRUE;
-			prop->timeSource = INTERNAL_OSCILLATOR;
-			break;
-	}
+	/* same as m1, just call this then */
+	bmc_m1(ppi);
 }
 
 /* ppi->port_idx port is becoming Master. Table 14 (9.3.5) of the spec. */
@@ -206,6 +139,9 @@ void bmc_s1(struct pp_instance *ppi,
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
+	int ret = 0;
+	int offset, leap59, leap61;
+	int hours, minutes, seconds;
 
 	/* Current DS */
 	DSCUR(ppi)->stepsRemoved = frgn_master->stepsRemoved + 1;
@@ -218,15 +154,103 @@ void bmc_s1(struct pp_instance *ppi,
 	parent->grandmasterPriority2 = frgn_master->grandmasterPriority2;
 
 	/* Timeproperties DS */
-	if (prop->currentUtcOffset != frgn_master->currentUtcOffset) {
-		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
-			frgn_master->currentUtcOffset);
+	prop->ptpTimescale = ((frgn_master->flagField[1] & FFB_PTP) != 0);
+	
+	if (prop->ptpTimescale) {
+		ret = ppi->t_ops->get_utc_time(ppi, &hours, &minutes, &seconds);
+		if (ret) {
+			pp_diag(ppi, bmc, 1, 
+				"Could not get UTC time from system, taking received flags\n");
+			prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
+			prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
+			prop->currentUtcOffset = frgn_master->currentUtcOffset;
+		} else {
+			if (hours >= 12) {
+				/* stop 2 announce intervals before midnight */
+				if ((hours == 23) && (minutes == 59) && 
+				    (seconds >= (60 - (2 * (1 << ppi->portDS->logAnnounceInterval))))) {
+					pp_diag(ppi, bmc, 2, 
+						"Approaching midnight, not updating leap flags\n");			
+				} else {
+					ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+					if (ret) {
+						pp_diag(ppi, bmc, 1, 
+							"Could not get UTC flags from system, taking received flags\n");
+						prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
+						prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
+						prop->currentUtcOffset = frgn_master->currentUtcOffset;
+						
+					} else {
+
+						if (((leap59 != 0) != ((frgn_master->flagField[1] & FFB_LI59) != 0)) ||
+						    ((leap61 != 0) != ((frgn_master->flagField[1] & FFB_LI59) != 0)) ||
+						    (offset != frgn_master->currentUtcOffset)) {			
+							prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
+							prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
+							prop->currentUtcOffset = frgn_master->currentUtcOffset;
+
+							if (prop->leap59)
+								leap59 = 1;
+							else
+								leap59 = 0;
+
+							if (prop->leap61)
+								leap61 = 1;
+							else
+								leap61 = 0;
+
+							offset = prop->currentUtcOffset;
+
+							pp_diag(ppi, bmc, 1, 
+								"UTC flags changed,"
+								"offset: %i, "
+								"leap59: %i, "
+								"leap61: %i\n",
+							        offset, leap59, leap61);		
+							
+							ret = ppi->t_ops->set_utc_offset(ppi, offset, leap59, leap61);
+							if (ret) {
+								pp_diag(ppi, bmc, 1, 
+									"Could not set UTC offset on system\n");
+							}
+						}
+					}
+				}
+
+			} else {			
+				/* stop for 2 announce intervals after midnight */
+				if ((hours == 00) && (minutes == 00) && 
+				    (seconds <= (0 + (2 * (1 << ppi->portDS->logAnnounceInterval))))) {
+					pp_diag(ppi, bmc, 2, 
+						"short after midnight, taking local offset\n");			
+					ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+					if (ret) {
+						pp_diag(ppi, bmc, 1, 
+							"Could not get UTC offset from system\n");
+					} else {
+						prop->currentUtcOffset = offset;
+					}
+					prop->leap59 = FALSE;
+					prop->leap61 = FALSE;
+				} else {	
+					if (prop->currentUtcOffset != frgn_master->currentUtcOffset) {
+						pp_diag(ppi, bmc, 1, "New UTC offset in the middle of the day: %i\n",
+							frgn_master->currentUtcOffset);
+						prop->currentUtcOffset = frgn_master->currentUtcOffset;
+						ppi->t_ops->set(ppi, NULL);
+					}
+					prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
+					prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
+				}
+			}
+		}
+	} else {
+		/* just take what we get */
+		prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
+		prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
 		prop->currentUtcOffset = frgn_master->currentUtcOffset;
-		ppi->t_ops->set(ppi, NULL);
 	}
 	prop->currentUtcOffsetValid = ((frgn_master->flagField[1] & FFB_UTCV) != 0);
-	prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
-	prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
 	prop->timeTraceable = ((frgn_master->flagField[1] & FFB_TTRA) != 0);
 	prop->frequencyTraceable = ((frgn_master->flagField[1] & FFB_FTRA) != 0);
 	prop->ptpTimescale = ((frgn_master->flagField[1] & FFB_PTP) != 0);

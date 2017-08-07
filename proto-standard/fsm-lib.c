@@ -79,12 +79,44 @@ int pp_lib_may_issue_sync(struct pp_instance *ppi)
 
 int pp_lib_may_issue_announce(struct pp_instance *ppi)
 {
+	struct DSTimeProperties *prop = DSPRO(ppi);
+	int ret = 0;
+	int offset, leap59, leap61;
+	int hours, minutes, seconds;
 	int e;
-
+	
 	if (!pp_timeout(ppi, PP_TO_ANN_SEND))
 		return 0;
-
 	pp_timeout_set(ppi, PP_TO_ANN_SEND);
+	
+	/* this check has to be done here since the 
+	 * update of the properties might have not 
+	 * happened before sending 
+	 */
+	if (prop->ptpTimescale) {
+		ret = ppi->t_ops->get_utc_time(ppi, &hours, &minutes, &seconds);
+		if (ret) {
+			pp_diag(ppi, frames, 1, 
+				"Could not get UTC time from system, taking received flags\n");
+		} else {
+			/* for 2 announce intervals after midnight, get the offset from the system */
+			if ((hours == 00) && (minutes == 00) && 
+			    (seconds <= (0 + (2 * (1 << ppi->portDS->logAnnounceInterval))))) {
+				pp_diag(ppi, frames, 2, 
+					"short after midnight, taking local offset\n");			
+				ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+				if (ret) {
+					pp_diag(ppi, frames, 1, 
+						"Could not get UTC offset from system\n");
+				} else {
+					prop->currentUtcOffset = offset;
+				}
+				prop->leap59 = FALSE;
+				prop->leap61 = FALSE;
+			}
+		}
+	}
+		
 	e = pp_vlan_issue_announce(ppi);
 	if (e)
 		pp_diag(ppi, frames, 1, "could not send announce\n");

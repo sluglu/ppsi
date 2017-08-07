@@ -23,6 +23,34 @@ static void clock_fatal_error(char *context)
 	exit(1);
 }
 
+static int unix_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
+{
+	int ret;
+	struct timex t;
+	time_t now;
+	struct tm *date;
+	
+	/* Get the UTC time */
+	memset(&t, 0, sizeof(t));
+	ret = adjtimex(&t);
+	if (ret >= 0) {
+		now = t.time.tv_sec;
+		/* use localtime for correct leap handling */
+		date = localtime(&now);
+		*hours = date->tm_hour;
+		*minutes = date->tm_min;
+		*seconds = date->tm_sec;
+		return 0;
+	} else {
+		*hours = 0;
+		*minutes = 0;
+		*seconds = 0;
+		return -1;
+	}
+	
+	return -1;
+}
+
 static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
 	int ret;
@@ -51,9 +79,44 @@ static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 		*offset = *((int *)(&t.stbcnt) + 1);
 		return 0;
 	} else {
+		*leap59 = 0;
+		*leap61 = 0;
 		*offset = 0;
 		return -1;
 	}		
+}
+
+static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+{
+	struct timex t;
+	
+	if (leap59) {
+		memset(&t, 0, sizeof(t));
+		t.modes = MOD_STATUS;
+		t.status = STA_DEL;
+		if (adjtimex(&t) < 0) {
+			pp_diag(ppi, time, 1, "set leap second failed");
+			return -1;
+		}
+	} else if (leap61) {
+		memset(&t, 0, sizeof(t));
+		t.modes = MOD_STATUS;
+		t.status = STA_INS;
+		if (adjtimex(&t) < 0) {
+			pp_diag(ppi, time, 1, "set leap second failed");	
+			return -1;
+		}
+	}
+	
+	memset(&t, 0, sizeof(t));
+	t.modes = MOD_TAI;
+	t.constant = offset;
+	if (adjtimex(&t) < 0) {
+		pp_diag(ppi, time, 1, "set UTC offset failed");
+		return -1;
+	}
+	
+	return 0;
 }
 
 static int unix_time_get_servo_state(struct pp_instance *ppi, int *state)
@@ -163,8 +226,10 @@ static unsigned long unix_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations unix_time_ops = {
-	.get_servo_state = unix_time_get_servo_state,
+	.get_utc_time = unix_time_get_utc_time,
 	.get_utc_offset = unix_time_get_utc_offset,
+	.set_utc_offset = unix_time_set_utc_offset,
+	.get_servo_state = unix_time_get_servo_state,
 	.get = unix_time_get,
 	.set = unix_time_set,
 	.adjust = unix_time_adjust,

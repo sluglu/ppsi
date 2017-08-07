@@ -202,37 +202,19 @@ static int wrdate_get(struct pp_time *t)
 	return 0;
 }
 
+static int wrs_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
+{
+	return unix_time_ops.get_utc_time(ppi, hours, minutes, seconds);
+}
+
 static int wrs_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
-	int ret;
-	struct timex t;
-	/*
-	 * Get the UTC/TAI difference
-	 */
-	memset(&t, 0, sizeof(t));
-	ret = adjtimex(&t);
-	if (ret >= 0) {
-		if (ret == TIME_INS) {
-			*leap59 = 0;
-			*leap61 = 1;
-		} else if (ret == TIME_DEL) {
-			*leap59 = 1;
-			*leap61 = 0;
-		} else {
-			*leap59 = 0;
-			*leap61 = 0;
-		}		
-		/*
-		 * Our WRS kernel has tai support, but our compiler does not.
-		 * We are 32-bit only, and we know for sure that tai is
-		 * exactly after stbcnt. It's a bad hack, but it works
-		 */
-		*offset = *((int *)(&t.stbcnt) + 1);
-		return 0;
-	} else {
-		*offset = 0;
-		return -1;
-	}		
+	return unix_time_ops.get_utc_offset(ppi, offset, leap59, leap61);
+}
+
+static int wrs_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+{
+	return unix_time_ops.set_utc_offset(ppi, offset, leap59, leap61);
 }
 
 static int wrs_time_get_servo_state(struct pp_instance *ppi, int *state)
@@ -432,8 +414,10 @@ static unsigned long wrs_calc_timeout(struct pp_instance *ppi,
 }
 
 struct pp_time_operations wrs_time_ops = {
-	.get_servo_state = wrs_time_get_servo_state,
+	.get_utc_time = wrs_time_get_utc_time,
 	.get_utc_offset = wrs_time_get_utc_offset,
+	.set_utc_offset = wrs_time_set_utc_offset,
+	.get_servo_state = wrs_time_get_servo_state,
 	.get = wrs_time_get,
 	.set = wrs_time_set,
 	.adjust = wrs_time_adjust,

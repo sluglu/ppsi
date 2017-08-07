@@ -198,7 +198,9 @@ extern struct pp_network_operations unix_net_ops;
  * If "set" receives a NULL time value, it should update the TAI offset.
  */
 struct pp_time_operations {
+	int (*get_utc_time)(struct pp_instance *ppi, int *hours, int *minutes, int *seconds);
 	int (*get_utc_offset)(struct pp_instance *ppi, int *offset, int *leap59, int *leap61);
+	int (*set_utc_offset)(struct pp_instance *ppi, int offset, int leap59, int leap61);
 	int (*get)(struct pp_instance *ppi, struct pp_time *t);
 	int (*set)(struct pp_instance *ppi, const struct pp_time *t);
 	/* freq_ppb is parts per billion */

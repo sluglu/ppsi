@@ -57,7 +57,7 @@ void wr_servo_enable_tracking(int enable)
 static void dump_timestamp(struct pp_instance *ppi, char *what,
 			   struct pp_time ts)
 {
-	pp_diag(ppi, servo, 2, "%s = %ld:%ld:%ld\n", what, (long)ts.secs,
+	pp_diag(ppi, servo, 2, "%s = %ld:%09ld:%03ld\n", what, (long)ts.secs,
 		(long)(ts.scaled_nsecs >> 16),
 		/* unlikely what we had earlier, third field is not phase */
 		((long)(ts.scaled_nsecs & 0xffff) * 1000 + 0x8000) >> 16);

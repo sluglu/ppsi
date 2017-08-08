@@ -816,6 +816,8 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	int cmpres;
 	int i, j, worst, sel;
 	struct pp_frgn_master frgn_master;
+	struct pp_frgn_master worst_frgn_master;
+	struct pp_frgn_master temp_frgn_master;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	struct PortIdentity *pid = &hdr->sourcePortIdentity;
 
@@ -926,14 +928,32 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 
 	} else {
 		/* find the worst to replace */
-		for (i = 1, worst = 0; i < ppi->frgn_rec_num; i++)
-			if (bmc_dataset_cmp(ppi, &ppi->frgn_master[i],
-					    &ppi->frgn_master[worst]) > 0)
+		for (i = 1, worst = 0; i < ppi->frgn_rec_num; i++) {	
+			/* qualify them for this check */
+			memcpy(&temp_frgn_master, &ppi->frgn_master[i], 
+			       sizeof(temp_frgn_master));
+			memcpy(&worst_frgn_master, &ppi->frgn_master[worst], 
+			       sizeof(worst_frgn_master));
+			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
+				temp_frgn_master.foreignMasterAnnounceMessages[j] = 1;
+				worst_frgn_master.foreignMasterAnnounceMessages[j] = 1;
+			}
+			
+			if (bmc_dataset_cmp(ppi, &temp_frgn_master,
+					    &worst_frgn_master) > 0)
 				worst = i;
+		}
 
+		/* copy the worst again and qualify it */
+		memcpy(&worst_frgn_master, &ppi->frgn_master[worst], 
+		       sizeof(worst_frgn_master));
+		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
+			worst_frgn_master.foreignMasterAnnounceMessages[i] = 1;
+		}
+		
 		/* check if worst is better than the new one, and skip the new
 		 * one if so */
-		if (bmc_dataset_cmp(ppi, &ppi->frgn_master[worst], &frgn_master)
+		if (bmc_dataset_cmp(ppi, &worst_frgn_master, &frgn_master)
 			< 0) {
 				pp_diag(ppi, bmc, 1, "%s:%i: New foreign "
 					"master worse than worst in the full "

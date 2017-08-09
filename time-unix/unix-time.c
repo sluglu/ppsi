@@ -106,6 +106,15 @@ static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int lea
 			pp_diag(ppi, time, 1, "set leap second failed");	
 			return -1;
 		}
+	} else {
+		memset(&t, 0, sizeof(t));
+		t.modes = MOD_STATUS;
+		t.status = 0;
+		if (adjtimex(&t) < 0) {
+			pp_diag(ppi, time, 1, "clear leap second failed");
+			return -1;
+		}
+		
 	}
 	
 	memset(&t, 0, sizeof(t));

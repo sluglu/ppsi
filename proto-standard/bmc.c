@@ -183,7 +183,7 @@ void bmc_s1(struct pp_instance *ppi,
 					} else {
 
 						if (((leap59 != 0) != ((frgn_master->flagField[1] & FFB_LI59) != 0)) ||
-						    ((leap61 != 0) != ((frgn_master->flagField[1] & FFB_LI59) != 0)) ||
+						    ((leap61 != 0) != ((frgn_master->flagField[1] & FFB_LI61) != 0)) ||
 						    (offset != frgn_master->currentUtcOffset)) {			
 							prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
 							prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);

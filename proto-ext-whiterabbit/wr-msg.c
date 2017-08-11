@@ -107,7 +107,8 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
 		tlv_wrMessageID == ANN_SUFIX) {
 		ann->ext_specific = (UInteger16)get_be16(buf+76);
-	}
+	} else
+		ann->ext_specific = 0; 		
 }
 
 /* White Rabbit: packing WR Signaling messages*/

@@ -271,6 +271,8 @@ static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 	if (msg_len >= WR_ANNOUNCE_LENGTH)
 		msg_unpack_announce_wr_tlv(buf, ann);
+	else
+		ann->ext_specific = 0;
 }
 
 /* State decision algorithm 9.3.3 Fig 26 with extension for wr */

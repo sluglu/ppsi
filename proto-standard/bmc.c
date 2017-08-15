@@ -312,7 +312,13 @@ int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b)
 
 int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b)
 {
-	return memcmp(a, b, sizeof(*a));
+	int ret;
+	
+	ret = bmc_idcmp(&a->clockIdentity, &b->clockIdentity);
+	if (ret != 0)
+		return ret;
+
+	return a->portNumber - b->portNumber;
 }
 
 /* compare part2 of the datasets which is the topology, fig 27, page 89 */

@@ -123,9 +123,8 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 	
 	msg_unpack_delay_resp(buf, &resp);
 
-	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-		    &resp.requestingPortIdentity.clockIdentity,
-		    PP_CLOCK_IDENTITY_LENGTH) != 0) ||
+	if ((bmc_idcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+		    &resp.requestingPortIdentity.clockIdentity) != 0) ||
 	    ((ppi->sent_seq[PPM_DELAY_REQ]) !=
 	     hdr->sequenceId) ||
 	    (DSPOR(ppi)->portIdentity.portNumber !=

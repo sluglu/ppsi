@@ -35,9 +35,8 @@ static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	if (ret)
 		return ret;
 	
-	if (!memcmp(&hdr->sourcePortIdentity,
-		&erbest->sourcePortIdentity,
-		sizeof(PortIdentity))) {
+	if (!bmc_pidcmp(&hdr->sourcePortIdentity,
+		&erbest->sourcePortIdentity)) {
 		/* 
 		 * 9.2.6.11 d) reset timeout when an announce
 		 * is received from the clock putting it into passive (erbest)

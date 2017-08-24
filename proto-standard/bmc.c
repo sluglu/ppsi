@@ -65,7 +65,6 @@ void bmc_m1(struct pp_instance *ppi)
 			prop->timeSource = GPS;
 			break;
 		case PP_ARB_CLASS_GM_UNLOCKED:
-
 			prop->ptpTimescale = FALSE;
 			prop->timeSource = INTERNAL_OSCILLATOR;
 			break;
@@ -554,22 +553,29 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	 * level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
-	if (ppi->role == PPSI_ROLE_SLAVE) {
-		/* if on this conigured port is ebest it will be taken as
-		 * parent */
-		ebest = erbest;
-		goto slave_s1;
-	}
-
 	/* check if the erbest is qualified */
-	if (ppi->frgn_rec_num)
-	{
+	if (ppi->frgn_rec_num) {
 		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
 			qualified += erbest->foreignMasterAnnounceMessages[i];
 	}
 
+	if (ppi->role == PPSI_ROLE_SLAVE) {
+		if ((!ppi->frgn_rec_num) || (qualified < PP_FOREIGN_MASTER_THRESHOLD))
+    			return PPS_LISTENING;
+		else {     
+			/* if this is the slave port of the whole system then go to slave otherwise stay in listening*/
+			if (ppi->port_idx == ppg->ebest_idx) {
+				/* if on this conigured port is ebest it will be taken as
+				 * parent */
+				ebest = erbest;
+				goto slave_s1;
+			} else
+    				return PPS_LISTENING;			
+		}
+	}
 
-	if (((!ppi->frgn_rec_num) || (qualified < PP_FOREIGN_MASTER_THRESHOLD))&& (ppi->state == PPS_LISTENING))
+
+	if (((!ppi->frgn_rec_num) || (qualified < PP_FOREIGN_MASTER_THRESHOLD)) && (ppi->state == PPS_LISTENING))
 		return PPS_LISTENING;
 
 	/* copy local information to a foreign_master structure */
@@ -627,7 +633,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 
 check_boundary_clk:
 	/* If this port is the Ebest */
-	if (ppi->port_idx == GLBS(ppi)->ebest_idx)
+	if (ppi->port_idx == ppg->ebest_idx)
 		goto slave_s1;
 
 	/* bmc_gm_cmp Ebest with Erbest */
@@ -1180,11 +1186,12 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 		ppi_best = INST(ppg, best);
 		ppi = INST(ppg, i);
 
-		if ((ppi->frgn_rec_num > 0)
-		    && (bmc_dataset_cmp(ppi,
+		if ((ppi->frgn_rec_num > 0) && 
+		    ((bmc_dataset_cmp(ppi,
 			  &ppi->frgn_master[ppi->frgn_rec_best],
 			  &ppi_best->frgn_master[ppi_best->frgn_rec_best]
-			) < 0))
+			) < 0) || (ppi_best->frgn_rec_num == 0)))
+		  
 				best = i;
 	}
 

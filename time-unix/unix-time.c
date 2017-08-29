@@ -61,10 +61,10 @@ static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 	memset(&t, 0, sizeof(t));
 	ret = adjtimex(&t);
 	if (ret >= 0) {
-		if (ret == TIME_INS) {
+		if (t.status == STA_INS) {
 			*leap59 = 0;
 			*leap61 = 1;
-		} else if (ret == TIME_DEL) {
+		} else if (t.status == STA_DEL) {
 			*leap59 = 1;
 			*leap61 = 0;
 		} else {
@@ -90,38 +90,31 @@ static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int lea
 {
 	struct timex t;
 	
-	if (leap59) {
-		memset(&t, 0, sizeof(t));
-		t.modes = MOD_STATUS;
-		t.status = STA_DEL;
-		if (adjtimex(&t) < 0) {
-			pp_diag(ppi, time, 1, "set leap second failed");
-			return -1;
-		}
-	} else if (leap61) {
-		memset(&t, 0, sizeof(t));
-		t.modes = MOD_STATUS;
-		t.status = STA_INS;
-		if (adjtimex(&t) < 0) {
-			pp_diag(ppi, time, 1, "set leap second failed");	
-			return -1;
-		}
-	} else {
-		memset(&t, 0, sizeof(t));
-		t.modes = MOD_STATUS;
-		t.status = 0;
-		if (adjtimex(&t) < 0) {
-			pp_diag(ppi, time, 1, "clear leap second failed");
-			return -1;
-		}
-		
-	}
-	
+	/* get the current flags first */
 	memset(&t, 0, sizeof(t));
-	t.modes = MOD_TAI;
+	ret = adjtimex(&t);
+	
+	if (ret >= 0) {
+		if (leap59) {
+			t.modes = MOD_STATUS;
+			t.status |= STA_DEL;
+			t.status &= ~STA_INS;
+		} else if (leap61) {
+			t.modes = MOD_STATUS;
+			t.status |= STA_INS;
+			t.status &= ~STA_DEL;
+		} else {
+			t.modes = MOD_STATUS;
+			t.status &= ~STA_INS;
+			t.status &= ~STA_DEL;
+		}
+	else
+		pp_diag(ppi, time, 1, "get UTC offset and flags failed");
+	
+	t.modes |= MOD_TAI;
 	t.constant = offset;
 	if (adjtimex(&t) < 0) {
-		pp_diag(ppi, time, 1, "set UTC offset failed");
+		pp_diag(ppi, time, 1, "set UTC offset and flags failed");
 		return -1;
 	}
 	
@@ -177,10 +170,15 @@ static int unix_time_set(struct pp_instance *ppi, const struct pp_time *t)
 static int unix_time_init_servo(struct pp_instance *ppi)
 {
 	struct timex t;
+	int ret;
 
+	/* get the current flags first */
+	memset(&t, 0, sizeof(t));
+	ret = adjtimex(&t);
+	
 	/* We must set MOD_PLL and recover the current frequency value */
 	t.modes = MOD_STATUS;
-	t.status = STA_PLL;
+	t.status |= STA_PLL;
 	if (adjtimex(&t) < 0)
 		return -1;
 	return (t.freq >> 16) * 1000; /* positive or negative, not -1 */
@@ -247,3 +245,4 @@ struct pp_time_operations unix_time_ops = {
 	.init_servo = unix_time_init_servo,
 	.calc_timeout = unix_calc_timeout,
 };
+

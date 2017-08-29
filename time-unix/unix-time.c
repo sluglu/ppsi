@@ -105,19 +105,27 @@ static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int lea
 			t.status |= STA_INS;
 			t.status &= ~STA_DEL;
 		} else {
-			t.modes = MOD_STAUS;
+			t.modes = MOD_STATUS;
 			t.status &= ~STA_INS;
 			t.status &= ~STA_DEL;
 		}
+
+	    if (adjtimex(&t) < 0) {
+		    pp_diag(ppi, time, 1, "set UTC flags failed\n");
+		    return -1;
+	    }
+
     } else
-		pp_diag(ppi, time, 1, "get UTC offset and flags failed");
+		pp_diag(ppi, time, 1, "get UTC flags failed\n");
 	
-	t.modes |= MOD_TAI;
+	t.modes = MOD_TAI;
 	t.constant = offset;
 	if (adjtimex(&t) < 0) {
-		pp_diag(ppi, time, 1, "set UTC offset and flags failed");
+		pp_diag(ppi, time, 1, "set UTC offset failed\n");
 		return -1;
-	}
+	} else
+		pp_diag(ppi, time, 1, "set UTC offset to: %i\n", offset);
+    
 	
 	return 0;
 }

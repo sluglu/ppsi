@@ -61,10 +61,10 @@ static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 	memset(&t, 0, sizeof(t));
 	ret = adjtimex(&t);
 	if (ret >= 0) {
-		if (t.status == STA_INS) {
+		if ((t.status & STA_INS) == STA_INS) {
 			*leap59 = 0;
 			*leap61 = 1;
-		} else if (t.status == STA_DEL) {
+		} else if ((t.status & STA_DEL) == STA_DEL) {
 			*leap59 = 1;
 			*leap61 = 0;
 		} else {
@@ -89,6 +89,7 @@ static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
 {
 	struct timex t;
+    int ret;
 	
 	/* get the current flags first */
 	memset(&t, 0, sizeof(t));
@@ -104,11 +105,11 @@ static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int lea
 			t.status |= STA_INS;
 			t.status &= ~STA_DEL;
 		} else {
-			t.modes = MOD_STATUS;
+			t.modes = MOD_STAUS;
 			t.status &= ~STA_INS;
 			t.status &= ~STA_DEL;
 		}
-	else
+    } else
 		pp_diag(ppi, time, 1, "get UTC offset and flags failed");
 	
 	t.modes |= MOD_TAI;
@@ -175,6 +176,8 @@ static int unix_time_init_servo(struct pp_instance *ppi)
 	/* get the current flags first */
 	memset(&t, 0, sizeof(t));
 	ret = adjtimex(&t);
+	if (ret < 0)
+		pp_diag(ppi, time, 1, "get current UTC offset and flags failed");
 	
 	/* We must set MOD_PLL and recover the current frequency value */
 	t.modes = MOD_STATUS;

@@ -80,8 +80,9 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	}
 
 	if (def->slaveOnly) {
-		pp_printf("Slave Only, clock class set to 255\n");
 		def->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
+		pp_printf("Slave Only, clock class set to %d\n",
+			  def->clockQuality.clockClass);
 	}
 
 	if (pp_hooks.open)

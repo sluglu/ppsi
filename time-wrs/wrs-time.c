@@ -322,25 +322,8 @@ static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 	if (t->secs < 1420730822 /* "now" as I write this */)
 		return 0;
 
-	/*
-	 * Finally, set unix time too, but count the UTC/TAI difference
-	 * assuming somebody has set up up for us
-	 */
-	memset(&tx, 0, sizeof(tx));
-	if (adjtimex(&tx) >= 0) {
-		/*
-		 * Our WRS kernel has tai support, but our compiler does not.
-		 * We are 32-bit only, and we know for sure that tai is
-		 * exactly after stbcnt. It's a bad hack, but it works
-		 */
-		tai_offset = *((int *)(&tx.stbcnt) + 1);
-	}
-
-	{
-		struct pp_time utc = *t; /* t is "const". uff.... */
-		utc.secs -= tai_offset;
-		unix_time_ops.set(ppi, &utc);
-	}
+	/* Finally, set unix time too */
+	unix_time_ops.set(ppi, t);
 
 	return 0;
 }

@@ -23,6 +23,32 @@ static void clock_fatal_error(char *context)
 	exit(1);
 }
 
+static void unix_time_clear_utc_flags(void)
+{
+	struct timex t;
+	
+	/*
+	 * We have to call adjtime twice here, as kernels
+	 * prior to 6b1859dba01c7 (included in 3.5 and
+	 * -stable), had an issue with the state machine
+	 * and wouldn't clear the STA_INS/DEL flag directly.
+	 */
+	t.modes = ADJ_STATUS;
+	t.status = STA_PLL;
+	adjtimex(&t);
+
+	/* Clear maxerror, as it can cause UNSYNC to be set */
+	t.modes = ADJ_MAXERROR;
+	t.maxerror = 0;
+	adjtimex(&t);
+
+	/* Clear the status */
+	t.modes = ADJ_STATUS;
+	t.status = 0;
+	adjtimex(&t);	
+		
+}
+
 static int unix_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
 {
 	int ret;
@@ -35,8 +61,8 @@ static int unix_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minu
 	ret = adjtimex(&t);
 	if (ret >= 0) {
 		now = t.time.tv_sec;
-		/* use localtime for correct leap handling */
-		date = localtime(&now);
+		/* use gmtime for correct leap handling */
+		date = gmtime(&now);
 		*hours = date->tm_hour;
 		*minutes = date->tm_min;
 		*seconds = date->tm_sec;
@@ -55,22 +81,32 @@ static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 {
 	int ret;
 	struct timex t;
+	int hours, minutes, seconds;
+	
+	unix_time_get_utc_time(ppi, &hours, &minutes, &seconds);
+
 	/*
 	 * Get the UTC/TAI difference
 	 */
 	memset(&t, 0, sizeof(t));
 	ret = adjtimex(&t);
 	if (ret >= 0) {
-		if ((t.status & STA_INS) == STA_INS) {
-			*leap59 = 0;
-			*leap61 = 1;
-		} else if ((t.status & STA_DEL) == STA_DEL) {
-			*leap59 = 1;
-			*leap61 = 0;
+		if (hours >= 12) {
+			if ((t.status & STA_INS) == STA_INS) {
+				*leap59 = 0;
+				*leap61 = 1;
+			} else if ((t.status & STA_DEL) == STA_DEL) {
+				*leap59 = 1;
+				*leap61 = 0;
+			} else {
+				*leap59 = 0;
+				*leap61 = 0;
+			}	
 		} else {
+			unix_time_clear_utc_flags();			
 			*leap59 = 0;
 			*leap61 = 0;
-		}		
+		}
 		/*
 		 * Our WRS kernel has tai support, but our compiler does not.
 		 * We are 32-bit only, and we know for sure that tai is
@@ -89,8 +125,10 @@ static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *l
 static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
 {
 	struct timex t;
-    int ret;
+	int ret;
 	
+	unix_time_clear_utc_flags();
+
 	/* get the current flags first */
 	memset(&t, 0, sizeof(t));
 	ret = adjtimex(&t);

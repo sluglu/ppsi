@@ -170,6 +170,18 @@ void bmc_s1(struct pp_instance *ppi,
 				    (seconds >= (60 - (2 * (1 << ppi->portDS->logAnnounceInterval))))) {
 					pp_diag(ppi, bmc, 2, 
 						"Approaching midnight, not updating leap flags\n");			
+					ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+					if (ret) {
+						pp_diag(ppi, bmc, 1, 
+							"Could not get UTC offset from system\n");
+					} else {
+						pp_diag(ppi, bmc, 3, 
+							"Current UTC flags, "
+							"offset: %i, "
+							"leap59: %i, "
+							"leap61: %i\n",
+							offset, leap59, leap61);		
+					}
 				} else {
 					ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
 					if (ret) {
@@ -180,6 +192,12 @@ void bmc_s1(struct pp_instance *ppi,
 						prop->currentUtcOffset = frgn_master->currentUtcOffset;
 						
 					} else {
+						pp_diag(ppi, bmc, 3, 
+							"Current UTC flags, "
+							"offset: %i, "
+							"leap59: %i, "
+							"leap61: %i\n",
+							offset, leap59, leap61);		
 
 						if (((leap59 != 0) != ((frgn_master->flagField[1] & FFB_LI59) != 0)) ||
 						    ((leap61 != 0) != ((frgn_master->flagField[1] & FFB_LI61) != 0)) ||
@@ -201,7 +219,7 @@ void bmc_s1(struct pp_instance *ppi,
 							offset = prop->currentUtcOffset;
 
 							pp_diag(ppi, bmc, 1, 
-								"UTC flags changed,"
+								"UTC flags changed, "
 								"offset: %i, "
 								"leap59: %i, "
 								"leap61: %i\n",
@@ -227,6 +245,12 @@ void bmc_s1(struct pp_instance *ppi,
 						pp_diag(ppi, bmc, 1, 
 							"Could not get UTC offset from system\n");
 					} else {
+						pp_diag(ppi, bmc, 3, 
+							"Current UTC flags, "
+							"offset: %i, "
+							"leap59: %i, "
+							"leap61: %i\n",
+							offset, leap59, leap61);		
 						prop->currentUtcOffset = offset;
 					}
 					prop->leap59 = FALSE;

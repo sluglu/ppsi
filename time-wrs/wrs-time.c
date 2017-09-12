@@ -265,7 +265,6 @@ static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	struct pp_time diff, now;
 	struct timex tx;
-	int tai_offset = 0;
 	int msec;
 
 	/*

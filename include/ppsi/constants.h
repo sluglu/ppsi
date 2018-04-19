@@ -63,7 +63,11 @@
 #define PP_SERVO_HOLDOVER			2
 #define PP_SERVO_UNLOCKED			3
 
-#define PP_NR_FOREIGN_RECORDS			5
+#ifdef CONFIG_ARCH_WRPC
+#define PP_NR_FOREIGN_RECORDS			1  /* Does not follow the standard : Clause 9.3.2.4.5 */
+#else
+#define PP_NR_FOREIGN_RECORDS			5  /* Clause 9.3.2.4.5 : Minimum size capacity is 5 */
+#endif
 #define PP_FOREIGN_MASTER_TIME_WINDOW		4
 #define PP_FOREIGN_MASTER_THRESHOLD		2
 #define PP_DEFAULT_TTL				1

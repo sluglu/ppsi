@@ -23,6 +23,157 @@ static void clock_fatal_error(char *context)
 	exit(1);
 }
 
+static void unix_time_clear_utc_flags(void)
+{
+	struct timex t;
+	
+	/*
+	 * We have to call adjtime twice here, as kernels
+	 * prior to 6b1859dba01c7 (included in 3.5 and
+	 * -stable), had an issue with the state machine
+	 * and wouldn't clear the STA_INS/DEL flag directly.
+	 */
+	t.modes = ADJ_STATUS;
+	t.status = STA_PLL;
+	adjtimex(&t);
+
+	/* Clear maxerror, as it can cause UNSYNC to be set */
+	t.modes = ADJ_MAXERROR;
+	t.maxerror = 0;
+	adjtimex(&t);
+
+	/* Clear the status */
+	t.modes = ADJ_STATUS;
+	t.status = 0;
+	adjtimex(&t);	
+		
+}
+
+static int unix_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
+{
+	int ret;
+	struct timex t;
+	time_t now;
+	struct tm *date;
+	
+	/* Get the UTC time */
+	memset(&t, 0, sizeof(t));
+	ret = adjtimex(&t);
+	if (ret >= 0) {
+		now = t.time.tv_sec;
+		/* use gmtime for correct leap handling */
+		date = gmtime(&now);
+		*hours = date->tm_hour;
+		*minutes = date->tm_min;
+		*seconds = date->tm_sec;
+		return 0;
+	} else {
+		*hours = 0;
+		*minutes = 0;
+		*seconds = 0;
+		return -1;
+	}
+	
+	return -1;
+}
+
+static int unix_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
+{
+	int ret;
+	struct timex t;
+	int hours, minutes, seconds;
+	
+	unix_time_get_utc_time(ppi, &hours, &minutes, &seconds);
+
+	/*
+	 * Get the UTC/TAI difference
+	 */
+	memset(&t, 0, sizeof(t));
+	ret = adjtimex(&t);
+	if (ret >= 0) {
+		if (hours >= 12) {
+			if ((t.status & STA_INS) == STA_INS) {
+				*leap59 = 0;
+				*leap61 = 1;
+			} else if ((t.status & STA_DEL) == STA_DEL) {
+				*leap59 = 1;
+				*leap61 = 0;
+			} else {
+				*leap59 = 0;
+				*leap61 = 0;
+			}	
+		} else {
+			unix_time_clear_utc_flags();			
+			*leap59 = 0;
+			*leap61 = 0;
+		}
+		/*
+		 * Our WRS kernel has tai support, but our compiler does not.
+		 * We are 32-bit only, and we know for sure that tai is
+		 * exactly after stbcnt. It's a bad hack, but it works
+		 */
+		*offset = *((int *)(&t.stbcnt) + 1);
+		return 0;
+	} else {
+		*leap59 = 0;
+		*leap61 = 0;
+		*offset = 0;
+		return -1;
+	}		
+}
+
+static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+{
+	struct timex t;
+	int ret;
+	
+	unix_time_clear_utc_flags();
+
+	/* get the current flags first */
+	memset(&t, 0, sizeof(t));
+	ret = adjtimex(&t);
+	
+	if (ret >= 0) {
+		if (leap59) {
+			t.modes = MOD_STATUS;
+			t.status |= STA_DEL;
+			t.status &= ~STA_INS;
+		} else if (leap61) {
+			t.modes = MOD_STATUS;
+			t.status |= STA_INS;
+			t.status &= ~STA_DEL;
+		} else {
+			t.modes = MOD_STATUS;
+			t.status &= ~STA_INS;
+			t.status &= ~STA_DEL;
+		}
+
+	    if (adjtimex(&t) < 0) {
+		    pp_diag(ppi, time, 1, "set UTC flags failed\n");
+		    return -1;
+	    }
+
+    } else
+		pp_diag(ppi, time, 1, "get UTC flags failed\n");
+	
+	t.modes = MOD_TAI;
+	t.constant = offset;
+	if (adjtimex(&t) < 0) {
+		pp_diag(ppi, time, 1, "set UTC offset failed\n");
+		return -1;
+	} else
+		pp_diag(ppi, time, 1, "set UTC offset to: %i\n", offset);
+    
+	
+	return 0;
+}
+
+static int unix_time_get_servo_state(struct pp_instance *ppi, int *state)
+{
+	*state = PP_SERVO_UNKNOWN;
+	return 0;
+}
+
 static int unix_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct timespec tp;
@@ -66,10 +217,17 @@ static int unix_time_set(struct pp_instance *ppi, const struct pp_time *t)
 static int unix_time_init_servo(struct pp_instance *ppi)
 {
 	struct timex t;
+	int ret;
 
+	/* get the current flags first */
+	memset(&t, 0, sizeof(t));
+	ret = adjtimex(&t);
+	if (ret < 0)
+		pp_diag(ppi, time, 1, "get current UTC offset and flags failed");
+	
 	/* We must set MOD_PLL and recover the current frequency value */
 	t.modes = MOD_STATUS;
-	t.status = STA_PLL;
+	t.status |= STA_PLL;
 	if (adjtimex(&t) < 0)
 		return -1;
 	return (t.freq >> 16) * 1000; /* positive or negative, not -1 */
@@ -124,6 +282,10 @@ static unsigned long unix_calc_timeout(struct pp_instance *ppi, int millisec)
 }
 
 struct pp_time_operations unix_time_ops = {
+	.get_utc_time = unix_time_get_utc_time,
+	.get_utc_offset = unix_time_get_utc_offset,
+	.set_utc_offset = unix_time_set_utc_offset,
+	.get_servo_state = unix_time_get_servo_state,
 	.get = unix_time_get,
 	.set = unix_time_set,
 	.adjust = unix_time_adjust,
@@ -132,3 +294,4 @@ struct pp_time_operations unix_time_ops = {
 	.init_servo = unix_time_init_servo,
 	.calc_timeout = unix_calc_timeout,
 };
+

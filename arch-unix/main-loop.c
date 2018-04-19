@@ -48,6 +48,8 @@ void unix_main_loop(struct pp_globals *ppg)
 	for (j = 0; j < ppg->nlinks; j++) {
 
 		ppi = INST(ppg, j);
+		/* just tell that the links are up */
+		ppi->link_up = TRUE; 
 
 		/*
 		* The main loop here is based on select. While we are not

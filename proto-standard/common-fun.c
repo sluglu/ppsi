@@ -71,70 +71,6 @@ void pp_prepare_pointers(struct pp_instance *ppi)
 	}
 }
 
-/* Called by listening, passive, slave, uncalibrated */
-int st_com_execute_slave(struct pp_instance *ppi)
-{
-	int ret = 0;
-
-	if (pp_hooks.execute_slave)
-		ret = pp_hooks.execute_slave(ppi);
-	if (ret == 1) /* done: just return */
-		return 0;
-	if (ret < 0)
-		return ret;
-
-	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)
-	    || pp_timeout(ppi, PP_TO_FAULT)) {
-		/* 
-		 * Note: TO_FAULTY == SYNCHRONIZATION_FAULT
-		 * should move us to UNCALIBRATED (not implemented)
-		 */
-		ppi->frgn_rec_num = 0;
-		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
-		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			ppi->next_state = PPS_MASTER;
-		} else {
-			ppi->next_state = PPS_LISTENING;
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-		}
-	}
-	return 0;
-}
-
-
-/* Called by slave and uncalibrated */
-int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			     int len)
-{
-	MsgHeader *hdr = &ppi->received_ptp_header;
-	MsgSync sync;
-
-	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT))
-		return 0;
-
-	/* t2 may be overriden by follow-up, save it immediately */
-	ppi->t2 = ppi->last_rcv_time;
-	msg_unpack_sync(buf, &sync);
-
-	if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0) {
-		ppi->flags |= PPI_FLAG_WAITING_FOR_F_UP;
-		ppi->recv_sync_sequence_id = hdr->sequenceId;
-		/* for two-step, the stamp comes later */
-		ppi->t1 = hdr->cField; /* most likely 0 */
-		return 0;
-	}
-	/* one-step folllows */
-	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
-	ppi->t1 = sync.originTimestamp;
-	pp_time_add(&ppi->t1, &hdr->cField);
-	ppi->syncCF = 0;
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
-		pp_servo_got_psync(ppi);
-	else
-		pp_servo_got_sync(ppi);
-	return 0;
-}
-
 static int presp_call_servo(struct pp_instance *ppi)
 {
 	int ret = 0;
@@ -151,23 +87,59 @@ static int presp_call_servo(struct pp_instance *ppi)
 	return ret;
 }
 
-int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
+int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
+{
+	struct pp_globals *ppg = GLBS(ppi);
+	int is_gm = 1;
+	int i;
+	
+	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
+		    && (ppi->role != PPSI_ROLE_SLAVE)) {
+			if (DSDEF(ppi)->numberPorts > 1) {
+				for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+					if ((INST(ppg, i)->state == PPS_UNCALIBRATED) ||
+						(INST(ppg, i)->state == PPS_SLAVE))
+						is_gm = 0;
+				}				
+				if (is_gm)
+					bmc_m1(ppi);
+				else
+					bmc_m3(ppi);				
+			} else
+				bmc_m1(ppi);	
+			
+			ppi->next_state = PPS_MASTER;
+		} else {
+			ppi->next_state = PPS_LISTENING;
+		}
+	}
+	return 0;
+}
+
+
+int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 			    int len)
 {
 	MsgPDelayResp resp;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	int e = 0;
 
+	/* if not in P2P mode, just return */
+	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+		return 0;
+	
 	msg_unpack_pdelay_resp(buf, &resp);
 
-	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-		    &resp.requestingPortIdentity.clockIdentity,
-		    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
+	if ((bmc_idcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+		    &resp.requestingPortIdentity.clockIdentity) == 0) &&
 	    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
 	     hdr->sequenceId) &&
 	    (DSPOR(ppi)->portIdentity.portNumber ==
 	     resp.requestingPortIdentity.portNumber) &&
-	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+	    (msg_from_current_master(ppi))) {
 
 		ppi->t4 = resp.requestReceiptTimestamp;
 		pp_time_add(&ppi->t4, &hdr->cField);
@@ -193,24 +165,26 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	return e;
 }
 
-
 int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
-				     unsigned char *buf, int plen)
+				     void *buf, int len)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
 	int e = 0;
 
+	/* if not in P2P mode, just return */
+	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+		return 0;
+	
 	msg_unpack_pdelay_resp_follow_up(buf, &respFllw);
 
-	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-		    &respFllw.requestingPortIdentity.clockIdentity,
-		    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
+	if ((bmc_idcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+		    &respFllw.requestingPortIdentity.clockIdentity) == 0) &&
 	    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
 	     hdr->sequenceId) &&
 	    (DSPOR(ppi)->portIdentity.portNumber ==
 	     respFllw.requestingPortIdentity.portNumber) &&
-	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+	    (msg_from_current_master(ppi))) {
 
 		ppi->t5 = respFllw.responseOriginTimestamp;
 		pp_time_add(&ppi->t5, &hdr->cField);
@@ -224,11 +198,15 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	return e;
 }
 
-int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
+int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 			    int len)
 {
 	int e = 0;
 
+	/* if not in P2P mode, just return */
+	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+		return 0;
+	
 	if (pp_hooks.handle_preq)
 		e = pp_hooks.handle_preq(ppi);
 	if (e)
@@ -240,64 +218,12 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-/* Called by slave and uncalibrated */
-int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
-				 int len)
+int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
-	MsgFollowUp follow;
-	int ret = 0;
+	bmc_add_frgn_master(ppi, buf, len);
 
-	MsgHeader *hdr = &ppi->received_ptp_header;
-
-	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
-		pp_error("%s: Follow up message is not from current parent\n",
-			__func__);
-		return 0;
-	}
-
-	if (!(ppi->flags & PPI_FLAG_WAITING_FOR_F_UP)) {
-		pp_error("%s: Slave was not waiting a follow up message\n",
-			__func__);
-		return 0;
-	}
-
-	if (ppi->recv_sync_sequence_id != hdr->sequenceId) {
-		pp_error("%s: SequenceID %d doesn't match last Sync message %d\n",
-				 __func__, hdr->sequenceId, ppi->recv_sync_sequence_id);
-		return 0;
-	}
-
-	msg_unpack_follow_up(buf, &follow);
-	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
-	/* t1 for calculations is T1 + Csyn + Cful -- see README-cfield */
-	pp_time_add(&ppi->t1, &follow.preciseOriginTimestamp);
-	pp_time_add(&ppi->t1, &hdr->cField);
-	ppi->syncCF = hdr->cField.scaled_nsecs; /* for diag about TC */
-
-	/* Call the extension; it may do it all and ask to return */
-	if (pp_hooks.handle_followup)
-		ret = pp_hooks.handle_followup(ppi, &ppi->t1);
-	if (ret == 1)
-		return 0;
-	if (ret < 0)
-		return ret;
-
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
-		pp_servo_got_psync(ppi);
-	else
-		pp_servo_got_sync(ppi);
-
-	return 0;
-}
-
-/*
- * Called by master, listenting, passive.
- * FIXME: this must be implemented to support one-step masters
- */
-int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			      int len)
-{
-	/* No more used: follow up is sent right after the corresponding sync */
+	if (pp_hooks.handle_announce)
+		return pp_hooks.handle_announce(ppi);
 	return 0;
 }
 

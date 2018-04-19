@@ -45,7 +45,7 @@ typedef struct Integer64 {
 
 typedef struct UInteger64 {
 	uint32_t	lsb;
-	uint32_t		msb;
+	uint32_t	msb;
 } UInteger64;
 
 struct TimeInterval { /* page 12 (32) -- never used */
@@ -54,7 +54,7 @@ struct TimeInterval { /* page 12 (32) -- never used */
 
 /* White Rabbit extension */
 typedef struct FixedDelta {
-	UInteger64 scaledPicoseconds;
+	UInteger64	scaledPicoseconds;
 } FixedDelta;
 
 typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
@@ -217,7 +217,7 @@ typedef struct DSCurrent {		/* page 67 */
 typedef struct DSParent {		/* page 68 */
 	/* Dynamic */
 	PortIdentity	parentPortIdentity;
-	/* Boolean		parentStats; -- not used */
+	/* Boolean	parentStats; -- not used */
 	UInteger16	observedParentOffsetScaledLogVariance;
 	Integer32	observedParentClockPhaseChangeRate;
 	ClockIdentity	grandmasterIdentity;

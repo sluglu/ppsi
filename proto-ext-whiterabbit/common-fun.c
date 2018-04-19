@@ -10,7 +10,7 @@
 /* We are entering WR handshake, as either master or slave */
 void wr_handshake_init(struct pp_instance *ppi, int mode_or_retry)
 {
-        struct wr_dsport *wrp = WR_DSPOR(ppi);
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	switch(mode_or_retry) {
 

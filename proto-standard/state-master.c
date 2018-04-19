@@ -10,10 +10,10 @@
 #include "common-fun.h"
 
 static int master_handle_delay_request(struct pp_instance *ppi,
-				       unsigned char *pkt, int plen);
+				       void *buf, int len);
 
 static pp_action *actions[] = {
-	[PPM_SYNC]		= st_com_master_handle_sync,
+	[PPM_SYNC]		= 0,
 	[PPM_DELAY_REQ]		= master_handle_delay_request,
 #if CONFIG_HAS_P2P
 	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
@@ -22,12 +22,12 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
-	[PPM_ANNOUNCE]		= pp_lib_handle_announce,
+	[PPM_ANNOUNCE]		= st_com_handle_announce,
 	/* skip signaling and management, for binary size */
 };
 
 static int master_handle_delay_request(struct pp_instance *ppi,
-				       unsigned char *pkt, int plen)
+				       void *buf, int len)
 {
 	if (ppi->state == PPS_MASTER) /* not pre-master */
 		msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
@@ -38,15 +38,22 @@ static int master_handle_delay_request(struct pp_instance *ppi,
  * MASTER and PRE_MASTER have many things in common. This function implements
  * both states. We set "pre" internally to 0 or 1.
  */
-int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
+int pp_master(struct pp_instance *ppi, void *buf, int len)
 {
 	int msgtype;
 	int pre = (ppi->state == PPS_PRE_MASTER);
 	int e = 0; /* error var, to check errors in msg handling */
 
+	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
+					   * master */
+
 	/* upgrade from pre-master to master */
 	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {
 		ppi->next_state = PPS_MASTER;
+		/* start sending imediately and reenter */
+		pp_timeout_clear(ppi, PP_TO_SYNC_SEND);
+		pp_timeout_clear(ppi, PP_TO_ANN_SEND);
+		ppi->next_delay = 0;
 		return 0;
 	}
 
@@ -62,8 +69,6 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	/* when the clock is using peer-delay, the master must send it too */
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
-	else /* please check commit '6d7bf7e3' about below, I'm not sure */
-		pp_timeout_set(ppi, PP_TO_REQUEST);
 
 	/*
 	 * An extension can do special treatment of this message type,
@@ -72,10 +77,10 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	 */
 	msgtype = ppi->received_ptp_header.messageType;
 	if (pp_hooks.master_msg)
-		msgtype = pp_hooks.master_msg(ppi, pkt, plen, msgtype);
+		msgtype = pp_hooks.master_msg(ppi, buf, len, msgtype);
 	if (msgtype < 0) {
 		e = msgtype;
-		plen = 0;
+		len = 0;
 		e = PP_SEND_ERROR; /* well, "error" in general */
 		goto out;
 	}
@@ -85,12 +90,15 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	 */
 	if (msgtype < ARRAY_SIZE(actions)
 	    && actions[msgtype]) {
-		e = actions[msgtype](ppi, pkt, plen);
+		e = actions[msgtype](ppi, buf, len);
 	} else {
-		if (plen && msgtype != PPM_NO_MESSAGE)
+		if (len && msgtype != PPM_NO_MESSAGE)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				msgtype);
 	}
+
+	if (pp_timeout(ppi, PP_TO_FAULT))
+		ppi->next_state = PPS_FAULTY;
 
 out:
 	switch(e) {
@@ -108,9 +116,24 @@ out:
 		break;
 	}
 
-	/* we also use TO_QUALIFICATION, but avoid counting it here */
-	ppi->next_delay = pp_next_delay_3(ppi,
-		PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
+	if (pre) {
+		if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+			ppi->next_delay = pp_next_delay_2(ppi,
+				PP_TO_QUALIFICATION, PP_TO_REQUEST);
+		} else {
+			ppi->next_delay = pp_next_delay_1(ppi,
+				PP_TO_QUALIFICATION);			
+		}		
+	} else {
+		if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+			ppi->next_delay = pp_next_delay_3(ppi,
+				PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
+		} else {
+			ppi->next_delay = pp_next_delay_2(ppi,
+				PP_TO_ANN_SEND, PP_TO_SYNC_SEND);			
+		}		
+	}
+	
 	return e;
 }
 

@@ -11,7 +11,6 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-listening.o \
 	$D/state-master.o \
 	$D/state-passive.o \
-	$D/state-uncalibrated.o \
 	$D/state-slave.o \
 	$D/common-fun.o \
 	$D/bmc.o \

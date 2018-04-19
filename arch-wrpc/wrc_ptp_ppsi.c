@@ -32,6 +32,7 @@ static struct wr_operations wrpc_wr_operations = {
 	.locking_enable = wrpc_spll_locking_enable,
 	.locking_poll = wrpc_spll_locking_poll,
 	.locking_disable = wrpc_spll_locking_disable,
+	.locking_reset = wrpc_spll_locking_reset,
 	.enable_ptracker = wrpc_spll_enable_ptracker,
 
 	.adjust_in_progress = wrpc_adjust_in_progress,
@@ -118,12 +119,14 @@ int wrc_ptp_set_mode(int mode)
 	struct pp_globals *ppg = ppi->glbs;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	typeof(ppg->rt_opts->clock_quality.clockClass) *class_ptr;
+	typeof(ppg->rt_opts->clock_quality.clockAccuracy) *accuracy_ptr;
 	int error = 0;
 	/*
 	 * We need to change the class in the default options.
 	 * Unfortunately, ppg->rt_opts may be yet unassigned when this runs
 	 */
 	class_ptr = &__pp_default_rt_opts.clock_quality.clockClass;
+	accuracy_ptr = &__pp_default_rt_opts.clock_quality.clockAccuracy;
 
 	ptp_mode = 0;
 
@@ -134,31 +137,38 @@ int wrc_ptp_set_mode(int mode)
 	case WRC_MODE_ABSCAL: /* absolute calibration, gm-lookalike */
 		wrp->wrConfig = WR_M_ONLY;
 		ppi->role = PPSI_ROLE_MASTER;
-		*class_ptr = PP_CLASS_WR_GM_LOCKED;
+		*class_ptr = PP_PTP_CLASS_GM_LOCKED;
+		*accuracy_ptr = PP_PTP_ACCURACY_GM_LOCKED;
 		spll_init(SPLL_MODE_GRAND_MASTER, 0, 1);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_GM;
-		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_WR_GM_LOCKED;
-		m1(ppi);
+		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
+		DSDEF(ppi)->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED;
+		bmc_m1(ppi);
 		break;
 
 	case WRC_MODE_MASTER:
 		wrp->wrConfig = WR_M_ONLY;
 		ppi->role = PPSI_ROLE_MASTER;
-		*class_ptr = PP_CLASS_DEFAULT;
+		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
+		*accuracy_ptr = PP_PTP_ACCURACY_GM_UNLOCKED;
 		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, 1);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_FM;
-		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_DEFAULT;
-		m1(ppi);
+		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
+		DSDEF(ppi)->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED;
+		bmc_m1(ppi);
 		break;
 
 	case WRC_MODE_SLAVE:
 		wrp->wrConfig = WR_S_ONLY;
 		ppi->role = PPSI_ROLE_SLAVE;
 		*class_ptr = PP_CLASS_SLAVE_ONLY;
+		*accuracy_ptr = PP_ACCURACY_DEFAULT;
 		spll_init(SPLL_MODE_SLAVE, 0, 1);
 		shw_pps_gen_unmask_output(0);
+		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
+		DSDEF(ppi)->clockQuality.clockAccuracy = PP_ACCURACY_DEFAULT;
 		break;
 	}
 
@@ -180,8 +190,10 @@ int wrc_ptp_set_mode(int mode)
 	pp_printf("\n");
 
 	/* If we can't lock to the atomic/gps, we say it in the class */
-	if (error && mode == WRC_MODE_GM)
-		*class_ptr = PP_CLASS_WR_GM_UNLOCKED;
+	if (error && mode == WRC_MODE_GM) {
+		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
+		*accuracy_ptr = PP_PTP_ACCURACY_GM_UNLOCKED;
+	}
 
 	ptp_mode = mode;
 	return error;
@@ -225,9 +237,10 @@ int wrc_ptp_start()
 	delay_ms = pp_state_machine(ppi, NULL, 0);
 	start_tics = timer_get_tics();
 
-	WR_DSPOR(ppi)->linkUP = FALSE;
+	/* just tell that the link is up, if not it will anyhow not receive anything */
+	ppi->link_up = TRUE;
+	ppi->state = PPS_INITIALIZING;
 	wr_servo_reset(ppi);
-
 	ptp_enabled = 1;
 	return 0;
 }
@@ -244,7 +257,11 @@ int wrc_ptp_stop()
 	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
 	ppi->frgn_rec_num = 0;          /* no known master */
 
+	/* just tell that the link is down now */
+	ppi->link_up = FALSE;
 	ptp_enabled = 0;
+	ppi->next_state = PPS_DISABLED;
+	pp_leave_current_state(ppi);
 	wr_servo_reset(ppi);
 	pp_close_globals(&ppg_static);
 

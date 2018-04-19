@@ -44,12 +44,12 @@ enum {
 };
 
 static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
-			int plen)
+			int len)
 {
 	if (sequence == STATE_ENTER) {
 		/* enter with or without a packet len */
 		pp_fsm_printf(ppi, "ENTER %s, packet len %i\n",
-			  name, plen);
+			  name, len);
 		return;
 	}
 	if (sequence == STATE_LOOP) {
@@ -85,10 +85,17 @@ get_current_state_table_item(struct pp_instance *ppi)
 /*
  * Returns delay to next state, which is always zero.
  */
-static int leave_current_state(struct pp_instance *ppi)
+int pp_leave_current_state(struct pp_instance *ppi)
 {
+	/* If something has to be done in an extension */
+	if (pp_hooks.state_change)
+		pp_hooks.state_change(ppi);
+	
+	/* if the next or old state is non standard PTP reset all timeouts */
+	if ((ppi->state > PPS_SLAVE) || (ppi->next_state > PPS_SLAVE))
+		pp_timeout_setall(ppi);
+
 	ppi->state = ppi->next_state;
-	pp_timeout_setall(ppi);
 	ppi->flags &= ~PPI_FLAGS_WAITING;
 	pp_diag_fsm(ppi, ppi->current_state_item->name, STATE_LEAVE, 0);
 	/* next_delay unused: go to new state now */
@@ -138,22 +145,22 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 	}
 
 	/*
-	 * 9.5.2.3: if an announce message comes from another port of the same
-	 * clock, switch all the ports but the lowest numbered one to
-	 * PASSIVE. Since all involved ports will see each other's announce,
-	 * we just switch __this__ instance's port's status to PASSIVE if we
-	 * need to.
-	 */
-	if (hdr->messageType == PPM_ANNOUNCE &&
-	    !memcmp(&hdr->sourcePortIdentity.clockIdentity,
-		    &DSPOR(ppi)->portIdentity.clockIdentity,
-		    sizeof(ClockIdentity))) {
-		if (hdr->sourcePortIdentity.portNumber <
-		    DSPOR(ppi)->portIdentity.portNumber)
-			ppi->next_state = PPS_PASSIVE;
-		return -1;
+	 * 9.5.2.3 & 9.5.2.2: For BCs the BMC (an extention to it)
+	 * handles the Announce (go to Passive), other messages are dropped
+	 */	
+	if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
+		&DSPOR(ppi)->portIdentity.clockIdentity,
+		sizeof(ClockIdentity))) {
+		if (DSDEF(ppi)->numberPorts > 1) {
+			/* Announces are handled by the BMC, since otherwise the state 
+			 * also the PASSIVE states in this case is overwritten */
+			if (hdr->messageType != PPM_ANNOUNCE) {
+				/* ignore messages, except announce coming from its own clock */
+				return -1;	
+			}		
+		}
 	}
-
+	
 	return 0;
 }
 
@@ -165,24 +172,24 @@ static int type_length[__PP_NR_MESSAGES_TYPES] = {
 	[PPM_PDELAY_RESP]	= PP_PDELAY_RESP_LENGTH,
 	[PPM_FOLLOW_UP]		= PP_FOLLOW_UP_LENGTH,
 	[PPM_DELAY_RESP]	= PP_DELAY_RESP_LENGTH,
-	[PPM_PDELAY_R_FUP]	= PP_PDELAY_R_FUP_LENGTH,
+	[PPM_PDELAY_R_FUP]	= PP_PDELAY_RESP_FOLLOW_UP_LENGTH,
 	[PPM_ANNOUNCE]		= PP_ANNOUNCE_LENGTH,
-	[PPM_SIGNALING]		=   PP_HEADER_LENGTH,
+	[PPM_SIGNALING]		= PP_HEADER_LENGTH,
 	[PPM_MANAGEMENT]	= PP_MANAGEMENT_LENGTH,
 };
 
 static int fsm_unpack_verify_frame(struct pp_instance *ppi,
-				   uint8_t *packet, int plen)
+				   void *buf, int len)
 {
 	int msgtype = 0;
 
-	if (plen)
-		msgtype = packet[0] & 0xf;
-	if (msgtype >= __PP_NR_MESSAGES_TYPES || plen < type_length[msgtype])
+	if (len)
+		msgtype = ((*(UInteger8 *) (buf + 0)) & 0x0F);
+	if (msgtype >= __PP_NR_MESSAGES_TYPES || len < type_length[msgtype])
 		return 1; /* too short */
-	if ((packet[1] & 0xf) != 2)
+	if (((*(UInteger8 *) (buf + 1)) & 0x0F) != 2)
 		return 1; /* wrong ptp version */
-	return msg_unpack_header(ppi, packet, plen);
+	return msg_unpack_header(ppi, buf, len);
 }
 
 /*
@@ -194,18 +201,18 @@ static int fsm_unpack_verify_frame(struct pp_instance *ppi,
  * is that of the extension, otherwise the one in state-table-default.c
  */
 
-int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
+int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 {
 	struct pp_state_table_item *ip;
 	struct pp_time *t = &ppi->last_rcv_time;
 	int state, err = 0;
 	int msgtype;
 
-	if (plen > 0) {
-		msgtype = packet[0] & 0xf;
+	if (len > 0) {
+		msgtype = ((*(UInteger8 *) (buf + 0)) & 0x0F);
 		pp_diag(ppi, frames, 1,
 			"RECV %02d bytes at %9d.%09d.%03d (type %x, %s)\n",
-			plen, (int)t->secs, (int)(t->scaled_nsecs >> 16),
+			len, (int)t->secs, (int)(t->scaled_nsecs >> 16),
 			((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
 			msgtype, pp_msgtype_info[msgtype].name);
 	}
@@ -213,9 +220,9 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	/*
 	 * Discard too short packets
 	 */
-	if (plen < PP_HEADER_LENGTH) {
-		plen = 0;
-		packet = NULL;
+	if (len < PP_HEADER_LENGTH) {
+		len = 0;
+		buf = NULL;
 	}
 
 	/*
@@ -224,10 +231,10 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	 * In case of error continue without a frame, so the current
 	 * ptp state can update ppi->next_delay and return a proper value
 	 */
-	err = fsm_unpack_verify_frame(ppi, packet, plen);
+	err = fsm_unpack_verify_frame(ppi, buf, len);
 	if (err) {
-		plen = 0;
-		packet = NULL;
+		len = 0;
+		buf = NULL;
 	}
 
 	state = ppi->state;
@@ -242,31 +249,49 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	ppi->next_state = state;
 	ppi->next_delay = 0;
 	if (ppi->is_new_state)
-		pp_diag_fsm(ppi, ip->name, STATE_ENTER, plen);
+		pp_diag_fsm(ppi, ip->name, STATE_ENTER, len);
+
 	/*
-	 * Possibly filter out packet and maybe update port state
+	 * Possibly filter out buf and maybe update port state
 	 */
-	if (packet) {
+	if (buf) {
 		err = pp_packet_prefilter(ppi);
 		if (err < 0) {
-			packet = NULL;
-			plen = 0;
+			buf = NULL;
+			len = 0;
 		}
 	}
-	if (ppi->state != ppi->next_state)
-		return leave_current_state(ppi);
 
-	if (!plen)
+	if (ppi->state != ppi->next_state)
+		return pp_leave_current_state(ppi);
+
+	if (!len)
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
-	err = ip->f1(ppi, packet, plen);
+
+	err = ip->f1(ppi, buf, len);
 	if (err)
 		pp_printf("fsm for %s: Error %i in %s\n",
 			  ppi->port_name, err, ip->name);
 
 	/* done: if new state mark it, and enter it now (0 ms) */
 	if (ppi->state != ppi->next_state)
-		return leave_current_state(ppi);
+		return pp_leave_current_state(ppi);
+
+	/* run bmc independent of state, and since not message driven do this
+	 * here 9.2.6.8 */
+	if (pp_timeout(ppi, PP_TO_BMC)) {
+		ppi->next_state = bmc(ppi);
+
+		/* done: if new state mark it, and enter it now (0 ms) */
+		if (ppi->state != ppi->next_state)
+			return pp_leave_current_state(ppi);
+	}
 
 	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
+
+	/* check if the BMC timeout is the next to run */
+	if (pp_next_delay_1(ppi, PP_TO_BMC) < ppi->next_delay)
+		ppi->next_delay = pp_next_delay_1(ppi, PP_TO_BMC);
+
 	return ppi->next_delay;
 }

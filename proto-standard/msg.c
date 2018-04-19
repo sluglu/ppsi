@@ -9,8 +9,20 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+/* return 1 if the frame is from the current master, else 0 */
+int msg_from_current_master(struct pp_instance *ppi)
+{
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	
+	if (!bmc_pidcmp(&DSPAR(ppi)->parentPortIdentity,
+			&hdr->sourcePortIdentity))
+		return 1;
+	else
+		return 0;
+}
+
 /* Unpack header from in buffer to receieved_ptp_header field */
-int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
+int msg_unpack_header(struct pp_instance *ppi, void *buf, int len)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	uint32_t lsb, msb;
@@ -35,20 +47,6 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 	hdr->sequenceId = htons(*(UInteger16 *) (buf + 30));
 	hdr->logMessageInterval = (*(Integer8 *) (buf + 33));
 
-
-	/*
-	 * This FLAG_FROM_CURRENT_PARENT must be killed. Meanwhile, say it's
-	 * from current parent if we have no current parent, so the rest works
-	 */
-	if (!DSPAR(ppi)->parentPortIdentity.portNumber ||
-	    (!memcmp(&DSPAR(ppi)->parentPortIdentity.clockIdentity,
-			&hdr->sourcePortIdentity.clockIdentity,
-			PP_CLOCK_IDENTITY_LENGTH) &&
-			(DSPAR(ppi)->parentPortIdentity.portNumber ==
-			 hdr->sourcePortIdentity.portNumber)))
-		ppi->flags |= PPI_FLAG_FROM_CURRENT_PARENT;
-	else
-		ppi->flags &= ~PPI_FLAG_FROM_CURRENT_PARENT;
 	return 0;
 }
 
@@ -111,6 +109,7 @@ int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* Sync message */
+	memset((buf + 34), 0, 10);
 	*(UInteger16 *)(buf + 34) = htons(orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
@@ -173,7 +172,7 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
 
 	/* Announce message */
-	memset((buf + 34), 0, 10);
+	memset((buf + 34), 0, 30);
 	*(Integer16 *) (buf + 44) = htons(DSPRO(ppi)->currentUtcOffset);
 	*(UInteger8 *) (buf + 47) = DSPAR(ppi)->grandmasterPriority1;
 	*(UInteger8 *) (buf + 48) = DSPAR(ppi)->grandmasterClockQuality.clockClass;
@@ -183,7 +182,9 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(UInteger8 *) (buf + 52) = DSPAR(ppi)->grandmasterPriority2;
 	memcpy((buf + 53), &DSPAR(ppi)->grandmasterIdentity,
 	       PP_CLOCK_IDENTITY_LENGTH);
-	*(UInteger16 *) (buf + 61) = htons(DSCUR(ppi)->stepsRemoved);
+	/* WORKAROUND 16bit casting doesn't seem to work on unaligned addresses */
+	*(UInteger8 *) (buf + 61) = (UInteger8)(DSCUR(ppi)->stepsRemoved >> 8);
+	*(UInteger8 *) (buf + 62) = (UInteger8)DSCUR(ppi)->stepsRemoved;
 	*(Enumeration8 *) (buf + 63) = DSPRO(ppi)->timeSource;
 
 	if (pp_hooks.pack_announce)
@@ -211,11 +212,16 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->grandmasterPriority2 = *(UInteger8 *) (buf + 52);
 	memcpy(&ann->grandmasterIdentity, (buf + 53),
 	       PP_CLOCK_IDENTITY_LENGTH);
-	ann->stepsRemoved = htons(*(UInteger16 *) (buf + 61));
+	/* WORKAROUND htons doesn't seem to work on unaligned addresses */
+	ann->stepsRemoved = *(UInteger8 *)(buf + 61);
+	ann->stepsRemoved = (ann->stepsRemoved << 8) + *(UInteger8 *)(buf + 62);
 	ann->timeSource = *(Enumeration8 *) (buf + 63);
 
+	/* this can fill in extention specific flags otherwise just zero them*/
 	if (pp_hooks.unpack_announce)
 		pp_hooks.unpack_announce(buf, ann);
+	else
+		ann->ext_specific = 0;
 }
 
 /* Pack Follow Up message into out buffer of ppi*/
@@ -229,6 +235,7 @@ static int msg_pack_follow_up(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* Follow Up message */
+	memset((buf + 34), 0, 10);
 	*(UInteger16 *)(buf + 34) = htons(prec_orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(prec_orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(prec_orig_tstamp->scaled_nsecs >> 16);
@@ -258,6 +265,7 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* requestReceiptTimestamp */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *)(buf + 34) = htons(prec_orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(prec_orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(prec_orig_tstamp->scaled_nsecs >> 16);
@@ -318,6 +326,7 @@ static int msg_pack_delay_req(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
 
 	/* Delay_req message - we may send zero instead */
+	memset((buf + 34), 0, 10);
 	*(UInteger16 *) (buf + 34) = htons(now->secs >> 32);
 	*(UInteger32 *) (buf + 36) = htonl(now->secs);
 	*(UInteger32 *) (buf + 40) = htonl(now->scaled_nsecs >> 16);
@@ -336,10 +345,10 @@ static int msg_pack_pdelay_req(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_PDELAY_REQ]);
 
 	/* PDelay_req message - we may send zero instead */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *) (buf + 34) = htons(now->secs >> 32);
 	*(UInteger32 *) (buf + 36) = htonl(now->secs);
 	*(UInteger32 *) (buf + 40) = htonl(now->scaled_nsecs >> 16);
-	memset(buf + 44, 0, 10); /* reserved to match pdelay_resp length */
 	return len;
 }
 
@@ -360,6 +369,7 @@ static int msg_pack_pdelay_resp(struct pp_instance *ppi,
 		= htonl(rcv_tstamp->scaled_nsecs & 0xffff);
 
 	/* requestReceiptTimestamp */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *) (buf + 34) = htons(rcv_tstamp->secs >> 32);
 	*(UInteger32 *) (buf + 36) = htonl(rcv_tstamp->secs);
 	*(UInteger32 *) (buf + 40) = htonl(rcv_tstamp->scaled_nsecs >> 16);
@@ -388,6 +398,7 @@ static int msg_pack_delay_resp(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* Delay_resp message */
+	memset((buf + 34), 0, 20);
 	*(UInteger16 *)(buf + 34) = htons(rcv_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(rcv_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(rcv_tstamp->scaled_nsecs >> 16);

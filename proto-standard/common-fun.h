@@ -12,40 +12,30 @@
 #include <ppsi/ppsi.h>
 
 /* Contains all functions common to more than one state */
+int st_com_check_announce_receive_timeout(struct pp_instance *ppi);
 
-/* returns -1 in case of error, see below */
-int st_com_execute_slave(struct pp_instance *ppi);
 
-/* Each of the following "handle" functions" return 0 in case of correct
- * message, -1 in case the message contained in buf is not proper (e.g. size
- * is not the expected one
- */
-int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			     int len);
-
-int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			      int len);
-
-int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
-				 int len);
-
-int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
+int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 			    int len);
 
-int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
+int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 			    int len);
 
 int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
-				     unsigned char *buf, int len);
+				     void *buf, int len);
+
+int st_com_handle_announce(struct pp_instance *ppi, void *buf, 
+				int len);
+
 
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype);
 
 /* Count successfully received PTP packets */
-static inline int __recv_and_count(struct pp_instance *ppi, void *pkt, int len,
+static inline int __recv_and_count(struct pp_instance *ppi, void *buf, int len,
 		   struct pp_time *t)
 {
 	int ret;
-	ret = ppi->n_ops->recv(ppi, pkt, len, t);
+	ret = ppi->n_ops->recv(ppi, buf, len, t);
 	if (ret > 0)
 		ppi->ptp_rx_count++;
 	return ret;

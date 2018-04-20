@@ -8,8 +8,6 @@
 
 #include <ppsi/ppsi.h>
 
-#ifndef CONFIG_ARCH_WRPC
-
 /* Flag Field bits symbolic names (table 57, pag. 151) */
 #define FFB_LI61	0x01
 #define FFB_LI59	0x02
@@ -1246,125 +1244,91 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 
 static void bmc_update_clock_quality(struct pp_instance *ppi)
 {
+	char *pp_diag_msg;
 	struct pp_globals *ppg = GLBS(ppi);
 	struct pp_runtime_opts *rt_opts = ppi->glbs->rt_opts;
-	int ret = 0;
+	int rt_opts_clock_quality_clockClass=rt_opts->clock_quality.clockClass;
+	int defaultDS_clock_quality_clockClass=ppg->defaultDS->clockQuality.clockClass;
 	int state;
 
-	if (rt_opts->clock_quality.clockClass < 128) {
+	if (rt_opts_clock_quality_clockClass < 128) {
 
-		if ((rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
-		    (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED)) {
+		if ((rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED) ||
+		    (rt_opts_clock_quality_clockClass == PP_ARB_CLASS_GM_LOCKED)) {
 			pp_diag(ppi, bmc, 2,
 				"GM locked class configured, checking servo state\n");
 
-		} else if ((rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_UNLOCKED) ||
-			   (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_UNLOCKED)) {
+		} else if ((rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_UNLOCKED) ||
+			       (rt_opts_clock_quality_clockClass == PP_ARB_CLASS_GM_UNLOCKED)) {
 			pp_diag(ppi, bmc, 2,
 				"GM unlocked class configured, skipping checking servo state\n");
 			return;
 		} else {
 			pp_diag(ppi, bmc, 2,
-				" GM unknown clock class configured, skipping checking servo state\n");
+				"GM unknown clock class configured, skipping checking servo state\n");
 			return;
 		}
 
-
-		ret = ppi->t_ops->get_servo_state(ppi, &state);
-		if (ret) {
+		if (ppi->t_ops->get_servo_state(ppi, &state)) {
 			pp_diag(ppi, bmc, 1,
 				"Could not get servo state, taking old clock class: %i\n",
 				ppg->defaultDS->clockQuality.clockClass);
 			return;
 		}
 
+		pp_diag_clear_msg(pp_diag_msg);
+
 		switch (state) {
 		case PP_SERVO_LOCKED:
-			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
-				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
+			if (rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED) {
+				if (defaultDS_clock_quality_clockClass != PP_PTP_CLASS_GM_LOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED;
 					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_PTP_VARIANCE_GM_LOCKED;
-					pp_diag(ppi, bmc, 1,
-						"Servo locked, new clock class: %i,"
-						"new clock accuracy: %i,"
-						"new clock variance: %04x,",
-						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy,
-					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+					pp_diag_set_msg(pp_diag_msg,"locked");
 				}
-			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
-				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_LOCKED) {
+			} else if (rt_opts_clock_quality_clockClass == PP_ARB_CLASS_GM_LOCKED) {
+				if (defaultDS_clock_quality_clockClass != PP_ARB_CLASS_GM_LOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_LOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_LOCKED;
 					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_ARB_VARIANCE_GM_LOCKED;
-					pp_diag(ppi, bmc, 1,
-						"Servo locked, new clock class: %i,"
-						"new clock accuracy: %i,"
-						"new clock variance: %04x,",
-						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy,
-					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+					pp_diag_set_msg(pp_diag_msg,"locked");
 				}
 			}
 			break;
 
 		case PP_SERVO_HOLDOVER:
-			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
-				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_HOLDOVER) {
+			if (rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED) {
+				if (defaultDS_clock_quality_clockClass != PP_PTP_CLASS_GM_HOLDOVER) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_HOLDOVER;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_HOLDOVER;
 					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_PTP_VARIANCE_GM_HOLDOVER;
-					pp_diag(ppi, bmc, 1,
-						"Servo in holdover, new clock class: %i,"
-						"new clock accuracy: %i,"
-						"new clock variance: %04x,",
-						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy,
-					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+					pp_diag_set_msg(pp_diag_msg,"in holdover");
 				}
-			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
-				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_HOLDOVER) {
+			} else if (rt_opts_clock_quality_clockClass== PP_ARB_CLASS_GM_LOCKED) {
+				if (defaultDS_clock_quality_clockClass != PP_ARB_CLASS_GM_HOLDOVER) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_HOLDOVER;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_HOLDOVER;
 					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_ARB_VARIANCE_GM_HOLDOVER;
-					pp_diag(ppi, bmc, 1,
-						"Servo in holdover, new clock class: %i,"
-						"new clock accuracy: %i,"
-						"new clock variance: %04x,",
-						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy,
-					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+					pp_diag_set_msg(pp_diag_msg,"in holdover");
 				}
 			}
 			break;
 
 		case PP_SERVO_UNLOCKED:
-			if (rt_opts->clock_quality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
-				if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_UNLOCKED) {
+			if (rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED) {
+				if (defaultDS_clock_quality_clockClass != PP_PTP_CLASS_GM_UNLOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED;
 					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED;
-					pp_diag(ppi, bmc, 1,
-						"Servo unlocked, new clock class: %i,"
-						"new clock accuracy: %i,"
-						"new clock variance: %04x,",
-						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy,
-					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+					pp_diag_set_msg(pp_diag_msg,"unlocked");
 				}
-			} else if (rt_opts->clock_quality.clockClass == PP_ARB_CLASS_GM_LOCKED) {
-				if (ppg->defaultDS->clockQuality.clockClass != PP_ARB_CLASS_GM_UNLOCKED) {
+			} else if (rt_opts_clock_quality_clockClass == PP_ARB_CLASS_GM_LOCKED) {
+				if (defaultDS_clock_quality_clockClass != PP_ARB_CLASS_GM_UNLOCKED) {
 					ppg->defaultDS->clockQuality.clockClass = PP_ARB_CLASS_GM_UNLOCKED;
 					ppg->defaultDS->clockQuality.clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED;
 					ppg->defaultDS->clockQuality.offsetScaledLogVariance = PP_ARB_VARIANCE_GM_UNLOCKED;
-					pp_diag(ppi, bmc, 1,
-						"Servo unlocked, new clock class: %i,"
-						"new clock accuracy: %i,"
-						"new clock variance: %04x,",
-						ppg->defaultDS->clockQuality.clockClass,
-					        ppg->defaultDS->clockQuality.clockAccuracy,
-					        ppg->defaultDS->clockQuality.offsetScaledLogVariance);
+					pp_diag_set_msg(pp_diag_msg,"unlocked");
 				}
 			}
 			break;
@@ -1373,9 +1337,21 @@ static void bmc_update_clock_quality(struct pp_instance *ppi)
 		default:
 			pp_diag(ppi, bmc, 2,
 				"Unknown servo state, taking old clock class: %i\n",
-				ppg->defaultDS->clockQuality.clockClass);
-
+				defaultDS_clock_quality_clockClass);
 			break;
+
+		}
+
+		if ( pp_diag_is_msg_set(pp_diag_msg) ) {
+			pp_diag(ppi, bmc, 1,
+					"Servo %s, "
+					"new clock class: %i,"
+					"new clock accuracy: %i,"
+					"new clock variance: %04x,",
+					pp_diag_get_msg(pp_diag_msg),
+					ppg->defaultDS->clockQuality.clockClass,
+					ppg->defaultDS->clockQuality.clockAccuracy,
+					ppg->defaultDS->clockQuality.offsetScaledLogVariance);
 
 		}
 	}
@@ -1435,4 +1411,3 @@ int bmc(struct pp_instance *ppi)
 
 	return next_state;
 }
-#endif

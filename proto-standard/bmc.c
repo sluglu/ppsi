@@ -1388,7 +1388,7 @@ int bmc(struct pp_instance *ppi)
 	}
 
 	/* Only if port is not any port is in the INITIALIZING state 9.2.6.8 */
-	if (bmc_any_port_initializing(ppg)) {
+	if ( !IS_ARCH_WRPC() && bmc_any_port_initializing(ppg)) {
 		pp_diag(ppi, bmc, 2, "A Port is in intializing\n");
 		return ppi->state;
 	}
@@ -1396,7 +1396,7 @@ int bmc(struct pp_instance *ppi)
 	/* Calculate Erbest of all ports Figure 25 */
 	bmc_update_erbest(ppg);
 
-	if (DSDEF(ppi)->numberPorts > 1) {
+	if ( !IS_ARCH_WRPC() && DSDEF(ppi)->numberPorts > 1) {
 		ret = bmc_check_frgn_master(ppi);
 	}
 

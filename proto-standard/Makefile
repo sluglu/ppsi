@@ -14,7 +14,6 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-slave.o \
 	$D/common-fun.o \
 	$D/bmc.o \
-	$D/bmc_wrpc.o \
 	$D/msg.o \
 	$D/arith.o \
 	$D/servo.o \

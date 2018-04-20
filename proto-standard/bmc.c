@@ -16,6 +16,11 @@
 #define FFB_TTRA	0x10
 #define FFB_FTRA	0x20
 
+/* String to save space in diag messages */
+#define fmt_clock_identity_id_A_B "%sId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n" \
+			                         "%sId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n"
+#define fmt_clock_identity_id     "%s: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n"
+
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
 void bmc_m1(struct pp_instance *ppi)
 {
@@ -507,13 +512,14 @@ int bmc_topology_cmp(struct pp_instance *ppi,
 	/* stepsRemoved is equal, compare identities */
 	diff = bmc_pidcmp(pidtxa, pidtxb);
 	if (diff) {
-		pp_diag(ppi, bmc, 3, "TxId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n"
-			"TxId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n",
+		pp_diag(ppi, bmc, 3, fmt_clock_identity_id_A_B,
+			"Tx",
 			pidtxa->clockIdentity.id[0], pidtxa->clockIdentity.id[1],
 			pidtxa->clockIdentity.id[2], pidtxa->clockIdentity.id[3],
 			pidtxa->clockIdentity.id[4], pidtxa->clockIdentity.id[5],
 			pidtxa->clockIdentity.id[6], pidtxa->clockIdentity.id[7],
 			pidtxa->portNumber,
+			"Tx",
 			pidtxb->clockIdentity.id[0], pidtxb->clockIdentity.id[1],
 			pidtxb->clockIdentity.id[2], pidtxb->clockIdentity.id[3],
 			pidtxb->clockIdentity.id[4], pidtxb->clockIdentity.id[5],
@@ -524,13 +530,14 @@ int bmc_topology_cmp(struct pp_instance *ppi,
 
 	/* sourcePortIdentity is equal, compare receive port identites, which
 	 * is the last decision maker, which has to be different */
-	pp_diag(ppi, bmc, 3, "RxId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n"
-		"RxId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n",
+	pp_diag(ppi, bmc, 3, fmt_clock_identity_id_A_B,
+		"Rx",
 		pidrxa->clockIdentity.id[0], pidrxa->clockIdentity.id[1],
 		pidrxa->clockIdentity.id[2], pidrxa->clockIdentity.id[3],
 		pidrxa->clockIdentity.id[4], pidrxa->clockIdentity.id[5],
 		pidrxa->clockIdentity.id[6], pidrxa->clockIdentity.id[7],
 		pidrxa->portNumber,
+		"Rx",
 		pidrxb->clockIdentity.id[0], pidrxb->clockIdentity.id[1],
 		pidrxb->clockIdentity.id[2], pidrxb->clockIdentity.id[3],
 		pidrxb->clockIdentity.id[4], pidrxb->clockIdentity.id[5],
@@ -875,8 +882,8 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	 */
 	bmc_store_frgn_master(ppi, &frgn_master, buf, len);
 
-	pp_diag(ppi, bmc, 3, "Foreign Master Port Id: "
-		"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n",
+	pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+		"Foreign Master Port Id",
 		pid->clockIdentity.id[0], pid->clockIdentity.id[1],
 		pid->clockIdentity.id[2], pid->clockIdentity.id[3],
 		pid->clockIdentity.id[4], pid->clockIdentity.id[5],
@@ -1095,8 +1102,8 @@ int bmc_check_frgn_master(struct pp_instance *ppi)
 				if(0 > bmc_pidcmp(&ppi->frgn_master[i].sourcePortIdentity,
 						&DSPOR(ppi)->portIdentity)) {
 					pid = &ppi->frgn_master[i].sourcePortIdentity;
-					pp_diag(ppi, bmc, 3, "Better Master on same Clock Port Id:"
-						"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n",
+					pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+					   "Better Master on same Clock Port Id",
 						pid->clockIdentity.id[0], pid->clockIdentity.id[1],
 						pid->clockIdentity.id[2], pid->clockIdentity.id[3],
 						pid->clockIdentity.id[4], pid->clockIdentity.id[5],
@@ -1172,7 +1179,8 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 					ppi->frgn_rec_num);
 
 				frgn_master_pid = &frgn_master[best].sourcePortIdentity;
-				pp_diag(ppi, bmc, 3, "SourePortId = %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n",
+				pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+					"SourcePortId",
 					frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
 					frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
 					frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
@@ -1228,7 +1236,8 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 		pp_diag(ppi_best, bmc, 1, "Best foreign master is at port "
 			"%i\n", (best+1));
 		frgn_master_pid = &ppi_best->frgn_master[ppi_best->frgn_rec_best].sourcePortIdentity;
-		pp_diag(ppi_best, bmc, 3, "SourePortId = %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n",
+		pp_diag(ppi_best, bmc, 3, fmt_clock_identity_id,
+			"SourcePortId",
 			frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
 			frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
 			frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],

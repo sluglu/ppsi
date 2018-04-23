@@ -1140,72 +1140,84 @@ static int bmc_any_port_initializing(struct pp_globals *ppg)
 	return 0;
 }
 
+static void inline bmc_update_erbest_inst(struct pp_instance *ppi) {
+
+	struct pp_frgn_master *frgn_master;
+	PortIdentity *frgn_master_pid;
+	int j, best;
+
+	/* if link is down clear foreign master table */
+	if ((!ppi->link_up) && (ppi->frgn_rec_num > 0))
+		bmc_flush_frgn_master(ppi);
+
+	if (ppi->frgn_rec_num > 0) {
+		/* Only if port is not in the FAULTY or DISABLED
+		 * state 9.2.6.8 */
+		frgn_master = ppi->frgn_master;
+		if ((ppi->state != PPS_FAULTY) && (ppi->state != PPS_DISABLED)) {
+			best=0;
+			if ( PP_NR_FOREIGN_RECORDS > 1 ) {
+				for (j = 1; j < ppi->frgn_rec_num;
+					 j++)
+					if (bmc_dataset_cmp(ppi,
+						  &frgn_master[j],
+						  &frgn_master[best]
+						) < 0)
+						best = j;
+			}
+
+			pp_diag(ppi, bmc, 1, "Best foreign master is "
+				"at index %i/%i\n", best,
+				ppi->frgn_rec_num);
+
+			frgn_master_pid = &frgn_master[best].sourcePortIdentity;
+			pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+				"SourcePortId",
+				frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
+				frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
+				frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
+				frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
+				frgn_master_pid->portNumber);
+
+			ppi->frgn_rec_best = best;
+		} else {
+			ppi->frgn_rec_num = 0;
+			ppi->frgn_rec_best = 0;
+			memset(&ppi->frgn_master, 0,
+				   sizeof(ppi->frgn_master));
+		}
+	} else {
+		/* lets just set the first one */
+		ppi->frgn_rec_best = 0;
+	}
+
+}
+
 /* Find Erbest, 9.3.2.2 */
 static void bmc_update_erbest(struct pp_globals *ppg)
 {
-	int i, j, best;
-	struct pp_instance *ppi;
-	struct pp_frgn_master *frgn_master;
-	PortIdentity *frgn_master_pid;
+	int i;
 
 	/* bmc_update_erbest is called several times, so report only at
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
-	for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+	if ( !IS_ARCH_WRPC() ) /* Optimization for WRPC target : Just one port */ {
+		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
 
-		ppi = INST(ppg, i);
-		frgn_master = ppi->frgn_master;
-
-		/* if link is down clear foreign master table */
-		if ((!ppi->link_up) && (ppi->frgn_rec_num > 0))
-			bmc_flush_frgn_master(ppi);
-
-		if (ppi->frgn_rec_num > 0) {
-			/* Only if port is not in the FAULTY or DISABLED
-			 * state 9.2.6.8 */
-			if ((ppi->state != PPS_FAULTY)
-			    && (ppi->state != PPS_DISABLED)) {
-				for (j = 1, best = 0; j < ppi->frgn_rec_num;
-				     j++)
-					if (bmc_dataset_cmp(ppi,
-					      &frgn_master[j],
-					      &frgn_master[best]
-					    ) < 0)
-						best = j;
-
-				pp_diag(ppi, bmc, 1, "Best foreign master is "
-					"at index %i/%i\n", best,
-					ppi->frgn_rec_num);
-
-				frgn_master_pid = &frgn_master[best].sourcePortIdentity;
-				pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
-					"SourcePortId",
-					frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
-					frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
-					frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
-					frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
-					frgn_master_pid->portNumber);
-
-				ppi->frgn_rec_best = best;
-
-			} else {
-				ppi->frgn_rec_num = 0;
-				ppi->frgn_rec_best = 0;
-				memset(&ppi->frgn_master, 0,
-				       sizeof(ppi->frgn_master));
-			}
-		} else {
-			/* lets just set the first one */
-			ppi->frgn_rec_best = 0;
+			bmc_update_erbest_inst (INST(ppg, i));
 		}
+	} else {
+		/* WRPC target. Only one port  */
+		bmc_update_erbest_inst (INST(ppg, 0));
 	}
+
 }
 
 /* Find Ebest, 9.3.2.2 */
 static void bmc_update_ebest(struct pp_globals *ppg)
 {
-	int i, best;
+	int i, best=0;
 	struct pp_instance *ppi, *ppi_best;
 	PortIdentity *frgn_master_pid;
 
@@ -1213,20 +1225,21 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
-	for (i = 1, best = 0; i < ppg->defaultDS->numberPorts; i++) {
+	if ( !IS_ARCH_WRPC() ) /* Optimization for WRPC target : Just one port */ {
+		for (i = 1; i < ppg->defaultDS->numberPorts; i++) {
 
-		ppi_best = INST(ppg, best);
-		ppi = INST(ppg, i);
+			ppi_best = INST(ppg, best);
+			ppi = INST(ppg, i);
 
-		if ((ppi->frgn_rec_num > 0) && 
-		    ((bmc_dataset_cmp(ppi,
-			  &ppi->frgn_master[ppi->frgn_rec_best],
-			  &ppi_best->frgn_master[ppi_best->frgn_rec_best]
-			) < 0) || (ppi_best->frgn_rec_num == 0)))
-		  
-				best = i;
+			if ((ppi->frgn_rec_num > 0) &&
+				((bmc_dataset_cmp(ppi,
+				  &ppi->frgn_master[ppi->frgn_rec_best],
+				  &ppi_best->frgn_master[ppi_best->frgn_rec_best]
+				) < 0) || (ppi_best->frgn_rec_num == 0)))
+
+					best = i;
+		}
 	}
-
 	/* check if best master is qualified */
 	ppi_best = INST(ppg, best);
 	if (ppi_best->frgn_rec_num == 0) {
@@ -1389,7 +1402,7 @@ int bmc(struct pp_instance *ppi)
 
 	/* Only if port is not any port is in the INITIALIZING state 9.2.6.8 */
 	if ( !IS_ARCH_WRPC() && bmc_any_port_initializing(ppg)) {
-		pp_diag(ppi, bmc, 2, "A Port is in intializing\n");
+		pp_diag(ppi, bmc, 2, "A Port is in initializing\n");
 		return ppi->state;
 	}
 

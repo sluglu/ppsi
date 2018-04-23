@@ -23,7 +23,7 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
  * This is using a software loop during the last 10ms in order to get
  * right after the pps event
  */
-int wr_abscal(struct pp_instance *ppi, uint8_t *pkt, int plen)
+int wr_abscal(struct pp_instance *ppi, void *buf, int plen)
 {
 	struct pp_time t;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);

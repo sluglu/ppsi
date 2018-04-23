@@ -302,7 +302,7 @@ void bmc_p2(struct pp_instance *ppi)
 	 * extension-specific needs, to be implemented as a hook */
 }
 
-/* Copy local data set into header and ann message. 9.3.4 table 12. */
+/* Copy local data set into header and announce message. 9.3.4 table 12. */
 void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 			   struct pp_frgn_master *frgn_master)
 {
@@ -624,39 +624,41 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		}
 	}
 
-	/* if there is a foreign master take it otherwise just go to master */
-	if (ppg->ebest_idx >= 0) {
-		ppi_best = INST(ppg, ppg->ebest_idx);
-		ebest = &ppi_best->frgn_master[ppi_best->frgn_rec_best];
-		pp_diag(ppi, bmc, 2, "Taking real Ebest at port %i foreign "
-			"master %i/%i\n", (ppg->ebest_idx+1),
-			ppi_best->frgn_rec_best, ppi_best->frgn_rec_num);
-	} else {
-		/* directly go to master state */
-		pp_diag(ppi, bmc, 2, "No real Ebest\n");
-		goto master_m1;
-	}
-
-	if (DSDEF(ppi)->clockQuality.clockClass < 128) {
-		/* dataset_cmp D0 with Erbest */
-		cmpres = bmc_dataset_cmp(ppi, &d0, erbest);
-		if (cmpres < 0)
+	if ( !IS_ARCH_WRPC() ) {
+		/* if there is a foreign master take it otherwise just go to master */
+		if (ppg->ebest_idx >= 0) {
+			ppi_best = INST(ppg, ppg->ebest_idx);
+			ebest = &ppi_best->frgn_master[ppi_best->frgn_rec_best];
+			pp_diag(ppi, bmc, 2, "Taking real Ebest at port %i foreign "
+				"master %i/%i\n", (ppg->ebest_idx+1),
+				ppi_best->frgn_rec_best, ppi_best->frgn_rec_num);
+		} else {
+			/* directly go to master state */
+			pp_diag(ppi, bmc, 2, "No real Ebest\n");
 			goto master_m1;
-		if (cmpres > 0)
-			goto passive_p1;
-	} else {
-		/* dataset_cmp D0 with Ebest */
-		cmpres = bmc_dataset_cmp(ppi, &d0, ebest);
-		if (cmpres < 0)
-			goto master_m2;
-		if (cmpres > 0) {
-			if (DSDEF(ppi)->numberPorts == 1)
-				goto slave_s1; /* directly skip to ordinary
-						* clock handling */
-			else
-				goto check_boundary_clk;
 		}
 
+		if (DSDEF(ppi)->clockQuality.clockClass < 128) {
+			/* dataset_cmp D0 with Erbest */
+			cmpres = bmc_dataset_cmp(ppi, &d0, erbest);
+			if (cmpres < 0)
+				goto master_m1;
+			if (cmpres > 0)
+				goto passive_p1;
+		} else {
+			/* dataset_cmp D0 with Ebest */
+			cmpres = bmc_dataset_cmp(ppi, &d0, ebest);
+			if (cmpres < 0)
+				goto master_m2;
+			if (cmpres > 0) {
+				if (DSDEF(ppi)->numberPorts == 1)
+					goto slave_s1; /* directly skip to ordinary
+							* clock handling */
+				else
+					goto check_boundary_clk;
+			}
+
+		}
 	}
 	pp_diag(ppi, bmc, 1, "%s: error\n", __func__);
 

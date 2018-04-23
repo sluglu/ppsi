@@ -890,7 +890,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		pid->clockIdentity.id[6], pid->clockIdentity.id[7],
 		pid->portNumber);
 
-	if (DSDEF(ppi)->numberPorts > 1) {
+	if (!IS_ARCH_WRPC() && DSDEF(ppi)->numberPorts > 1) {
 		/* Check if announce from the same port from this clock 9.3.2.5 a)
 		 * from another port of this clock we still handle even though it
 		 * states something different in IEEE1588 because in 9.5.2.3
@@ -964,48 +964,53 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		frgn_master.foreignMasterAnnounceMessages[i] = 1;
 
 	/* New foreign master */
-	if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS) {
-		/* there is space for a new one */
-		sel = ppi->frgn_rec_num;
-		ppi->frgn_rec_num++;
+	if ( PP_NR_FOREIGN_RECORDS > 1 ) {
+		if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS) {
+			/* there is space for a new one */
+			sel = ppi->frgn_rec_num;
+			ppi->frgn_rec_num++;
 
-	} else {
-		/* find the worst to replace */
-		for (i = 1, worst = 0; i < ppi->frgn_rec_num; i++) {	
-			/* qualify them for this check */
-			memcpy(&temp_frgn_master, &ppi->frgn_master[i], 
-			       sizeof(temp_frgn_master));
+		} else {
+			/* find the worst to replace */
+			for (i = 1, worst = 0; i < ppi->frgn_rec_num; i++) {
+				/* qualify them for this check */
+				memcpy(&temp_frgn_master, &ppi->frgn_master[i],
+					   sizeof(temp_frgn_master));
+				memcpy(&worst_frgn_master, &ppi->frgn_master[worst],
+					   sizeof(worst_frgn_master));
+				for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
+					temp_frgn_master.foreignMasterAnnounceMessages[j] = 1;
+					worst_frgn_master.foreignMasterAnnounceMessages[j] = 1;
+				}
+
+				if (bmc_dataset_cmp(ppi, &temp_frgn_master,
+							&worst_frgn_master) > 0)
+					worst = i;
+			}
+
+			/* copy the worst again and qualify it */
 			memcpy(&worst_frgn_master, &ppi->frgn_master[worst], 
-			       sizeof(worst_frgn_master));
-			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
-				temp_frgn_master.foreignMasterAnnounceMessages[j] = 1;
-				worst_frgn_master.foreignMasterAnnounceMessages[j] = 1;
+				   sizeof(worst_frgn_master));
+			for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
+				worst_frgn_master.foreignMasterAnnounceMessages[i] = 1;
 			}
 			
-			if (bmc_dataset_cmp(ppi, &temp_frgn_master,
-					    &worst_frgn_master) > 0)
-				worst = i;
-		}
+			/* check if worst is better than the new one, and skip the new
+			 * one if so */
+			if (bmc_dataset_cmp(ppi, &worst_frgn_master, &frgn_master)
+				< 0) {
+					pp_diag(ppi, bmc, 1, "%s:%i: New foreign "
+						"master worse than worst in the full "
+						"table, skipping\n",
+				__func__, __LINE__);
+				return;
+			}
 
-		/* copy the worst again and qualify it */
-		memcpy(&worst_frgn_master, &ppi->frgn_master[worst], 
-		       sizeof(worst_frgn_master));
-		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
-			worst_frgn_master.foreignMasterAnnounceMessages[i] = 1;
+			sel = worst;
 		}
-		
-		/* check if worst is better than the new one, and skip the new
-		 * one if so */
-		if (bmc_dataset_cmp(ppi, &worst_frgn_master, &frgn_master)
-			< 0) {
-				pp_diag(ppi, bmc, 1, "%s:%i: New foreign "
-					"master worse than worst in the full "
-					"table, skipping\n",
-			__func__, __LINE__);
-			return;
-		}
-
-		sel = worst;
+	} else {
+		sel = 0;
+		ppi->frgn_rec_num=1;
 	}
 
 	/* clear qualification timeouts */

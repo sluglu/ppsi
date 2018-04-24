@@ -67,19 +67,19 @@ struct pp_frgn_master {
 	/* how many announce messages from this port where received in the
 	 * interval */
 	UInteger16 foreignMasterAnnounceMessages[PP_FOREIGN_MASTER_TIME_WINDOW];
-	/* on which port we received the frame */
-	PortIdentity receivePortIdentity;
 	/* BMC related information */
 	UInteger16 sequenceId;
-	PortIdentity sourcePortIdentity;
-	Octet flagField[2];
-	Integer16 currentUtcOffset;
-	UInteger8 grandmasterPriority1;
-	ClockQuality grandmasterClockQuality;
-	UInteger8 grandmasterPriority2;
-	ClockIdentity grandmasterIdentity;
 	UInteger16 stepsRemoved;
+	Integer16 currentUtcOffset;
+	/* on which port we received the frame */
+	PortIdentity receivePortIdentity;
+	PortIdentity sourcePortIdentity;
+	ClockQuality grandmasterClockQuality;
+	ClockIdentity grandmasterIdentity;
+	UInteger8 grandmasterPriority1;
+	UInteger8 grandmasterPriority2;
 	Enumeration8 timeSource;
+	Octet flagField[2];
 	unsigned long ext_specific;	/* used by extension */
 };
 
@@ -134,7 +134,7 @@ struct pp_instance {
 	void *ext_data;			/* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
-	int	role,			/* same as in config file */
+	Enumeration8	role,			/* same as in config file */
 		proto,			/* same as in config file */
 		mech;			/* same as in config file */
 

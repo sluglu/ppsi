@@ -10,12 +10,6 @@
 #include "../lib/network_types.h"
 #include "../proto-ext-whiterabbit/wr-api.h" /* FIXME: phase_to_cf_units */
 
-#ifdef CONFIG_ARCH_WRS
-#define ARCH_IS_WRS 1
-#else
-#define ARCH_IS_WRS 0
-#endif
-
 void *msg_copy_header(MsgHeader *dest, MsgHeader *src)
 {
 	return memcpy(dest, src, sizeof(MsgHeader));

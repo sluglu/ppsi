@@ -624,7 +624,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		}
 	}
 
-	if ( !IS_ARCH_WRPC() ) {
+	if ( !ARCH_IS_WRPC() ) {
 		/* if there is a foreign master take it otherwise just go to master */
 		if (ppg->ebest_idx >= 0) {
 			ppi_best = INST(ppg, ppg->ebest_idx);
@@ -892,7 +892,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		pid->clockIdentity.id[6], pid->clockIdentity.id[7],
 		pid->portNumber);
 
-	if (!IS_ARCH_WRPC() && DSDEF(ppi)->numberPorts > 1) {
+	if (!ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
 		/* Check if announce from the same port from this clock 9.3.2.5 a)
 		 * from another port of this clock we still handle even though it
 		 * states something different in IEEE1588 because in 9.5.2.3
@@ -1209,7 +1209,7 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
-	if ( !IS_ARCH_WRPC() ) /* Optimization for WRPC target : Just one port */ {
+	if ( !ARCH_IS_WRPC() ) /* Optimization for WRPC target : Just one port */ {
 		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
 
 			bmc_update_erbest_inst (INST(ppg, i));
@@ -1232,7 +1232,7 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
-	if ( !IS_ARCH_WRPC() ) /* Optimization for WRPC target : Just one port */ {
+	if ( !ARCH_IS_WRPC() ) /* Optimization for WRPC target : Just one port */ {
 		for (i = 1; i < ppg->defaultDS->numberPorts; i++) {
 
 			ppi_best = INST(ppg, best);
@@ -1408,7 +1408,7 @@ int bmc(struct pp_instance *ppi)
 	}
 
 	/* Only if port is not any port is in the INITIALIZING state 9.2.6.8 */
-	if ( !IS_ARCH_WRPC() && bmc_any_port_initializing(ppg)) {
+	if ( !ARCH_IS_WRPC() && bmc_any_port_initializing(ppg)) {
 		pp_diag(ppi, bmc, 2, "A Port is in initializing\n");
 		return ppi->state;
 	}
@@ -1416,7 +1416,7 @@ int bmc(struct pp_instance *ppi)
 	/* Calculate Erbest of all ports Figure 25 */
 	bmc_update_erbest(ppg);
 
-	if ( !IS_ARCH_WRPC() && DSDEF(ppi)->numberPorts > 1) {
+	if ( !ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
 		ret = bmc_check_frgn_master(ppi);
 	}
 

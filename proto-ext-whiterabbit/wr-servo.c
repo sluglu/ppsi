@@ -3,12 +3,6 @@
 #include "wr-api.h"
 #include <libwr/shmem.h>
 
-#ifdef CONFIG_ARCH_WRS
-#define ARCH_IS_WRS 1
-#else
-#define ARCH_IS_WRS 0
-#endif
-
 #ifdef CONFIG_WRPC_FAULTS
 #define HAS_FAULTS 1
 #else

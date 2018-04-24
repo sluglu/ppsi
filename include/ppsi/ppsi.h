@@ -34,9 +34,15 @@
 #endif
 
 #ifdef CONFIG_ARCH_WRPC
-#define IS_ARCH_WRPC() (1)
+#define ARCH_IS_WRPC() (1)
 #else
-#define IS_ARCH_WRPC() (0)
+#define ARCH_IS_WRPC() (0)
+#endif
+
+#ifdef CONFIG_ARCH_WRS
+#define ARCH_IS_WRS (1)
+#else
+#define ARCH_IS_WRS (0)
 #endif
 
 /* We can't include pp-printf.h when building freestading, so have it here */

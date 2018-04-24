@@ -29,6 +29,8 @@ void bmc_m1(struct pp_instance *ppi)
 	struct DSTimeProperties *prop = DSPRO(ppi);
 	int ret = 0;
 	int offset, leap59, leap61;
+	Boolean ptpTimescale;
+	Enumeration8 timeSource;
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved = 0;
@@ -48,39 +50,36 @@ void bmc_m1(struct pp_instance *ppi)
 
 	/* Time Properties data set */
 	/* based on the clock class we set the frequency traceable flags */
-	if ((defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
-	    (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED))
-		prop->frequencyTraceable = TRUE;
-	else
-		prop->frequencyTraceable = FALSE;
+	prop->frequencyTraceable= (
+			(defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
+	        (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED));
+
+
+   /* FIXME: if we don't know better we stay with theses values*/
+	ptpTimescale=TRUE; /* Default value */
+	timeSource=INTERNAL_OSCILLATOR; /* Default value */
 
 	switch (defds->clockQuality.clockClass) {
 		case PP_PTP_CLASS_GM_LOCKED:
 		case PP_PTP_CLASS_GM_HOLDOVER:
-			prop->ptpTimescale = TRUE;
-			prop->timeSource = GPS;
-			break;
-		case PP_PTP_CLASS_GM_UNLOCKED:
-			prop->ptpTimescale = TRUE;
-			prop->timeSource = INTERNAL_OSCILLATOR;
-			break;
+			timeSource = GPS;
+		    break;
 		case PP_ARB_CLASS_GM_LOCKED:
 		case PP_ARB_CLASS_GM_HOLDOVER:
-			prop->ptpTimescale = FALSE;
-			prop->timeSource = GPS;
-			break;
+			timeSource = GPS;
+			/* No break here */
 		case PP_ARB_CLASS_GM_UNLOCKED:
-			prop->ptpTimescale = FALSE;
-			prop->timeSource = INTERNAL_OSCILLATOR;
+			ptpTimescale= FALSE;
 			break;
-		default:
-			/* FIXME: if we don't know better we stay with this */
-			prop->ptpTimescale = TRUE;
-			prop->timeSource = INTERNAL_OSCILLATOR;
+		case PP_PTP_CLASS_GM_UNLOCKED :
+ 	 	    /* Take default values */
 			break;
 	}
+
+	prop->timeSource=timeSource;
+	prop->ptpTimescale=ptpTimescale;
 	
-	if (prop->ptpTimescale) {
+	if (ptpTimescale) {
 		ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
 		if (ret) {
 			offset = PP_DEFAULT_UTC_OFFSET;
@@ -91,8 +90,7 @@ void bmc_m1(struct pp_instance *ppi)
 		}
 		
 		if (prop->currentUtcOffset != offset) {
-			pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
-				offset);
+			pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",offset);
 			prop->currentUtcOffset = offset;
 			ppi->t_ops->set(ppi, NULL);
 		}

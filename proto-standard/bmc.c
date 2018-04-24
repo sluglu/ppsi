@@ -301,7 +301,7 @@ void bmc_p2(struct pp_instance *ppi)
 }
 
 /* Copy local data set into header and announce message. 9.3.4 table 12. */
-void bmc_setup_local_frgn_master(struct pp_instance *ppi,
+static void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 			   struct pp_frgn_master *frgn_master)
 {
 	int i;
@@ -348,7 +348,7 @@ int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b)
 }
 
 /* compare part2 of the datasets which is the topology, fig 27, page 89 */
-int bmc_gm_cmp(struct pp_instance *ppi,
+static int bmc_gm_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
@@ -434,7 +434,7 @@ int bmc_gm_cmp(struct pp_instance *ppi,
 }
 
 /* compare part2 of the datasets which is the topology, fig 28, page 90 */
-int bmc_topology_cmp(struct pp_instance *ppi,
+static int bmc_topology_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
@@ -544,12 +544,13 @@ int bmc_topology_cmp(struct pp_instance *ppi,
 	return bmc_pidcmp(pidrxa, pidrxb);
 }
 
+
 /*
  * Data set comparison between two foreign masters. Return similar to
  * memcmp().  However, lower values take precedence, so in A-B (like
  * in comparisons,   > 0 means B wins (and < 0 means A wins).
  */
-int bmc_dataset_cmp(struct pp_instance *ppi,
+static int bmc_dataset_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
@@ -564,6 +565,7 @@ int bmc_dataset_cmp(struct pp_instance *ppi,
 		return bmc_gm_cmp(ppi, a, b);
 	}
 }
+
 
 /* State decision algorithm 9.3.3 Fig 26 */
 static int bmc_state_decision(struct pp_instance *ppi)
@@ -1090,7 +1092,7 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 /* returns 0 if erbest is not from another port of the device,
  * 1 if the port shall go to passive
  */
-int bmc_check_frgn_master(struct pp_instance *ppi)
+static int bmc_check_frgn_master(struct pp_instance *ppi)
 {
 	int i;
 	struct PortIdentity *pid;
@@ -1145,7 +1147,7 @@ static int bmc_any_port_initializing(struct pp_globals *ppg)
 	return 0;
 }
 
-static void inline bmc_update_erbest_inst(struct pp_instance *ppi) {
+static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 
 	struct pp_frgn_master *frgn_master;
 	PortIdentity *frgn_master_pid;

@@ -376,25 +376,13 @@ extern void bmc_s1(struct pp_instance *ppi,
 			   struct pp_frgn_master *frgn_master);
 extern void bmc_p1(struct pp_instance *ppi);
 extern void bmc_p2(struct pp_instance *ppi);
-extern void bmc_setup_local_frgn_master(struct pp_instance *ppi, 
-			   struct pp_frgn_master *frgn_master);
 extern int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b);
 extern int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b);
 extern int bmc(struct pp_instance *ppi);
-extern int bmc_gm_cmp(struct pp_instance *ppi,
-			   struct pp_frgn_master *a,
-			   struct pp_frgn_master *b);
-extern int bmc_topology_cmp(struct pp_instance *ppi,
-			   struct pp_frgn_master *a,
-			   struct pp_frgn_master *b);
-extern int bmc_dataset_cmp(struct pp_instance *ppi,
-			   struct pp_frgn_master *a,
-			   struct pp_frgn_master *b);
 extern void bmc_store_frgn_master(struct pp_instance *ppi, 
 		       struct pp_frgn_master *frgn_master, void *buf, int len);
 extern void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			    int len);
-extern int bmc_check_frgn_master(struct pp_instance *ppi);
 
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);

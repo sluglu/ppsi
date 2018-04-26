@@ -134,7 +134,7 @@ struct pp_instance {
 	void *ext_data;			/* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
-	Enumeration8	role,			/* same as in config file */
+	int	role,			/* same as in config file */
 		proto,			/* same as in config file */
 		mech;			/* same as in config file */
 

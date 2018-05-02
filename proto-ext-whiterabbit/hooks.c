@@ -161,6 +161,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 
 static void wr_s1(struct pp_instance *ppi, struct pp_frgn_master *frgn_master)
 {
+
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
 		((frgn_master->ext_specific & WR_NODE_MODE) != NON_WR);
@@ -200,15 +201,16 @@ static int wr_handle_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	if ((ppi->state == WRS_PRESENT) ||
-		(ppi->state == WRS_S_LOCK) ||
-		(ppi->state == WRS_LOCKED) ||
-		(ppi->state == WRS_CALIBRATION) ||
-		(ppi->state == WRS_CALIBRATED) ||
-		(ppi->state == WRS_RESP_CALIB_REQ) ||
-		(ppi->state == WRS_WR_LINK_ON)) {
-		/* reset announce timeout when in the WR slave states */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+	switch (ppi->state) {
+		case WRS_PRESENT:
+		case WRS_S_LOCK :
+		case WRS_LOCKED :
+		case WRS_CALIBRATION :
+		case WRS_CALIBRATED :
+		case WRS_RESP_CALIB_REQ :
+		case WRS_WR_LINK_ON :
+			/* reset announce timeout when in the WR slave states */
+			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 	}
 
 	/* handshake is started in slave mode */
@@ -295,15 +297,17 @@ static int wr_state_decision(struct pp_instance *ppi, int next_state)
 	 * if in one of the WR states stay in them, 
 	 * they will eventually go back to the normal states 
 	 */
-	if ((ppi->state == WRS_PRESENT) ||
-		(ppi->state == WRS_M_LOCK) ||
-		(ppi->state == WRS_S_LOCK) ||
-		(ppi->state == WRS_LOCKED) ||
-		(ppi->state == WRS_CALIBRATION) ||
-		(ppi->state == WRS_CALIBRATED) ||
-		(ppi->state == WRS_RESP_CALIB_REQ) ||
-		(ppi->state == WRS_WR_LINK_ON))
-		return ppi->state;
+	switch (ppi->state ) {
+		case WRS_PRESENT :
+		case WRS_M_LOCK :
+		case WRS_S_LOCK :
+		case WRS_LOCKED :
+		case WRS_CALIBRATION :
+		case WRS_CALIBRATED :
+		case WRS_RESP_CALIB_REQ :
+		case WRS_WR_LINK_ON :
+			return ppi->state;
+	}
 	
 	/* else do the normal statemachine */
 	return next_state;
@@ -315,15 +319,17 @@ static void wr_state_change(struct pp_instance *ppi)
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	
-	if ((ppi->next_state == WRS_PRESENT) ||
-		(ppi->next_state == WRS_M_LOCK) ||
-		(ppi->next_state == WRS_S_LOCK) ||
-		(ppi->next_state == WRS_LOCKED) ||
-		(ppi->next_state == WRS_CALIBRATION) ||
-		(ppi->next_state == WRS_CALIBRATED) ||
-		(ppi->next_state == WRS_RESP_CALIB_REQ) ||
-		(ppi->next_state == WRS_WR_LINK_ON))
-		return;
+	switch (ppi->next_state) {
+		case WRS_PRESENT :
+		case WRS_M_LOCK :
+		case WRS_S_LOCK :
+		case WRS_LOCKED :
+		case WRS_CALIBRATION :
+		case WRS_CALIBRATED :
+		case WRS_RESP_CALIB_REQ :
+		case WRS_WR_LINK_ON :
+			return;
+	}
 	
 	/* if we are leaving the WR locked states reset the WR process */
 	if ((ppi->next_state != ppi->state) &&	

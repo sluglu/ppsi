@@ -268,6 +268,7 @@ enum pp_std_states {
 	PPS_PASSIVE,
 	PPS_UNCALIBRATED,
 	PPS_SLAVE,
+	PPS_LAST_STATE=PPS_SLAVE
 };
 
 enum pp_std_messages {

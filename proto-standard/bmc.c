@@ -52,7 +52,7 @@ void bmc_m1(struct pp_instance *ppi)
 	/* based on the clock class we set the frequency traceable flags */
 	prop->frequencyTraceable= (
 			(defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
-	        (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED));
+	        (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED)) ? TRUE : FALSE;
 
 
    /* FIXME: if we don't know better we stay with theses values*/
@@ -625,6 +625,8 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	}
 
 	if ( !ARCH_IS_WRPC() ) {
+	    /* For WRPC target, this part of the code is never reached because WRPC does not allow automatic role */
+	     
 		/* if there is a foreign master take it otherwise just go to master */
 		if (ppg->ebest_idx >= 0) {
 			ppi_best = INST(ppg, ppg->ebest_idx);
@@ -893,6 +895,8 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		pid->portNumber);
 
 	if (!ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
+	    /* For WRPC target we have just one port. The following code will be then removed by the compiler */
+		
 		/* Check if announce from the same port from this clock 9.3.2.5 a)
 		 * from another port of this clock we still handle even though it
 		 * states something different in IEEE1588 because in 9.5.2.3
@@ -937,7 +941,13 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	}
 
 	/* Check if foreign master is already known */
-	for (i = 0; i < ppi->frgn_rec_num; i++) {
+#if ARCH_IS_WRPC()==1
+    /* For WRPC target the lopp is useless as PP_NR_FOREIGN_RECORDS is set to 1 */
+    i=0;
+#else
+	for (i = 0; i < ppi->frgn_rec_num; i++) 
+#endif	
+    {
 		if (!bmc_pidcmp(pid,
 			    &ppi->frgn_master[i].sourcePortIdentity)) {
 
@@ -967,6 +977,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 
 	/* New foreign master */
 	if ( PP_NR_FOREIGN_RECORDS > 1 ) {
+	    /* For WRPC target PP_NR_FOREIGN_RECORDS is set to 1. The following code will be removed by the compiler */
 		if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS) {
 			/* there is space for a new one */
 			sel = ppi->frgn_rec_num;
@@ -1134,10 +1145,16 @@ static int bmc_any_port_initializing(struct pp_globals *ppg)
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
+#if ARCH_IS_WRPC()==1
+    /* For WRPC only one link is used. The loop is then useless */
+	ppi = INST(ppg, 0);
+	{
+#else
+	
 	for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
 
 		ppi = INST(ppg, i);
-
+#endif
 		if (ppi->link_up && (ppi->state == PPS_INITIALIZING)) {
 			pp_diag(ppi, bmc, 2, "The first port in INITIALIZING "
 				"state is %i\n", i);
@@ -1164,6 +1181,8 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 		if ((ppi->state != PPS_FAULTY) && (ppi->state != PPS_DISABLED)) {
 			best=0;
 			if ( PP_NR_FOREIGN_RECORDS > 1 ) {
+			    /* For WRPC target, PP_NR_FOREIGN_RECORDS is set to 1 so the loop is not needed. */
+			    /* In this case the compiler will remove this part of the code                   */ 
 				for (j = 1; j < ppi->frgn_rec_num;
 					 j++)
 					if (bmc_dataset_cmp(ppi,
@@ -1224,7 +1243,7 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 /* Find Ebest, 9.3.2.2 */
 static void bmc_update_ebest(struct pp_globals *ppg)
 {
-	int i, best=0;
+	int i, best;
 	struct pp_instance *ppi, *ppi_best;
 	PortIdentity *frgn_master_pid;
 
@@ -1246,6 +1265,8 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 
 					best = i;
 		}
+	} else {
+	    best=0;
 	}
 	/* check if best master is qualified */
 	ppi_best = INST(ppg, best);
@@ -1408,7 +1429,7 @@ int bmc(struct pp_instance *ppi)
 	}
 
 	/* Only if port is not any port is in the INITIALIZING state 9.2.6.8 */
-	if ( !ARCH_IS_WRPC() && bmc_any_port_initializing(ppg)) {
+	if ( bmc_any_port_initializing(ppg)) {
 		pp_diag(ppi, bmc, 2, "A Port is in initializing\n");
 		return ppi->state;
 	}
@@ -1417,6 +1438,7 @@ int bmc(struct pp_instance *ppi)
 	bmc_update_erbest(ppg);
 
 	if ( !ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
+	    /* For WRPC only one port is used. The check is then useless */
 		ret = bmc_check_frgn_master(ppi);
 	}
 

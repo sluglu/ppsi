@@ -33,10 +33,24 @@
 #   define CONFIG_HAS_WRPC_FAULTS 0
 #endif
 
+/* Default values for code optimization. Can be redefined for each targets in arch/arch.h*/
+#ifndef CODEOPT_BMCA
+	#define CODEOPT_BMCA        0  /* Code optimization for BMCA. If set to 0, remove all code optimizations  */
+#endif
+#ifndef CODEOPT_ONE_PORT
+#define CODEOPT_ONE_PORT()               (0 && CODEOPT_BMCA==1)  /* Code optimization when only one port is used. */
+#endif
+#ifndef CODEOPT_ONE_FMASTER
+#define CODEOPT_ONE_FMASTER()            ((PP_NR_FOREIGN_RECORDS==1) && CODEOPT_BMCA==1)  /* Code optimization when only one foreign master. */
+#endif
+#ifndef CODEOPT_ROLE_MASTER_SLAVE_ONLY
+#define CODEOPT_ROLE_MASTER_SLAVE_ONLY() ( 0  && CODEOPT_BMCA==1)  /* Code optimization when role auto not allowed. */
+#endif
+
 #ifdef CONFIG_ARCH_WRPC
-#define ARCH_IS_WRPC() (1)
+#define ARCH_IS_WRPC (1)
 #else
-#define ARCH_IS_WRPC() (0)
+#define ARCH_IS_WRPC (0)
 #endif
 
 #ifdef CONFIG_ARCH_WRS

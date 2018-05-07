@@ -53,7 +53,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 		goto failure;
 
 	/* only fill in the data set when initializing */
-	if (!ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
+	if (!CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
 		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
 			if ((INST(ppg, i)->state != PPS_INITIALIZING) && (INST(ppg, i)->link_up == TRUE)) 
 				initds = 0;
@@ -65,7 +65,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	 */
 	if (initds) 
 	{
-		if (!ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
+		if (!CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
 			/* Clock identity comes from mac address with 0xff:0xfe intermixed */
 			mac = ppi->ch[PP_NP_GEN].addr;
 			/* calculate MAC of Port 0 */

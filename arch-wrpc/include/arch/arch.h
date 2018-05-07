@@ -15,5 +15,15 @@
 #  define ntohl htonl
 #endif
 
+
+/* Code optimization for WRPC architecture */
+#ifndef CODEOPT_BMCA
+	#define CODEOPT_BMCA        1 /* Code optimization for BMCA. Can be overwritten in the makefile*/
+#endif
+
+#define CODEOPT_ONE_PORT()               (1 && CODEOPT_BMCA==1)  /* Code optimization when only one port is used. */
+#define CODEOPT_ROLE_MASTER_SLAVE_ONLY() (1 && CODEOPT_BMCA==1)  /* Code optimization when only one port is used. */
+
+
 #define abs(x) ((x >= 0) ? x : -x)
 #endif /* __ARCH_H__ */

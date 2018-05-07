@@ -624,8 +624,8 @@ static int bmc_state_decision(struct pp_instance *ppi)
 		}
 	}
 
-	if ( !ARCH_IS_WRPC() ) {
-	    /* For WRPC target, this part of the code is never reached because WRPC does not allow automatic role */
+	if ( !CODEOPT_ROLE_MASTER_SLAVE_ONLY() ) {
+	    /* If role AUTOMATIC is not allowed, this part of the code is never reached. It can be then optimized */
 	     
 		/* if there is a foreign master take it otherwise just go to master */
 		if (ppg->ebest_idx >= 0) {
@@ -894,8 +894,8 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		pid->clockIdentity.id[6], pid->clockIdentity.id[7],
 		pid->portNumber);
 
-	if (!ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
-	    /* For WRPC target we have just one port. The following code will be then removed by the compiler */
+	if (!CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
+	    /* If only one port is declared then this code can be optimized. It will be removed by the compiler. */
 		
 		/* Check if announce from the same port from this clock 9.3.2.5 a)
 		 * from another port of this clock we still handle even though it
@@ -941,11 +941,12 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	}
 
 	/* Check if foreign master is already known */
-#if ARCH_IS_WRPC()==1
-    /* For WRPC target the lopp is useless as PP_NR_FOREIGN_RECORDS is set to 1 */
     i=0;
+#if CODEOPT_ONE_FMASTER()==0
+    /* If only one foreign master is declared, the loop become useless and can be optimized */
+	for (;i < ppi->frgn_rec_num; i++)
 #else
-	for (i = 0; i < ppi->frgn_rec_num; i++) 
+	if ( i < ppi->frgn_rec_num )
 #endif	
     {
 		if (!bmc_pidcmp(pid,
@@ -976,8 +977,8 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 		frgn_master.foreignMasterAnnounceMessages[i] = 1;
 
 	/* New foreign master */
-	if ( PP_NR_FOREIGN_RECORDS > 1 ) {
-	    /* For WRPC target PP_NR_FOREIGN_RECORDS is set to 1. The following code will be removed by the compiler */
+	if ( !CODEOPT_ONE_FMASTER() ) {
+	    /* Code optimization if only one foreign master */
 		if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS) {
 			/* there is space for a new one */
 			sel = ppi->frgn_rec_num;
@@ -1057,7 +1058,14 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 	 * level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
-	for (i = 0; i < ppi->frgn_rec_num; i++) {
+    i=0;
+#if CODEOPT_ONE_FMASTER()==0
+    /* If only one foreign master is declared, the loop become useless and can be optimized */
+	for (;i < ppi->frgn_rec_num; i++)
+#else
+	if ( i < ppi->frgn_rec_num )
+#endif
+	{
 		/* get qualification */
 		qualified = 0;
 		for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
@@ -1145,16 +1153,13 @@ static int bmc_any_port_initializing(struct pp_globals *ppg)
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
-#if ARCH_IS_WRPC()==1
-    /* For WRPC only one link is used. The loop is then useless */
-	ppi = INST(ppg, 0);
-	{
-#else
-	
-	for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
-
-		ppi = INST(ppg, i);
+	i=0;
+#if CODEOPT_ONE_FMASTER()==0
+    /* If only one foreign master is declared, the loop become useless and can be optimized */
+	for (; i < ppg->defaultDS->numberPorts; i++)
 #endif
+	{
+		ppi = INST(ppg, i);
 		if (ppi->link_up && (ppi->state == PPS_INITIALIZING)) {
 			pp_diag(ppi, bmc, 2, "The first port in INITIALIZING "
 				"state is %i\n", i);
@@ -1180,9 +1185,8 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 		frgn_master = ppi->frgn_master;
 		if ((ppi->state != PPS_FAULTY) && (ppi->state != PPS_DISABLED)) {
 			best=0;
-			if ( PP_NR_FOREIGN_RECORDS > 1 ) {
-			    /* For WRPC target, PP_NR_FOREIGN_RECORDS is set to 1 so the loop is not needed. */
-			    /* In this case the compiler will remove this part of the code                   */ 
+			if ( !CODEOPT_ONE_FMASTER() ) {
+			    /* Code optimization if only one foreign master. The loop becomes obsolete */
 				for (j = 1; j < ppi->frgn_rec_num;
 					 j++)
 					if (bmc_dataset_cmp(ppi,
@@ -1228,16 +1232,13 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
-	if ( !ARCH_IS_WRPC() ) /* Optimization for WRPC target : Just one port */ {
-		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
-
-			bmc_update_erbest_inst (INST(ppg, i));
-		}
-	} else {
-		/* WRPC target. Only one port  */
-		bmc_update_erbest_inst (INST(ppg, 0));
+	i=0;
+#if CODEOPT_ONE_PORT()==0
+	for (; i < ppg->defaultDS->numberPorts; i++)
+#endif
+	{
+		bmc_update_erbest_inst (INST(ppg, i));
 	}
-
 }
 
 /* Find Ebest, 9.3.2.2 */
@@ -1251,7 +1252,8 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 	 * level 2 */
 	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
 
-	if ( !ARCH_IS_WRPC() ) /* Optimization for WRPC target : Just one port */ {
+	if ( !CODEOPT_ONE_PORT()) {
+		/* Code optimization if just one port is declared */
 		for (i = 1; i < ppg->defaultDS->numberPorts; i++) {
 
 			ppi_best = INST(ppg, best);
@@ -1437,8 +1439,8 @@ int bmc(struct pp_instance *ppi)
 	/* Calculate Erbest of all ports Figure 25 */
 	bmc_update_erbest(ppg);
 
-	if ( !ARCH_IS_WRPC() && DSDEF(ppi)->numberPorts > 1) {
-	    /* For WRPC only one port is used. The check is then useless */
+	if ( !CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
+	    /* Code optimization if only one port declared */
 		ret = bmc_check_frgn_master(ppi);
 	}
 

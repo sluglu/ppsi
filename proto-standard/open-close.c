@@ -40,7 +40,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	/*
 	 * Initialize default data set
 	 */
-	int i;
+	int i,ret=0;
 	struct DSDefault *def = ppg->defaultDS;
 	def->twoStepFlag = TRUE;
 
@@ -85,14 +85,30 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			  def->clockQuality.clockClass);
 	}
 
-	if (pp_hooks.open)
-		return pp_hooks.open(ppg, rt_opts);
-	return 0;
+	for (i = 0; i < def->numberPorts; i++) {
+		struct pp_instance *ppi = INST(ppg, i);
+		int r;
+
+		if (ppi->ext_hooks->open) {
+		   ret=(r=ppi->ext_hooks->open(ppi, rt_opts))==0 ? ret : r;
+		}
+	}
+	return ret;
 }
 
 int pp_close_globals(struct pp_globals *ppg)
 {
-	if (pp_hooks.close)
-		return pp_hooks.close(ppg);
-	return 0;
+	int i,ret=0;;
+	struct DSDefault *def = ppg->defaultDS;
+
+	for (i = 0; i < def->numberPorts; i++) {
+		struct pp_instance *ppi = INST(ppg, i);
+		int r;
+
+		if (ppi->ext_hooks->close) {
+		   ret=(r=ppi->ext_hooks->close(ppi))==0 ? ret : r;
+		}
+	}
+	return ret;
+
 }

@@ -28,6 +28,8 @@ static struct pp_runtime_opts sim_master_rt_opts = {
 	.ttl =			PP_DEFAULT_TTL,
 };
 
+extern struct pp_ext_hooks pp_hooks;
+
 /*
  * In arch-sim we use two pp_instaces in the same pp_globals to represent
  * two different machines. This means *completely differnt* machines, with
@@ -58,6 +60,7 @@ static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 	ppi->__rx_buffer = malloc(PP_MAX_FRAME_LENGTH);
 	ppi->arch_data = calloc(1, sizeof(struct sim_ppi_arch_data));
 	ppi->portDS = calloc(1, sizeof(*ppi->portDS));
+	ppi->ext_hooks=&pp_hooks;
 	if ((!ppi->arch_data) || (!ppi->portDS))
 		return -1;
 	data = SIM_PPI_ARCH(ppi);

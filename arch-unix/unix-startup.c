@@ -31,6 +31,8 @@ static DSParent parentDS;
 static DSTimeProperties timePropertiesDS;
 static struct pp_servo servo;
 
+extern struct pp_ext_hooks pp_hooks;
+
 int main(int argc, char **argv)
 {
 	struct pp_globals *ppg;
@@ -93,6 +95,7 @@ int main(int argc, char **argv)
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
 		ppi->mech = ppi->cfg.mech;
+		ppi->ext_hooks= &pp_hooks;
 
 		/* The following default names depend on TIME= at build time */
 		ppi->n_ops = &DEFAULT_NET_OPS;

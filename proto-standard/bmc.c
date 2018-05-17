@@ -282,8 +282,8 @@ void bmc_s1(struct pp_instance *ppi,
 	prop->ptpTimescale = ((frgn_master->flagField[1] & FFB_PTP) != 0);
 	prop->timeSource = frgn_master->timeSource;
 
-	if (pp_hooks.s1)
-		pp_hooks.s1(ppi, frgn_master);
+	if (ppi->ext_hooks->s1)
+		ppi->ext_hooks->s1(ppi, frgn_master);
 }
 
 void bmc_p1(struct pp_instance *ppi)
@@ -832,7 +832,7 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 	 * header and announce field of each Foreign Master are
 	 * useful to run Best Master Clock Algorithm
 	 */
-	msg_unpack_announce(buf, &ann);
+	msg_unpack_announce(ppi, buf, &ann);
 
 	memcpy(&frgn_master->receivePortIdentity,
 	       &DSPOR(ppi)->portIdentity, sizeof(PortIdentity));
@@ -1457,8 +1457,8 @@ int bmc(struct pp_instance *ppi)
 	}
 
 	/* Extra states handled here */
-	if (pp_hooks.state_decision)
-		next_state = pp_hooks.state_decision(ppi, next_state);
+	if (ppi->ext_hooks->state_decision)
+		next_state = ppi->ext_hooks->state_decision(ppi, next_state);
 
 	return next_state;
 }

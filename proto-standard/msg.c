@@ -187,13 +187,13 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(UInteger8 *) (buf + 62) = (UInteger8)DSCUR(ppi)->stepsRemoved;
 	*(Enumeration8 *) (buf + 63) = DSPRO(ppi)->timeSource;
 
-	if (pp_hooks.pack_announce)
-		len = pp_hooks.pack_announce(ppi);
+	if (ppi->ext_hooks->pack_announce)
+		len = ppi->ext_hooks->pack_announce(ppi);
 	return len;
 }
 
 /* Unpack Announce message from in buffer of ppi to internal structure */
-void msg_unpack_announce(void *buf, MsgAnnounce *ann)
+void msg_unpack_announce(struct pp_instance *ppi, void *buf, MsgAnnounce *ann)
 {
 	ann->originTimestamp.secondsField.msb =
 		htons(*(UInteger16 *) (buf + 34));
@@ -218,8 +218,8 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->timeSource = *(Enumeration8 *) (buf + 63);
 
 	/* this can fill in extention specific flags otherwise just zero them*/
-	if (pp_hooks.unpack_announce)
-		pp_hooks.unpack_announce(buf, ann);
+	if (ppi->ext_hooks->unpack_announce)
+		ppi->ext_hooks->unpack_announce(buf, ann);
 	else
 		ann->ext_specific = 0;
 }

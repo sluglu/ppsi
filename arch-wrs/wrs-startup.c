@@ -28,6 +28,13 @@
 #include <ppsi-wrs.h>
 #include <libwr/shmem.h>
 
+#if CONFIG_EXT_WR == 1
+/* WR extension declaration */
+#include "../proto-ext-whiterabbit/wr-api.h"
+#include "../proto-ext-whiterabbit/wr-constants.h"
+
+#endif
+
 #  define WRSW_HAL_RETRIES 1000
 
 #define WRSW_HAL_TIMEOUT 2000000 /* us */
@@ -58,6 +65,9 @@ struct minipc_ch *ppsi_ch;
 struct hal_port_state *hal_ports;
 int hal_nports;
 struct wrs_shm_head *ppsi_head;
+
+extern struct pp_ext_hooks  pp_hooks;
+
 /*
  * we need to call calloc, to reset all stuff that used to be static,
  * but we'd better have a simple prototype, compatilble with wrs_shm_alloc()
@@ -75,7 +85,6 @@ int main(int argc, char **argv)
 {
 	struct pp_globals *ppg;
 	struct pp_instance *ppi;
-	struct wr_dsport *wrp;
 	unsigned long seed;
 	struct timex t;
 	int i, hal_retries;
@@ -176,8 +185,7 @@ int main(int argc, char **argv)
 	ppg->rt_opts = &__pp_default_rt_opts;
 
 	ppg->max_links = PP_MAX_LINKS;
-	ppg->global_ext_data = alloc_fn(ppsi_head,
-					sizeof(struct wr_servo_state));
+
 	/* NOTE: arch_data is not in shmem */
 	ppg->arch_data = malloc( sizeof(struct unix_arch_data));
 	ppg->pp_instances = alloc_fn(ppsi_head,
@@ -228,16 +236,30 @@ int main(int argc, char **argv)
 		ppi->port_name = ppi->cfg.port_name;
 		ppi->mech = ppi->cfg.mech;
 		ppi->portDS = alloc_fn(ppsi_head, sizeof(*ppi->portDS));
+		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
 		if (ppi->portDS) {
-			ppi->portDS->ext_dsport =
-				alloc_fn(ppsi_head, sizeof(struct wr_dsport));
+			if ( CONFIG_EXT_WR == 1 && ppi->cfg.ext==PPSI_EXT_WR ) {
+				struct wr_dsport *wrp;
+
+				/* Add WR extension portDS */
+				if ( !(ppi->portDS->ext_dsport =
+						alloc_fn(ppsi_head, sizeof(struct wr_dsport))) ) {
+						goto exit_out_of_memory;
+				}
+				wrp = WR_DSPOR(ppi); /* just allocated above */
+				wrp->ops = &wrs_wr_operations;
+
+				/* Allocate WR data extension */
+				if (! (ppi->ext_data = alloc_fn(ppsi_head, sizeof(struct wr_data))) ) {
+					goto exit_out_of_memory;
+				}
+				/* Set WR extension hooks */
+				ppi->ext_hooks=&wr_ext_hooks;
+				ppg->global_ext_data=ppi->ext_data;
+			}
+		} else {
+			goto exit_out_of_memory;
 		}
-		if (!ppi->portDS || !ppi->portDS->ext_dsport) {
-			fprintf(stderr, "ppsi: out of memory\n");
-			exit(1);
-		}
-		wrp = WR_DSPOR(ppi); /* just allocated above */
-		wrp->ops = &wrs_wr_operations;
 
 		/* The following default names depend on TIME= at build time */
 		ppi->n_ops = &DEFAULT_NET_OPS;
@@ -247,8 +269,7 @@ int main(int argc, char **argv)
 		ppi->__rx_buffer = malloc(PP_MAX_FRAME_LENGTH);
 
 		if (!ppi->__tx_buffer || !ppi->__rx_buffer) {
-			fprintf(stderr, "ppsi: out of memory\n");
-			exit(1);
+			goto exit_out_of_memory;
 		}
 	}
 
@@ -264,4 +285,9 @@ int main(int argc, char **argv)
 
 	wrs_main_loop(ppg);
 	return 0; /* never reached */
+
+	exit_out_of_memory:;
+	fprintf(stderr, "ppsi: out of memory\n");
+	exit(1);
+
 }

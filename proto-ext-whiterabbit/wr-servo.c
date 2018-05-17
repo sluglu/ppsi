@@ -173,6 +173,9 @@ int wr_servo_init(struct pp_instance *ppi)
 			&((struct wr_data *)ppi->ext_data)->servo_state;
 	/* shmem lock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
+
+	GLBS(ppi)->global_ext_data=&((struct wr_data *) ppi->ext_data)->servo_state; /* Updated for the WR monitor tool */
+	
 	/* Determine the alpha coefficient */
 	if (wrp->ops->read_calib_data(ppi, 0, 0,
 		&s->fiber_fix_alpha, &s->clock_period_ps) != WR_HW_CALIB_OK) {

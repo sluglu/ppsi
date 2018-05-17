@@ -11,8 +11,6 @@
 #include <ppsi/ppsi.h>
 #include "wrpc.h"
 #include <common-fun.h>
-#include "../proto-ext-whiterabbit/wr-api.h"
-#include "../proto-ext-whiterabbit/wr-constants.h"
 
 /* All of these live in wrpc-sw/include */
 #include "minic.h"
@@ -55,15 +53,21 @@ static DSCurrent  currentDS;
 static DSParent   parentDS;
 static DSTimeProperties timePropertiesDS;
 static struct pp_servo servo;
-static struct wr_servo_state servo_state;
+
+
+#if CONFIG_EXT_WR == 1
+/* WR extension declaration */
+#include "../proto-ext-whiterabbit/wr-api.h"
+#include "../proto-ext-whiterabbit/wr-constants.h"
+
+static struct wr_data wr_ext_data; /* WR extension data */
 
 static struct wr_dsport wr_dsport = {
 	.ops = &wrpc_wr_operations,
 };
-static DSPort     portDS = {
-	.ext_dsport = &wr_dsport
-};
+#endif
 
+static DSPort     portDS ;
 
 static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
 static int start_tics = 0;
@@ -83,8 +87,8 @@ struct pp_instance ppi_static = {
 	.mech			= PP_E2E_MECH, /* until changed by cfg */
 	.iface_name		= "wr1",
 	.port_name		= "wr1",
-	.__tx_buffer		= __tx_buffer,
-	.__rx_buffer		= __rx_buffer,
+	.__tx_buffer	= __tx_buffer,
+	.__rx_buffer	= __rx_buffer,
 };
 
 /* We now have a structure with all globals, and multiple ppi inside */
@@ -95,17 +99,29 @@ static struct pp_globals ppg_static = {
 	.currentDS		= &currentDS,
 	.parentDS		= &parentDS,
 	.timePropertiesDS	= &timePropertiesDS,
-	.global_ext_data	= &servo_state,
 };
+
+extern struct pp_ext_hooks  pp_hooks;
 
 int wrc_ptp_init()
 {
+	struct pp_instance *ppi = &ppi_static;
+
 	sdb_find_devices();
 	uart_init_hw();
 
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);
 
+	ppi->ext_hooks =&pp_hooks; /* default value */
+	if ( CONFIG_EXT_WR == 1 ) {
+
+		ppi->ext_hooks = &wr_ext_hooks;
+		ppi->ext_data = &wr_ext_data;
+		GBLS(ppi)->global_ext_data=&wr_ext_data.servo_state; /* Updated for the WR monitor tools */
+
+		portDS.ext_dsport = &wr_dsport;
+	}
 	return 0;
 }
 

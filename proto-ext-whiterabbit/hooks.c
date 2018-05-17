@@ -33,42 +33,29 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 	return 0;
 }
 
-static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
+/* open hook called only for each WR pp_instances */
+static int wr_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 {
-	int i;
-
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
-	/* If current arch (e.g. wrpc) is not using the 'pp_links style'
-	 * configuration, just assume there is one ppi instance,
-	 * already configured properly by the arch's main loop */
-	if (ppg->nlinks == 0) {
-		INST(ppg, 0)->ext_data = ppg->global_ext_data;
+
+	if (ppi->cfg.ext == PPSI_EXT_WR) {
+		switch (ppi->role) {
+			case PPSI_ROLE_MASTER:
+				WR_DSPOR(ppi)->wrConfig = WR_M_ONLY;
+				break;
+			case PPSI_ROLE_SLAVE:
+				WR_DSPOR(ppi)->wrConfig = WR_S_ONLY;
+				break;
+			default:
+				WR_DSPOR(ppi)->wrConfig = WR_M_AND_S;
+		}
 		return 0;
 	}
-
-	for (i = 0; i < ppg->nlinks; i++) {
-		struct pp_instance *ppi = INST(ppg, i);
-
-		/* FIXME check if correct: assign to each instance the same
-		 * wr_data. May I move it to pp_globals? */
-		INST(ppg, i)->ext_data = ppg->global_ext_data;		
-		if (ppi->cfg.ext == PPSI_EXT_WR) {
-			switch (ppi->role) {
-				case PPSI_ROLE_MASTER:
-					WR_DSPOR(ppi)->wrConfig = WR_M_ONLY;
-					break;
-				case PPSI_ROLE_SLAVE:
-					WR_DSPOR(ppi)->wrConfig = WR_S_ONLY;
-					break;
-				default:
-					WR_DSPOR(ppi)->wrConfig = WR_M_AND_S;
-			}
-		}
-		else
-			WR_DSPOR(ppi)->wrConfig = NON_WR;
+	else {
+		WR_DSPOR(ppi)->wrConfig = NON_WR;
+		pp_diag(ppi, ext, 1, "hook: %s called but is not a WR extension \n", __func__);
+		return 1;
 	}
-
-	return 0;
 }
 
 static int wr_listening(struct pp_instance *ppi, void *buf, int len)
@@ -349,7 +336,7 @@ static void wr_state_change(struct pp_instance *ppi)
 	}		 
 }
 
-struct pp_ext_hooks pp_hooks = {
+struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
 	.listening = wr_listening,

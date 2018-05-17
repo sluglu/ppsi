@@ -132,6 +132,7 @@ struct pp_instance {
 	struct pp_state_table_item *current_state_item;
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
+	struct pp_ext_hooks *ext_hooks; /* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
 	int	role,			/* same as in config file */

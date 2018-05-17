@@ -195,5 +195,7 @@ struct wr_data {
 	struct wr_servo_state servo_state;
 };
 
+extern struct pp_ext_hooks wr_ext_hooks;
+
 #endif /* __ASSEMBLY__ */
 #endif /* __WREXT_WR_API_H__ */

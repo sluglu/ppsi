@@ -106,8 +106,8 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	pp_timeout_init(ppi);
 	pp_timeout_setall(ppi);
 
-	if (pp_hooks.init)
-		ret = pp_hooks.init(ppi, buf, len);
+	if (ppi->ext_hooks->init)
+		ret = ppi->ext_hooks->init(ppi, buf, len);
 	if (ret) {
 		pp_diag(ppi, ext, 1, "%s: can't init extension\n", __func__);
 		goto failure;

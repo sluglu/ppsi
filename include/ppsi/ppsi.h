@@ -163,6 +163,7 @@ static inline struct pp_servo *SRV(struct pp_instance *ppi)
 	return GLBS(ppi)->servo;
 }
 
+
 extern void pp_prepare_pointers(struct pp_instance *ppi);
 
 /*
@@ -175,8 +176,8 @@ extern void pp_prepare_pointers(struct pp_instance *ppi);
  */
 struct pp_ext_hooks {
 	int (*init)(struct pp_instance *ppg, void *buf, int len);
-	int (*open)(struct pp_globals *ppi, struct pp_runtime_opts *rt_opts);
-	int (*close)(struct pp_globals *ppg);
+	int (*open)(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts);
+	int (*close)(struct pp_instance *ppi);
 	int (*listening)(struct pp_instance *ppi, void *buf, int len);
 	int (*master_msg)(struct pp_instance *ppi, void *buf,
 			  int len, int msgtype);
@@ -193,9 +194,6 @@ struct pp_ext_hooks {
 	int (*state_decision)(struct pp_instance *ppi, int next_state);
 	void (*state_change)(struct pp_instance *ppi);
 };
-
-extern struct pp_ext_hooks pp_hooks; /* The one for the extension we build */
-
 
 /*
  * Network methods are encapsulated in a structure, so each arch only needs
@@ -411,7 +409,7 @@ extern int __attribute__((warn_unused_result))
 	msg_unpack_header(struct pp_instance *ppi, void *buf, int len);
 extern void msg_unpack_sync(void *buf, MsgSync *sync);
 extern int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp);
-extern void msg_unpack_announce(void *buf, MsgAnnounce *ann);
+extern void msg_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *ann);
 extern void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup);
 extern void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req);
 extern void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp);

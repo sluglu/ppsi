@@ -76,8 +76,8 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	 * PPM_NO_MESSAGE
 	 */
 	msgtype = ppi->received_ptp_header.messageType;
-	if (pp_hooks.master_msg)
-		msgtype = pp_hooks.master_msg(ppi, buf, len, msgtype);
+	if (ppi->ext_hooks->master_msg)
+		msgtype = ppi->ext_hooks->master_msg(ppi, buf, len, msgtype);
 	if (msgtype < 0) {
 		e = msgtype;
 		len = 0;

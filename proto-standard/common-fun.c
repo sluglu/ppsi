@@ -72,8 +72,8 @@ static int presp_call_servo(struct pp_instance *ppi)
 		return 0; /* not an error, just no data */
 
 	pp_timeout_set(ppi, PP_TO_FAULT);
-	if (pp_hooks.handle_presp)
-		ret = pp_hooks.handle_presp(ppi);
+	if (ppi->ext_hooks->handle_presp)
+		ret = ppi->ext_hooks->handle_presp(ppi);
 	else
 		pp_servo_got_presp(ppi);
 
@@ -200,8 +200,8 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
 		return 0;
 	
-	if (pp_hooks.handle_preq)
-		e = pp_hooks.handle_preq(ppi);
+	if (ppi->ext_hooks->handle_preq)
+		e = ppi->ext_hooks->handle_preq(ppi);
 	if (e)
 		return e;
 
@@ -215,8 +215,8 @@ int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	bmc_add_frgn_master(ppi, buf, len);
 
-	if (pp_hooks.handle_announce)
-		return pp_hooks.handle_announce(ppi);
+	if (ppi->ext_hooks->handle_announce)
+		return ppi->ext_hooks->handle_announce(ppi);
 	return 0;
 }
 

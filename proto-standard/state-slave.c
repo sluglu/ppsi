@@ -99,8 +99,8 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 	ppi->syncCF = hdr->cField.scaled_nsecs; /* for diag about TC */
 
 	/* Call the extension; it may do it all and ask to return */
-	if (pp_hooks.handle_followup)
-		ret = pp_hooks.handle_followup(ppi, &ppi->t1);
+	if (ppi->ext_hooks->handle_followup)
+		ret = ppi->ext_hooks->handle_followup(ppi, &ppi->t1);
 	if (ret == 1)
 		return 0;
 	if (ret < 0)
@@ -141,8 +141,8 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 	/* WARNING: should be "sub" (see README-cfield::BUG)  */
 
 	pp_timeout_set(ppi, PP_TO_FAULT);
-	if (pp_hooks.handle_resp)
-		e = pp_hooks.handle_resp(ppi);
+	if (ppi->ext_hooks->handle_resp)
+		e = ppi->ext_hooks->handle_resp(ppi);
 	else
 		pp_servo_got_resp(ppi);
 	if (e)
@@ -183,8 +183,8 @@ static int slave_execute(struct pp_instance *ppi)
 {
 	int ret = 0;
 
-	if (pp_hooks.execute_slave)
-		ret = pp_hooks.execute_slave(ppi);
+	if (ppi->ext_hooks->execute_slave)
+		ret = ppi->ext_hooks->execute_slave(ppi);
 	if (ret == 1) /* done: just return */
 		return 0;
 	if (ret < 0)
@@ -221,8 +221,8 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");	
 		pp_servo_init(ppi);
 
-		if (pp_hooks.new_slave)
-			e = pp_hooks.new_slave(ppi, buf, len);
+		if (ppi->ext_hooks->new_slave)
+			e = ppi->ext_hooks->new_slave(ppi, buf, len);
 		if (e)
 			goto out;
 	}

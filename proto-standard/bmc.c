@@ -1244,7 +1244,7 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 /* Find Ebest, 9.3.2.2 */
 static void bmc_update_ebest(struct pp_globals *ppg)
 {
-	int i, best;
+	int i, best=0;
 	struct pp_instance *ppi, *ppi_best;
 	PortIdentity *frgn_master_pid;
 
@@ -1267,8 +1267,6 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 
 					best = i;
 		}
-	} else {
-	    best=0;
 	}
 	/* check if best master is qualified */
 	ppi_best = INST(ppg, best);

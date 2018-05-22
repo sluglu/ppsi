@@ -7,7 +7,7 @@
 
 # We still accept command-line choices like we used to do.
 # Also, we must remove the quotes from these Kconfig values
-PROTO_EXT ?= $(patsubst "%",%,$(CONFIG_EXTENSION))
+PROTO_EXTS ?= $(patsubst "%",%,$(CONFIG_EXTENSIONS))
 ARCH ?= $(patsubst "%",%,$(CONFIG_ARCH))
 CROSS_COMPILE ?= $(patsubst "%",%,$(CONFIG_CROSS_COMPILE))
 WRPCSW_ROOT ?= $(patsubst "%",%,$(CONFIG_WRPCSW_ROOT))
@@ -47,7 +47,9 @@ all: $(TARGET).o
 # CFLAGS to use. Both this Makefile (later) and app-makefile may grow CFLAGS
 CFLAGS = $(USER_CFLAGS)
 CFLAGS += -Wall -Wstrict-prototypes -Wmissing-prototypes
+
 CFLAGS += -O$(CONFIG_OPTIMIZATION)
+
 CFLAGS += -ggdb -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
 
@@ -73,8 +75,10 @@ CFLAGS += -Iarch-$(ARCH)/include
 
 # proto-standard is always included, as it provides default function
 # so the extension can avoid duplication of code.
-ifneq ($(PROTO_EXT),)
-  include proto-ext-$(PROTO_EXT)/Makefile
+ifneq ($(PROTO_EXTS),)
+  PROT_EXT_DIRS=${foreach EXT_NAME,${subst $\",,${PROTO_EXTS}},proto-ext-${EXT_NAME} }
+  PROT_EXT_MKFS=${foreach PROT_EXT_MKF,${PROT_EXT_DIRS},${PROT_EXT_MKF}/Makefile}
+  include ${PROT_EXT_MKFS}
 endif
 include proto-standard/Makefile
 

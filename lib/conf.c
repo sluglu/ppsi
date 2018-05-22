@@ -212,9 +212,15 @@ static struct pp_argname arg_role[] = {
 	{"slave", PPSI_ROLE_SLAVE},
 	{},
 };
-static struct pp_argname arg_ext[] = {
-	{"none", PPSI_EXT_NONE},
-	{"whiterabbit", PPSI_EXT_WR},
+static struct pp_argname arg_profile[] = {
+	{"none", PPSI_PROFILE_PTP}, /* none is equal to ptp for backward compatibility */
+	{"ptp", PPSI_PROFILE_PTP},
+#if CONFIG_PROFILE_WR == 1
+	{"whiterabbit", PPSI_PROFILE_WR},
+#endif
+#if CONFIG_PROFILE_HA == 1
+	{"highaccuracy", PPSI_PROFILE_WR},
+#endif
 	{},
 };
 static struct pp_argname arg_mech[] = {
@@ -235,7 +241,8 @@ static struct pp_argline pp_global_arglines[] = {
 	LEGACY_OPTION(f_if, "iface", ARG_STR),
 	INST_OPTION_INT("proto", ARG_NAMES, arg_proto, proto),
 	INST_OPTION_INT("role", ARG_NAMES, arg_role, role),
-	INST_OPTION_INT("extension", ARG_NAMES, arg_ext, cfg.ext),
+	INST_OPTION_INT("extension", ARG_NAMES, arg_profile, cfg.ext), /* TODO: stay for backward compatibility. Should be removed in the future */
+	INST_OPTION_INT("profile", ARG_NAMES, arg_profile, cfg.ext),
 	INST_OPTION_INT("mechanism", ARG_NAMES, arg_mech, cfg.mech),
 	LEGACY_OPTION(f_vlan, "vlan", ARG_STR),
 	LEGACY_OPTION(f_diag, "diagnostic", ARG_STR),

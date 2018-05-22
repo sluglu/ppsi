@@ -22,7 +22,6 @@
 
 #include <arch/arch.h> /* ntohs and so on -- and wr-api.h for wr archs */
 
-
 /* At this point in time, we need ARRAY_SIZE to conditionally build vlan code */
 #undef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -162,7 +161,6 @@ static inline struct pp_servo *SRV(struct pp_instance *ppi)
 {
 	return GLBS(ppi)->servo;
 }
-
 
 extern void pp_prepare_pointers(struct pp_instance *ppi);
 
@@ -375,8 +373,15 @@ extern int f_simple_int(struct pp_argline *l, int lineno,
 #define PPSI_ROLE_MASTER	1
 #define PPSI_ROLE_SLAVE		2
 
-#define PPSI_EXT_NONE		0
-#define PPSI_EXT_WR		1
+/* Define the PPSI extensions */
+#define PPSI_EXT_NONE	0
+#define PPSI_EXT_WR		1   /* WR extension */ 
+#define PPSI_EXT_L1S	2   /* L1SYNC extension */
+
+/* Define the PPSI profiles */  
+#define PPSI_PROFILE_PTP 0 /* Default PTP profile without extensions */
+#define PPSI_PROFILE_WR  1 /* WR profile using WR extension */
+#define PPSI_PROFILE_HA  2 /* HA profile using L1S extension, masterOnly and externalPortConfiguration options */
 
 
 /* Servo */

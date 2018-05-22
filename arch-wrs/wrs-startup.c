@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 		ppi->portDS = alloc_fn(ppsi_head, sizeof(*ppi->portDS));
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
 		if (ppi->portDS) {
-			if ( CONFIG_EXT_WR == 1 && ppi->cfg.ext==PPSI_EXT_WR ) {
+			if ( CONFIG_EXT_WR == 1 && ppi->cfg.ext==PPSI_PROFILE_WR ) {
 				struct wr_dsport *wrp;
 
 				/* Add WR extension portDS */

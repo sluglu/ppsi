@@ -39,7 +39,7 @@
 
 #define WRSW_HAL_TIMEOUT 2000000 /* us */
 
-static struct wr_operations wrs_wr_operations = {
+struct wrh_operations wrh_oper = {
 	.locking_enable = wrs_locking_enable,
 	.locking_poll = wrs_locking_poll,
 	.locking_disable = wrs_locking_disable,
@@ -239,23 +239,22 @@ int main(int argc, char **argv)
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
 		if (ppi->portDS) {
 			if ( CONFIG_EXT_WR == 1 && ppi->cfg.ext==PPSI_PROFILE_WR ) {
-				struct wr_dsport *wrp;
+				struct wr_data *wdata;
 
 				/* Add WR extension portDS */
 				if ( !(ppi->portDS->ext_dsport =
 						alloc_fn(ppsi_head, sizeof(struct wr_dsport))) ) {
 						goto exit_out_of_memory;
 				}
-				wrp = WR_DSPOR(ppi); /* just allocated above */
-				wrp->ops = &wrs_wr_operations;
 
 				/* Allocate WR data extension */
-				if (! (ppi->ext_data = alloc_fn(ppsi_head, sizeof(struct wr_data))) ) {
+				if (! (wdata=ppi->ext_data = alloc_fn(ppsi_head,sizeof(struct wr_data))) ) {
 					goto exit_out_of_memory;
 				}
+				wdata->servo_state.servo_head.extension=PPSI_EXT_WR;
 				/* Set WR extension hooks */
 				ppi->ext_hooks=&wr_ext_hooks;
-				ppg->global_ext_data=ppi->ext_data;
+				ppg->global_ext_data=wdata;
 			}
 		} else {
 			goto exit_out_of_memory;

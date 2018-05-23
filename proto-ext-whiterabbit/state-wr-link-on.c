@@ -19,7 +19,7 @@ int wr_link_on(struct pp_instance *ppi, void *buf, int len)
 	int e = 0;
 
 	wrp->wrModeOn = TRUE;
-	wrp->ops->enable_ptracker(ppi);
+	WRH_OPER()->enable_ptracker(ppi);
 
 	if (wrp->wrMode == WR_MASTER)
 		e = msg_issue_wrsig(ppi, WR_MODE_ON);

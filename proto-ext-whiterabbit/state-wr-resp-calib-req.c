@@ -21,7 +21,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 		enable = 1;
 	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
 		if (send_pattern)
-			wrp->ops->calib_pattern_disable(ppi);
+			WRH_OPER()->calib_pattern_disable(ppi);
 		if (wr_handshake_retry(ppi))
 			enable = 1;
 		else
@@ -30,7 +30,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 
 	if (enable) { /* first or retry */
 		if (send_pattern)
-			wrp->ops->calib_pattern_enable(ppi, 0, 0, 0);
+			WRH_OPER()->calib_pattern_enable(ppi, 0, 0, 0);
 		__pp_timeout_set(ppi, PP_TO_EXT_0,
 			       wrp->wrStateTimeout / 1000);
 	}
@@ -42,7 +42,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 
 		if (wrp->msgTmpWrMessageID == CALIBRATED) {
 			if (send_pattern)
-				wrp->ops->calib_pattern_disable(ppi);
+				WRH_OPER()->calib_pattern_disable(ppi);
 			if (wrp->wrMode == WR_MASTER)
 				ppi->next_state = WRS_WR_LINK_ON;
 			else

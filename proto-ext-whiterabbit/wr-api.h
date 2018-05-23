@@ -16,6 +16,7 @@
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__
 #include <ppsi/lib.h>
+#include <wrh/wrh.h>
 #include "wr-constants.h"
 
 /*
@@ -23,7 +24,6 @@
  * (see wrspec.v2-06-07-2011, page 17)
  */
 struct wr_dsport {
-	struct wr_operations *ops; /* hardware-dependent, see below */
 	Enumeration8 wrConfig;
 	Enumeration8 wrMode;
 	Boolean wrModeOn;
@@ -99,38 +99,6 @@ void wr_handshake_init(struct pp_instance *ppi, int mode);
 void wr_handshake_fail(struct pp_instance *ppi); /* goto non-wr */
 int wr_handshake_retry(struct pp_instance *ppi); /* 1 == retry; 0 == failed */
 int wr_execute_slave(struct pp_instance *ppi);
-struct wr_servo_state;
-
-/* White Rabbit hw-dependent functions (code in arch-wrpc and arch-wrs) */
-struct wr_operations {
-	int (*locking_enable)(struct pp_instance *ppi);
-	int (*locking_poll)(struct pp_instance *ppi, int grandmaster);
-	int (*locking_disable)(struct pp_instance *ppi);
-	int (*locking_reset)(struct pp_instance *ppi);
-	int (*enable_ptracker)(struct pp_instance *ppi);
-
-	int (*adjust_in_progress)(void);
-	int (*adjust_counters)(int64_t adjust_sec, int32_t adjust_nsec);
-	int (*adjust_phase)(int32_t phase_ps);
-
-	int (*read_calib_data)(struct pp_instance *ppi,
-			      uint32_t *deltaTx, uint32_t *deltaRx,
-			      int32_t *fix_alpha, int32_t *clock_period);
-	int (*calib_disable)(struct pp_instance *ppi, int txrx);
-	int (*calib_enable)(struct pp_instance *ppi, int txrx);
-	int (*calib_poll)(struct pp_instance *ppi, int txrx, uint32_t *delta);
-	int (*calib_pattern_enable)(struct pp_instance *ppi,
-				    unsigned int calibrationPeriod,
-				    unsigned int calibrationPattern,
-				    unsigned int calibrationPatternLen);
-	int (*calib_pattern_disable)(struct pp_instance *ppi);
-	int (*enable_timing_output)(struct pp_instance *ppi, int enable);
-	int (*servo_hook)(struct wr_servo_state *s, int action);
-};
-
-enum {
-	WR_SERVO_ENTER, WR_SERVO_LEAVE
-};
 
 
 /* wr_servo interface */
@@ -143,7 +111,8 @@ int wr_servo_got_delay(struct pp_instance *ppi);
 int wr_servo_update(struct pp_instance *ppi);
 
 struct wr_servo_state {
-	char if_name[16]; /* Informative, for wr_mon through shmem */
+	struct wrh_servo_head servo_head; /* Must be on top of the structure */
+	char if_name[16]; /* Informative, for the monitoring tool through shmem */
 	unsigned long flags;
 
 #define WR_FLAG_VALID	1
@@ -196,6 +165,5 @@ struct wr_data {
 };
 
 extern struct pp_ext_hooks wr_ext_hooks;
-
 #endif /* __ASSEMBLY__ */
 #endif /* __WREXT_WR_API_H__ */

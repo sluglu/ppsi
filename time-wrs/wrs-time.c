@@ -219,10 +219,9 @@ static int wrs_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap
 
 static int wrs_time_get_servo_state(struct pp_instance *ppi, int *state)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int locked;
 	
-	locked = wrp->ops->locking_poll(ppi, 1);
+	locked = WRH_OPER()->locking_poll(ppi, 1);
 	if (locked == WR_SPLL_READY)
 		*state = PP_SERVO_LOCKED;
 	else
@@ -264,7 +263,6 @@ static int wrs_time_get(struct pp_instance *ppi, struct pp_time *t)
 static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	struct pp_time diff, now;
-	struct timex tx;
 	int msec;
 
 	/*

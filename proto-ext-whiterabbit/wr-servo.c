@@ -177,14 +177,14 @@ int wr_servo_init(struct pp_instance *ppi)
 	GLBS(ppi)->global_ext_data=&((struct wr_data *) ppi->ext_data)->servo_state; /* Updated for the WR monitor tool */
 	
 	/* Determine the alpha coefficient */
-	if (wrp->ops->read_calib_data(ppi, 0, 0,
+	if (WRH_OPER()->read_calib_data(ppi, 0, 0,
 		&s->fiber_fix_alpha, &s->clock_period_ps) != WR_HW_CALIB_OK) {
 		wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
 
 		return -1;
 		}
 
-	wrp->ops->enable_timing_output(ppi, 0);
+	WRH_OPER()->enable_timing_output(ppi, 0);
 
 	strncpy(s->if_name, ppi->cfg.iface_name, sizeof(s->if_name));
 	/*
@@ -194,7 +194,7 @@ int wr_servo_init(struct pp_instance *ppi)
 	 */
 	if (s->cur_setpoint > s->clock_period_ps)
 		s->cur_setpoint %= s->clock_period_ps;
-	wrp->ops->adjust_phase(s->cur_setpoint);
+	WRH_OPER()->adjust_phase(s->cur_setpoint);
 	s->missed_iters = 0;
 	s->state = WR_UNINITIALIZED;
 
@@ -339,7 +339,6 @@ int wr_p2p_offset(struct pp_instance *ppi,
 int wr_e2e_offset(struct pp_instance *ppi,
 		  struct wr_servo_state *s, struct pp_time *ts_offset)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	uint64_t big_delta_fix;
 	uint64_t delay_ms_fix;
 	static int errcount;
@@ -355,8 +354,8 @@ int wr_e2e_offset(struct pp_instance *ppi,
 		return 0;
 	}
 
-	if (wrp->ops->servo_hook) /* FIXME: check this, missing in p2p */
-		wrp->ops->servo_hook(s, WR_SERVO_ENTER);
+	if (WRH_OPER()->servo_hook) /* FIXME: check this, missing in p2p */
+		WRH_OPER()->servo_hook(&s->servo_head, WRH_SERVO_ENTER);
 
 	errcount = 0;
 
@@ -418,9 +417,7 @@ int wr_e2e_offset(struct pp_instance *ppi,
 
 int wr_servo_update(struct pp_instance *ppi)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	struct wr_servo_state *s =
-	    &((struct wr_data *)ppi->ext_data)->servo_state;
+	struct wr_servo_state *s = &((struct wr_data *)ppi->ext_data)->servo_state;
 	int remaining_offset;
 	int64_t picos_mu_prev = 0;
 
@@ -450,17 +447,17 @@ int wr_servo_update(struct pp_instance *ppi)
 		(long)ts_offset.secs, (long)ts_offset_ticks,
 		(long)ts_offset_picos);
 
-	locking_poll_ret = wrp->ops->locking_poll(ppi, 0);
+	locking_poll_ret = WRH_OPER()->locking_poll(ppi, 0);
 	if (locking_poll_ret != WR_SPLL_READY
 	    && locking_poll_ret != WR_SPLL_CALIB_NOT_READY) {
 		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
-		wrp->ops->enable_timing_output(ppi, 0);
+		WRH_OPER()->enable_timing_output(ppi, 0);
 		/* TODO check
 		 * DSPOR(ppi)->doRestart = TRUE; */
 	}
 
 	/* After each action on the hardware, we must verify if it is over. */
-	if (!wrp->ops->adjust_in_progress()) {
+	if (!WRH_OPER()->adjust_in_progress()) {
 		s->flags &= ~WR_FLAG_WAIT_HW;
 	} else {
 		pp_diag(ppi, servo, 1, "servo:busy\n");
@@ -488,7 +485,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	switch (s->state) {
 	case WR_SYNC_TAI:
-		wrp->ops->adjust_counters(ts_offset.secs, 0);
+		WRH_OPER()->adjust_counters(ts_offset.secs, 0);
 		s->flags |= WR_FLAG_WAIT_HW;
 		/*
 		 * If nsec wrong, code above forces SYNC_NSEC,
@@ -499,7 +496,7 @@ int wr_servo_update(struct pp_instance *ppi)
 		break;
 
 	case WR_SYNC_NSEC:
-		wrp->ops->adjust_counters(0, ts_offset_ticks);
+		WRH_OPER()->adjust_counters(0, ts_offset_ticks);
 		s->flags |= WR_FLAG_WAIT_HW;
 		s->state = WR_SYNC_PHASE;
 		break;
@@ -509,7 +506,7 @@ int wr_servo_update(struct pp_instance *ppi)
 			s->cur_setpoint, ts_offset_ticks,
 			ts_offset_picos);
 		s->cur_setpoint += ts_offset_picos;
-		wrp->ops->adjust_phase(s->cur_setpoint);
+		WRH_OPER()->adjust_phase(s->cur_setpoint);
 
 		s->flags |= WR_FLAG_WAIT_HW;
 		s->state = WR_WAIT_OFFSET_STABLE;
@@ -533,7 +530,7 @@ int wr_servo_update(struct pp_instance *ppi)
 		/* ts_to_picos() below returns phase alone */
 		remaining_offset = abs(ts_offset_picos);
 		if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
-			wrp->ops->enable_timing_output(ppi, 1);
+			WRH_OPER()->enable_timing_output(ppi, 1);
 			s->delta_ms_prev = s->delta_ms;
 			s->state = WR_TRACK_PHASE;
 		} else {
@@ -559,7 +556,7 @@ int wr_servo_update(struct pp_instance *ppi)
 			// adjust phase towards offset = 0 make ck0 0
 			s->cur_setpoint += (ts_offset_picos / 4);
 
-			wrp->ops->adjust_phase(s->cur_setpoint);
+			WRH_OPER()->adjust_phase(s->cur_setpoint);
 			pp_diag(ppi, time, 1, "adjust phase %i\n",
 				s->cur_setpoint);
 
@@ -587,8 +584,8 @@ out:
 	/* shmem unlock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
 
-	if (wrp->ops->servo_hook)
-		wrp->ops->servo_hook(s, WR_SERVO_LEAVE);
+	if (WRH_OPER()->servo_hook)
+		WRH_OPER()->servo_hook(&s->servo_head, WRH_SERVO_LEAVE);
 
 	return 0;
 }

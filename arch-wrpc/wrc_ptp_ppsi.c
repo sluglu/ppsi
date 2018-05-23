@@ -26,7 +26,7 @@ extern int32_t cal_phase_transition;
 int ptp_mode = WRC_MODE_UNKNOWN;
 static int ptp_enabled = 0;
 
-static struct wr_operations wrpc_wr_operations = {
+struct wrh_operations wrh_oper = {
 	.locking_enable = wrpc_spll_locking_enable,
 	.locking_poll = wrpc_spll_locking_poll,
 	.locking_disable = wrpc_spll_locking_disable,
@@ -62,9 +62,7 @@ static struct pp_servo servo;
 
 static struct wr_data wr_ext_data; /* WR extension data */
 
-static struct wr_dsport wr_dsport = {
-	.ops = &wrpc_wr_operations,
-};
+static struct wr_dsport wr_dsport;
 #endif
 
 static DSPort     portDS ;
@@ -118,6 +116,7 @@ int wrc_ptp_init()
 
 		ppi->ext_hooks = &wr_ext_hooks;
 		ppi->ext_data = &wr_ext_data;
+		wr_ext_data->servo_state.servo_head.extension=PPSI_EXT_WR;
 		GBLS(ppi)->global_ext_data=&wr_ext_data.servo_state; /* Updated for the WR monitor tools */
 
 		portDS.ext_dsport = &wr_dsport;

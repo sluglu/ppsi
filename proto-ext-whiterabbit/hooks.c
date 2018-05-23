@@ -27,9 +27,9 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 	    && ptp_mode != 4 /* WRC_MODE_ABSCAL -- not defined in wrs build */
 #endif
 	   )
-		wrp->ops->enable_timing_output(ppi, 1);
+	   WRH_OPER()->enable_timing_output(ppi, 1);	
 	else
-		wrp->ops->enable_timing_output(ppi, 0);
+		WRH_OPER()->enable_timing_output(ppi, 0);
 	return 0;
 }
 
@@ -136,9 +136,9 @@ static int wr_handle_resp(struct pp_instance *ppi)
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
 		if (ofm->secs)
-			wrp->ops->enable_timing_output(ppi, 0);
+			WRH_OPER()->enable_timing_output(ppi, 0);
 		else
-			wrp->ops->enable_timing_output(ppi, 1);
+			WRH_OPER()->enable_timing_output(ppi, 1);
 
 	}
 	wr_servo_got_delay(ppi);
@@ -241,9 +241,9 @@ static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
 		if (ofm->secs)
-			wrp->ops->enable_timing_output(ppi, 0);
+			WRH_OPER()->enable_timing_output(ppi, 0);
 		else
-			wrp->ops->enable_timing_output(ppi, 1);
+			WRH_OPER()->enable_timing_output(ppi, 1);
 
 		return 0;
 	}
@@ -332,7 +332,7 @@ static void wr_state_change(struct pp_instance *ppi)
 		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 		
 		if (ppi->state == PPS_SLAVE)
-			wrp->ops->locking_reset(ppi);
+			WRH_OPER()->locking_reset(ppi);
 	}		 
 }
 

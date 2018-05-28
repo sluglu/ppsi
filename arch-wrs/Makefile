@@ -19,7 +19,8 @@ OBJ-y += $A/wrs-startup.o \
 	lib/dump-funcs.o \
 	lib/drop.o \
 	lib/assert.o \
-	lib/div64.o
+	lib/div64.o \
+	lib/time-arith.o
 
 # We only support "wrs" time operations
 TIME = wrs

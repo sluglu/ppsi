@@ -12,7 +12,8 @@
 
 /* minipc Encoding  of the supported commands */
 
-#define PTPDEXP_COMMAND_TRACKING 1
+#define PTPDEXP_COMMAND_WR_TRACKING 1
+#define PTPDEXP_COMMAND_L1SYNC_TRACKING 2
 
 static struct minipc_pd __rpcdef_cmd = {
 	.name = "cmd",
@@ -27,9 +28,17 @@ static struct minipc_pd __rpcdef_cmd = {
 /* Execute command coming ipc */
 static int wrsipc_cmd(int cmd, int value)
 {
-	if(cmd == PTPDEXP_COMMAND_TRACKING) {
+	if(cmd == PTPDEXP_COMMAND_WR_TRACKING) {
+#if CONFIG_EXT_WR == 1
 		wr_servo_enable_tracking(value);
 		return 0;
+#endif
+	}
+	if(cmd == PTPDEXP_COMMAND_L1SYNC_TRACKING) {
+#if CONFIG_EXT_L1SYNC == 1
+		l1e_servo_enable_tracking(value);
+		return 0;
+#endif
 	}
 	return -1;
 

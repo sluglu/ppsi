@@ -29,7 +29,8 @@ static pp_action *actions[] = {
 	[PPM_FOLLOW_UP]		= slave_handle_followup,
 	[PPM_DELAY_RESP]	= slave_handle_response,
 	[PPM_ANNOUNCE]		= slave_handle_announce,
-	/* skip signaling and management, for binary size */
+	[PPM_SIGNALING]     = st_com_handle_signaling,
+	/* skip management, for binary size */
 };
 
 static int slave_handle_sync(struct pp_instance *ppi, void *buf,
@@ -57,7 +58,7 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 	ppi->t1 = sync.originTimestamp;
 	pp_time_add(&ppi->t1, &hdr->cField);
 	ppi->syncCF = 0;
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		pp_servo_got_psync(ppi);
 	else
 		pp_servo_got_sync(ppi);
@@ -106,7 +107,7 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 	if (ret < 0)
 		return ret;
 
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		pp_servo_got_psync(ppi);
 	else
 		pp_servo_got_sync(ppi);

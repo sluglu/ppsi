@@ -79,7 +79,7 @@ int pp_lib_may_issue_sync(struct pp_instance *ppi)
 
 int pp_lib_may_issue_announce(struct pp_instance *ppi)
 {
-	struct DSTimeProperties *prop = DSPRO(ppi);
+	timePropertiesDS_t *prop = DSPRO(ppi);
 	int ret = 0;
 	int offset, leap59, leap61;
 	int hours, minutes, seconds;

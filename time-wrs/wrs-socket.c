@@ -247,7 +247,7 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 		t->secs = sts->hwtimeraw.tv_sec & 0x7fffffff;
 
 		update_dmtd(s, ppi);
-		if (!WR_DSPOR(ppi)->wrModeOn) {
+		if ( WRH_DSPOR_HEAD(ppi)==NULL || !WRH_DSPOR_HEAD(ppi)->extModeOn) {
 			goto drop;
 		}
 		if (s->dmtd_phase_valid) {

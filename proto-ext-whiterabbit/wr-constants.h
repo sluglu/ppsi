@@ -17,7 +17,9 @@
 #define WR_IS_WR_MODE			0x08
 #define WR_NODE_MODE			0x03 /* a mask, see NON_WR etc below */
 
-# define WR_TLV_TYPE			0x2004
+#define WR_TLV_TYPE			0x2004
+
+#define FIX_ALPHA_FRACBITS 40
 
 #define WR_DEFAULT_CAL_PERIOD		3000	/* [us] */
 
@@ -47,20 +49,6 @@
 #define WR_SIGNALING_MSG_BASE_LENGTH	48
 
 #define WR_DEFAULT_PHY_CALIBRATION_REQUIRED FALSE
-
-/* White Rabbit softpll status values */
-#define WR_SPLL_OK		0
-#define WR_SPLL_READY		1
-#define WR_SPLL_CALIB_NOT_READY	2
-#define WR_SPLL_ERROR		-1
-
-/* White Rabbit calibration defines */
-#define WR_HW_CALIB_TX	1
-#define WR_HW_CALIB_RX	2
-#define WR_HW_CALIB_OK	0
-#define WR_HW_CALIB_READY	1
-#define WR_HW_CALIB_ERROR	-1
-#define WR_HW_CALIB_NOT_FOUND	-3
 
 /* Indicates if a port is configured as White Rabbit, and what kind
  * (master/slave) */

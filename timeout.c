@@ -26,14 +26,16 @@ static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	RAND_NONE,},
 	[PP_TO_ANN_SEND] =	{"ANN_SEND",	RAND_70_130,},
 	[PP_TO_FAULT] =		{"FAULT",	RAND_NONE, 4000},
-	[PP_TO_QUALIFICATION] = {"QUAL",	RAND_NONE,}
+	[PP_TO_QUALIFICATION] = {"QUAL",	RAND_NONE,},
 	/* extension timeouts are explicitly set to a value */
+	[PP_TO_EXT_0]={"EXT_0", RAND_NONE,},
+	[PP_TO_EXT_1]={"EXT_1", RAND_NONE,}
 };
 
 /* Init fills the timeout values */
 void pp_timeout_init(struct pp_instance *ppi)
 {
-	struct DSPort *port = ppi->portDS;
+	portDS_t *port = ppi->portDS;
 
 	to_configs[PP_TO_REQUEST].value =
 		port->logMinDelayReqInterval;
@@ -52,8 +54,8 @@ void pp_timeout_init(struct pp_instance *ppi)
 void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
 {
 	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
-	pp_diag(ppi, time, 3, "new timeout for %s: %i\n",
-		to_configs[index].name, millisec);
+	pp_diag(ppi, time, 3, "new timeout for %s : %i / %lu\n",
+		to_configs[index].name, millisec, ppi->timeouts[index]);
 }
 
 void pp_timeout_clear(struct pp_instance *ppi, int index)
@@ -128,12 +130,12 @@ void pp_timeout_setall(struct pp_instance *ppi)
 
 int pp_timeout(struct pp_instance *ppi, int index)
 {
-	int ret = time_after_eq(ppi->t_ops->calc_timeout(ppi, 0),
-				ppi->timeouts[index]);
+	unsigned long now=ppi->t_ops->calc_timeout(ppi, 0);
+	int ret = time_after_eq(now,ppi->timeouts[index]);
 
 	if (ret)
-		pp_diag(ppi, time, 1, "timeout expired: %s\n",
-			to_configs[index].name);
+		pp_diag(ppi, time, 1, "timeout expired: %s / %lu\n",
+			to_configs[index].name,now);
 	return ret;
 }
 

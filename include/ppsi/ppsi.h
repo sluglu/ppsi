@@ -118,32 +118,32 @@ static inline struct pp_runtime_opts *OPTS(struct pp_instance *ppi)
 	return GOPTS(GLBS(ppi));
 }
 
-static inline struct DSDefault *GDSDEF(struct pp_globals *ppg)
+static inline defaultDS_t *GDSDEF(struct pp_globals *ppg)
 {
 	return ppg->defaultDS;
 }
 
-static inline struct DSDefault *DSDEF(struct pp_instance *ppi)
+static inline  defaultDS_t *DSDEF(struct pp_instance *ppi)
 {
 	return GDSDEF(GLBS(ppi));
 }
 
-static inline struct DSCurrent *DSCUR(struct pp_instance *ppi)
+static inline currentDS_t *DSCUR(struct pp_instance *ppi)
 {
 	return GLBS(ppi)->currentDS;
 }
 
-static inline struct DSParent *DSPAR(struct pp_instance *ppi)
+static inline parentDS_t *DSPAR(struct pp_instance *ppi)
 {
 	return GLBS(ppi)->parentDS;
 }
 
-static inline struct DSPort *DSPOR(struct pp_instance *ppi)
+static inline portDS_t *DSPOR(struct pp_instance *ppi)
 {
 	return ppi->portDS;
 }
 
-static inline struct DSTimeProperties *DSPRO(struct pp_instance *ppi)
+static inline timePropertiesDS_t *DSPRO(struct pp_instance *ppi)
 {
 	return GLBS(ppi)->timePropertiesDS;
 }
@@ -173,7 +173,7 @@ extern void pp_prepare_pointers(struct pp_instance *ppi);
  * allow NULL pointers.
  */
 struct pp_ext_hooks {
-	int (*init)(struct pp_instance *ppg, void *buf, int len);
+	int (*init)(struct pp_instance *ppi, void *buf, int len);
 	int (*open)(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts);
 	int (*close)(struct pp_instance *ppi);
 	int (*listening)(struct pp_instance *ppi, void *buf, int len);
@@ -187,10 +187,12 @@ struct pp_ext_hooks {
 	int (*handle_followup)(struct pp_instance *ppi, struct pp_time *orig);
 	int (*handle_preq) (struct pp_instance * ppi);
 	int (*handle_presp) (struct pp_instance * ppi);
+	int (*handle_signaling) (struct pp_instance * ppi, void *buf, int len);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
 	int (*state_decision)(struct pp_instance *ppi, int next_state);
 	void (*state_change)(struct pp_instance *ppi);
+	int (*run_ext_state_machine) (struct pp_instance *ppi);
 };
 
 /*
@@ -318,7 +320,7 @@ struct pp_argline {
 };
 
 /* Below are macros for setting up pp_argline arrays */
-#define OFFS(s,f) offsetof(struct s, f)
+#define OFFS(s,f) offsetof(s, f)
 
 #define OPTION(s,func,k,typ,a,field,i)					\
 	{								\
@@ -338,16 +340,23 @@ struct pp_argline {
 	}
 
 #define INST_OPTION(func,k,t,a,field)					\
-	OPTION(pp_instance,func,k,t,a,field,1)
+	OPTION(struct pp_instance,func,k,t,a,field,1)
 
 #define INST_OPTION_INT(k,t,a,field)					\
 	INST_OPTION(f_simple_int,k,t,a,field)
 
+#define INST_OPTION_INT64(k,t,a,field)					\
+	INST_OPTION(f_simple_int64,k,t,a,field)
+
+#define INST_OPTION_DOUBLE(k,t,a,field)					\
+	INST_OPTION(f_simple_double,k,t,a,field)
+
+
 #define RT_OPTION(func,k,t,a,field)					\
-	OPTION(pp_runtime_opts,func,k,t,a,field,0)
+	OPTION(struct pp_runtime_opts,func,k,t,a,field,0)
 
 #define GLOB_OPTION(func,k,t,a,field)					\
-	OPTION(pp_globals,func,k,t,a,field,0)
+	OPTION(struct pp_globals,func,k,t,a,field,0)
 
 #define RT_OPTION_INT(k,t,a,field)					\
 	RT_OPTION(f_simple_int,k,t,a,field)
@@ -447,6 +456,15 @@ extern void normalize_pp_time(struct pp_time *t);
 extern void pp_time_add(struct pp_time *t1, struct pp_time *t2);
 extern void pp_time_sub(struct pp_time *t1, struct pp_time *t2);
 extern void pp_time_div2(struct pp_time *t);
+extern TimeInterval pp_time_to_interval(struct pp_time *ts);
+extern TimeInterval picos_to_interval(int64_t picos);
+
+/* Function for time conversion */
+extern int64_t pp_time_to_picos(struct pp_time *ts);
+extern void picos_to_pp_time(int64_t picos, struct pp_time *ts);
+extern void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,int32_t *ticks, int32_t *picos);
+extern int64_t interval_to_picos(TimeInterval interval);
+
 
 /*
  * The state machine itself is an array of these structures.
@@ -463,10 +481,13 @@ struct pp_state_table_item {
 
 extern struct pp_state_table_item pp_state_table[]; /* 0-terminated */
 
+/* Convert current state as a string value */
+char *get_state_as_string(struct pp_instance *ppi, int state);
+
 /* Standard state-machine functions */
 extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
 		 pp_master, pp_passive, pp_uncalibrated,
-		 pp_slave, pp_pclock;;
+		 pp_slave, pp_pclock;
 
 /* Enforce a state change */
 extern int pp_leave_current_state(struct pp_instance *ppi);

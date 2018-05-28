@@ -21,11 +21,11 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 	.ap =			PP_DEFAULT_AP,
 	.ai =			PP_DEFAULT_AI,
 	.s =			PP_DEFAULT_DELAY_S,
-	.announce_intvl =	PP_DEFAULT_ANNOUNCE_INTERVAL,
-	.sync_intvl =		PP_DEFAULT_SYNC_INTERVAL,
-	.prio1 =		PP_DEFAULT_PRIORITY1,
-	.prio2 =		PP_DEFAULT_PRIORITY2,
-	.domain_number =	PP_DEFAULT_DOMAIN_NUMBER,
+	.logAnnounceInterval =	PP_DEFAULT_ANNOUNCE_INTERVAL,
+	.logSyncInterval =		PP_DEFAULT_SYNC_INTERVAL,
+	.priority1 =		PP_DEFAULT_PRIORITY1,
+	.priority2 =		PP_DEFAULT_PRIORITY2,
+	.domainNumber =	PP_DEFAULT_DOMAIN_NUMBER,
 	.ttl =			PP_DEFAULT_TTL,
 };
 
@@ -41,7 +41,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	 * Initialize default data set
 	 */
 	int i,ret=0;
-	struct DSDefault *def = ppg->defaultDS;
+	defaultDS_t *def = ppg->defaultDS;
 	def->twoStepFlag = TRUE;
 
 	/* if ppg->nlinks == 0, let's assume that the 'pp_links style'
@@ -63,9 +63,9 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 		def->slaveOnly = 1; /* the for cycle below will set it to 0 if not
 							 * ports are not all slave_only */
 
-	def->priority1 = rt_opts->prio1;
-	def->priority2 = rt_opts->prio2;
-	def->domainNumber = rt_opts->domain_number;
+	def->priority1 = rt_opts->priority1;
+	def->priority2 = rt_opts->priority2;
+	def->domainNumber = rt_opts->domainNumber;
 
 	for (i = 0; i < def->numberPorts; i++) {
 		struct pp_instance *ppi = INST(ppg, i);
@@ -99,7 +99,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 int pp_close_globals(struct pp_globals *ppg)
 {
 	int i,ret=0;;
-	struct DSDefault *def = ppg->defaultDS;
+	defaultDS_t *def = ppg->defaultDS;
 
 	for (i = 0; i < def->numberPorts; i++) {
 		struct pp_instance *ppi = INST(ppg, i);

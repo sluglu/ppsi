@@ -24,18 +24,20 @@
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
 void bmc_m1(struct pp_instance *ppi)
 {
-	struct DSParent *parent = DSPAR(ppi);
-	struct DSDefault *defds = DSDEF(ppi);
-	struct DSTimeProperties *prop = DSPRO(ppi);
+	parentDS_t *parent = DSPAR(ppi);
+	defaultDS_t *defds = DSDEF(ppi);
+	timePropertiesDS_t *prop = DSPRO(ppi);
 	int ret = 0;
 	int offset, leap59, leap61;
 	Boolean ptpTimescale;
 	Enumeration8 timeSource;
 
 	/* Current data set update */
-	DSCUR(ppi)->stepsRemoved = 0;
-	clear_time(&DSCUR(ppi)->offsetFromMaster);
-	clear_time(&DSCUR(ppi)->meanPathDelay);
+	DSCUR(ppi)->stepsRemoved =
+			DSCUR(ppi)->offsetFromMaster=
+					DSCUR(ppi)->meanDelay=0;
+	clear_time(&SRV(ppi)->meanDelay);
+	clear_time(&SRV(ppi)->offsetFromMaster);
 
 	/* Parent data set: we are the parent */
 	memset(parent, 0, sizeof(*parent));
@@ -139,8 +141,8 @@ void bmc_m3(struct pp_instance *ppi)
 void bmc_s1(struct pp_instance *ppi,
 			struct pp_frgn_master *frgn_master)
 {
-	struct DSParent *parent = DSPAR(ppi);
-	struct DSTimeProperties *prop = DSPRO(ppi);
+	parentDS_t *parent = DSPAR(ppi);
+	timePropertiesDS_t *prop = DSPRO(ppi);
 	int ret = 0;
 	int offset, leap59, leap61;
 	int hours, minutes, seconds;
@@ -573,7 +575,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	int i;
 	int cmpres;
 	struct pp_frgn_master d0;
-	struct DSParent *parent = DSPAR(ppi);
+	parentDS_t *parent = DSPAR(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
 	struct pp_instance *ppi_best;
 	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];

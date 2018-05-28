@@ -14,8 +14,9 @@
 #include <sys/timex.h>
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>
-
 #include <hal_exports.h>
+#include "../include/hw-specific/wrh.h"
+
 /* FIXME: these externs are needed here because we can not include
  * hal_exports.h with HAL_EXPORT_STRUCTURES twice (the first is by
  * arch-wrs/wrs-calibration.c): structs are declared and
@@ -91,9 +92,9 @@ int wrs_enable_ptracker(struct pp_instance *ppi)
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_ENABLE_TRACKING, 0);
 
 	if ((ret < 0) || (rval < 0))
-		return WR_SPLL_ERROR;
+		return WRH_SPLL_ERROR;
 
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrs_enable_timing_output(struct pp_instance *ppi, int enable)
@@ -101,9 +102,9 @@ int wrs_enable_timing_output(struct pp_instance *ppi, int enable)
 	int ret, rval;
 	hexp_pps_params_t p;
 
-	if (enable == WR_DSPOR(ppi)->ppsOutputOn)
-		return WR_SPLL_OK;
-	WR_DSPOR(ppi)->ppsOutputOn = enable;
+	if (enable == WRH_DSPOR_HEAD(ppi)->ppsOutputOn)
+		return WRH_SPLL_OK;
+	WRH_DSPOR_HEAD(ppi)->ppsOutputOn = enable;
 
 	p.pps_valid = enable;
 
@@ -111,14 +112,14 @@ int wrs_enable_timing_output(struct pp_instance *ppi, int enable)
 			&rval, HEXP_PPSG_CMD_SET_VALID, &p);
 
 	if ((ret < 0) || (rval < 0))
-		return WR_SPLL_ERROR;
+		return WRH_SPLL_ERROR;
 
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrs_locking_disable(struct pp_instance *ppi)
 {
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrs_locking_enable(struct pp_instance *ppi)
@@ -131,9 +132,9 @@ int wrs_locking_enable(struct pp_instance *ppi)
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_START, 0);
 
 	if ((ret < 0) || (rval < 0))
-		return WR_SPLL_ERROR;
+		return WRH_SPLL_ERROR;
 
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrs_locking_reset(struct pp_instance *ppi)
@@ -146,9 +147,9 @@ int wrs_locking_reset(struct pp_instance *ppi)
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_RESET, 0);
 
 	if ((ret < 0) || (rval < 0))
-		return WR_SPLL_ERROR;
+		return WRH_SPLL_ERROR;
 
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrs_locking_poll(struct pp_instance *ppi, int grandmaster)
@@ -156,16 +157,16 @@ int wrs_locking_poll(struct pp_instance *ppi, int grandmaster)
 	int ret, rval;
 
 	if (grandmaster) /* FIXME: check wrs grandmaster PLL */
-		return WR_SPLL_READY;
+		return WRH_SPLL_READY;
 
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_CHECK, 0);
 	if (ret != HEXP_LOCK_STATUS_LOCKED) {
 		pp_diag(ppi, time, 2, "PLL is not ready\n");
-		return WR_SPLL_ERROR; /* FIXME should be WR_SPLL_NOT_READY */
+		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
 	}
 	pp_diag(ppi, time, 2, "PLL is locked\n");
-	return WR_SPLL_READY;
+	return WRH_SPLL_READY;
 }
 
 /* This is a hack, but at least the year is 640bit clean */
@@ -222,7 +223,7 @@ static int wrs_time_get_servo_state(struct pp_instance *ppi, int *state)
 	int locked;
 	
 	locked = WRH_OPER()->locking_poll(ppi, 1);
-	if (locked == WR_SPLL_READY)
+	if (locked == WRH_SPLL_READY)
 		*state = PP_SERVO_LOCKED;
 	else
 		*state = PP_SERVO_UNLOCKED;

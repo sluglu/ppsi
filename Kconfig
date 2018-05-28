@@ -116,7 +116,7 @@ config PROFILE_WR
 
 config PROFILE_HA
 	bool
-	default y if ARCH_WRS || ARCH_WRPC
+	default n if ARCH_WRS || ARCH_WRPC
 
 config PROFILE_PTP
 	bool
@@ -134,14 +134,6 @@ config EXT_NONE
 	bool 
 	default y if PROFILE_PTP
 	
-config EXTENSIONS
-       string
-       default "whiterabbit l1sync" if (EXT_WR && EXT_L1SYNC)
-       default "whiterabbit"        if (EXT_WR && !EXT_L1SYNC)
-       default "l1sync"             if (!EXT_WR && EXT_L1SYNC)
-       default "" if PROFILE_PTP
-
-
 config CROSS_COMPILE
        string "Cross compiler prefix"
        default "/opt/gcc-lm32/bin/lm32-elf-" if ARCH_WRPC

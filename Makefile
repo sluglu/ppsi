@@ -75,10 +75,11 @@ CFLAGS += -Iarch-$(ARCH)/include
 
 # proto-standard is always included, as it provides default function
 # so the extension can avoid duplication of code.
-ifneq ($(PROTO_EXTS),)
-  PROT_EXT_DIRS=${foreach EXT_NAME,${subst $\",,${PROTO_EXTS}},proto-ext-${EXT_NAME} }
-  PROT_EXT_MKFS=${foreach PROT_EXT_MKF,${PROT_EXT_DIRS},${PROT_EXT_MKF}/Makefile}
-  include ${PROT_EXT_MKFS}
+ifeq ($(CONFIG_EXT_WR),y)
+  include proto-ext-whiterabbit/Makefile
+endif
+ifeq ($(CONFIG_EXT_L1SYNC),y)
+  include proto-ext-l1sync/Makefile
 endif
 include proto-standard/Makefile
 

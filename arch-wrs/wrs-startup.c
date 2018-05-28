@@ -28,12 +28,8 @@
 #include <ppsi-wrs.h>
 #include <libwr/shmem.h>
 
-#if CONFIG_EXT_WR == 1
-/* WR extension declaration */
 #include "../proto-ext-whiterabbit/wr-api.h"
-#include "../proto-ext-whiterabbit/wr-constants.h"
-
-#endif
+#include "../proto-ext-l1sync/l1e-api.h"
 
 #  define WRSW_HAL_RETRIES 1000
 
@@ -179,8 +175,7 @@ int main(int argc, char **argv)
 	ppg->defaultDS = alloc_fn(ppsi_head, sizeof(*ppg->defaultDS));
 	ppg->currentDS = alloc_fn(ppsi_head, sizeof(*ppg->currentDS));
 	ppg->parentDS =  alloc_fn(ppsi_head, sizeof(*ppg->parentDS));
-	ppg->timePropertiesDS = alloc_fn(ppsi_head,
-					 sizeof(*ppg->timePropertiesDS));
+	ppg->timePropertiesDS = alloc_fn(ppsi_head,sizeof(*ppg->timePropertiesDS));
 	ppg->servo = alloc_fn(ppsi_head, sizeof(*ppg->servo));
 	ppg->rt_opts = &__pp_default_rt_opts;
 
@@ -234,13 +229,13 @@ int main(int argc, char **argv)
 		ppi->vlans_array_len = CONFIG_VLAN_ARRAY_SIZE;
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
-		ppi->mech = ppi->cfg.mech;
+		ppi->delayMechanism = ppi->cfg.delayMechanism;
 		ppi->portDS = alloc_fn(ppsi_head, sizeof(*ppi->portDS));
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
 		if (ppi->portDS) {
-			if ( CONFIG_EXT_WR == 1 && ppi->cfg.ext==PPSI_PROFILE_WR ) {
-				struct wr_data *wdata;
-
+#if CONFIG_EXT_WR == 1
+			if ( ppi->cfg.profile==PPSI_PROFILE_WR ) {
+				ppi->protocol_extension=PPSI_EXT_WR;
 				/* Add WR extension portDS */
 				if ( !(ppi->portDS->ext_dsport =
 						alloc_fn(ppsi_head, sizeof(struct wr_dsport))) ) {
@@ -248,14 +243,33 @@ int main(int argc, char **argv)
 				}
 
 				/* Allocate WR data extension */
-				if (! (wdata=ppi->ext_data = alloc_fn(ppsi_head,sizeof(struct wr_data))) ) {
+				if (! (ppi->ext_data = alloc_fn(ppsi_head,sizeof(struct wr_data))) ) {
 					goto exit_out_of_memory;
 				}
-				wdata->servo_state.servo_head.extension=PPSI_EXT_WR;
 				/* Set WR extension hooks */
 				ppi->ext_hooks=&wr_ext_hooks;
-				ppg->global_ext_data=wdata;
 			}
+#endif
+#if CONFIG_EXT_L1SYNC == 1
+			if ( ppi->cfg.profile==PPSI_PROFILE_HA ) {
+				ppi->protocol_extension=PPSI_EXT_L1S;
+				/* Add L1E extension portDS */
+				if ( !(ppi->portDS->ext_dsport =alloc_fn(ppsi_head, sizeof(struct l1e_ext_portDS))) ) {
+					goto exit_out_of_memory;
+				}
+
+				/* Allocate WR data extension */
+				if (! (ppi->ext_data = alloc_fn(ppsi_head,sizeof(struct l1e_data))) ) {
+					goto exit_out_of_memory;
+				}
+
+				/* Set L1SYNC extension hooks */
+				ppi->ext_hooks=&l1e_ext_hooks;
+				/* Set default profile parameters */
+				ppg->defaultDS->externalPortConfigurationEnabled = 1;
+				ppi->portDS->masterOnly = 0;
+			}
+#endif
 		} else {
 			goto exit_out_of_memory;
 		}

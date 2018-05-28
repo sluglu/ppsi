@@ -40,7 +40,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 {
 	unsigned char *mac;
 	unsigned char mac_port1[6];
-	struct DSPort *port = DSPOR(ppi);
+	portDS_t *port = DSPOR(ppi);
 	struct pp_runtime_opts *opt = OPTS(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
 	int ret = 0;
@@ -99,9 +99,9 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	/* 1-based port number =  index of this ppi in the global array */
 	port->portIdentity.portNumber = 1 + ppi - ppi->glbs->pp_instances;
 	port->logMinDelayReqInterval = PP_DEFAULT_DELAYREQ_INTERVAL;
-	port->logAnnounceInterval = opt->announce_intvl;
+	port->logAnnounceInterval = opt->logAnnounceInterval;
 	port->announceReceiptTimeout = PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT;
-	port->logSyncInterval = opt->sync_intvl;
+	port->logSyncInterval = opt->logSyncInterval;
 	port->versionNumber = PP_VERSION_PTP;
 	pp_timeout_init(ppi);
 	pp_timeout_setall(ppi);

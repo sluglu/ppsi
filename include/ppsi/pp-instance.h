@@ -20,11 +20,11 @@ struct pp_runtime_opts {
 	int flags;		/* see below */
 	Integer16 ap, ai;
 	Integer16 s;
-	Integer8 announce_intvl;
-	int sync_intvl;
-	int prio1;
-	int prio2;
-	int domain_number;
+	Integer8 logAnnounceInterval;
+	int logSyncInterval;
+	int priority1;
+	int priority2;
+	int domainNumber;
 	void *arch_opts;
 };
 
@@ -89,7 +89,7 @@ struct pp_frgn_master {
  * machine are implemented.
  *
  * pp_avg_fltr: It is a variable cutoff/delay low-pass, infinite impulse
- * response (IIR) filter. The meanPathDelay filter has the difference equation:
+ * response (IIR) filter. The meanDelay filter has the difference equation:
  * s*y[n] - (s-1)*y[n-1] = x[n]/2 + x[n-1]/2,
  * where increasing the stiffness (s) lowers the cutoff and increases the delay.
  */
@@ -99,11 +99,24 @@ struct pp_avg_fltr {
 	int64_t s_exp;
 };
 
+/* Servo flags for communication diagnostic tool */
+
+#define PP_SERVO_FLAG_VALID	    (1<<0)
+#define PP_SERVO_FLAG_WAIT_HW	(1<<1)
+
 struct pp_servo {
-	struct pp_time m_to_s_dly;
-	struct pp_time s_to_m_dly;
+	struct pp_time delayMS;
+	struct pp_time delaySM;
 	long long obs_drift;
 	struct pp_avg_fltr mpd_fltr;
+	struct pp_time meanDelay;
+	struct pp_time offsetFromMaster;
+
+	/* diagnostic data */
+	unsigned long flags; /* PP_SERVO_FLAG_INVALID, PP_SERVO_FLAG_VALID, ...*/
+	uint32_t update_count; /* incremented each time the servo is running */
+	char servo_state_name[32]; /* Updated by the servo itself */
+	int servo_locked; /* TRUE when servo is locked. This info can be used by HAL */
 };
 
 enum { /* The two sockets. They are called "net path" for historical reasons */
@@ -119,8 +132,8 @@ enum { /* The two sockets. They are called "net path" for historical reasons */
 struct pp_instance_cfg {
 	char port_name[16];
 	char iface_name[16];
-	int ext;   /* 0: none, 1: whiterabbit. 2: HA */
-	int mech;   /* 0: E2E, 1: P2P */
+	int  profile;   /* PPSI_PROFILE_PTP, PPSI_PROFILE_WR, PPSI_PROFILE_HA */
+	int delayMechanism;   /* Should be enum ENDelayMechanism but forced to int for configuration parsing */
 };
 
 /*
@@ -132,12 +145,13 @@ struct pp_instance {
 	struct pp_state_table_item *current_state_item;
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
+	int protocol_extension; /* PPSI_EXT_NONE, PPSI_EXT_WR, PPSI_EXT_L1S */
 	struct pp_ext_hooks *ext_hooks; /* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
 	int	role,			/* same as in config file */
-		proto,			/* same as in config file */
-		mech;			/* same as in config file */
+		proto;			/* same as in config file */
+	int delayMechanism;			/* same as in config file */
 
 	/* Pointer to global instance owning this pp_instance*/
 	struct pp_globals *glbs;
@@ -163,6 +177,7 @@ struct pp_instance {
 
 	/* Times, for the various offset computations */
 	struct pp_time t1, t2, t3, t4, t5, t6;		/* *the* stamps */
+	Integer32 t4_cf, t6_cf;	
 	uint64_t syncCF;				/* transp. clocks */
 	struct pp_time last_rcv_time, last_snt_time;	/* two temporaries */
 
@@ -173,7 +188,13 @@ struct pp_instance {
 	Integer16  frgn_rec_best;
 	struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS];
 
-	DSPort *portDS;				/* page 72 */
+	portDS_t *portDS;				/* page 72 */
+
+	/** (IEEE1588-2018) */
+	asymmetryCorrectionPortDS_t asymmetryCorrectionPortDS; /*draft P1588_v_29: page 99*/
+	timestampCorrectionPortDS_t timestampCorrectionPortDS; /*draft P1588_v_29: page 99*/
+
+	/** *********************** */
 
 	unsigned long timeouts[__PP_TO_ARRAY_SIZE];
 	UInteger16 recv_sync_sequence_id;
@@ -215,10 +236,10 @@ struct pp_globals {
 	struct pp_runtime_opts *rt_opts;
 
 	/* Data sets */
-	DSDefault *defaultDS;			/* page 65 */
-	DSCurrent *currentDS;			/* page 67 */
-	DSParent *parentDS;			/* page 68 */
-	DSTimeProperties *timePropertiesDS;	/* page 70 */
+	defaultDS_t *defaultDS;			/* page 65 */
+	currentDS_t *currentDS;			/* page 67 */
+	parentDS_t *parentDS;			/* page 68 */
+	timePropertiesDS_t *timePropertiesDS;	/* page 70 */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;

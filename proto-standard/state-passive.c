@@ -56,7 +56,7 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 					   * passive */
 
 	/* when the clock is using peer-delay, passive must send it too */
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		e  = pp_lib_may_issue_request(ppi);
 
 	/*
@@ -79,7 +79,7 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 	if (e != 0)
 		ppi->next_state = PPS_FAULTY;
 
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == PP_P2P_MECH) {
 		ppi->next_delay = pp_next_delay_2(ppi, 
 			PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
 	} else {

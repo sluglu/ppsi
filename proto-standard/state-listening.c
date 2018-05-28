@@ -20,7 +20,7 @@ static pp_action *actions[] = {
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
 	[PPM_ANNOUNCE]		= st_com_handle_announce,
-	/* skip signaling and management, for binary size */
+	[PPM_SIGNALING]	    = st_com_handle_signaling,
 };
 
 int pp_listening(struct pp_instance *ppi, void *buf, int len)
@@ -35,7 +35,7 @@ int pp_listening(struct pp_instance *ppi, void *buf, int len)
 		goto out;
 
 	/* when the clock is using peer-delay, listening must send it too */
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		e  = pp_lib_may_issue_request(ppi);
 	/*
 	 * The management of messages is now table-driven
@@ -58,7 +58,7 @@ out:
 	if (e != 0)
 		ppi->next_state = PPS_FAULTY;
 
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == PP_P2P_MECH) {
 		ppi->next_delay = pp_next_delay_2(ppi, 
 			PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
 	} else {

@@ -138,7 +138,7 @@ void msg_unpack_sync(void *buf, MsgSync *sync)
  */
 static void msg_set_announce_flags(struct pp_instance *ppi, UInteger8 *flags)
 {
-	struct DSTimeProperties *prop = DSPRO(ppi);
+	timePropertiesDS_t *prop = DSPRO(ppi);
 	const Boolean *ptrs[] = {
 		&prop->leap61,
 		&prop->leap59,
@@ -287,7 +287,7 @@ void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 	secs |= htonl(*(UInteger32 *) (buf + 36));
 	nsecs = htonl(*(UInteger32 *) (buf + 40));
 
-	/* cField add1ed by the caller, from already-converted header */
+	/* cField added by the caller, from already-converted header */
 	flwup->preciseOriginTimestamp.secs = secs;
 	flwup->preciseOriginTimestamp.scaled_nsecs = nsecs << 16;
 }
@@ -538,7 +538,7 @@ static int msg_issue_pdelay_req(struct pp_instance *ppi)
 
 int msg_issue_request(struct pp_instance *ppi)
 {
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		return msg_issue_pdelay_req(ppi);
 	return msg_issue_delay_req(ppi);
 }

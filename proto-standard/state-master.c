@@ -23,7 +23,8 @@ static pp_action *actions[] = {
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
 	[PPM_ANNOUNCE]		= st_com_handle_announce,
-	/* skip signaling and management, for binary size */
+	[PPM_SIGNALING]		= st_com_handle_signaling,
+	/* skip management, for binary size */
 };
 
 static int master_handle_delay_request(struct pp_instance *ppi,
@@ -67,7 +68,7 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	/* when the clock is using peer-delay, the master must send it too */
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		pp_lib_may_issue_request(ppi);
 
 	/*
@@ -117,7 +118,7 @@ out:
 	}
 
 	if (pre) {
-		if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+		if (CONFIG_HAS_P2P && ppi->delayMechanism == PP_P2P_MECH) {
 			ppi->next_delay = pp_next_delay_2(ppi,
 				PP_TO_QUALIFICATION, PP_TO_REQUEST);
 		} else {
@@ -125,7 +126,7 @@ out:
 				PP_TO_QUALIFICATION);			
 		}		
 	} else {
-		if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+		if (CONFIG_HAS_P2P && ppi->delayMechanism == PP_P2P_MECH) {
 			ppi->next_delay = pp_next_delay_3(ppi,
 				PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
 		} else {

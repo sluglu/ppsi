@@ -28,7 +28,7 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-d STRING", "diagnostic level (see diag-macros.h)"},
 	CMD_LINE_SEPARATOR,
 	{"-t", "do not adjust the system clock"},
-	{"-w NUMBER", "specify meanPathDelay filter stiffness"},
+	{"-w NUMBER", "specify meanDelay filter stiffness"},
 	CMD_LINE_SEPARATOR,
 	//{"-u ADDRESS", "also send uni-cast to ADDRESS\n"}, -- FIXME: useful?
 	{"-g", "run as slave only"},

@@ -9,14 +9,19 @@
 #ifndef __WREXT_WR_API_H__
 #define __WREXT_WR_API_H__
 
-/* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
- * structure */
-#define WRS_PPSI_SHMEM_VERSION 31 /* changed wrs_shm_head */
+#if CONFIG_EXT_WR == 1
+#define PROTO_EXT_WR (1)
+#else
+#define PROTO_EXT_WR (0)
+#endif
+
+
+#if CONFIG_EXT_WR == 1
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__
 #include <ppsi/lib.h>
-#include <wrh/wrh.h>
+#include "../include/hw-specific/wrh.h"
 #include "wr-constants.h"
 
 /*
@@ -24,15 +29,20 @@
  * (see wrspec.v2-06-07-2011, page 17)
  */
 struct wr_dsport {
+	wrh_portds_head_t head; /* Must on top of portDS */
+
+	Boolean parentExtModeOn;
+	FixedDelta deltaTx;
+	FixedDelta deltaRx;
+	FixedDelta otherNodeDeltaTx;
+	FixedDelta otherNodeDeltaRx;
+	Boolean doRestart;
+
 	Enumeration8 wrConfig;
 	Enumeration8 wrMode;
-	Boolean wrModeOn;
-	Boolean ppsOutputOn;
 	Enumeration8  wrPortState; /* used for sub-states during calibration */
 	/* FIXME check doc: knownDeltaTx, knownDeltaRx, deltasKnown?) */
 	Boolean calibrated;
-	FixedDelta deltaTx;
-	FixedDelta deltaRx;
 	UInteger32 wrStateTimeout;
 	UInteger8 wrStateRetry;
 	UInteger32 calPeriod;		/* microseconsds, never changed */
@@ -41,16 +51,12 @@ struct wr_dsport {
 	Boolean parentIsWRnode; /* FIXME Not in the doc */
 	/* FIXME check doc: (parentWrMode?) */
 	Enumeration16 msgTmpWrMessageID; /* FIXME Not in the doc */
-	Boolean parentWrModeOn;
 	Boolean parentCalibrated;
 
 	/* FIXME: are they in the doc? */
 	UInteger16 otherNodeCalSendPattern;
 	UInteger32 otherNodeCalPeriod;/* microseconsds, never changed */
 	UInteger8 otherNodeCalRetry;
-	FixedDelta otherNodeDeltaTx;
-	FixedDelta otherNodeDeltaRx;
-	Boolean doRestart;
 };
 
 /* This uppercase name matches "DSPOR(ppi)" used by standard protocol */
@@ -111,33 +117,23 @@ int wr_servo_got_delay(struct pp_instance *ppi);
 int wr_servo_update(struct pp_instance *ppi);
 
 struct wr_servo_state {
-	struct wrh_servo_head servo_head; /* Must be on top of the structure */
-	char if_name[16]; /* Informative, for the monitoring tool through shmem */
-	unsigned long flags;
-
-#define WR_FLAG_VALID	1
-#define WR_FLAG_WAIT_HW	2
-
 	int state;
 
 	/* These fields are used by servo code, after asetting at init time */
-	int32_t delta_tx_m;
-	int32_t delta_rx_m;
-	int32_t delta_tx_s;
-	int32_t delta_rx_s;
+	int32_t delta_txm_ps;
+	int32_t delta_rxm_ps;
+	int32_t delta_txs_ps;
+	int32_t delta_rxs_ps;
 	int32_t fiber_fix_alpha;
 	int32_t clock_period_ps;
 
 	/* Following fields are for monitoring/diagnostics (use w/ shmem) */
-	struct pp_time mu;
-	int64_t picos_mu;
-	int32_t cur_setpoint;
-	int64_t delta_ms;
-	uint32_t update_count;
-	int tracking_enabled;
-	char servo_state_name[32];
-	int64_t skew;
-	int64_t offset;
+	struct pp_time delayMM;
+	int64_t        delayMM_ps;
+	int32_t        cur_setpoint;
+	int64_t        delayMS_ps;
+	int            tracking_enabled;
+	int64_t        skew;
 
 	/* Values used by snmp. Values are increased at servo update when
 	 * erroneous condition occurs. */
@@ -148,15 +144,9 @@ struct wr_servo_state {
 
 	/* These fields are used by servo code, across iterations */
 	struct pp_time t1, t2, t3, t4, t5, t6;
-	int64_t delta_ms_prev;
+	int64_t        prev_delayMS_ps;
 	int missed_iters;
 };
-
-int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s);
-int wr_e2e_offset(struct pp_instance *ppi,
-		  struct wr_servo_state *s, struct pp_time *ts_offset_hw);
-int wr_p2p_offset(struct pp_instance *ppi,
-		  struct wr_servo_state *s, struct pp_time *ts_offset_hw);
 
 
 /* All data used as extension ppsi-wr must be put here */
@@ -165,5 +155,7 @@ struct wr_data {
 };
 
 extern struct pp_ext_hooks wr_ext_hooks;
+
 #endif /* __ASSEMBLY__ */
+#endif  /* CONFIG_EXT_WR == 1*/
 #endif /* __WREXT_WR_API_H__ */

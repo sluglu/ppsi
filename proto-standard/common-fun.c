@@ -121,7 +121,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 	int e = 0;
 
 	/* if not in P2P mode, just return */
-	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+	if (!CONFIG_HAS_P2P || ppi->delayMechanism != P2P)
 		return 0;
 	
 	msg_unpack_pdelay_resp(buf, &resp);
@@ -166,7 +166,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	int e = 0;
 
 	/* if not in P2P mode, just return */
-	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+	if (!CONFIG_HAS_P2P || ppi->delayMechanism != P2P)
 		return 0;
 	
 	msg_unpack_pdelay_resp_follow_up(buf, &respFllw);
@@ -197,7 +197,7 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 	int e = 0;
 
 	/* if not in P2P mode, just return */
-	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
+	if (!CONFIG_HAS_P2P || ppi->delayMechanism != P2P)
 		return 0;
 	
 	if (ppi->ext_hooks->handle_preq)

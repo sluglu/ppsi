@@ -217,20 +217,22 @@ static struct pp_argname arg_profile[] = {
 	{"ptp", PPSI_PROFILE_PTP},
 #if CONFIG_PROFILE_WR == 1
 	{"whiterabbit", PPSI_PROFILE_WR},
+	{"wr", PPSI_PROFILE_WR},
 #endif
 #if CONFIG_PROFILE_HA == 1
-	{"highaccuracy", PPSI_PROFILE_WR},
+	{"highaccuracy", PPSI_PROFILE_HA},
+	{"ha", PPSI_PROFILE_HA},
 #endif
 	{},
 };
-static struct pp_argname arg_mech[] = {
-	{"request-response", PP_E2E_MECH},
-	{"delay", PP_E2E_MECH},
-	{"e2e", PP_E2E_MECH},
+static struct pp_argname arg_delayMechanism[] = {
+	{"request-response", E2E},
+	{"delay", E2E},
+	{"e2e", E2E},
 #if CONFIG_HAS_P2P == 1
-	{"peer-delay", PP_P2P_MECH},
-	{"pdelay", PP_P2P_MECH},
-	{"p2p", PP_P2P_MECH},
+	{"peer-delay", P2P},
+	{"pdelay", P2P},
+	{"p2p", P2P},
 #endif
 	{},
 };
@@ -241,9 +243,9 @@ static struct pp_argline pp_global_arglines[] = {
 	LEGACY_OPTION(f_if, "iface", ARG_STR),
 	INST_OPTION_INT("proto", ARG_NAMES, arg_proto, proto),
 	INST_OPTION_INT("role", ARG_NAMES, arg_role, role),
-	INST_OPTION_INT("extension", ARG_NAMES, arg_profile, cfg.ext), /* TODO: stay for backward compatibility. Should be removed in the future */
-	INST_OPTION_INT("profile", ARG_NAMES, arg_profile, cfg.ext),
-	INST_OPTION_INT("mechanism", ARG_NAMES, arg_mech, cfg.mech),
+	INST_OPTION_INT("extension", ARG_NAMES, arg_profile, cfg.profile), /* TODO: stay for backward compatibility. Should be removed in the future */
+	INST_OPTION_INT("profile", ARG_NAMES, arg_profile, cfg.profile),
+	INST_OPTION_INT("mechanism", ARG_NAMES, arg_delayMechanism, cfg.delayMechanism),
 	LEGACY_OPTION(f_vlan, "vlan", ARG_STR),
 	LEGACY_OPTION(f_diag, "diagnostic", ARG_STR),
 	RT_OPTION_INT("clock-class", ARG_INT, NULL, clock_quality.clockClass),

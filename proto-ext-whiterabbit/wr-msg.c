@@ -78,7 +78,7 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 	if (WR_DSPOR(ppi)->calibrated)
 		wr_flags = WR_IS_CALIBRATED | wr_flags;
 
-	if (WR_DSPOR(ppi)->wrModeOn)
+	if (WR_DSPOR(ppi)->head.extModeOn)
 		wr_flags = WR_IS_WR_MODE | wr_flags;
 	*(UInteger16 *)(buf + 76) = htons(wr_flags);
 }
@@ -111,16 +111,25 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 		ann->ext_specific = 0; 		
 }
 
+static inline int32_t delta_to_ps(struct FixedDelta d)
+{
+	_UInteger64 *sps = &d.scaledPicoseconds; /* ieee type :( */
+
+	return (sps->lsb >> 16) | (sps->msb << 16);
+}
+
 /* White Rabbit: packing WR Signaling messages*/
 int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 {
 	void *buf;
 	UInteger16 len = 0;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	struct wr_servo_state *s =&((struct wr_data *)ppi->ext_data)->servo_state;
 
-	if ((WR_DSPOR(ppi)->wrMode == NON_WR) || (wr_msg_id == ANN_SUFIX)) {
+	if ( (wrp->wrMode == NON_WR) || (wr_msg_id == ANN_SUFIX)) {
 		pp_diag(ppi, frames, 1,
 			  "BUG: Trying to send invalid wr_msg mode=%x id=%x",
-			  WR_DSPOR(ppi)->wrMode, wr_msg_id);
+			  wrp->wrMode, wr_msg_id);
 		return 0;
 	}
 
@@ -152,7 +161,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 
 	switch (wr_msg_id) {
 	case CALIBRATE:
-		if (WR_DSPOR(ppi)->calibrated) {
+		if (wrp->calibrated) {
 			put_be16(buf+56,
 				 (WR_DSPOR(ppi)->calRetry | 0x0000));
 		} else {
@@ -165,14 +174,20 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 
 	case CALIBRATED: /* new fsm */
 		/* delta TX */
-		put_be32(buf+56, WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.msb);
-		put_be32(buf+60, WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.lsb);
+		put_be32(buf+56, wrp->deltaTx.scaledPicoseconds.msb);
+		put_be32(buf+60, wrp->deltaTx.scaledPicoseconds.lsb);
 
 		/* delta RX */
-		put_be32(buf+64, WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.msb);
-		put_be32(buf+68, WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.lsb);
+		put_be32(buf+64, wrp->deltaRx.scaledPicoseconds.msb);
+		put_be32(buf+68, wrp->deltaRx.scaledPicoseconds.lsb);
 		len = 24;
 
+		/*JCB: Hack. serrvo_init() called too early. PTP state machine must be modify. */
+		/* We should stay in UNCALIBRATED state during WR protocol */
+		s->delta_txm_ps = delta_to_ps(wrp->otherNodeDeltaTx);
+		s->delta_rxm_ps = delta_to_ps(wrp->otherNodeDeltaRx);
+		s->delta_txs_ps = delta_to_ps(wrp->deltaTx);
+		s->delta_rxs_ps = delta_to_ps(wrp->deltaRx);
 		break;
 
 	default:
@@ -198,6 +213,8 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	UInteger16 tlv_magicNumber;
 	UInteger16 tlv_versionNumber;
 	Enumeration16 wr_msg_id;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	struct wr_servo_state *s =&((struct wr_data *)ppi->ext_data)->servo_state;
 
 	memcpy(&wrsig_msg->targetPortIdentity.clockIdentity, (buf + 34),
 	       PP_CLOCK_IDENTITY_LENGTH);
@@ -244,11 +261,11 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 
 	switch (wr_msg_id) {
 	case CALIBRATE:
-		WR_DSPOR(ppi)->otherNodeCalSendPattern =
+		wrp->otherNodeCalSendPattern =
 			0x00FF & (get_be16(buf+56) >> 8);
-		WR_DSPOR(ppi)->otherNodeCalRetry =
+		wrp->otherNodeCalRetry =
 			0x00FF & get_be16(buf+56);
-		WR_DSPOR(ppi)->otherNodeCalPeriod = get_be32(buf+58);
+		wrp->otherNodeCalPeriod = get_be32(buf+58);
 
 		pp_diag(ppi, frames, 1, "otherNodeCalPeriod "
 			"from frame = 0x%x | stored = 0x%x \n", get_be32(buf+58),
@@ -258,16 +275,20 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 
 	case CALIBRATED:
 		/* delta TX */
-		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds.msb =
+		wrp->otherNodeDeltaTx.scaledPicoseconds.msb =
 			get_be32(buf+56);
-		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds.lsb =
+		wrp->otherNodeDeltaTx.scaledPicoseconds.lsb =
 			get_be32(buf+60);
 
 		/* delta RX */
-		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds.msb =
+		wrp->otherNodeDeltaRx.scaledPicoseconds.msb =
 			get_be32(buf+64);
-		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds.lsb =
+		wrp->otherNodeDeltaRx.scaledPicoseconds.lsb =
 			get_be32(buf+68);
+		/*JCB: Hack. serrvo_init() called too early. PTP state machine must be modify. */
+		/* We should stay in UNCALIBRATED state during WR protocol */
+		s->delta_txm_ps = delta_to_ps(wrp->otherNodeDeltaTx);
+		s->delta_rxm_ps = delta_to_ps(wrp->otherNodeDeltaRx);
 		break;
 
 	default:

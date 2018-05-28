@@ -34,10 +34,10 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len)
 	ppi->next_delay = wrp->wrStateTimeout;
 
 	poll_ret = WRH_OPER()->locking_poll(ppi, 0);
-	if (poll_ret == WR_SPLL_READY) {
+	if (poll_ret == WRH_SPLL_READY) {
 		ppi->next_state = WRS_LOCKED;
 		WRH_OPER()->locking_disable(ppi);
-	} else if (poll_ret == WR_SPLL_CALIB_NOT_READY) {
+	} else if (poll_ret == WRH_SPLL_CALIB_NOT_READY) {
 		/* rxts_calibration not ready, enter the same state without
 		 * a delay */
 		ppi->next_delay = 0;

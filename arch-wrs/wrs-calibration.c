@@ -24,10 +24,10 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 
 	p = pp_wrs_lookup_port(ppi->iface_name);
 	if (!p)
-		return WR_HW_CALIB_NOT_FOUND;
+		return WRH_HW_CALIB_NOT_FOUND;
 
 	if(!p->calib.tx_calibrated || !p->calib.rx_calibrated)
-		return WR_HW_CALIB_NOT_FOUND;
+		return WRH_HW_CALIB_NOT_FOUND;
 
 	/*
 	 * Like in wrs_net_init, we build fields that were in
@@ -54,7 +54,7 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 		*fix_alpha = port_fix_alpha;
 	if(clock_period)
 		*clock_period =  16000; /* REF_CLOCK_PERIOD_PS */
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }
 
 int wrs_calibrating_disable(struct pp_instance *ppi, int txrx)
@@ -73,9 +73,9 @@ int wrs_calibrating_poll(struct pp_instance *ppi, int txrx, uint32_t *delta)
 
 	wrs_read_calibration_data(ppi, &delta_tx, &delta_rx, NULL, NULL);
 
-	*delta = (txrx == WR_HW_CALIB_TX) ? delta_tx : delta_rx;
+	*delta = (txrx == WRH_HW_CALIB_TX) ? delta_tx : delta_rx;
 
-	return WR_HW_CALIB_READY;
+	return WRH_HW_CALIB_READY;
 }
 
 int wrs_calibration_pattern_enable(struct pp_instance *ppi,
@@ -83,10 +83,10 @@ int wrs_calibration_pattern_enable(struct pp_instance *ppi,
 				    unsigned int calib_pattern,
 				    unsigned int calib_pattern_len)
 {
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }
 
 int wrs_calibration_pattern_disable(struct pp_instance *ppi)
 {
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }

@@ -10,9 +10,9 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
 	wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
-	wrp->wrModeOn = 0;
+	wrp->head.extModeOn = 0;
 	wrp->parentWrConfig = NON_WR;
-	wrp->parentWrModeOn = 0;
+	wrp->parentExtModeOn = 0;
 	wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 
 #ifdef CONFIG_ABSCAL
@@ -38,7 +38,7 @@ static int wr_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 {
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 
-	if (ppi->cfg.ext == PPSI_EXT_WR) {
+	if (ppi->protocol_extension == PPSI_EXT_WR) {
 		switch (ppi->role) {
 			case PPSI_ROLE_MASTER:
 				WR_DSPOR(ppi)->wrConfig = WR_M_ONLY;
@@ -71,25 +71,12 @@ static int wr_master_msg(struct pp_instance *ppi, void *buf, int len,
 			 int msgtype)
 {
 	MsgSignaling wrsig_msg;
-	struct pp_time *time = &ppi->last_rcv_time;
 
 	if (msgtype != PPM_NO_MESSAGE)
 		pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	switch (msgtype) {
-
-	/* This case is modified from the default one */
-	case PPM_DELAY_REQ:
-		msg_issue_delay_resp(ppi, time); /* no error check */
-		msgtype = PPM_NO_MESSAGE;
-		break;
-
-	case PPM_PDELAY_REQ:
-		/* nothing to do */
-		break;
-
-	/* This is missing in the standard protocol */
-	case PPM_SIGNALING:
+	if ( msgtype== PPM_SIGNALING ) {
+  	    /* This is missing in the standard protocol */
 		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
 				 &(WR_DSPOR(ppi)->msgTmpWrMessageID));
 		if ((WR_DSPOR(ppi)->msgTmpWrMessageID == SLAVE_PRESENT) &&
@@ -98,7 +85,6 @@ static int wr_master_msg(struct pp_instance *ppi, void *buf, int len,
 			wr_handshake_init(ppi, PPS_MASTER);
 		}
 		msgtype = PPM_NO_MESSAGE;
-		break;
 	}
 
 	return msgtype;
@@ -113,7 +99,7 @@ static int wr_new_slave(struct pp_instance *ppi, void *buf, int len)
 
 static int wr_handle_resp(struct pp_instance *ppi)
 {
-	struct pp_time *ofm = &DSCUR(ppi)->offsetFromMaster;
+	struct pp_time *ofm = &SRV(ppi)->offsetFromMaster;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
@@ -125,7 +111,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	 * After we adjusted the pps counter, stamps are invalid, so
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
-	if (!wrp->wrModeOn) {
+	if (!wrp->head.extModeOn) {
 		if (is_incorrect(&ppi->t2) || is_incorrect(&ppi->t3)) {
 			pp_diag(ppi, servo, 1,
 				"T2 or T3 incorrect, discarding tuple\n");
@@ -135,10 +121,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 		/*
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
-		if (ofm->secs)
-			WRH_OPER()->enable_timing_output(ppi, 0);
-		else
-			WRH_OPER()->enable_timing_output(ppi, 1);
+		WRH_OPER()->enable_timing_output(ppi, ofm->secs==0);
 
 	}
 	wr_servo_got_delay(ppi);
@@ -152,7 +135,7 @@ static void wr_s1(struct pp_instance *ppi, struct pp_frgn_master *frgn_master)
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
 		((frgn_master->ext_specific & WR_NODE_MODE) != NON_WR);
-	WR_DSPOR(ppi)->parentWrModeOn =
+	WR_DSPOR(ppi)->parentExtModeOn =
 		(frgn_master->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
 	WR_DSPOR(ppi)->parentCalibrated =
 			((frgn_master->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
@@ -171,7 +154,7 @@ int wr_execute_slave(struct pp_instance *ppi)
 	if ((ppi->state == PPS_SLAVE) &&
 		(WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
 		(WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
-	    (!WR_DSPOR(ppi)->wrModeOn || !WR_DSPOR(ppi)->parentWrModeOn)) {
+	    (!WR_DSPOR(ppi)->head.extModeOn || !WR_DSPOR(ppi)->parentExtModeOn)) {
 		/* We must start the handshake as a WR slave */
 		wr_handshake_init(ppi, PPS_SLAVE);
 	}
@@ -208,12 +191,12 @@ static int wr_handle_followup(struct pp_instance *ppi,
 			      struct pp_time *t1) /* t1 == &ppi->t1 */
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	if (!WR_DSPOR(ppi)->wrModeOn)
+	if (!WR_DSPOR(ppi)->head.extModeOn)
 		return 0;
 
 	wr_servo_got_sync(ppi, t1, &ppi->t2);
 
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		wr_servo_update(ppi);
 
 	return 1; /* the caller returns too */
@@ -222,7 +205,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	struct pp_time *ofm = &DSCUR(ppi)->offsetFromMaster;
+	struct pp_time *ofm = &SRV(ppi)->offsetFromMaster;
 
 	/*
 	 * If no WR mode is on, run normal code, if T2/T3 are valid.
@@ -230,7 +213,7 @@ static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
 
-	if (!wrp->wrModeOn) {
+	if (!wrp->head.extModeOn) {
 		if (is_incorrect(&ppi->t3) || is_incorrect(&ppi->t6)) {
 			pp_diag(ppi, servo, 1,
 				"T3 or T6 incorrect, discarding tuple\n");
@@ -240,10 +223,7 @@ static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 		/*
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
-		if (ofm->secs)
-			WRH_OPER()->enable_timing_output(ppi, 0);
-		else
-			WRH_OPER()->enable_timing_output(ppi, 1);
+		WRH_OPER()->enable_timing_output(ppi, ofm->secs==0);
 
 		return 0;
 	}
@@ -320,15 +300,15 @@ static void wr_state_change(struct pp_instance *ppi)
 	
 	/* if we are leaving the WR locked states reset the WR process */
 	if ((ppi->next_state != ppi->state) &&	
-		(wrp->wrModeOn == TRUE) &&
+		(wrp->head.extModeOn == TRUE) &&
 		((ppi->state == PPS_SLAVE) ||
 		 (ppi->state == PPS_MASTER))) {
 		
 		wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
 		wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
-		wrp->wrModeOn = FALSE;
+		wrp->head.extModeOn = FALSE;
 		wrp->parentWrConfig = NON_WR;
-		wrp->parentWrModeOn = FALSE;
+		wrp->parentExtModeOn = FALSE;
 		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 		
 		if (ppi->state == PPS_SLAVE)

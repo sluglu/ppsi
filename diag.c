@@ -32,7 +32,17 @@ void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
 		return;
 
 	/* Use the normal output channel for diagnostics */
-	pp_printf("%s-%i-%s: ", thing_name[th], level, name);
+	if (PP_DIAG_EXTRA_PRINT_TIME) {
+		int hours, minutes, seconds;
+
+		if (ppi && ppi->t_ops && ppi->t_ops->get_utc_time )
+			ppi->t_ops->get_utc_time(ppi, &hours, &minutes, &seconds);
+		else
+			hours=minutes=seconds=0;
+		pp_printf("%02d:%02d:%02d %s-%i-%s: ", hours, minutes,seconds,thing_name[th], level, name);
+	} else {
+		pp_printf("%s-%i-%s: ", thing_name[th], level, name);
+	}
 	va_start(args, fmt);
 	pp_vprintf(fmt, args);
 	va_end(args);

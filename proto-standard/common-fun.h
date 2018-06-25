@@ -13,20 +13,11 @@
 
 /* Contains all functions common to more than one state */
 int st_com_check_announce_receive_timeout(struct pp_instance *ppi);
-
-
-int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
-			    int len);
-
-int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
-			    int len);
-
-int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
-				     void *buf, int len);
-
-int st_com_handle_announce(struct pp_instance *ppi, void *buf, 
-				int len);
-
+int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf, int len);
+int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf, int len);
+int st_com_peer_handle_pres_followup(struct pp_instance *ppi, void *buf, int len);
+int st_com_handle_announce(struct pp_instance *ppi, void *buf,  int len);
+int st_com_handle_signaling(struct pp_instance *ppi, void *buf, int len);
 
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype);
 
@@ -36,8 +27,13 @@ static inline int __recv_and_count(struct pp_instance *ppi, void *buf, int len,
 {
 	int ret;
 	ret = ppi->n_ops->recv(ppi, buf, len, t);
-	if (ret > 0)
+	if (ret > 0) {
+		/* Adjust reception timestamp: ts'= ts - ingressLatency - semistaticLatency*/
+		TimeInterval adjust=ppi->timestampCorrectionPortDS.ingressLatency;
+		adjust+=ppi->timestampCorrectionPortDS.semistaticLatency;
+		pp_time_sub_interval(t,adjust);
 		ppi->ptp_rx_count++;
+	}
 	return ret;
 }
 

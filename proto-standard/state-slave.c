@@ -206,9 +206,13 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 
 	/* upgrade from uncalibrated to slave or back*/
 	if (uncalibrated) {
-		/* TODO add implementation specific MASTER_CLOCK_SELECTED event
-		   for now just change directly to new state on next round */
-		ppi->next_state = PPS_SLAVE;
+		if ( ppi->ext_hooks->ready_for_slave != NULL )  {
+			if ( (*ppi->ext_hooks->ready_for_slave)(ppi) ) {
+				ppi->next_state = PPS_SLAVE;
+			}
+		} else {
+	           ppi->next_state = PPS_SLAVE;
+		}
 	} else {
 		/* TODO add implementation specific SYNCHRONIZATION FAULT
 		 * event */
@@ -217,7 +221,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	/* when entering uncalibrated init servo */
-	if ((ppi->state == PPS_UNCALIBRATED) && (ppi->is_new_state)) {
+	if (uncalibrated && (ppi->is_new_state)) {
 		memset(&ppi->t1, 0, sizeof(ppi->t1));
 		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");	
 		pp_servo_init(ppi);

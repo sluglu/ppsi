@@ -35,6 +35,20 @@ void normalize_pp_time(struct pp_time *t)
 	t->scaled_nsecs *= sign;
 }
 
+/* Add a TimeInterval to a pp_time */
+void pp_time_add_interval(struct pp_time *t1, TimeInterval t2)
+{
+	t1->scaled_nsecs += t2;
+	normalize_pp_time(t1);
+}
+
+/* Substract a TimeInterval to a pp_time */
+void pp_time_sub_interval(struct pp_time *t1, TimeInterval t2)
+{
+	t1->scaled_nsecs -= t2;
+	normalize_pp_time(t1);
+}
+
 void pp_time_add(struct pp_time *t1, struct pp_time *t2)
 {
 	t1->secs += t2->secs;

@@ -134,6 +134,10 @@ struct pp_instance_cfg {
 	char iface_name[16];
 	int  profile;   /* PPSI_PROFILE_PTP, PPSI_PROFILE_WR, PPSI_PROFILE_HA */
 	int delayMechanism;   /* Should be enum ENDelayMechanism but forced to int for configuration parsing */
+	int64_t egressLatency_ps;
+	int64_t ingressLatency_ps;
+	int64_t constantAsymmetry_ps;
+	double delayCoefficient;
 };
 
 /*

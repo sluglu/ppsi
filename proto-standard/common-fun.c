@@ -220,6 +220,14 @@ int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	return 0;
 }
 
+int st_com_handle_signaling(struct pp_instance *ppi, void *buf, int len)
+{
+	if (ppi->ext_hooks->handle_signaling)
+		return ppi->ext_hooks->handle_signaling(ppi,buf,len);
+	return 0;
+}
+
+
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 {
 	int msgtype = ((char *)ppi->tx_ptp)[0] & 0xf;
@@ -235,7 +243,11 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 			pp_msgtype_info[msgtype].name, msgtype);
 		return PP_SEND_ERROR;
 	}
-	/* FIXME: diagnosticst should be looped back in the send method */
+	/* The send method updates ppi->last_snt_time with the Tx timestamp. */
+	/* This timestamp must be corrected with the egressLatency */
+	pp_time_add_interval(t,ppi->timestampCorrectionPortDS.egressLatency);
+
+	/* FIXME: diagnostics should be looped back in the send method */
 	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d.%03d (%s)\n",
 		msglen, (int)t->secs, (int)(t->scaled_nsecs >> 16),
 		((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,

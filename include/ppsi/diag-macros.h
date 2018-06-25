@@ -69,6 +69,9 @@ extern void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
 #  define PP_HAS_DIAG 1
 #endif
 
+/* Constant used to enable extra diagnostic information - Inserted at compilation time */
+#define PP_DIAG_EXTRA_PRINT_TIME (1 && PP_HAS_DIAG) /* Print time on each pp_diag calls */
+
 /* So, this is the function that is to be used by real ppsi code */
 #define pp_diag(ppi_, th_, level_, ...)					\
 	({								\

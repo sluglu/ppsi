@@ -166,7 +166,7 @@ static void dump_msg_resp_etc(char *prefix, char *s, struct ptp_sync_etc *p)
 }
 
 /* TLV dumper, now white-rabbit aware */
-static int dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
+static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 {
 	/* the field includes 6 bytes of the header, ecludes 4 of them. Bah! */
 	int explen = ntohs(tlv->len) + 4;
@@ -276,6 +276,29 @@ static int dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 	return explen;
 }
 
+static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
+{
+	/* the field includes 6 bytes of the header, ecludes 4 of them. Bah! */
+	int explen = ntohs(tlv->len) + 4;
+
+	printf("TLV: type %04x len %i conf %02x act %02x ",
+			ntohs(tlv->type), explen,
+			(int) tlv->config,
+			(int) tlv->active);
+	if (explen > totallen) {
+		printf("%sTLV: too short (expected %i, total %i)\n", prefix,
+		       explen, totallen);
+		return totallen;
+	}
+
+	/* later:  if (memcmp(tlv->oui, "\x08\x00\x30", 3)) ... */
+
+	/* Now dump non-wr tlv in binary, count only payload */
+	dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
+		   explen - sizeof(*tlv));
+	return explen;
+}
+
 /* A big function to dump the ptp information */
 static void dump_payload(char *prefix, void *pl, int len)
 {
@@ -285,6 +308,7 @@ static void dump_payload(char *prefix, void *pl, int len)
 	int version = h->versionPTP_and_reserved & 0xf;
 	int messageType = h->type_and_transport_specific & 0xf;
 	char *cfptr = (void *)&h->correctionField;
+	int tlv_size=0;
 
 	if (version != 2) {
 		printf("%sVERSION: unsupported (%i)\n", prefix, version);
@@ -326,11 +350,13 @@ static void dump_payload(char *prefix, void *pl, int len)
 		CASE(G, ANNOUNCE);
 		dump_msg_announce(prefix, msg_specific);
 		donelen = 64;
+		tlv_size=sizeof(struct ptp_tlv);
 		break;
 
 		CASE(G, SIGNALING);
 		dump_1port(prefix, "MSG-SIGNALING: target-port ", msg_specific);
 		donelen = 44;
+		tlv_size=sizeof(struct l1sync_tlv);
 		break;
 
 #if __STDC_HOSTED__ /* Avoid pdelay dump within ppsi, we don't use it */
@@ -360,14 +386,22 @@ static void dump_payload(char *prefix, void *pl, int len)
 	 * Dump any trailing TLV, but ignore a trailing 2-long data hunk.
 	 * The trailing zeroes appear with less-than-minimum Eth messages.
 	 */
+
 	while (donelen < len && len - donelen > 2) {
 		int n = len - donelen;
-		if (n < sizeof(struct ptp_tlv)) {
+		if (n < tlv_size) {
 			printf("%sTLV: too short (%i - %i = %i)\n", prefix,
 			       len, donelen, n);
 			break;
 		}
-		donelen += dump_tlv(prefix, pl + donelen, n);
+		switch ( messageType) {
+		case PPM_ANNOUNCE :
+			donelen += wr_dump_tlv(prefix, pl + donelen, n);
+			break;
+		case PPM_SIGNALING :
+			donelen += l1sync_dump_tlv(prefix, pl + donelen, n);
+			break;
+		}
 	}
 out:
 	/* Finally, binary dump of it all */

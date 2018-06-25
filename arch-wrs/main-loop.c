@@ -50,7 +50,15 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				ppi->iface_name, ppi->link_up ? "up":"down");
 
 			if (ppi->link_up) {
+				uint32_t bit_slide_ps;
+
 				ppi->state = PPS_INITIALIZING;
+				if ( wrs_read_correction_data(ppi,NULL,NULL,&bit_slide_ps)!= WRH_HW_CALIB_OK ) {
+				      pp_diag(ppi, fsm, 1, "Cannot read bit_slide value values\n");
+				      bit_slide_ps=0;
+				}
+		        pp_diag(ppi, fsm, 1, "semistaticLatency(bit-slide)=%u [ps]\n",bit_slide_ps);
+				ppi->timestampCorrectionPortDS.semistaticLatency= picos_to_interval(bit_slide_ps);
 			}
 			else {
 				ppi->next_state = PPS_DISABLED;

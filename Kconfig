@@ -116,7 +116,7 @@ config PROFILE_WR
 
 config PROFILE_HA
 	bool
-	default n if ARCH_WRS || ARCH_WRPC
+	default y if ARCH_WRS || ARCH_WRPC
 
 config PROFILE_PTP
 	bool

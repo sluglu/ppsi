@@ -74,7 +74,7 @@ struct wrh_operations {
 
 	int (*read_calib_data)(struct pp_instance *ppi,
 			      uint32_t *deltaTx, uint32_t *deltaRx,
-			      int32_t *fix_alpha, int32_t *clock_period);
+			      int32_t *fix_alpha, int32_t *clock_period, uint32_t *bit_slide_ps);
 	int (*calib_disable)(struct pp_instance *ppi, int txrx);
 	int (*calib_enable)(struct pp_instance *ppi, int txrx);
 	int (*calib_poll)(struct pp_instance *ppi, int txrx, uint32_t *delta);
@@ -85,10 +85,8 @@ struct wrh_operations {
 	int (*calib_pattern_disable)(struct pp_instance *ppi);
 	int (*enable_timing_output)(struct pp_instance *ppi, int enable);
 	int (*servo_hook)(struct pp_instance *ppi, int action);
-	int (*read_corr_data)(struct pp_instance *ppi, int64_t *delayCoeff,
-			      int64_t *ingressLatency,   int64_t *egressLatency,
-			      int64_t *msgTPointLatency, int64_t *delayAsymmetry,
-			      int64_t *fixAlpha,         int32_t *clock_period );
+	int (*read_corr_data)(struct pp_instance *ppi, int64_t *fixAlpha,
+			int32_t *clock_period, uint32_t *bit_slide_ps);
 
 };
 

@@ -82,6 +82,42 @@ int f_simple_int(struct pp_argline *l, int lineno,
 	return 0;
 }
 
+static inline void ASSIGN_INT64_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    int64_t v)
+{
+	if (l->needs_port)
+		*(int64_t *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
+	else
+		*(int64_t *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+}
+
+static int f_simple_int64(struct pp_argline *l, int lineno,
+		 struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(l->needs_port);
+	ASSIGN_INT64_FIELD(l, ppg, arg->i64);
+	return 0;
+}
+
+static inline void ASSIGN_DOUBLE_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    double v)
+{
+	if (l->needs_port)
+		*(double *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
+	else
+		*(double *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+}
+
+static int f_simple_double( struct pp_argline *l, int lineno,
+		 struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(l->needs_port);
+	ASSIGN_DOUBLE_FIELD(l, ppg, arg->d);
+	return 0;
+}
+
 static int f_if(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		union pp_cfg_arg *arg)
 {
@@ -195,7 +231,7 @@ static int f_announce_intvl(struct pp_argline *l, int lineno,
 		pp_printf("config line %i: announce interval out of range: %i, "
 			  "forced to %i\n", lineno, arg->i, i);
 	}
-	GOPTS(ppg)->announce_intvl = i;
+	GOPTS(ppg)->logAnnounceInterval = i;
 	return 0;
 }
 
@@ -246,6 +282,10 @@ static struct pp_argline pp_global_arglines[] = {
 	INST_OPTION_INT("extension", ARG_NAMES, arg_profile, cfg.profile), /* TODO: stay for backward compatibility. Should be removed in the future */
 	INST_OPTION_INT("profile", ARG_NAMES, arg_profile, cfg.profile),
 	INST_OPTION_INT("mechanism", ARG_NAMES, arg_delayMechanism, cfg.delayMechanism),
+	INST_OPTION_INT64("egressLatency", ARG_INT64, NULL,cfg.egressLatency_ps),
+	INST_OPTION_INT64("ingressLatency", ARG_INT64, NULL,cfg.ingressLatency_ps),
+	INST_OPTION_DOUBLE("delayCoefficient", ARG_DOUBLE, NULL,cfg.delayCoefficient),
+	INST_OPTION_INT64("constantAsymmetry", ARG_INT64, NULL,cfg.constantAsymmetry_ps),
 	LEGACY_OPTION(f_vlan, "vlan", ARG_STR),
 	LEGACY_OPTION(f_diag, "diagnostic", ARG_STR),
 	RT_OPTION_INT("clock-class", ARG_INT, NULL, clock_quality.clockClass),
@@ -254,11 +294,11 @@ static struct pp_argline pp_global_arglines[] = {
 	RT_OPTION_INT("clock-allan-variance", ARG_INT, NULL,
 		      clock_quality.offsetScaledLogVariance),
 	LEGACY_OPTION(f_servo_pi, "servo-pi", ARG_INT2),
-	RT_OPTION_INT("domain-number", ARG_INT, NULL, domain_number),
+	RT_OPTION_INT("domain-number", ARG_INT, NULL, domainNumber),
 	LEGACY_OPTION(f_announce_intvl, "announce-interval", ARG_INT),
-	RT_OPTION_INT("sync-interval", ARG_INT, NULL, sync_intvl),
-	RT_OPTION_INT("priority1", ARG_INT, NULL, prio1),
-	RT_OPTION_INT("priority2", ARG_INT, NULL, prio2),
+	RT_OPTION_INT("sync-interval", ARG_INT, NULL, logSyncInterval),
+	RT_OPTION_INT("priority1", ARG_INT, NULL, priority1),
+	RT_OPTION_INT("priority2", ARG_INT, NULL, priority2),
 	{}
 };
 
@@ -425,6 +465,13 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		}
 		break;
 
+	case ARG_INT64:
+		if (sscanf(line, "%lli", &(cfg_arg.i64)) != 1) {
+			pp_error("line %i: \"%s\"[%s]: not int64\n", lineno, word,line);
+			return -1;
+		}
+		break;
+
 	case ARG_INT2:
 		if (sscanf(line, "%i,%i", cfg_arg.i2, &cfg_arg.i2[1]) < 0) {
 			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
@@ -433,6 +480,13 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		}
 		break;
 
+	case ARG_DOUBLE:
+		if (sscanf(line, "%lf", &cfg_arg.d) < 0) {
+			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
+				 lineno, line, word);
+			return -1;
+		}
+		break;
 	case ARG_STR:
 		while (*line && blank(*line))
 			line++;

@@ -45,7 +45,7 @@ struct wrh_operations wrh_oper = {
 	.adjust_in_progress = wrs_adjust_in_progress,
 	.adjust_counters = wrs_adjust_counters,
 	.adjust_phase = wrs_adjust_phase,
-
+	.read_corr_data = wrs_read_correction_data,
 	.read_calib_data = wrs_read_calibration_data,
 	.calib_disable = wrs_calibrating_disable,
 	.calib_enable = wrs_calibrating_enable,
@@ -210,13 +210,22 @@ int main(int argc, char **argv)
 	if (ppg->cfg.cfg_items == 0)
 		pp_config_file(ppg, 0, PP_DEFAULT_CONFIGFILE);
 	if (ppg->cfg.cfg_items == 0) {
-		/* Default configuration for WR switch is all ports */
+		/* Default configuration for switch is all ports - Priority given to HA */
 		char s[128];
 		int i;
 
 		for (i = 0; i < 18; i++) {
+			Boolean configured=FALSE;
+#if CONFIG_EXT_L1SYNC == 1
 			sprintf(s, "port %i; iface wri%i; proto raw;"
-				"extension whiterabbit; role auto", i + 1, i + 1);
+				"profile ha; role auto", i + 1, i + 1);
+			configured=TRUE;
+#endif
+#if CONFIG_EXT_WR == 1
+			if ( ! configured )
+				sprintf(s, "port %i; iface wri%i; proto raw;"
+					"profile wr; role auto", i + 1, i + 1);
+#endif
 			pp_config_string(ppg, s);
 		}
 	}
@@ -254,7 +263,7 @@ int main(int argc, char **argv)
 			if ( ppi->cfg.profile==PPSI_PROFILE_HA ) {
 				ppi->protocol_extension=PPSI_EXT_L1S;
 				/* Add L1E extension portDS */
-				if ( !(ppi->portDS->ext_dsport =alloc_fn(ppsi_head, sizeof(struct l1e_ext_portDS))) ) {
+				if ( !(ppi->portDS->ext_dsport =alloc_fn(ppsi_head, sizeof(l1e_ext_portDS_t))) ) {
 					goto exit_out_of_memory;
 				}
 
@@ -262,7 +271,13 @@ int main(int argc, char **argv)
 				if (! (ppi->ext_data = alloc_fn(ppsi_head,sizeof(struct l1e_data))) ) {
 					goto exit_out_of_memory;
 				}
-
+				/* Set ingress/egress latencies */
+				ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps);
+				ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps);
+				ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
+				ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
+				ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
+						(RelativeDifference)(ppi->cfg.delayCoefficient * (double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT));
 				/* Set L1SYNC extension hooks */
 				ppi->ext_hooks=&l1e_ext_hooks;
 				/* Set default profile parameters */

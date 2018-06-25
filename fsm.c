@@ -65,7 +65,7 @@ static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
 static struct pp_state_table_item *
 get_current_state_table_item(struct pp_instance *ppi)
 {
-	struct pp_state_table_item *ip = ppi->current_state_item;;
+	struct pp_state_table_item *ip = ppi->current_state_item;
 
 	/* Avoid searching if we already know where we are */
 	ppi->is_new_state = 0;
@@ -80,6 +80,17 @@ get_current_state_table_item(struct pp_instance *ppi)
 			return ip;
 		}
 	return NULL;
+}
+
+char *get_state_as_string(struct pp_instance *ppi, int state) {
+	static char *def="INVALID";
+	struct pp_state_table_item *ip = ppi->current_state_item;
+
+	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE; ip++)
+		if (ip->state == state) {
+			return ip->name;
+		}
+	return def;
 }
 
 /*
@@ -292,6 +303,12 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	/* check if the BMC timeout is the next to run */
 	if (pp_next_delay_1(ppi, PP_TO_BMC) < ppi->next_delay)
 		ppi->next_delay = pp_next_delay_1(ppi, PP_TO_BMC);
+
+	/* Run the extension state machine. The extension can provide its own time-out */
+	if ( ppi->ext_hooks->run_ext_state_machine) {
+		int delay = ppi->ext_hooks->run_ext_state_machine(ppi);
+		ppi->next_delay= (delay < ppi->next_delay) ? delay : ppi->next_delay;
+	}
 
 	return ppi->next_delay;
 }

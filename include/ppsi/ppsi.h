@@ -190,6 +190,7 @@ struct pp_ext_hooks {
 	int (*handle_signaling) (struct pp_instance * ppi, void *buf, int len);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
+	int (*ready_for_slave)(struct pp_instance *ppi); /* returns: 0=Not ready 1=ready */
 	int (*state_decision)(struct pp_instance *ppi, int next_state);
 	void (*state_change)(struct pp_instance *ppi);
 	int (*run_ext_state_machine) (struct pp_instance *ppi);
@@ -286,6 +287,8 @@ struct pp_cfg_time {
 union pp_cfg_arg {
 	int i;
 	int i2[2];
+	int64_t i64;
+	double d;
 	char *s;
 	struct pp_cfg_time ts;
 };
@@ -309,6 +312,8 @@ enum pp_argtype {
 	ARG_STR,
 	ARG_NAMES,
 	ARG_TIME,
+	ARG_DOUBLE,
+	ARG_INT64
 };
 struct pp_argline {
 	cfg_handler f;
@@ -458,6 +463,8 @@ extern void pp_time_sub(struct pp_time *t1, struct pp_time *t2);
 extern void pp_time_div2(struct pp_time *t);
 extern TimeInterval pp_time_to_interval(struct pp_time *ts);
 extern TimeInterval picos_to_interval(int64_t picos);
+extern void pp_time_add_interval(struct pp_time *t1, TimeInterval t2);
+extern void pp_time_sub_interval(struct pp_time *t1, TimeInterval t2);
 
 /* Function for time conversion */
 extern int64_t pp_time_to_picos(struct pp_time *ts);

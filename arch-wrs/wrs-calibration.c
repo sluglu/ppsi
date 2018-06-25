@@ -15,7 +15,7 @@
 
 int wrs_read_calibration_data(struct pp_instance *ppi,
 	uint32_t *delta_tx, uint32_t *delta_rx, int32_t *fix_alpha,
-	int32_t *clock_period)
+	int32_t *clock_period, uint32_t *bit_slide_ps)
 {
 	struct hal_port_state *p;
 	/* The following fields come from struct hexp_port_state */
@@ -35,17 +35,21 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 	 * way as the HAL itself was doing to fill the RPC structure.
 	 * Formulas copied from libwr/hal_shmem.c (get_exported_state).
 	 */
-	port_delta_tx = p->calib.delta_tx_phy
-		+ p->calib.sfp.delta_tx_ps + p->calib.delta_tx_board;
-	port_delta_rx = p->calib.delta_rx_phy
-		+ p->calib.sfp.delta_rx_ps + p->calib.delta_rx_board;
 	port_fix_alpha =  (double)pow(2.0, 40.0) *
 		((p->calib.sfp.alpha + 1.0) / (p->calib.sfp.alpha + 2.0)
 		 - 0.5);
 
-	pp_diag(ppi, servo, 1, "deltas: tx=%d, rx=%d\n",
-		port_delta_tx, port_delta_rx);
+	if ( delta_tx || delta_rx) {
+		port_delta_tx = p->calib.delta_tx_phy
+			+ p->calib.sfp.delta_tx_ps + p->calib.delta_tx_board;
+		port_delta_rx = p->calib.delta_rx_phy
+			+ p->calib.sfp.delta_rx_ps + p->calib.delta_rx_board;
+		pp_diag(ppi, servo, 1, "deltas: tx=%d, rx=%d\n",
+				port_delta_tx, port_delta_rx);
+	}
 
+	if ( bit_slide_ps )
+		*bit_slide_ps=p->calib.bitslide_ps;
 	if(delta_tx)
 		*delta_tx = port_delta_tx;
 	if(delta_rx)
@@ -55,6 +59,24 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 	if(clock_period)
 		*clock_period =  16000; /* REF_CLOCK_PERIOD_PS */
 	return WRH_HW_CALIB_OK;
+}
+
+int wrs_read_correction_data(struct pp_instance *ppi, int64_t *fiber_fix_alpha,
+		int32_t *clock_period_ps, uint32_t *bit_slide_ps) {
+
+	double alpha;
+	int32_t port_cP;
+
+	wrs_read_calibration_data(ppi, NULL, NULL,NULL, &port_cP, bit_slide_ps);
+
+	if(fiber_fix_alpha) {
+		alpha  = ((double) ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient)/(double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT);
+		*fiber_fix_alpha = (double)pow(2.0, FIX_ALPHA_FRACBITS_AS_FLOAT) * ((alpha + 1.0) / (alpha + 2.0) - 0.5);
+	}
+	if(clock_period_ps)
+		*clock_period_ps     =  port_cP; /* REF_CLOCK_PERIOD_PS */
+	return WRH_HW_CALIB_OK;
+
 }
 
 int wrs_calibrating_disable(struct pp_instance *ppi, int txrx)
@@ -71,7 +93,7 @@ int wrs_calibrating_poll(struct pp_instance *ppi, int txrx, uint32_t *delta)
 {
 	uint32_t delta_tx, delta_rx;
 
-	wrs_read_calibration_data(ppi, &delta_tx, &delta_rx, NULL, NULL);
+	wrs_read_calibration_data(ppi, &delta_tx, &delta_rx, NULL, NULL, NULL);
 
 	*delta = (txrx == WRH_HW_CALIB_TX) ? delta_tx : delta_rx;
 

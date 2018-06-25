@@ -35,7 +35,7 @@
 #define time_after_eq(a,b)	\
 	(typecheck(unsigned long, a) && \
 	 typecheck(unsigned long, b) && \
-	 ((long)(a) - (long)(b) >= 0))
+	 ((unsigned long)(a) >= (unsigned long)(b)))
 #define time_before_eq(a,b)	time_after_eq(b,a)
 #endif /* ifndef */
 #endif

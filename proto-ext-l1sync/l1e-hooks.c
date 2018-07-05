@@ -51,18 +51,15 @@ int l1e_update_correction_values(struct pp_instance *ppi)
 
 	/* read the interesting values from HW (i.e. HAL)*/
 	if ( WRH_OPER()->read_corr_data(ppi,
-		&s->fiber_fix_alpha,
+		NULL,
 		&s->clock_period_ps,
 		NULL) != WRH_HW_CALIB_OK){
 		      pp_diag(ppi, ext, 2, "hook: %s -- cannot read calib values\n",
 			__func__);
 		return -1;
 	}
-	pp_diag(ppi, ext, 2, "ML- Updated correction values:"
-		" fiber_fix_alpha=%"PRId64" , Clock period=%d [ps]",
-		s->fiber_fix_alpha,
-		s->clock_period_ps
-		);
+	pp_diag(ppi, ext, 2, "ML- Updated correction values: Clock period=%d [ps]",
+		s->clock_period_ps);
 
 	return 0;
 }

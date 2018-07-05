@@ -220,7 +220,7 @@ static int l1e_p2p_delay(struct pp_instance *ppi, struct l1e_servo_state *s)
 	s->delayMM_ps = pp_time_to_picos(&s->delayMM);
 	/* delayMS[ps] = (fix_alpha*delayMM[ps])/2e40 +delayMM[ps]/2 */
 	s->delayMS_ps =
-	    ((s->delayMM_ps * s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
+	    ((s->delayMM_ps * ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient) >> REL_DIFF_FRACBITS)
 	    + (s->delayMM_ps >> 1);
 
 	return 1;
@@ -307,7 +307,7 @@ static int l1e_e2e_offset(struct pp_instance *ppi,
 	}
 
 	/* delayMS = (delayMM * fix_alpha) + delayMM/2*/
-	s->delayMS_ps = ((s->delayMM_ps * s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS) + (s->delayMM_ps >> 1);
+	s->delayMS_ps = ((s->delayMM_ps * ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient) >> REL_DIFF_FRACBITS) + (s->delayMM_ps >> 1);
 
 	{ /* offsetMS = t1-t2 + delayMS */
 		struct pp_time tmp1;
@@ -359,8 +359,8 @@ int l1e_servo_update(struct pp_instance *ppi)
 	l1e_update_offsetFromMaster(ppi,&offsetMS); /* Update currentDS.offsetFromMaster */
 	s->offsetMS_ps=pp_time_to_picos(&offsetMS);
 	pp_diag(ppi, servo, 2,
-			"ML: fiber_fix_alpha = %lld, delayMS = %lld, offsetMS = %lld [ps]\n",
-			(long long )s->fiber_fix_alpha,
+			"ML: scaledDelayCoeff = %lld, delayMS = %lld, offsetMS = %lld [ps]\n",
+			(long long )ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient,
 			(long long )s->delayMS_ps,
 			(long long )s->offsetMS_ps);
 	l1e_dump_timestamp(ppi,"ML: offsetMS",offsetMS);

@@ -15,6 +15,7 @@
  * Runtime options. Default values can be overridden by command line.
  */
 struct pp_runtime_opts {
+    uint32_t updated_fields_mask;
 	ClockQuality clock_quality;
 	Integer32 ttl;
 	int flags;		/* see below */
@@ -130,6 +131,7 @@ enum { /* The two sockets. They are called "net path" for historical reasons */
  * (see lib/conf.c). Actually, protocol and role are in the main ppi.
  */
 struct pp_instance_cfg {
+    uint32_t updated_fields_mask;
 	char port_name[16];
 	char iface_name[16];
 	int  profile;   /* PPSI_PROFILE_PTP, PPSI_PROFILE_WR, PPSI_PROFILE_HA */

@@ -289,6 +289,7 @@ union pp_cfg_arg {
 	int i2[2];
 	int64_t i64;
 	double d;
+	Boolean b;
 	char *s;
 	struct pp_cfg_time ts;
 };
@@ -315,26 +316,43 @@ enum pp_argtype {
 	ARG_DOUBLE,
 	ARG_INT64
 };
+
+/* This enumeration gives the list of instance options that should be marked when they are set in the configuration */
+enum {
+	OPT_INST_NO_UPDATE=0,
+	OPT_INST_UPDATE_DESIRED_STATE, /* desiredState default value for HA is PASSIVE */
+};
+
+/* This enumeration gives the list of run-time options that should be marked when they are set in the configuration */
+enum {
+	OPT_RT_NO_UPDATE=0,
+};
+
+
 struct pp_argline {
 	cfg_handler f;
 	char *keyword;	/* Each line starts with a keyword */
 	enum pp_argtype t;
 	struct pp_argname *args;
 	size_t field_offset;
+	size_t updated_field_offset;
+	int updated_field_index; /* 0=not used , >0 = used to build bit mask 1<(index-1) */
 	int needs_port;
 };
 
 /* Below are macros for setting up pp_argline arrays */
 #define OFFS(s,f) offsetof(s, f)
 
-#define OPTION(s,func,k,typ,a,field,i)					\
+#define OPTION(s,func,k,typ,a,field,ufield,findex,np)	\
 	{								\
 		.f = func,						\
 		.keyword = k,						\
 		.t = typ,						\
 		.args = a,						\
 		.field_offset = OFFS(s,field),				\
-		.needs_port = i,					\
+		.updated_field_offset=OFFS(s,ufield), \
+		.updated_field_index=findex,\
+		.needs_port = np,					\
 	}
 
 #define LEGACY_OPTION(func,k,typ)					\
@@ -344,30 +362,61 @@ struct pp_argline {
 		.t = typ,						\
 	}
 
-#define INST_OPTION(func,k,t,a,field)					\
-	OPTION(struct pp_instance,func,k,t,a,field,1)
+#define INST_OPTION(func,k,t,a,field,field_index)					\
+	OPTION(struct pp_instance,func,k,t,a,field,cfg.updated_fields_mask,field_index,1)
+
+#define INST_OPTION_INT_TRACK(k,t,a,field,field_index)					\
+	INST_OPTION(f_simple_int,k,t,a,field,field_index)
 
 #define INST_OPTION_INT(k,t,a,field)					\
-	INST_OPTION(f_simple_int,k,t,a,field)
+		INST_OPTION_INT_TRACK(k,t,a,field,OPT_INST_NO_UPDATE)
+
+#define INST_OPTION_BOOL_TRACK(k,field,field_index)					\
+	INST_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field,field_index)
+
+#define INST_OPTION_BOOL(k,field)					\
+	INST_OPTION_BOOL_TRACK(k,field,OPT_INST_NO_UPDATE)
+
+#define INST_OPTION_INT64_TRACK(k,t,a,field,field_index)					\
+	INST_OPTION(f_simple_int64,k,t,a,field,field_index)
 
 #define INST_OPTION_INT64(k,t,a,field)					\
-	INST_OPTION(f_simple_int64,k,t,a,field)
+		INST_OPTION_INT64_TRACK(k,t,a,field,OPT_INST_NO_UPDATE)
+
+#define INST_OPTION_DOUBLE_TRACK(k,t,a,field,field_index)					\
+	INST_OPTION(f_simple_double,k,t,a,field,field_index)
 
 #define INST_OPTION_DOUBLE(k,t,a,field)					\
-	INST_OPTION(f_simple_double,k,t,a,field)
+		INST_OPTION_DOUBLE_TRACK(k,t,a,field,OPT_INST_NO_UPDATE)
 
 
-#define RT_OPTION(func,k,t,a,field)					\
-	OPTION(struct pp_runtime_opts,func,k,t,a,field,0)
+#define RT_OPTION(func,k,t,a,field,field_index)					\
+	OPTION(struct pp_runtime_opts,func,k,t,a,field,updated_fields_mask,field_index,0)
 
 #define GLOB_OPTION(func,k,t,a,field)					\
-	OPTION(struct pp_globals,func,k,t,a,field,0)
+	OPTION(struct pp_globals,func,k,t,a,field,field,0,0)
+
+#define RT_OPTION_INT_TRACK(k,t,a,field,field_index)					\
+	RT_OPTION(f_simple_int,k,t,a,field,field_index)
 
 #define RT_OPTION_INT(k,t,a,field)					\
-	RT_OPTION(f_simple_int,k,t,a,field)
+		RT_OPTION_INT_TRACK(k,t,a,field,OPT_RT_NO_UPDATE)
+
+#define RT_OPTION_BOOL_TRACK(k,field,field_index)					\
+	RT_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field,field_index)
+
+#define RT_OPTION_BOOL(k,field)					\
+	RT_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field,OPT_RT_NO_UPDATE)
 
 #define GLOB_OPTION_INT(k,t,a,field)					\
 	GLOB_OPTION(f_simple_int,k,t,a,field)
+
+#define IS_INST_OPTION_UPDATED(ppi, index) \
+	(( ppi->cfg.updated_fields_mask & (1 << (index-1)))!=0 )
+
+#define IS_RT_OPTION_UPDATED(ppg, index) \
+	(( ppg->rt_opts.updated_fields_mask & (1 << (index-1)))!=0 )
+
 
 /* Both the architecture and the extension can provide config arguments */
 extern struct pp_argline pp_arch_arglines[];

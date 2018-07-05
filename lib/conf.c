@@ -64,12 +64,19 @@ static int f_port(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		return -1; \
 	}})
 
+static inline void MARK_UPDATED_FIELD(struct pp_argline *l, struct pp_globals *ppg) {
+	if (l->updated_field_index )
+		*(uint32_t *)(((void *)CUR_PPI(ppg)) + l->updated_field_offset) |= 1<<(l->updated_field_index-1);
+}
+
 static inline void ASSIGN_INT_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
-				    int v)
+					int v)
 {
-	if (l->needs_port)
+	if (l->needs_port) {
 		*(int *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
+		MARK_UPDATED_FIELD(l,ppg);
+	}
 	else
 		*(int *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
 }
@@ -86,8 +93,10 @@ static inline void ASSIGN_INT64_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
 				    int64_t v)
 {
-	if (l->needs_port)
+	if (l->needs_port) {
 		*(int64_t *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
+		MARK_UPDATED_FIELD(l,ppg);
+	}
 	else
 		*(int64_t *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
 }
@@ -104,8 +113,10 @@ static inline void ASSIGN_DOUBLE_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
 				    double v)
 {
-	if (l->needs_port)
+	if (l->needs_port) {
 		*(double *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
+		MARK_UPDATED_FIELD(l,ppg);
+	}
 	else
 		*(double *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
 }
@@ -117,6 +128,27 @@ static int f_simple_double( struct pp_argline *l, int lineno,
 	ASSIGN_DOUBLE_FIELD(l, ppg, arg->d);
 	return 0;
 }
+
+static inline void ASSIGN_BOOL_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    Boolean v)
+{
+	if (l->needs_port) {
+		*(Boolean *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
+		MARK_UPDATED_FIELD(l,ppg);
+	}
+	else
+		*(Boolean *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+}
+
+static int f_simple_bool( struct pp_argline *l, int lineno,
+		 struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(l->needs_port);
+	ASSIGN_BOOL_FIELD(l, ppg, arg->b);
+	return 0;
+}
+
 
 static int f_if(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		union pp_cfg_arg *arg)
@@ -310,6 +342,13 @@ struct pp_argline pp_ext_arglines[] __attribute__((weak)) = {
 	{}
 };
 
+static struct pp_argline * pp_arglines[] = {
+		pp_global_arglines,
+		pp_arch_arglines,
+		pp_ext_arglines,
+		NULL
+};
+
 /* local implementation of isblank() and isdigit() for bare-metal users */
 static int blank(int c)
 {
@@ -344,6 +383,26 @@ static char *first_word(char *line, char **rest)
 	*rest = line;
 	return ret;
 }
+
+static int word_in_list(char *word, char *list) {
+	char listCopy[64];
+	char *next,*curr;
+
+	if ( strlen(list) > sizeof(listCopy)-1) {
+		pp_error("%s: List string too big (%d)\n", __func__, strlen(list));
+		return 0;
+	}
+	strcpy(listCopy, list);
+	next=listCopy;
+	while ( *next ) {
+		if ( (curr=first_word(next, &next))!=NULL ) {
+			if ( strcmp(curr,word)==0)
+				return 1;
+		}
+	}
+	return 0;
+}
+
 
 static int parse_time(struct pp_cfg_time *ts, char *s)
 {
@@ -404,6 +463,7 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 	struct pp_argline *l;
 	struct pp_argname *n;
 	char *word;
+	int i;
 
 	pp_diag(NULL, config, 2, "parsing line %i: \"%s\"\n", lineno, line);
 	word = first_word(line, &line);
@@ -430,22 +490,19 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 	}
 
 	/* Look for the configuration keyword in global, arch, ext */
-	for (l = pp_global_arglines; l->f; l++)
-		if (!strcmp(word, l->keyword))
-			break;
-	if (!l->f)
-		for (l = pp_arch_arglines; l->f; l++)
-			if (!strcmp(word, l->keyword))
-				break;
-	if (!l->f)
-		for (l = pp_ext_arglines; l->f; l++)
-			if (!strcmp(word, l->keyword))
-				break;
 
-	if (!l->f) {
-		pp_error("line %i: no such keyword \"%s\"\n", lineno, word);
-		return -1;
+	for ( i=0; ;) {
+		if ( !(l=pp_arglines[i++] )) {
+			pp_error("line %i: no such keyword \"%s\"\n", lineno, word);
+			return -1;
+		}
+		while (l->f ) {
+			if ( word_in_list(word, l->keyword) )
+					goto keyword_found;
+			l++;
+		}
 	}
+	keyword_found:
 
 	if ((l->t != ARG_NONE) && (!*line)) {
 		pp_error("line %i: no argument for option \"%s\"\n", lineno,
@@ -496,8 +553,8 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 
 	case ARG_NAMES:
 		for (n = l->args; n->name; n++)
-			if (!strcmp(line, n->name))
-				break;
+			 if ( word_in_list(line, n->name) )
+				 break;
 		if (!n->name) {
 			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
 				 lineno, line, word);

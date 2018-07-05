@@ -124,8 +124,6 @@ static inline  L1SyncOptParamsPortDS_t *L1E_DSPOR_OP(struct pp_instance *ppi)
 
 struct l1e_servo_state {
 
-	int state;
-
 	/* These fields are used by servo code, after setting at init time */
 	int64_t fiber_fix_alpha;
 	int32_t clock_period_ps;

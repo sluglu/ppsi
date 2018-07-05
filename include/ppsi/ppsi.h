@@ -159,7 +159,7 @@ static inline struct pp_instance *NP(struct pp_instance *ppi)
 
 static inline struct pp_servo *SRV(struct pp_instance *ppi)
 {
-	return GLBS(ppi)->servo;
+	return ppi->servo;
 }
 
 extern void pp_prepare_pointers(struct pp_instance *ppi);

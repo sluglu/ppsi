@@ -80,9 +80,9 @@ int l1e_servo_init(struct pp_instance *ppi)
 
 	WRH_OPER()->adjust_phase(s->cur_setpoint_ps);
 	s->missed_iters = 0;
-	s->state = L1E_SYNC_TAI;
+	SRV(ppi)->state = L1E_SYNC_TAI;
 
-	strcpy(SRV(ppi)->servo_state_name, l1e_servo_state_name[s->state]);
+	strcpy(SRV(ppi)->servo_state_name, l1e_servo_state_name[SRV(ppi)->state]);
 
 	SRV(ppi)->flags |= PP_SERVO_FLAG_VALID;
 	SRV(ppi)->update_count = 0;
@@ -344,7 +344,7 @@ int l1e_servo_update(struct pp_instance *ppi)
 	/* shmem lock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
-	if ( s->state==L1E_UNINITIALIZED )
+	if ( SRV(ppi)->state==L1E_UNINITIALIZED )
 		goto out;
 
 	prev_delayMM_ps = s->delayMM_ps;
@@ -391,9 +391,9 @@ int l1e_servo_update(struct pp_instance *ppi)
 
 	/* So, we didn't return. Choose the right state */
 	if (offsetMS.secs) /* so bad... */
-		s->state = L1E_SYNC_TAI;
+		SRV(ppi)->state = L1E_SYNC_TAI;
 	else if (offset_ticks) /* not that bad */
-		s->state = L1E_SYNC_NSEC;
+		SRV(ppi)->state = L1E_SYNC_NSEC;
 	/* else, let the states below choose the sequence */
 
 	pp_diag(ppi, servo, 2, "offsetMS: %li.%09li (+%li)\n",
@@ -401,13 +401,13 @@ int l1e_servo_update(struct pp_instance *ppi)
 		(long)offset_ps);
 
 	pp_diag(ppi, servo, 1, "l1e_servo state: %s%s\n",
-		l1e_servo_state_name[s->state],
+		l1e_servo_state_name[SRV(ppi)->state],
 		SRV(ppi)->flags & PP_SERVO_FLAG_WAIT_HW ? " (wait for hw)" : "");
 
 	/* update string state name */
-	strcpy(SRV(ppi)->servo_state_name, l1e_servo_state_name[s->state]);
+	strcpy(SRV(ppi)->servo_state_name, l1e_servo_state_name[SRV(ppi)->state]);
 
-	switch (s->state) {
+	switch (SRV(ppi)->state) {
 	case L1E_SYNC_TAI:
 		WRH_OPER()->adjust_counters(offsetMS.secs, 0);
 		SRV(ppi)->flags |= PP_SERVO_FLAG_WAIT_HW;
@@ -416,13 +416,13 @@ int l1e_servo_update(struct pp_instance *ppi)
 		 * Else, we must ensure we leave this status towards
 		 * fine tuning
 		 */
-		s->state = L1E_SYNC_PHASE;
+		SRV(ppi)->state = L1E_SYNC_PHASE;
 		break;
 
 	case L1E_SYNC_NSEC:
 		WRH_OPER()->adjust_counters(0, offset_ticks);
 		SRV(ppi)->flags |= PP_SERVO_FLAG_WAIT_HW;
-		s->state = L1E_SYNC_PHASE;
+		SRV(ppi)->state = L1E_SYNC_PHASE;
 		break;
 
 	case L1E_SYNC_PHASE:
@@ -434,7 +434,7 @@ int l1e_servo_update(struct pp_instance *ppi)
 		WRH_OPER()->adjust_phase(s->cur_setpoint_ps);
 
 		SRV(ppi)->flags |= PP_SERVO_FLAG_WAIT_HW;
-		s->state = L1E_WAIT_OFFSET_STABLE;
+		SRV(ppi)->state = L1E_WAIT_OFFSET_STABLE;
 
 		if (ARCH_IS_WRS) {
 			/*
@@ -457,13 +457,13 @@ int l1e_servo_update(struct pp_instance *ppi)
 		if(remaining_offset < WRH_SERVO_OFFSET_STABILITY_THRESHOLD) {
 			WRH_OPER()->enable_timing_output(ppi, 1);
 			s->prev_delayMS_ps = s->delayMS_ps;
-			s->state = L1E_TRACK_PHASE;
+			SRV(ppi)->state = L1E_TRACK_PHASE;
 		} else {
 			s->missed_iters++;
 		}
 		if (s->missed_iters >= 10) {
 			s->missed_iters = 0;
-			s->state = L1E_SYNC_PHASE;
+			SRV(ppi)->state = L1E_SYNC_PHASE;
 		}
 		break;
 
@@ -474,7 +474,7 @@ int l1e_servo_update(struct pp_instance *ppi)
 		if(l1e_tracking_enabled) {
 			if (abs(offset_ps) >
 			    2 * WRH_SERVO_OFFSET_STABILITY_THRESHOLD) {
-				s->state = WR_SYNC_PHASE;
+				SRV(ppi)->state = WR_SYNC_PHASE;
 				break;
 			}
 
@@ -492,11 +492,11 @@ int l1e_servo_update(struct pp_instance *ppi)
 
 	}
 
-	SRV(ppi)->servo_locked=s->state==L1E_TRACK_PHASE;
+	SRV(ppi)->servo_locked=SRV(ppi)->state==L1E_TRACK_PHASE;
 
 	/* Increase number of servo updates with state different than
 	 * L1E_TRACK_PHASE. (Used by SNMP) */
-	if (s->state != L1E_TRACK_PHASE)
+	if (SRV(ppi)->state != L1E_TRACK_PHASE)
 		s->n_err_state++;
 
 	/* Increase number of servo updates with offset exceeded

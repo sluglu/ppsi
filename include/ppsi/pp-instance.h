@@ -106,6 +106,8 @@ struct pp_avg_fltr {
 #define PP_SERVO_FLAG_WAIT_HW	(1<<1)
 
 struct pp_servo {
+	int state;
+
 	struct pp_time delayMS;
 	struct pp_time delaySM;
 	long long obs_drift;
@@ -194,7 +196,8 @@ struct pp_instance {
 	Integer16  frgn_rec_best;
 	struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS];
 
-	portDS_t *portDS;				/* page 72 */
+	portDS_t *portDS;		 /* page 72 */
+	struct pp_servo *servo;  /* Servo moved from globals because we may have more than one servo : redundancy */
 
 	/** (IEEE1588-2018) */
 	asymmetryCorrectionPortDS_t asymmetryCorrectionPortDS; /*draft P1588_v_29: page 99*/
@@ -235,8 +238,6 @@ struct pp_globals_cfg {
  */
 struct pp_globals {
 	struct pp_instance *pp_instances;
-
-	struct pp_servo *servo;
 
 	/* Real time options */
 	struct pp_runtime_opts *rt_opts;

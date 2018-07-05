@@ -117,8 +117,6 @@ int wr_servo_got_delay(struct pp_instance *ppi);
 int wr_servo_update(struct pp_instance *ppi);
 
 struct wr_servo_state {
-	int state;
-
 	/* These fields are used by servo code, after asetting at init time */
 	int32_t delta_txm_ps;
 	int32_t delta_rxm_ps;

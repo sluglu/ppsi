@@ -176,7 +176,6 @@ int main(int argc, char **argv)
 	ppg->currentDS = alloc_fn(ppsi_head, sizeof(*ppg->currentDS));
 	ppg->parentDS =  alloc_fn(ppsi_head, sizeof(*ppg->parentDS));
 	ppg->timePropertiesDS = alloc_fn(ppsi_head,sizeof(*ppg->timePropertiesDS));
-	ppg->servo = alloc_fn(ppsi_head, sizeof(*ppg->servo));
 	ppg->rt_opts = &__pp_default_rt_opts;
 
 	ppg->max_links = PP_MAX_LINKS;

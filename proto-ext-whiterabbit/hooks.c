@@ -16,7 +16,18 @@ static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	wrp->parentWrModeOn = 0;
 	wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 
-	if ((wrp->wrConfig & WR_M_AND_S) == WR_M_ONLY)
+#ifdef CONFIG_ABSCAL
+        /* absolute calibration only exists in arch-wrpc, so far */
+        extern int ptp_mode;
+        if (ptp_mode == 4 /* WRC_MODE_ABSCAL */)
+                ppi->next_state = WRS_WR_LINK_ON;
+#endif
+
+	if ((wrp->wrConfig & WR_M_AND_S) == WR_M_ONLY
+#ifdef CONFIG_ABSCAL
+	    && ptp_mode != 4 /* WRC_MODE_ABSCAL -- not defined in wrs build */
+#endif
+	   )
 		wrp->ops->enable_timing_output(ppi, 1);
 	else
 		wrp->ops->enable_timing_output(ppi, 0);

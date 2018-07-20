@@ -26,6 +26,7 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
 int wr_abscal(struct pp_instance *ppi, uint8_t *pkt, int plen)
 {
 	struct pp_time t;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int len, i;
 
 	if (ppi->is_new_state) {
@@ -37,6 +38,8 @@ int wr_abscal(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	i = next_pps_ms(ppi, &t) - 10;
 	if (pp_timeout(ppi, PP_TO_EXT_0)) {
 		uint64_t secs = t.secs;
+
+		wrp->ops->enable_timing_output(ppi, 1);
 
 		/* Wait for the second to tick */
 		while( ppi->t_ops->get(ppi, &t), t.secs == secs)

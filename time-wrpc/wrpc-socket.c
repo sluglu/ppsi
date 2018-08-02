@@ -101,7 +101,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 			  ((int)(t4.scaled_nsecs & 0xffff) * 1000) >> 16);
 		/* Print the difference from T1, too */
 		pp_time_sub(&t4, &ppi->last_snt_time);
-		pp_printf("   %9d.%3d\n", (int)(t4.scaled_nsecs >> 16),
+		pp_printf("   %9d.%03d\n", (int)(t4.scaled_nsecs >> 16),
 			  ((int)(t4.scaled_nsecs & 0xffff) * 1000) >> 16);
 	}
 

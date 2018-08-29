@@ -60,7 +60,18 @@ static int dump_eth(char *prefix, struct ethhdr *eth)
 	unsigned char *d = eth->h_dest;
 	unsigned char *s = eth->h_source;
 	int proto = ntohs(eth->h_proto);
-	int ret = sizeof(*eth);
+	int ret;
+
+	/* Between eth header and payload may be a VLAN tag;
+	 * NOTE: We cannot distinguish between both cases looking at
+	 * the content of a vlan variable, because vlan number may come from
+	 * frame itself or from the socket (CMSG) */
+	if (proto == 0x8100) {
+		ret = sizeof(struct pp_vlanhdr); /* ETH header + VLAN tag */
+		/* Get the proto knowing that there is a VLAN tag */
+		proto = ntohs(((struct pp_vlanhdr *)eth)->h_proto);
+	} else
+		ret = sizeof(struct ethhdr);
 
 	printf("%sETH: %04x (%02x:%02x:%02x:%02x:%02x:%02x -> "
 	       "%02x:%02x:%02x:%02x:%02x:%02x)\n", prefix, proto,

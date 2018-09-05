@@ -32,7 +32,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 		if (send_pattern)
 			wrp->ops->calib_pattern_enable(ppi, 0, 0, 0);
 		__pp_timeout_set(ppi, PP_TO_EXT_0,
-			       wrp->otherNodeCalPeriod / 1000);
+			       wrp->wrStateTimeout / 1000);
 	}
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {

@@ -131,6 +131,8 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	*(char *)(buf+0) = *(char *)(buf+0) | 0x0C; /* Table 19 -> signaling */
 
 	*(UInteger8 *)(buf+32) = 0x05; //Table 23 -> all other
+	*(char *)(buf+33) = 0x7F; /* logMessageInterval for Signaling
+				   * (Table 24) */
 
 	/* target portIdentity */
 	memcpy((buf+34), &DSPAR(ppi)->parentPortIdentity.clockIdentity,

@@ -227,10 +227,11 @@ int main(int argc, char **argv)
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
 		ppi->mech = ppi->cfg.mech;
-		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
-		if (ppi->portDS)
+		ppi->portDS = alloc_fn(ppsi_head, sizeof(*ppi->portDS));
+		if (ppi->portDS) {
 			ppi->portDS->ext_dsport =
-				calloc(1, sizeof(struct wr_dsport));
+				alloc_fn(ppsi_head, sizeof(struct wr_dsport));
+		}
 		if (!ppi->portDS || !ppi->portDS->ext_dsport) {
 			fprintf(stderr, "ppsi: out of memory\n");
 			exit(1);

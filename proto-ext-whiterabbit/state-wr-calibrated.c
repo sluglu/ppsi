@@ -16,19 +16,28 @@ int wr_calibrated(struct pp_instance *ppi, void *buf, int len)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	MsgSignaling wrsig_msg;
+	int e = 0, enable = 0;
 
-	if (ppi->is_new_state)
-		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->wrStateTimeout);
-
-	if (pp_timeout(ppi, PP_TO_EXT_0)) {
+	if (ppi->is_new_state) {
+		wrp->wrStateRetry = WR_STATE_RETRY;
+		enable = 1;
+	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
 		/*
 		 * FIXME: We should implement a retry by re-sending
 		 * the "calibrated" message, moving it here from the
 		 * previous state (sub-state 8 of "state-wr-calibration"
 		 */
-		wr_handshake_fail(ppi);
-		return 0; /* non-wr */
+		if (wr_handshake_retry(ppi))
+			enable = 1;
+		else
+			return 0; /* non-wr already */
 	}
+
+	if (enable)
+        {
+		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->wrStateTimeout);
+		e = msg_issue_wrsig(ppi, CALIBRATED);
+        }
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
 		msg_unpack_wrsig(ppi, buf, &wrsig_msg,

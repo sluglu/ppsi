@@ -160,7 +160,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 				 (WR_DSPOR(ppi)->calRetry << 8 | 0x0001));
 		}
 		put_be32(buf+58, WR_DSPOR(ppi)->calPeriod);
-		len = 20;
+		len = 14;
 		break;
 
 	case CALIBRATED: /* new fsm */

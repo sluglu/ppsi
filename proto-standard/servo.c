@@ -37,6 +37,8 @@ void pp_servo_init(struct pp_instance *ppi)
 static void _pp_servo_init(struct pp_instance *ppi)
 {
 	int d;
+	SRV(ppi)->state=0;
+	SRV(ppi)->servo_state_name[0]=0;
 	SRV(ppi)->mpd_fltr.s_exp = 0;	/* clears meanDelay filter */
 
 	if (ppi->t_ops->init_servo) {

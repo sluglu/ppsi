@@ -16,7 +16,6 @@
 
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>
-#include <wr-api.h>
 #include <hal_exports.h>
 #include <common-fun.h>
 

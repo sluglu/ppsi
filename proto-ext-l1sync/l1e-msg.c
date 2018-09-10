@@ -6,7 +6,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "l1e-api.h"
 
 #define MSG_OFFSET_HEADER 0
 #define MSG_OFFSET_HEADER_MESSAGE_LENGTH (MSG_OFFSET_HEADER+2)
@@ -26,10 +25,6 @@
 
 #define MSG_TYPE_SIGNALING 0xC
 
-#define MSG_HEADER_CONTROL_FIELD_ALL_OTHERS 5
-
-
-#define MSG_TYPE_
 
 #define MSG_GET_16(buf,off) (*(UInteger16 *)(buf+off))
 #define MSG_GET_8(buf,off ) *(UInteger8 *)(buf+off)
@@ -41,13 +36,7 @@
 #define MSG_GET_TLV_L1SYNC_PEER_ACTIVE(buf) MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_PEER_ACTIVE)
 
 
-#define MSG_SET_HEADER_TYPE(buf,val)  	             MSG_GET_8(buf,MSG_OFFSET_HEADER_TYPE) = \
-	(MSG_GET_8(buf,MSG_OFFSET_HEADER_TYPE) & 0xF0) |  val
 #define MSG_SET_HEADER_MESSAGE_LENGTH(buf,val)  	 MSG_GET_16(buf,MSG_OFFSET_HEADER_MESSAGE_LENGTH) = htons(val)
-#define MSG_SET_HEADER_CONTROL_FIELD(buf, val)       MSG_GET_8(buf,MSG_OFFSET_HEADER_CONTROL_FIELD) = val
-#define MSG_SET_TARGET_PORT_IDENTITY(buf,clock,port) *(ClockIdentity *)(buf+MSG_OFFSET_TARGET_PORT_IDENTITY) = clock;\
-	MSG_GET_16(buf,MSG_OFFSET_TARGET_PORT_IDENTITY_PORT_NUMBER) = htons(port);
-#define MSG_SET_TLV_TYPE(buf,val)                    MSG_GET_16(buf,MSG_OFFSET_TLV_TYPE)=htons(val)
 #define MSG_SET_TLV_LENGTH_FIELD(buf,val)            MSG_GET_16(buf,MSG_OFFSET_TLV_LENGTH_FIELD)=htons(val)
 #define MSG_SET_TLV_L1SYNC_PEER_CONF(buf,val)        MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_PEER_CONF)= val
 #define MSG_SET_TLV_L1SYNC_PEER_ACTIVE(buf,val)      MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_PEER_ACTIVE)=val
@@ -58,27 +47,16 @@
 
 int l1e_pack_signal(struct pp_instance *ppi)
 {
-	void *buf;
+	void *buf=ppi->tx_ptp;
+	PortIdentity targetPortIdentity;
 	uint8_t local_config, local_active;
 	L1SyncBasicPortDS_t * bds=L1E_DSPOR_BS(ppi);
 
-	buf = ppi->tx_ptp;
+	memset(&targetPortIdentity,-1,sizeof(targetPortIdentity)); /* cloclk identity and port set all 1's */
+	/* Generic pack of a signaling message */
+	msg_pack_signaling_no_fowardable(ppi,&targetPortIdentity,TLV_TYPE_L1_SYNC,2);
 
-	/* Changes in header */
-	MSG_SET_HEADER_TYPE(buf,MSG_TYPE_SIGNALING);
-
-	MSG_SET_HEADER_CONTROL_FIELD(buf,MSG_HEADER_CONTROL_FIELD_ALL_OTHERS);
-
-	/* target portIdentity */
-	MSG_SET_TARGET_PORT_IDENTITY(buf,
-			DSPAR(ppi)->parentPortIdentity.clockIdentity,
-			DSPAR(ppi)->parentPortIdentity.portNumber);
-
-
-	/* L1SyncTLV */
-	MSG_SET_TLV_TYPE(buf,TLV_TYPE_L1_SYNC);
-	MSG_SET_TLV_LENGTH_FIELD(buf,2);
-	/* O.6.4 */
+	/* Clause O.6.4 */
 	local_config = l1e_creat_L1Sync_bitmask(bds->txCoherentIsRequired,
 			bds->rxCoherentIsRequired,
 			bds->congruentIsRequired);
@@ -104,10 +82,6 @@ int l1e_unpack_signal(struct pp_instance *ppi, void *buf, int plen)
 	L1SyncBasicPortDS_t * basicDS=L1E_DSPOR_BS(ppi);
 	int l1sync_peer_conf, l1sync_peer_acti;
 
-	if ( MSG_GET_HEADER_TYPE(buf) != MSG_TYPE_SIGNALING) {
-		pp_diag(ppi, ext, 1, "Not a signaling message, ignore\n");
-		return -1;
-	}
 	if (MSG_GET_TLV_TYPE(buf) != TLV_TYPE_L1_SYNC) {
 		pp_diag(ppi, ext, 1, "Not L1Sync TLV, ignore\n");
 		return -1;

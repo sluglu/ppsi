@@ -6,7 +6,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /*
  * This is the WR state machine table.

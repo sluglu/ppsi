@@ -54,7 +54,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int len)
 void msg_init_header(struct pp_instance *ppi, void *buf)
 {
 	memset(buf, 0, 34);
-	*(char *)(buf + 1) = DSPOR(ppi)->versionNumber;
+	*(char *)(buf + 1) = DSPOR(ppi)->minorVersionNumber<<4 | (DSPOR(ppi)->versionNumber & 0xF);
 	*(char *)(buf + 4) = DSDEF(ppi)->domainNumber;
 
 	memcpy((buf + 20), &DSPOR(ppi)->portIdentity.clockIdentity,
@@ -63,26 +63,28 @@ void msg_init_header(struct pp_instance *ppi, void *buf)
 				htons(DSPOR(ppi)->portIdentity.portNumber);
 }
 
+/* set the sequence id in the buffer and update the stored one */
+static void __msg_set_seq_id(struct pp_instance *ppi, struct pp_msgtype_info *mf) {
+	void *buf = ppi->tx_ptp;
+	ppi->sent_seq[mf->msg_type]++;
+	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[mf->msg_type]); /* SequenceId */
+}
+
 /* Helper used by all "msg_pack" below */
-static int __msg_pack_header(struct pp_instance *ppi, unsigned msgtype)
+static int __msg_pack_header(struct pp_instance *ppi, struct pp_msgtype_info *msg_fmt)
 {
-	struct pp_msgtype_info *i = pp_msgtype_info + msgtype;
 	void *buf = ppi->tx_ptp;
 	int len, log;
 	uint16_t *flags16 = buf + 6;
 	signed char *logp = buf + 33;
 
-
-	if (msgtype > 15)
-		return 0;
-
-	len = i->msglen;
-	log = i->logMessageInterval;
-	*(char *)(buf + 0) = msgtype;
+	len = msg_fmt->msglen;
+	log = msg_fmt->logMessageInterval;
+	*(char *)(buf + 0) = msg_fmt->msg_type;
 	*(UInteger16 *) (buf + 2) = htons(len);
 	memset((buf + 8), 0, 8); /* correctionField: default is cleared */
 	*flags16 = 0; /* most message types wont 0 here */
-	*(UInteger8 *)(buf + 32) = i->controlField;
+	*(UInteger8 *)(buf + 32) = msg_fmt->controlField;
 	switch(log) {
 	case PP_LOG_ANNOUNCE:
 		*logp = DSPOR(ppi)->logAnnounceInterval; break;
@@ -96,17 +98,59 @@ static int __msg_pack_header(struct pp_instance *ppi, unsigned msgtype)
 	return len;
 }
 
+/* Pack Signaling message into out buffer of ppi */
+static int __msg_pack_signaling(struct pp_instance *ppi,enum pp_msg_format msg_fmt, PortIdentity *target_port_identity,
+		UInteger16 tlv_type,UInteger16 tlv_length_field)
+{
+	void *buf = ppi->tx_ptp;
+	int len;
+	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+
+	if (msg_fmt >=PPM_MSG_FMT_MAX)
+		return 0;
+
+	len = __msg_pack_header(ppi, mf);
+	__msg_set_seq_id(ppi,mf);
+
+	/* Set target port identity */
+	*(ClockIdentity *) (buf + 34) = target_port_identity->clockIdentity;
+	*(UInteger16 *) (buf + 42) = target_port_identity->portNumber;
+
+	*(UInteger16 *) (buf + 44) = htons(tlv_type); /* TLV type*/
+	*(UInteger16 *)(buf + 46)  = htons(tlv_length_field); /* TLV length field */
+	return len;
+}
+
+/* Pack Signaling message into out buffer of ppi */
+int msg_pack_signaling(struct pp_instance *ppi,PortIdentity *target_port_identity,
+		UInteger16 tlv_type,UInteger16 tlv_length_field) {
+	return __msg_pack_signaling(ppi,PPM_SIGNALING_FMT,target_port_identity,tlv_type,tlv_length_field);
+}
+
+/* Pack Signaling message into out buffer of ppi */
+int msg_pack_signaling_no_fowardable(struct pp_instance *ppi,PortIdentity *target_port_identity,
+		UInteger16 tlv_type,UInteger16 tlv_length_field) {
+	return __msg_pack_signaling(ppi,PPM_SIGNALING_NO_FWD_FMT,target_port_identity,tlv_type,tlv_length_field);
+}
+/* Unpack signaling message from in buffer */
+void msg_unpack_signaling(void *buf, MsgSignaling *signaling)
+{
+	signaling->targetPortIdentity.clockIdentity= *(ClockIdentity *) (buf + 34);
+	signaling->targetPortIdentity.portNumber= *(UInteger16 *) (buf + 42);
+	signaling->tlv=buf + 44;
+}
+
 /* Pack Sync message into out buffer of ppi */
 int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
-	UInteger8 *flags8 = buf + 6;;
-	int len = __msg_pack_header(ppi, PPM_SYNC);
+	UInteger8 *flags8 = buf + 6;
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_SYNC_FMT;
+	int len= __msg_pack_header(ppi, mf);
 
-	ppi->sent_seq[PPM_SYNC]++;
 	/* Header */
 	flags8[0] = PP_TWO_STEP_FLAG; /* Table 20 */
-	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
+	__msg_set_seq_id(ppi,mf);
 
 	/* Sync message */
 	memset((buf + 34), 0, 10);
@@ -164,12 +208,12 @@ static int msg_pack_announce(struct pp_instance *ppi)
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;;
-	int len = __msg_pack_header(ppi, PPM_ANNOUNCE);
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_ANNOUNCE_FMT;
+	int len= __msg_pack_header(ppi, mf);
 
-	ppi->sent_seq[PPM_ANNOUNCE]++;
 	/* Header */
+	__msg_set_seq_id(ppi,mf);
 	msg_set_announce_flags(ppi, flags8);
-	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
 
 	/* Announce message */
 	memset((buf + 34), 0, 30);
@@ -229,9 +273,13 @@ static int msg_pack_follow_up(struct pp_instance *ppi,
 			       struct pp_time *prec_orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
-	int len = __msg_pack_header(ppi, PPM_FOLLOW_UP);
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_FOLLOW_UP_FMT;
+	int len= __msg_pack_header(ppi, mf);
 
 	/* Header */
+	/* Clause 9.5.10: The value of the sequenceId field of the Follow_Up message
+	 * shall be the value of the sequenceId field of the associated Sync message.
+	 */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* Follow Up message */
@@ -251,7 +299,10 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 					  struct pp_time *prec_orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
-	int len = __msg_pack_header(ppi, PPM_PDELAY_R_FUP);
+	int len;
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_R_FUP_FMT;
+
+	len= __msg_pack_header(ppi, mf);
 
 	/* Header */
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber; /* FIXME: why? */
@@ -319,11 +370,11 @@ static int msg_pack_delay_req(struct pp_instance *ppi,
 			       struct pp_time *now)
 {
 	void *buf = ppi->tx_ptp;
-	int len = __msg_pack_header(ppi, PPM_DELAY_REQ);
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_REQ_FMT;
+	int len= __msg_pack_header(ppi, mf);
 
-	ppi->sent_seq[PPM_DELAY_REQ]++;
 	/* Header */
-	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
+	__msg_set_seq_id(ppi,mf);
 
 	/* Delay_req message - we may send zero instead */
 	memset((buf + 34), 0, 10);
@@ -338,11 +389,11 @@ static int msg_pack_pdelay_req(struct pp_instance *ppi,
 				struct pp_time *now)
 {
 	void *buf = ppi->tx_ptp;
-	int len = __msg_pack_header(ppi, PPM_PDELAY_REQ);
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_REQ_FMT;
+	int len= __msg_pack_header(ppi, mf);
 
-	ppi->sent_seq[PPM_PDELAY_REQ]++;
 	/* Header */
-	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_PDELAY_REQ]);
+	__msg_set_seq_id(ppi,mf);
 
 	/* PDelay_req message - we may send zero instead */
 	memset((buf + 34), 0, 20);
@@ -358,7 +409,8 @@ static int msg_pack_pdelay_resp(struct pp_instance *ppi,
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;;
-	int len = __msg_pack_header(ppi, PPM_PDELAY_RESP);
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_RESP_FMT;
+	int len= __msg_pack_header(ppi, mf);
 
 	/* Header */
 	flags8[0] = PP_TWO_STEP_FLAG; /* Table 20) */
@@ -386,7 +438,8 @@ static int msg_pack_delay_resp(struct pp_instance *ppi,
 			 MsgHeader *hdr, struct pp_time *rcv_tstamp)
 {
 	void *buf = ppi->tx_ptp;
-	int len = __msg_pack_header(ppi, PPM_DELAY_RESP);
+	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_RESP_FMT;
+	int len= __msg_pack_header(ppi, mf);
 
 	/* Header */
 	/*
@@ -483,7 +536,7 @@ int msg_issue_announce(struct pp_instance *ppi)
 {
 	int len = msg_pack_announce(ppi);
 
-	return __send_and_log(ppi, len, PP_NP_GEN);
+	return __send_and_log(ppi, len, PP_NP_GEN,PPM_ANNOUNCE_FMT);
 }
 
 /* Pack and send on event multicast ip adress a Sync message */
@@ -495,12 +548,12 @@ int msg_issue_sync_followup(struct pp_instance *ppi)
 	/* Send sync on the event channel with the "current" timestamp */
 	ppi->t_ops->get(ppi, &now);
 	len = msg_pack_sync(ppi, &now);
-	e = __send_and_log(ppi, len, PP_NP_EVT);
+	e = __send_and_log(ppi, len, PP_NP_EVT,PPM_SYNC_FMT);
 	if (e) return e;
 
 	/* Send followup on general channel with sent-stamp of sync */
 	len = msg_pack_follow_up(ppi, &ppi->last_snt_time);
-	return __send_and_log(ppi, len, PP_NP_GEN);
+	return __send_and_log(ppi, len, PP_NP_GEN,PPM_FOLLOW_UP_FMT);
 }
 
 /* Pack and send on general multicast ip address a FollowUp message */
@@ -509,7 +562,7 @@ int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, struct pp_time *t)
 	int len;
 
 	len = msg_pack_pdelay_resp_follow_up(ppi, &ppi->received_ptp_header, t);
-	return __send_and_log(ppi, len, PP_NP_GEN);
+	return __send_and_log(ppi, len, PP_NP_GEN,PPM_PDELAY_R_FUP_FMT);
 }
 
 /* Pack and send on event multicast ip adress a DelayReq message */
@@ -521,7 +574,7 @@ static int msg_issue_delay_req(struct pp_instance *ppi)
 	ppi->t_ops->get(ppi, &now);
 	len = msg_pack_delay_req(ppi, &now);
 
-	return __send_and_log(ppi, len, PP_NP_EVT);
+	return __send_and_log(ppi, len, PP_NP_EVT,PPM_DELAY_REQ_FMT);
 }
 
 /* Pack and send on event multicast ip adress a PDelayReq message */
@@ -533,7 +586,7 @@ static int msg_issue_pdelay_req(struct pp_instance *ppi)
 	mark_incorrect(&ppi->t4); /* see commit message */
 	ppi->t_ops->get(ppi, &now);
 	len = msg_pack_pdelay_req(ppi, &now);
-	return __send_and_log(ppi, len, PP_NP_EVT);
+	return __send_and_log(ppi, len, PP_NP_EVT,PPM_PDELAY_REQ_FMT);
 }
 
 int msg_issue_request(struct pp_instance *ppi)
@@ -549,7 +602,7 @@ int msg_issue_delay_resp(struct pp_instance *ppi, struct pp_time *t)
 	int len;
 
 	len = msg_pack_delay_resp(ppi, &ppi->received_ptp_header, t);
-	return __send_and_log(ppi, len, PP_NP_GEN);
+	return __send_and_log(ppi, len, PP_NP_GEN,PPM_DELAY_RESP_FMT);
 }
 
 /* Pack and send on event multicast ip adress a DelayResp message */
@@ -558,5 +611,5 @@ int msg_issue_pdelay_resp(struct pp_instance *ppi, struct pp_time *t)
 	int len;
 
 	len = msg_pack_pdelay_resp(ppi, &ppi->received_ptp_header, t);
-	return __send_and_log(ppi, len, PP_NP_EVT);
+	return __send_and_log(ppi, len, PP_NP_EVT,PPM_PDELAY_RESP_FMT);
 }

@@ -7,7 +7,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /* 
  * WR slave: got here from WRS_S_LOCK: send LOCKED, wait for CALIBRATE.

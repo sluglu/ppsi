@@ -23,6 +23,14 @@
 
 #include <arch/arch.h> /* ntohs and so on -- and wr-api.h for wr archs */
 
+#if CONFIG_EXT_WR==1
+#include "../proto-ext-whiterabbit/wr-api.h"
+#endif
+
+#if CONFIG_EXT_L1SYNC==1
+#include "../proto-ext-l1sync/l1e-api.h"
+#endif
+
 /* At this point in time, we need ARRAY_SIZE to conditionally build vlan code */
 #undef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))

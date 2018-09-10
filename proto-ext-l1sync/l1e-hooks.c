@@ -8,7 +8,6 @@
 #include <inttypes.h>
 #include <ppsi/ppsi.h>
 #include <common-fun.h>
-#include "l1e-api.h"
 #include "l1e-constants.h"
 #include <math.h>
 
@@ -86,7 +85,7 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 	bds->congruentIsRequired      = TRUE;
 	bds->optParamsEnabled         = FALSE;
 	bds->logL1SyncInterval        = 0;
-	bds->L1SyncReceiptTimeout     = L1E_DEFAULT_L1SYNCRECEIPTTIMEOUT;
+	bds->L1SyncReceiptTimeout     = L1E_DEFAULT_L1SYNC_RECEIPT_TIMEOUT;
 	// init dynamic data set members with zeros/defaults
 	bds->L1SyncLinkAlive          = FALSE;
 	bds->isTxCoherent             = FALSE;
@@ -234,6 +233,20 @@ static int l1e_ready_for_slave(struct pp_instance *ppi)
 }
 
 
+static 	void l1e_state_change(struct pp_instance *ppi) {
+	switch (ppi->next_state) {
+		case PPS_DISABLED :
+			/* In PPSI we go to DISABLE state when the link is down */
+			/* For the time being, it should be done like this because fsm is not called when the link is down */
+			l1e_run_state_machine(ppi); /* First call to choose the next state */
+			l1e_run_state_machine(ppi); /* Second call to apply next state */
+			break;
+		case PPS_INITIALIZING :
+			L1E_DSPOR(ppi)->basic.L1SyncState=L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED;
+			break;
+	}
+}
+
 /* The global structure used by ppsi */
 struct pp_ext_hooks l1e_ext_hooks = {
 	.open = l1e_open,
@@ -246,5 +259,6 @@ struct pp_ext_hooks l1e_ext_hooks = {
 #if CONFIG_HAS_P2P
 	.handle_presp = l1e_handle_presp,
 #endif
+	.state_change = l1e_state_change,
 };
 

@@ -80,30 +80,46 @@ static int presp_call_servo(struct pp_instance *ppi)
 	return ret;
 }
 
+static int is_grand_master(struct pp_instance *ppi) {
+	int has_slave= 0;
+	int has_master=0;
+	int i=0;
+
+#if CODEOPT_ONE_PORT()
+	{
+#else
+	for (; i < DSDEF(ppi)->numberPorts; i++) {
+#endif
+		switch (INST(GLBS(ppi), i)->state) {
+		case PPS_UNCALIBRATED:
+		case PPS_SLAVE:
+			has_slave=1;
+			break;
+		case PPS_MASTER:
+		case PPS_PRE_MASTER:
+		case PPS_PASSIVE:
+			has_master=1;
+		}
+	}
+	return has_master && !has_slave;
+}
+
 int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 {
-	struct pp_globals *ppg = GLBS(ppi);
-	int is_gm = 1;
-	int i;
-	
 	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
-		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
+		/* 9.2.6.11 b) reset timeout when an announce timeout happened */
 		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
-		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			if (!CODEOPT_ONE_PORT() &&  DSDEF(ppi)->numberPorts > 1) {
-				for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
-					if ((INST(ppg, i)->state == PPS_UNCALIBRATED) ||
-						(INST(ppg, i)->state == PPS_SLAVE))
-						is_gm = 0;
-				}				
-				if (is_gm)
-					bmc_m1(ppi);
-				else
-					bmc_m3(ppi);				
-			} else
-				bmc_m1(ppi);	
-			
+
+		if ( !DSDEF(ppi)->slaveOnly ) {
+			if ( is_grand_master(ppi) ) {
+				bmc_m1(ppi);
+			} else {
+				bmc_m3(ppi);
+			}
+			if ( DSDEF(ppi)->externalPortConfigurationEnabled ) {
+				/* Clause 17.6.5.3 : The announce receipt timeout mechanism shall not be active */
+				return 0;
+			}
 			ppi->next_state = PPS_MASTER;
 		} else {
 			ppi->next_state = PPS_LISTENING;
@@ -213,8 +229,13 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 
 int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
-	bmc_add_frgn_master(ppi, buf, len);
-
+	/* Clause 9.2.2.2 MasterOnly PTP ports :
+	 * Announce messages received on a masterOnly PTP Port shall not be considered
+	 * in the operation of the best master clock algorithm or in the update of data sets.
+	 */
+	if ( ! DSPOR(ppi)->masterOnly ) {
+		bmc_add_frgn_master(ppi, buf, len);
+	}
 	if (ppi->ext_hooks->handle_announce)
 		return ppi->ext_hooks->handle_announce(ppi);
 	return 0;
@@ -228,19 +249,18 @@ int st_com_handle_signaling(struct pp_instance *ppi, void *buf, int len)
 }
 
 
-int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
+int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_format msg_fmt)
 {
-	int msgtype = ((char *)ppi->tx_ptp)[0] & 0xf;
+	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	struct pp_time *t = &ppi->last_snt_time;
 	int ret;
 
-	ret = ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,
-			       msgtype);
+	ret = ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,msg_fmt);
 	if (ret == PP_SEND_DROP)
 		return 0; /* don't report as error, nor count nor log as sent */
 	if (ret < msglen) {
 		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
-			pp_msgtype_info[msgtype].name, msgtype);
+				pp_msgtype_name[mf->msg_type], mf->msg_type);
 		return PP_SEND_ERROR;
 	}
 	/* The send method updates ppi->last_snt_time with the Tx timestamp. */
@@ -251,7 +271,7 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d.%03d (%s)\n",
 		msglen, (int)t->secs, (int)(t->scaled_nsecs >> 16),
 		((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
-		pp_msgtype_info[msgtype].name);
+		pp_msgtype_name[mf->msg_type]);
 	if (chtype == PP_NP_EVT && is_incorrect(&ppi->last_snt_time))
 		return PP_SEND_NO_STAMP;
 

@@ -24,6 +24,7 @@ struct pp_runtime_opts {
 	int priority1;
 	int priority2;
 	int domainNumber;
+	Boolean externalPortConfigurationEnabled;
 	void *arch_opts;
 };
 
@@ -204,11 +205,11 @@ struct pp_instance {
 	portDS_t *portDS;		 /* page 72 */
 	struct pp_servo *servo;  /* Servo moved from globals because we may have more than one servo : redundancy */
 
-	/** (IEEE1588-2018) */
+	/** (IEEE1588-2019) */
 	asymmetryCorrectionPortDS_t asymmetryCorrectionPortDS; /*draft P1588_v_29: page 99*/
 	timestampCorrectionPortDS_t timestampCorrectionPortDS; /*draft P1588_v_29: page 99*/
-
-	/** *********************** */
+	externalPortConfigurationPortDS_t  externalPortConfigurationPortDS; /*draft P1588: Clause 17.6.3*/
+	/************************* */
 
 	unsigned long timeouts[__PP_TO_ARRAY_SIZE];
 	UInteger16 recv_sync_sequence_id;

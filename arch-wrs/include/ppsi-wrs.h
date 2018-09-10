@@ -13,6 +13,9 @@
 #include <libwr/shmem.h>
 #include <libwr/hal_shmem.h>
 
+
+#define WRS_NUMBER_PHYSICAL_PORTS 18 /* Number of physical ports on a WR switch */
+
 extern struct minipc_ch *hal_ch;
 extern struct minipc_ch *ppsi_ch;
 extern struct hal_port_state *hal_ports;

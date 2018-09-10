@@ -28,9 +28,6 @@
 #include <ppsi-wrs.h>
 #include <libwr/shmem.h>
 
-#include "../proto-ext-whiterabbit/wr-api.h"
-#include "../proto-ext-l1sync/l1e-api.h"
-
 #  define WRSW_HAL_RETRIES 1000
 
 #define WRSW_HAL_TIMEOUT 2000000 /* us */
@@ -217,14 +214,14 @@ int main(int argc, char **argv)
 		char s[128];
 		int i;
 
-		for (i = 0; i < 18; i++) {
+		for (i = 0; i < WRS_NUMBER_PHYSICAL_PORTS; i++) {
 			Boolean configured=FALSE;
-#if CONFIG_EXT_L1SYNC == 1
+#if CONFIG_PROFILE_HA == 1
 			sprintf(s, "port %i; iface wri%i; proto raw;"
 				"profile ha; role auto", i + 1, i + 1);
 			configured=TRUE;
 #endif
-#if CONFIG_EXT_WR == 1
+#if CONFIG_PROFILE_WR == 1
 			if ( ! configured )
 				sprintf(s, "port %i; iface wri%i; proto raw;"
 					"profile wr; role auto", i + 1, i + 1);
@@ -243,9 +240,10 @@ int main(int argc, char **argv)
 		ppi->port_name = ppi->cfg.port_name;
 		ppi->delayMechanism = ppi->cfg.delayMechanism;
 		ppi->portDS = alloc_fn(ppsi_head, sizeof(*ppi->portDS));
+		ppi->servo = alloc_fn(ppsi_head, sizeof(*ppi->servo));
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
 		if (ppi->portDS) {
-#if CONFIG_EXT_WR == 1
+#if CONFIG_PROFILE_WR == 1
 			if ( ppi->cfg.profile==PPSI_PROFILE_WR ) {
 				ppi->protocol_extension=PPSI_EXT_WR;
 				/* Add WR extension portDS */
@@ -262,7 +260,7 @@ int main(int argc, char **argv)
 				ppi->ext_hooks=&wr_ext_hooks;
 			}
 #endif
-#if CONFIG_EXT_L1SYNC == 1
+#if CONFIG_PROFILE_HA == 1
 			if ( ppi->cfg.profile==PPSI_PROFILE_HA ) {
 				ppi->protocol_extension=PPSI_EXT_L1S;
 				/* Add L1E extension portDS */
@@ -281,13 +279,20 @@ int main(int argc, char **argv)
 				ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
 				ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
 						(RelativeDifference)(ppi->cfg.delayCoefficient * (double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT));
+
+				/* Set L1SYNC portDS */
+				L1E_DSPOR_BS(ppi)->logL1SyncInterval=ppi->cfg.l1sync_interval;
+				L1E_DSPOR_BS(ppi)->L1SyncReceiptTimeout=ppi->cfg.l1sync_receipt_timeout;
 				/* Set L1SYNC extension hooks */
 				ppi->ext_hooks=&l1e_ext_hooks;
-				/* Set default profile parameters */
-				ppg->defaultDS->externalPortConfigurationEnabled = 1;
-				ppi->portDS->masterOnly = 0;
 			}
 #endif
+			ppi->portDS->masterOnly= ppi->cfg.masterOnly; /* can be overridden in pp_init_globals() */
+			ppi->portDS->logAnnounceInterval=ppi->cfg.announce_interval;
+			ppi->portDS->announceReceiptTimeout=ppi->cfg.announce_receipt_timeout;
+			ppi->portDS->logSyncInterval=ppi->cfg.sync_interval;
+			ppi->portDS->logMinDelayReqInterval=ppi->cfg.min_delay_req_interval;
+			ppi->portDS->logMinPdelayReqInterval=ppi->cfg.min_pdelay_req_interval;
 		} else {
 			goto exit_out_of_memory;
 		}

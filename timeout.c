@@ -37,8 +37,8 @@ void pp_timeout_init(struct pp_instance *ppi)
 {
 	portDS_t *port = ppi->portDS;
 
-	to_configs[PP_TO_REQUEST].value =
-		port->logMinDelayReqInterval;
+	to_configs[PP_TO_REQUEST].value = (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) ?
+			port->logMinPdelayReqInterval : port->logMinDelayReqInterval;
 	/* fault timeout is 4 avg request intervals, not randomized */
 	to_configs[PP_TO_FAULT].value =
 		1 << (port->logMinDelayReqInterval + 12); /* 0 -> 4096ms */
@@ -54,7 +54,7 @@ void pp_timeout_init(struct pp_instance *ppi)
 void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
 {
 	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
-	pp_diag(ppi, time, 3, "new timeout for %s : %i / %lu\n",
+	pp_diag(ppi, time, 3, "Set timeout for %s : %i / %lu\n",
 		to_configs[index].name, millisec, ppi->timeouts[index]);
 }
 
@@ -66,48 +66,53 @@ void pp_timeout_clear(struct pp_instance *ppi, int index)
 void pp_timeout_set(struct pp_instance *ppi, int index)
 {
 	static uint32_t seed;
-	uint32_t rval;
 	int millisec;
-	int logval = to_configs[index].value;
+	struct timeout_config * to_config=&to_configs[index];
 
-	if (!seed) {
-		uint32_t *p;
-		/* use the least 32 bits of the mac address as seed */
-		p = (void *)(&DSDEF(ppi)->clockIdentity)
-			+ sizeof(ClockIdentity) - 4;
-		seed = *p;
-	}
-	/* From uclibc: they make 11 + 10 + 10 bits, we stop at 21 */
-	seed *= 1103515245;
-	seed += 12345;
-	rval = (unsigned int) (seed / 65536) % 2048;
+	if (to_config->which_rand==RAND_NONE ) {
+		millisec = to_config->value; /* Just a constant */
+	} else {
+		uint32_t rval;
+		int logval = to_config->value;
 
-	seed *= 1103515245;
-	seed += 12345;
-	rval <<= 10;
-	rval ^= (unsigned int) (seed / 65536) % 1024;
+		if (!seed) {
+			uint32_t *p;
+			/* use the least 32 bits of the mac address as seed */
+			p = (void *)(&DSDEF(ppi)->clockIdentity)
+				+ sizeof(ClockIdentity) - 4;
+			seed = *p;
+		}
+		/* From uclibc: they make 11 + 10 + 10 bits, we stop at 21 */
+		seed *= 1103515245;
+		seed += 12345;
+		rval = (unsigned int) (seed / 65536) % 2048;
 
-	/*
-	 * logval is signed. Let's imagine it's no less than -4.
-	 * Here below, 0 gets to 16 * 25 = 400ms, 40% of the nominal value
-	 */
-	millisec = (1 << (logval + 4)) * 25;
+		seed *= 1103515245;
+		seed += 12345;
+		rval <<= 10;
+		rval ^= (unsigned int) (seed / 65536) % 1024;
 
-	switch(to_configs[index].which_rand) {
-	case RAND_70_130:
 		/*
-		 * We are required to fit between 70% and 130%
-		 * of the value for 90% of the time, at least.
-		 * So randomize between 80% and 120%: constant
-		 * part is 80% and variable is 40%.
+		 * logval is signed. Let's imagine it's no less than -4.
+		 * Here below, 0 gets to 16 * 25 = 400ms, 40% of the nominal value
 		 */
-		millisec = (millisec * 2) + rval % millisec;
-		break;
-	case RAND_0_200:
-		millisec = rval % (millisec * 5);
-		break;
-	case RAND_NONE:
-		millisec = logval; /* not a log, just a constant */
+		millisec = (1 << (logval + 4)) * 25;
+
+		switch(to_config->which_rand) {
+		case RAND_70_130:
+			/*
+			 * We are required to fit between 70% and 130%
+			 * of the value for 90% of the time, at least.
+			 * So randomize between 80% and 120%: constant
+			 * part is 80% and variable is 40%.
+			 */
+			millisec = (millisec * 2) + rval % millisec;
+			break;
+		case RAND_0_200:
+			millisec = rval % (millisec * 5);
+			break;
+		/* RAND_NONE already treated */
+		}
 	}
 	__pp_timeout_set(ppi, index, millisec);
 }
@@ -121,8 +126,9 @@ void pp_timeout_setall(struct pp_instance *ppi)
 	int i;
 	for (i = 0; i < __PP_TO_ARRAY_SIZE; i++) {
 		/* keep BMC timeout */
-		if (i != PP_TO_BMC)
+		if (i!=PP_TO_BMC) {
 			pp_timeout_set(ppi, i);
+		}
 	}
 	/* but announce_send must be send soon */
 	__pp_timeout_set(ppi, PP_TO_ANN_SEND, 20);

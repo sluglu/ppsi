@@ -5,7 +5,6 @@
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /* We are entering WR handshake, as either master or slave */
 void wr_handshake_init(struct pp_instance *ppi, int mode_or_retry)

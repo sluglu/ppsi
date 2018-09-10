@@ -11,6 +11,8 @@
 #include <softpll_ng.h>
 #include "../proto-ext-whiterabbit/wr-constants.h"
 #include <rxts_calibrator.h>
+
+#include "../include/hw-specific/wrh.h"
 #include "wrpc.h"
 
 extern uint32_t cal_phase_transition;
@@ -20,7 +22,7 @@ int wrpc_spll_locking_enable(struct pp_instance *ppi)
 	spll_init(SPLL_MODE_SLAVE, 0, 1);
 	spll_enable_ptracker(0, 1);
 	rxts_calibration_start();
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
@@ -31,7 +33,7 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
 	locked = spll_check_lock(0); /* both slave and gm mode */
 
 	if (grandmaster)
-		return locked ? WR_SPLL_READY : WR_SPLL_ERROR;
+		return locked ? WRH_SPLL_READY : WRH_SPLL_ERROR;
 
 	/* Else, slave: ensure calibration is done */
 	if(!locked) {
@@ -40,30 +42,30 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
 	else if(locked && !t24p_calibrated) {
 		/*run t24p calibration if needed*/
 		if (calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition) < 0)
-			return WR_SPLL_CALIB_NOT_READY;
+			return WRH_SPLL_CALIB_NOT_READY;
 		t24p_calibrated = 1;
 	}
 
-	return locked ? WR_SPLL_READY : WR_SPLL_ERROR;
+	return locked ? WRH_SPLL_READY : WRH_SPLL_ERROR;
 }
 
 int wrpc_spll_locking_reset(struct pp_instance *ppi)
 {
 	//TODO?
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 
 int wrpc_spll_locking_disable(struct pp_instance *ppi)
 {
 	/* softpll_disable(); */
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrpc_spll_enable_ptracker(struct pp_instance *ppi)
 {
 	spll_enable_ptracker(0, 1);
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrpc_enable_timing_output(struct pp_instance *ppi, int enable)
@@ -73,7 +75,7 @@ int wrpc_enable_timing_output(struct pp_instance *ppi, int enable)
 	WR_DSPOR(ppi)->ppsOutputOn = enable;
 
 	shw_pps_gen_enable_output(enable);
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 
 int wrpc_adjust_in_progress(void)
@@ -93,6 +95,6 @@ int wrpc_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
 int wrpc_adjust_phase(int32_t phase_ps)
 {
 	spll_set_phase_shift(SPLL_ALL_CHANNELS, phase_ps);
-	return WR_SPLL_OK;
+	return WRH_SPLL_OK;
 }
 

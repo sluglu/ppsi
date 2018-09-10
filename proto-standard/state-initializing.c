@@ -41,7 +41,6 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	unsigned char *mac;
 	unsigned char mac_port1[6];
 	portDS_t *port = DSPOR(ppi);
-	struct pp_runtime_opts *opt = OPTS(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
 	int ret = 0;
 	int i;
@@ -98,13 +97,11 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 		&DSDEF(ppi)->clockIdentity, PP_CLOCK_IDENTITY_LENGTH);
 	/* 1-based port number =  index of this ppi in the global array */
 	port->portIdentity.portNumber = 1 + ppi - ppi->glbs->pp_instances;
-	port->logMinDelayReqInterval = PP_DEFAULT_DELAYREQ_INTERVAL;
-	port->logAnnounceInterval = opt->logAnnounceInterval;
-	port->announceReceiptTimeout = PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT;
-	port->logSyncInterval = opt->logSyncInterval;
 	port->versionNumber = PP_VERSION_PTP;
+	port->minorVersionNumber = PP_MINOR_VERSION_PTP;
 	pp_timeout_init(ppi);
-	pp_timeout_setall(ppi);
+	pp_timeout_setall(ppi);/* PP_TO_BMC is not set by default */
+	pp_timeout_set(ppi, PP_TO_BMC);
 
 	if (ppi->ext_hooks->init)
 		ret = ppi->ext_hooks->init(ppi, buf, len);
@@ -120,10 +117,17 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 
 	msg_init_header(ppi, ppi->tx_ptp); /* This is used for all tx */
 	
-	if (ppi->role != PPSI_ROLE_MASTER)
-		ppi->next_state = PPS_LISTENING;
+	if (DSDEF(ppi)->externalPortConfigurationEnabled) {
+		/* Clause 17.6.5.2 : the member portDS.portState shall be set to
+		 * the value of the member externalPortConfigurationPortDS.desiredState
+		 */
+		if ( ppi->externalPortConfigurationPortDS.desiredState==PPS_SLAVE)
+			ppi->next_state=PPS_UNCALIBRATED;
+		else
+			ppi->next_state = ppi->externalPortConfigurationPortDS.desiredState;
+	}
 	else
-		ppi->next_state = PPS_MASTER;
+		ppi->next_state = PPS_LISTENING;
 
 #ifdef CONFIG_ABSCAL
 	/* absolute calibration only exists in arch-wrpc, so far */

@@ -7,7 +7,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /*
  * We enter here from WRS_CALIBRATION.  If master we wait for

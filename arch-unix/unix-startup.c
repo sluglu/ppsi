@@ -25,10 +25,10 @@
 
 /* ppg and fields */
 static struct pp_globals ppg_static;
-static DSDefault defaultDS;
-static DSCurrent currentDS;
-static DSParent parentDS;
-static DSTimeProperties timePropertiesDS;
+static defaultDS_t defaultDS;
+static currentDS_t currentDS;
+static [parentDS_t parentDS;
+static timePropertiesDS_t timePropertiesDS;
 static struct pp_servo servo;
 
 extern struct pp_ext_hooks pp_hooks;

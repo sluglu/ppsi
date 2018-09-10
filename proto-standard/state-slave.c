@@ -126,13 +126,11 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 
 	if ((bmc_idcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
 		    &resp.requestingPortIdentity.clockIdentity) != 0) ||
-	    ((ppi->sent_seq[PPM_DELAY_REQ]) !=
-	     hdr->sequenceId) ||
-	    (DSPOR(ppi)->portIdentity.portNumber !=
-	     resp.requestingPortIdentity.portNumber) ||
+	    (ppi->sent_seq[PPM_DELAY_REQ] != hdr->sequenceId)   ||
+	    (DSPOR(ppi)->portIdentity.portNumber != resp.requestingPortIdentity.portNumber) ||
 	    (!msg_from_current_master(ppi))) {
-		pp_diag(ppi, frames, 1, "pp_slave : "
-			"Delay Resp doesn't match Delay Req (f %x)\n",
+		pp_diag(ppi, frames, 1, "%s : "
+			"Delay Resp doesn't match Delay Req (f %x)\n",__func__,
 			ppi->flags);
 		return 0;
 	}
@@ -214,10 +212,10 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	           ppi->next_state = PPS_SLAVE;
 		}
 	} else {
-		/* TODO add implementation specific SYNCHRONIZATION FAULT
-		 * event */
-		if (pp_timeout(ppi, PP_TO_FAULT))
-			ppi->next_state = PPS_UNCALIBRATED;
+		/* TODO add implementation specific SYNCHRONIZATION event */
+		if (! DSDEF(ppi)->externalPortConfigurationEnabled )
+			if (pp_timeout(ppi, PP_TO_FAULT))
+				ppi->next_state = PPS_UNCALIBRATED;
 	}
 
 	/* when entering uncalibrated init servo */
@@ -232,7 +230,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 			goto out;
 	}
 
-	/* do a delay mesurement either in p2p or e2e delay mode */
+	/* do a delay measurement either in p2p or e2e delay mode */
 	pp_lib_may_issue_request(ppi);
 	
 	/*

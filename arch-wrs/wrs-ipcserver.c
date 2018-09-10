@@ -8,7 +8,6 @@
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>
 #include <hal_exports.h>
-#include <wr-api.h>
 
 /* minipc Encoding  of the supported commands */
 

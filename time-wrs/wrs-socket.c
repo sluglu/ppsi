@@ -32,7 +32,6 @@
 
 #include <ppsi-wrs.h>
 #include <hal_exports.h>
-#include "../proto-ext-whiterabbit/wr-api.h"
 
 #define ETHER_MTU 1518
 #define DMTD_UPDATE_INTERVAL 500

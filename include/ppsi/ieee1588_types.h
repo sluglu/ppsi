@@ -187,7 +187,7 @@ typedef struct MsgPDelayRespFollowUp {
 	PortIdentity	requestingPortIdentity;
 } MsgPDelayRespFollowUp;
 
-/* Signaling Message (table 33, page 133) */
+/* Signaling Message (Table 51 : Signaling message fields) */
 typedef struct MsgSignaling {
 	PortIdentity	targetPortIdentity;
 	char		*tlv;
@@ -218,7 +218,7 @@ typedef struct {		/* page 65 */
 	/** Optional (IEEE1588-2018) */
 	Timestamp	currentTime;               /*draft P1588_v_29: page 85*/
 	Boolean		instanceEnable;            /*draft P1588_v_29: page 86*/
-	Enumeration8	externalPortConfigurationEnabled; /*draft P1588_v_29: page 86*/
+	Boolean	        externalPortConfigurationEnabled; /*draft P1588_v_29: page 86*/
 	Enumeration8	maxStepsRemoved;           /*draft P1588_v_29: page 86 (bug)*/
 	Enumeration8	SdoId;                     /*draft P1588_v_29: page 86 (bug)*/
 	Enumeration8	instanceType;              /*draft P1588_v_29: page 86 */
@@ -331,6 +331,10 @@ typedef struct  { /*draft P1588_v_29: page129*/
 	TimeInterval	constantAsymmetry;
 	RelativeDifference	scaledDelayCoefficient;
 } asymmetryCorrectionPortDS_t;
+
+typedef struct {/*draft P1588_v_29: Clause 17.6.3 */
+	Enumeration8 desiredState; /* draft P1588_v_29: Clause 17.6.3.2 */
+}externalPortConfigurationPortDS_t;
 
 /** ************************************************************************/
 /* Enumeration States (table 8, page 73) */

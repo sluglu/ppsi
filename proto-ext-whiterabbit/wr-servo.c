@@ -1,6 +1,5 @@
 #include <ppsi/ppsi.h>
 #include <ppsi/assert.h>
-#include "wr-api.h"
 #include <libwr/shmem.h>
 
 /* prototypes */
@@ -405,9 +404,9 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	pp_time_hardwarize(&offset, s->clock_period_ps,
 		      &offset_ticks, &offset_ps);
-	pp_diag(ppi, servo, 2, "offset_hw: %li.%09li (+%li)\n",
+	pp_diag(ppi, servo, 2, "offset_hw= %li.%09li (+%li), clock_period= %dps\n",
 		(long)offset.secs, (long)offset_ticks,
-		(long)offset_ps);
+		(long)offset_ps,s->clock_period_ps);
 
 	locking_poll_ret = WRH_OPER()->locking_poll(ppi, 0);
 	if (locking_poll_ret != WRH_SPLL_READY

@@ -278,7 +278,7 @@ static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 
 static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 {
-	/* the field includes 6 bytes of the header, ecludes 4 of them. Bah! */
+	/* the field includes 6 bytes of the header, excludes 4 of them. Bah! */
 	int explen = ntohs(tlv->len) + 4;
 
 	printf("TLV: type %04x len %i conf %02x act %02x ",
@@ -293,7 +293,7 @@ static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 
 	/* later:  if (memcmp(tlv->oui, "\x08\x00\x30", 3)) ... */
 
-	/* Now dump non-wr tlv in binary, count only payload */
+	/* Now dump non-l1sync tlv in binary, count only payload */
 	dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
 		   explen - sizeof(*tlv));
 	return explen;

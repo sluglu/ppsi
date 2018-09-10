@@ -1,6 +1,5 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
-#include "wr-api.h"
 
 /*
  * This is similar to master state, but it only sends sync, that

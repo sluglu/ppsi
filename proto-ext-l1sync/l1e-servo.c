@@ -6,7 +6,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "l1e-api.h"
 #include "l1e-constants.h"
 #include <libwr/shmem.h>
 

@@ -78,11 +78,35 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	memcpy(&def->clockQuality, &rt_opts->clock_quality,
 		   sizeof(ClockQuality));
 
-	if (def->numberPorts == 1)
-		def->slaveOnly = (INST(ppg, 0)->role == PPSI_ROLE_SLAVE);
-	else
-		def->slaveOnly = 1; /* the for cycle below will set it to 0 if not
-							 * ports are not all slave_only */
+	if ( def->slaveOnly ) {
+		if ( def->numberPorts > 1 ) {
+			/* Check if slaveOnly is allowed
+			 * Only one ppsi instance must exist however n instances on the same physical port
+			 * and  using the same protocol must be considered as one. We do this because these
+			 * instances are exclusive and will be never enabled at the same time
+			 */
+			struct pp_instance *ppi = INST(ppg, 0);
+			for (i = 1; i < def->numberPorts; i++) {
+				struct pp_instance *ppi_cmp = INST(ppg, i);
+				if ( ppi->proto != ppi_cmp->proto /* different protocol used */
+						|| strcmp(ppi->cfg.iface_name,ppi_cmp->cfg.iface_name)!=0 /* Not the same interface */
+					) {
+					/* remove slaveOnly */
+					def->slaveOnly = 0;
+					pp_printf("ppsi: SlaveOnly cannot be applied. It is not a ordinary clock\n");
+					break; /* No reason to continue */
+				}
+			}
+		}
+		if ( def->slaveOnly ) {
+			def->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
+			pp_printf("Slave Only, clock class set to %d\n", def->clockQuality.clockClass);
+		}
+
+	}
+		if ( def->numberPorts > 1) {
+		/* slaveOnly can be applied only on a ordinary clock */
+	}
 
 	def->priority1 = rt_opts->priority1;
 	def->priority2 = rt_opts->priority2;
@@ -91,19 +115,34 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	for (i = 0; i < def->numberPorts; i++) {
 		struct pp_instance *ppi = INST(ppg, i);
 
-		if (def->slaveOnly && ppi->role != PPSI_ROLE_SLAVE)
-			def->slaveOnly = 0;
-
 		ppi->state = PPS_INITIALIZING;
 		ppi->current_state_item = NULL;
 		ppi->port_idx = i;
 		ppi->frgn_rec_best = -1;
 	}
 
-	if (def->slaveOnly) {
-		def->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
-		pp_printf("Slave Only, clock class set to %d\n",
-			  def->clockQuality.clockClass);
+	/* Clause 17.6.2 : On an Ordinary Clock that is slaveOnly by configuration or by-design, an attempt
+	 * to set the defaultDS.externalPortConfigurationEnabled to TRUE should result in a management error,
+	 * and the value of defaultDS.externalPortConfigurationEnabled shall remain FALSE
+	 */
+	def->externalPortConfigurationEnabled=pp_rt_opts->externalPortConfigurationEnabled;
+	if ( def->slaveOnly && def->externalPortConfigurationEnabled ) {
+		pp_printf("ppsi: Incompatible configuration: SlaveOnly  and externalPortConfigurationEnabled\n");
+		def->externalPortConfigurationEnabled=FALSE;
+	}
+
+	if ( ppg->defaultDS->externalPortConfigurationEnabled  ) {
+		for (i = 0; i < def->numberPorts; i++) {
+			struct pp_instance *ppi = INST(ppg, i);
+
+			/* Clause 17.6.5.3 : - Clause 9.2.2 shall not be in effect */
+			if ( ppi->portDS->masterOnly ) {
+				/* priority given to externalPortConfigurationEnabled */
+				ppi->portDS->masterOnly=FALSE;
+				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. externalPortConfigurationEnabled set to FALSE\n");
+			}
+			ppi->externalPortConfigurationPortDS.desiredState =ppi->cfg.desiredState ;
+		}
 	}
 
 	for (i = 0; i < def->numberPorts; i++) {

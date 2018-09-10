@@ -119,7 +119,7 @@ void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
 	ps = time->scaled_nsecs & 0xffff; /* fractional nano */
 	ps = (ps * 1000) >> TIME_INTERVAL_FRACBITS; /* now picoseconds 0..999 -- positive*/
 	ns = time->scaled_nsecs >> TIME_INTERVAL_FRACBITS;
-	if (ns > 0) {
+	if (ns > 0 && clock_ns) {
 		ps += (ns % clock_ns) * 1000;
 		ns -= (ns % clock_ns);
 	}

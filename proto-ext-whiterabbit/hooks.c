@@ -1,5 +1,4 @@
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /* ext-whiterabbit must offer its own hooks */
 
@@ -8,6 +7,7 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+
 	wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
 	wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
 	wrp->head.extModeOn = 0;
@@ -39,15 +39,15 @@ static int wr_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 
 	if (ppi->protocol_extension == PPSI_EXT_WR) {
-		switch (ppi->role) {
-			case PPSI_ROLE_MASTER:
+		if ( DSDEF(ppi)->slaveOnly ) {
+			WR_DSPOR(ppi)->wrConfig = WR_S_ONLY;
+		} else {
+			if ( ppi->portDS->masterOnly ) {
 				WR_DSPOR(ppi)->wrConfig = WR_M_ONLY;
-				break;
-			case PPSI_ROLE_SLAVE:
-				WR_DSPOR(ppi)->wrConfig = WR_S_ONLY;
-				break;
-			default:
+			} else {
 				WR_DSPOR(ppi)->wrConfig = WR_M_AND_S;
+			}
+
 		}
 		return 0;
 	}

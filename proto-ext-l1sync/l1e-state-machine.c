@@ -7,7 +7,6 @@
 
 #include <ppsi/ppsi.h>
 #include <common-fun.h>
-#include "l1e-api.h"
 #include "l1e-constants.h"
 #include <math.h>
 
@@ -167,8 +166,7 @@ static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 
 		pp_diag(ppi, ext, 1, "Sending L1SYNC_TLV signaling msg\n");
 		len = l1e_pack_signal(ppi);
-		/* FIXME: check the destination MAC address */
-		__send_and_log(ppi, len, PP_NP_GEN);
+		__send_and_log(ppi, len, PP_NP_GEN,PPM_SIGNALING_NO_FWD_FMT);
 
 		/* Calculate when the next message should be sent */
 		__pp_timeout_set(ppi, L1E_TIMEOUT_TX_SYNC,

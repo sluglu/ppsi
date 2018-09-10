@@ -459,24 +459,23 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 		qualifieda += ca[i];
 		qualifiedb += cb[i];
 	}
+	qualifieda=qualifieda >= PP_FOREIGN_MASTER_THRESHOLD;
+	qualifiedb=qualifiedb >= PP_FOREIGN_MASTER_THRESHOLD;
 
 	/* if B is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b)*/
-	if ((qualifieda >= PP_FOREIGN_MASTER_THRESHOLD)
-	    && (qualifiedb < PP_FOREIGN_MASTER_THRESHOLD)) {
+	if ( qualifieda && !qualifiedb ) {
 		pp_diag(ppi, bmc, 2, "Dataset B not qualified\n");
 		return -1;
 	}
 
 	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
-	if ((qualifiedb >= PP_FOREIGN_MASTER_THRESHOLD)
-	    && (qualifieda < PP_FOREIGN_MASTER_THRESHOLD)) {
+	if (qualifiedb && !qualifieda) {
 		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
 		return 1;
 	}
 
 	/* if both are not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
-	if ((qualifieda < PP_FOREIGN_MASTER_THRESHOLD)
-	    && (qualifiedb < PP_FOREIGN_MASTER_THRESHOLD)) {
+	if ( !qualifieda && !qualifiedb ) {
 		pp_diag(ppi, bmc, 2, "Dataset A & B not qualified\n");
 		return 0;
 	}
@@ -580,7 +579,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	struct pp_instance *ppi_best;
 	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
 	struct pp_frgn_master *ebest;
-	int qualified = 0;
+	int foreign_master_qualified = 0;
 
 	/* bmc_state_decision is called several times, so report only at
 	 * level 2 */
@@ -589,33 +588,46 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	/* check if the erbest is qualified */
 	if (ppi->frgn_rec_num) {
 		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-			qualified += erbest->foreignMasterAnnounceMessages[i];
+			foreign_master_qualified += erbest->foreignMasterAnnounceMessages[i];
+		foreign_master_qualified= foreign_master_qualified >= PP_FOREIGN_MASTER_THRESHOLD; /* True means qualified */
 	}
 
-	if (ppi->role == PPSI_ROLE_SLAVE) {
-		if ((!ppi->frgn_rec_num) || (qualified < PP_FOREIGN_MASTER_THRESHOLD))
-    			return PPS_LISTENING;
-		else {     
-			/* if this is the slave port of the whole system then go to slave otherwise stay in listening*/
-			if (ppi->port_idx == ppg->ebest_idx) {
-				/* if on this conigured port is ebest it will be taken as
-				 * parent */
-				ebest = erbest;
-				goto slave_s1;
-			} else
-    				return PPS_LISTENING;			
+	/* Clause 17.6.5.3: The state machines of Figure 30 or Figure 31 shall not be used */
+	if ( DSDEF(ppi)->externalPortConfigurationEnabled) {
+		/* Qualification of the foreign master is not checked */
+		int dstate=ppi->externalPortConfigurationPortDS.desiredState;
+
+		/* Update the data set for a PTP port in SLAVE or UNCALIBRATED states: Table 137 */
+		if ( (dstate==PPS_SLAVE || dstate==PPS_UNCALIBRATED ) &&
+				(ppi->port_idx == ppg->ebest_idx)) {
+					/* if on this configured port is ebest it will be taken as parent */
+			bmc_s1(ppi, erbest);
 		}
+		return dstate;
+	}
+
+	if (DSDEF(ppi)->slaveOnly) {
+		if ( !foreign_master_qualified )
+    			return PPS_LISTENING;
+		/* if this is the slave port of the whole system then go to slave otherwise stay in listening*/
+		if (ppi->port_idx == ppg->ebest_idx) {
+			/* if on this configured port is ebest it will be taken as
+			 * parent */
+			ebest = erbest;
+			goto slave_s1;
+		} else
+			return PPS_LISTENING;
 	}
 
 
-	if (((!ppi->frgn_rec_num) || (qualified < PP_FOREIGN_MASTER_THRESHOLD)) && (ppi->state == PPS_LISTENING))
+	if ( !foreign_master_qualified && (ppi->state == PPS_LISTENING))
 		return PPS_LISTENING;
 
 	/* copy local information to a foreign_master structure */
 	bmc_setup_local_frgn_master(ppi, &d0);
 
 
-	if (ppi->role == PPSI_ROLE_MASTER) {
+	if ( ppi->portDS->masterOnly ) {
 		/* if there is a better master show these values */
 		if (ppg->ebest_idx >= 0) {
 			/* don't update parent dataset */
@@ -792,7 +804,7 @@ slave_s1:
 		 * on that port */
 		cmpres = 0;
 	}
-	/* if we are not comming from the slave state we go to uncalibrated
+	/* if we are not coming from the slave state we go to uncalibrated
 	 * first */
 	if ((ppi->state != PPS_SLAVE) &&
 		(ppi->state != PPS_UNCALIBRATED)) {
@@ -812,7 +824,7 @@ slave_s1:
 			/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
 			if (ppi->state != PPS_SLAVE)
 				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-			/* the decision to go from UNCALIBRATED to SLAVEW is
+			/* the decision to go from UNCALIBRATED to SLAVE is
 			 * done outside the BMC, so just return the current state */
 			return ppi->state;
 		}
@@ -871,10 +883,6 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 	struct PortIdentity *pid = &hdr->sourcePortIdentity;
 
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
-
-	/* if we are a configured master don't add*/
-	if (ppi->role == PPSI_ROLE_MASTER)
-		return;
 
 	/* if in DISABLED, INITIALIZING or FAULTY ignore announce */
 	if ((ppi->state == PPS_DISABLED) ||
@@ -940,6 +948,13 @@ void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			"larger or equal 255: %i\n",
 			frgn_master.stepsRemoved);
 		return;
+	}
+
+	/* External Port Configuration */
+	if ( DSDEF(ppi)->externalPortConfigurationEnabled) {
+		/* Clear all other foreign masters. The last foreign master is always the one to be used */
+		/* If externalPortConfigurationEnabled is set, foreign master qualification will be not checked */
+		ppi->frgn_rec_num=0;
 	}
 
 	/* Check if foreign master is already known */
@@ -1425,7 +1440,7 @@ int bmc(struct pp_instance *ppi)
 	if (pp_timeout(ppi, PP_TO_BMC)) {
 		bmc_age_frgn_master(ppi);
 		/* restart timer, shall occur at
-		   least once per annnounce interval 9.2.6.8
+		   least once per announce interval 9.2.6.8
 		 */
 		pp_timeout_set(ppi, PP_TO_BMC);
 	}
@@ -1446,6 +1461,11 @@ int bmc(struct pp_instance *ppi)
 
 	/* Calulate Ebest Figure 25 */
 	bmc_update_ebest(ppg);
+
+	/* Clause 17.6.5.3: The state machines of Figure 30 or Figure 31 shall not be used */
+	if ( DSDEF(ppi)->externalPortConfigurationEnabled) {
+		return bmc_state_decision(ppi);
+	}
 
 	if (!ppi->link_up) {
 		/* Set it back to initializing */

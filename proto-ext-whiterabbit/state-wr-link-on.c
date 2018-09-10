@@ -7,7 +7,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /*
  * This is the last WR state: ack the other party and go master or slave.

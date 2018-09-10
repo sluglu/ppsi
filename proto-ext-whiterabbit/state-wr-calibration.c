@@ -7,7 +7,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /*
  * We enter this state from  WRS_M_LOCK or WRS_RESP_CALIB_REQ.

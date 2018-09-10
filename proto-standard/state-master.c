@@ -105,8 +105,7 @@ out:
 	switch(e) {
 	case PP_SEND_OK: /* 0 */
 		/* Why should we switch to slave? Remove this code? */
-		if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY
-		    || (ppi->role == PPSI_ROLE_SLAVE))
+		if (DSDEF(ppi)->slaveOnly)
 			ppi->next_state = PPS_LISTENING;
 		break;
 	case PP_SEND_ERROR:

@@ -26,7 +26,12 @@
 #define L1E_TIMEOUT_TX_SYNC	PP_TO_EXT_0
 #define L1E_TIMEOUT_RX_SYNC	PP_TO_EXT_1
 
-#define L1E_DEFAULT_L1SYNCRECEIPTTIMEOUT 5 /* was 3: need more for pll lock */
+#define L1E_DEFAULT_L1SYNC_INTERVAL		   0
+#define L1E_MIN_L1SYNC_INTERVAL		       -4
+#define L1E_MAX_L1SYNC_INTERVAL		       4
+#define L1E_DEFAULT_L1SYNC_RECEIPT_TIMEOUT 3
+#define L1E_MIN_L1SYNC_RECEIPT_TIMEOUT     2
+#define L1E_MAX_L1SYNC_RECEIPT_TIMEOUT     10
 
 /*
  * We don't have ha_dsport, but rather rely on wr_dsport with our fields added.

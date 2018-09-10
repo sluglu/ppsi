@@ -164,7 +164,7 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 		sizeof(ClockIdentity))) {
 		if (DSDEF(ppi)->numberPorts > 1) {
 			/* Announces are handled by the BMC, since otherwise the state 
-			 * also the PASSIVE states in this case is overwritten */
+			 * also the PASSIVE states in this case is overwritten */
 			if (hdr->messageType != PPM_ANNOUNCE) {
 				/* ignore messages, except announce coming from its own clock */
 				return -1;	
@@ -225,7 +225,7 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 			"RECV %02d bytes at %9d.%09d.%03d (type %x, %s)\n",
 			len, (int)t->secs, (int)(t->scaled_nsecs >> 16),
 			((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
-			msgtype, pp_msgtype_info[msgtype].name);
+			msgtype, pp_msgtype_name[msgtype]);
 	}
 
 	/*
@@ -298,11 +298,11 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 			return pp_leave_current_state(ppi);
 	}
 
-	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
-
 	/* check if the BMC timeout is the next to run */
 	if (pp_next_delay_1(ppi, PP_TO_BMC) < ppi->next_delay)
 		ppi->next_delay = pp_next_delay_1(ppi, PP_TO_BMC);
+
+	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
 
 	/* Run the extension state machine. The extension can provide its own time-out */
 	if ( ppi->ext_hooks->run_ext_state_machine) {

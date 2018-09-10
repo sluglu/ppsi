@@ -48,10 +48,10 @@ struct wrh_operations wrh_oper = {
 };
 
 /*ppi fields*/
-static DSDefault  defaultDS;
-static DSCurrent  currentDS;
-static DSParent   parentDS;
-static DSTimeProperties timePropertiesDS;
+static defaultDS_t  defaultDS;
+static currentDS_t  currentDS;
+static [parentDS_t   parentDS;
+static timePropertiesDS_t timePropertiesDS;
 static struct pp_servo servo;
 
 
@@ -65,7 +65,7 @@ static struct wr_data wr_ext_data; /* WR extension data */
 static struct wr_dsport wr_dsport;
 #endif
 
-static DSPort     portDS ;
+static portDS_t     portDS ;
 
 static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
 static int start_tics = 0;
@@ -117,7 +117,6 @@ int wrc_ptp_init()
 		ppi->ext_hooks = &wr_ext_hooks;
 		ppi->ext_data = &wr_ext_data;
 		wr_ext_data->servo_state.servo_head.extension=PPSI_EXT_WR;
-		GBLS(ppi)->global_ext_data=&wr_ext_data.servo_state; /* Updated for the WR monitor tools */
 
 		portDS.ext_dsport = &wr_dsport;
 	}

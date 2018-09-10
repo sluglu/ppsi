@@ -7,7 +7,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 /*
  * WRS_PRESENT is the entry point for a WR slave

@@ -7,7 +7,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
 int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 {

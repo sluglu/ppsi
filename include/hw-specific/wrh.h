@@ -13,7 +13,7 @@
 #include <ppsi/lib.h>
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data structure */
-#define WRS_PPSI_SHMEM_VERSION 31 /* changed wrs_shm_head */
+#define WRS_PPSI_SHMEM_VERSION 32 /* added HAL_PORT_STATE_RESET to hal */
 
 /* White Rabbit softpll status values */
 #define WRH_SPLL_OK		0

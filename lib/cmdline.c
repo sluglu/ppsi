@@ -53,7 +53,6 @@ static void cmd_line_print_help(void)
 int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 {
 	int i, err = 0;
-	int j;
 	char *a; /* cmd line argument */
 
 	for (i = 1; i < argc; i++) {
@@ -89,13 +88,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 		case 'w':
 			a = argv[++i];
 			GOPTS(ppg)->s = atoi(a);
-			break;
-		case 'g':
-			GOPTS(ppg)->clock_quality.clockClass
-				= PP_CLASS_SLAVE_ONLY;
-			/* Apply -g option globally, to each configured link */
-			for (j = 0; j < ppg->nlinks; j++)
-				INST(ppg, j)->role = PPSI_ROLE_SLAVE;
 			break;
 		case 'h':
 			/* ignored: was "GOPTS(ppg)->e2e_mode = 1;" */

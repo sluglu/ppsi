@@ -452,16 +452,16 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	}
 }
 
-static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
-			int msgtype)
+static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_format msg_fmt)
 {
-	int chtype = pp_msgtype_info[msgtype].chtype;
+	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	int chtype = mf->chtype;
 	struct sockaddr_in addr;
 	struct ethhdr *hdr = pkt;
 	struct pp_vlanhdr *vhdr = pkt;
 	struct pp_channel *ch = ppi->ch + chtype;
 	struct pp_time *t = &ppi->last_snt_time;
-	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
+	int is_pdelay = mf->is_pdelay;
 	static uint16_t udpport[] = {
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,

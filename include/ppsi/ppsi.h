@@ -80,17 +80,37 @@ struct pp_vlanhdr {
 
 /* Factorize some random information in this table */
 struct pp_msgtype_info {
-	char *name;			/* For diagnostics */
+	enum pp_std_messages msg_type;
 	uint16_t msglen;
 	unsigned char chtype;
 	unsigned char is_pdelay;
 	unsigned char controlField;		/* Table 23 */
 	unsigned char logMessageInterval;	/* Table 24, see defines */
-	    #define PP_LOG_ANNOUNCE 0
-	    #define PP_LOG_SYNC 1
-	    #define PP_LOG_REQUEST 2
+
+#define PP_LOG_ANNOUNCE  0
+#define PP_LOG_SYNC      1
+#define PP_LOG_REQUEST   2
 };
-extern struct pp_msgtype_info pp_msgtype_info[16];
+
+/* Used as index for the pp_msgtype_info array */
+
+enum pp_msg_format {
+	PPM_SYNC_FMT		= 0x0,
+	PPM_DELAY_REQ_FMT,
+	PPM_PDELAY_REQ_FMT,
+	PPM_PDELAY_RESP_FMT,
+	PPM_FOLLOW_UP_FMT,
+	PPM_DELAY_RESP_FMT,
+	PPM_PDELAY_R_FUP_FMT,
+	PPM_ANNOUNCE_FMT,
+	PPM_SIGNALING_FMT,
+	PPM_SIGNALING_NO_FWD_FMT,
+	PPM_MANAGEMENT_FMT,
+	PPM_MSG_FMT_MAX
+};
+
+extern struct pp_msgtype_info pp_msgtype_info[];
+extern char  *pp_msgtype_name[];
 
 /* Helpers for the fsm (fsm-lib.c) */
 extern int pp_lib_may_issue_sync(struct pp_instance *ppi);
@@ -206,7 +226,7 @@ struct pp_network_operations {
 	int (*exit)(struct pp_instance *ppi);
 	int (*recv)(struct pp_instance *ppi, void *pkt, int len,
 		    struct pp_time *t);
-	int (*send)(struct pp_instance *ppi, void *pkt, int len, int msgtype);
+	int (*send)(struct pp_instance *ppi, void *pkt, int len, enum pp_msg_format msg_fmt);
 	int (*check_packet)(struct pp_globals *ppg, int delay_ms);
 };
 
@@ -510,6 +530,12 @@ extern void msg_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *
 extern void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup);
 extern void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req);
 extern void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp);
+extern int msg_pack_signaling(struct pp_instance *ppi,PortIdentity *target_port_identity,
+		UInteger16 tlv_type, UInteger16 tlv_length_field);
+extern int msg_pack_signaling_no_fowardable(struct pp_instance *ppi,PortIdentity *target_port_identity,
+		UInteger16 tlv_type, UInteger16 tlv_length_field);
+void msg_unpack_signaling(void *buf, MsgSignaling *signaling);
+
 /* pdelay */
 extern void msg_unpack_pdelay_resp_follow_up(void *buf,
 					     MsgPDelayRespFollowUp *

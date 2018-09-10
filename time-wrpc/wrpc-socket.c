@@ -115,15 +115,15 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	return got;
 }
 
-static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
-			 int msgtype)
+static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_msg_format msg_fmt)
 {
+	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	int snt, drop;
 	struct wrpc_socket *sock;
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
 	struct pp_time *t = &ppi->last_snt_time;
-	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
+	int is_pdelay = mf->is_pdelay;
 	static const uint8_t macaddr[2][ETH_ALEN] = {
 		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
 		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,

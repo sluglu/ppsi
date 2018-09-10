@@ -21,8 +21,6 @@ struct pp_runtime_opts {
 	int flags;		/* see below */
 	Integer16 ap, ai;
 	Integer16 s;
-	Integer8 logAnnounceInterval;
-	int logSyncInterval;
 	int priority1;
 	int priority2;
 	int domainNumber;
@@ -42,9 +40,9 @@ struct pp_runtime_opts {
 
 
 
-/* We need a globally-accessible structure with preset defaults */
+/* We need globally-accessible structures with preset defaults */
 extern struct pp_runtime_opts __pp_default_rt_opts;
-
+extern struct pp_instance_cfg __pp_default_instance_cfg;
 /*
  * Communication channel. Is the abstraction of a unix socket, so that
  * this struct is platform independent
@@ -130,18 +128,26 @@ enum { /* The two sockets. They are called "net path" for historical reasons */
 
 /*
  * Struct containg the result of ppsi.conf parsing: one for each link
- * (see lib/conf.c). Actually, protocol and role are in the main ppi.
+ * (see lib/conf.c). Actually, protocol are in the main ppi.
  */
 struct pp_instance_cfg {
-    uint32_t updated_fields_mask;
-	char port_name[16];
+ 	char port_name[16];
 	char iface_name[16];
 	int  profile;   /* PPSI_PROFILE_PTP, PPSI_PROFILE_WR, PPSI_PROFILE_HA */
 	int delayMechanism;   /* Should be enum ENDelayMechanism but forced to int for configuration parsing */
-	int64_t egressLatency_ps;
-	int64_t ingressLatency_ps;
-	int64_t constantAsymmetry_ps;
-	double delayCoefficient;
+	int announce_interval; /* Announce messages interval */
+	int announce_receipt_timeout; /* Announce interval receipt timeout*/
+	int sync_interval; /* Sync messages interval */
+	int min_delay_req_interval; /* delay request messages interval */
+	int min_pdelay_req_interval;/* pdelay request messages interval */
+	int l1sync_interval; /* L1SYNC/HA: l1sync messages interval */
+	int l1sync_receipt_timeout; /* L1SYNC/HA: l1sync messages receipttimeout */
+	int64_t egressLatency_ps; /* egressLatency in picos */
+	int64_t ingressLatency_ps; /* ingressLatency in picos */
+	int64_t constantAsymmetry_ps; /* constantAsymmetry in picos */
+	double delayCoefficient; /* fiber delay coefficient as a double */
+	int desiredState; /* externalPortConfigurationPortDS.desiredState */
+	Boolean masterOnly; /* masterOnly */
 };
 
 /*
@@ -157,8 +163,7 @@ struct pp_instance {
 	struct pp_ext_hooks *ext_hooks; /* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
-	int	role,			/* same as in config file */
-		proto;			/* same as in config file */
+	int	proto;			/* same as in config file */
 	int delayMechanism;			/* same as in config file */
 
 	/* Pointer to global instance owning this pp_instance*/
@@ -222,7 +227,9 @@ struct pp_instance {
 
 	unsigned long ptp_tx_count;
 	unsigned long ptp_rx_count;
+
 };
+
 /* The following things used to be bit fields. Other flags are now enums */
 #define PPI_FLAG_WAITING_FOR_F_UP	0x02
 #define PPI_FLAG_WAITING_FOR_RF_UP	0x04

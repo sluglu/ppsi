@@ -21,12 +21,33 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 	.ap =			PP_DEFAULT_AP,
 	.ai =			PP_DEFAULT_AI,
 	.s =			PP_DEFAULT_DELAY_S,
-	.logAnnounceInterval =	PP_DEFAULT_ANNOUNCE_INTERVAL,
-	.logSyncInterval =		PP_DEFAULT_SYNC_INTERVAL,
 	.priority1 =		PP_DEFAULT_PRIORITY1,
 	.priority2 =		PP_DEFAULT_PRIORITY2,
 	.domainNumber =	PP_DEFAULT_DOMAIN_NUMBER,
 	.ttl =			PP_DEFAULT_TTL,
+	.externalPortConfigurationEnabled = PP_DEFAULT_EXT_PORT_CONFIG_ENABLE,
+};
+
+/* Default values used to fill configurable parameters associated to each instance */
+/* These parameters can be then overwritten with the config file ppsi.conf */
+struct pp_instance_cfg __pp_default_instance_cfg = {
+		.profile=PPSI_PROFILE_PTP,
+		.delayMechanism=E2E,
+		.announce_interval=PP_DEFAULT_ANNOUNCE_INTERVAL,
+		.announce_receipt_timeout=PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT,
+		.sync_interval=PP_DEFAULT_SYNC_INTERVAL,
+		.min_delay_req_interval=PP_DEFAULT_MIN_DELAY_REQ_INTERVAL,
+		.min_pdelay_req_interval=PP_DEFAULT_MIN_PDELAY_REQ_INTERVAL,
+#if CONFIG_EXT_L1SYNC == 1
+		.l1sync_interval=L1E_DEFAULT_L1SYNC_INTERVAL,
+		.l1sync_receipt_timeout=L1E_DEFAULT_L1SYNC_RECEIPT_TIMEOUT,
+#endif
+		.egressLatency_ps=0,
+		.ingressLatency_ps=0,
+		.constantAsymmetry_ps=0,
+		.delayCoefficient=0,
+		.desiredState=PPS_PASSIVE, /* Clause 17.3.6.2 ; The default value should be PASSIVE unless otherwise specified */
+		.masterOnly=FALSE
 };
 
 /*

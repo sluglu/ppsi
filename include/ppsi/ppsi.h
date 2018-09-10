@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include <float.h>
 #include <stddef.h>
 #include <ppsi/lib.h>
 #include <ppsi/ieee1588_types.h>
@@ -215,7 +216,6 @@ extern struct pp_network_operations DEFAULT_NET_OPS;
 /* These can be liked and used as fallback by a different timing engine */
 extern struct pp_network_operations unix_net_ops;
 
-
 /*
  * Time operations, like network operations above, are encapsulated.
  * They may live in their own time-<name> subdirectory.
@@ -317,17 +317,24 @@ enum pp_argtype {
 	ARG_INT64
 };
 
-/* This enumeration gives the list of instance options that should be marked when they are set in the configuration */
-enum {
-	OPT_INST_NO_UPDATE=0,
-	OPT_INST_UPDATE_DESIRED_STATE, /* desiredState default value for HA is PASSIVE */
-};
-
 /* This enumeration gives the list of run-time options that should be marked when they are set in the configuration */
 enum {
 	OPT_RT_NO_UPDATE=0,
 };
 
+
+typedef struct {
+	union min {
+		int min_int;
+		Integer64 min_int64;
+		double min_double;
+	}min;
+	union max{
+		int max_int;
+		Integer64 max_int64;
+		double max_double;
+	}max;
+}pp_argline_min_max_t;
 
 struct pp_argline {
 	cfg_handler f;
@@ -335,25 +342,22 @@ struct pp_argline {
 	enum pp_argtype t;
 	struct pp_argname *args;
 	size_t field_offset;
-	size_t updated_field_offset;
-	int updated_field_index; /* 0=not used , >0 = used to build bit mask 1<(index-1) */
 	int needs_port;
+	pp_argline_min_max_t min_max;
 };
 
 /* Below are macros for setting up pp_argline arrays */
 #define OFFS(s,f) offsetof(s, f)
 
-#define OPTION(s,func,k,typ,a,field,ufield,findex,np)	\
-	{								\
+#define OPTION_OPEN() {
+#define OPTION_CLOSE() }
+#define OPTION(s,func,k,typ,a,field,np)	\
 		.f = func,						\
 		.keyword = k,						\
 		.t = typ,						\
 		.args = a,						\
 		.field_offset = OFFS(s,field),				\
-		.updated_field_offset=OFFS(s,ufield), \
-		.updated_field_index=findex,\
-		.needs_port = np,					\
-	}
+		.needs_port = np,
 
 #define LEGACY_OPTION(func,k,typ)					\
 	{								\
@@ -362,61 +366,86 @@ struct pp_argline {
 		.t = typ,						\
 	}
 
-#define INST_OPTION(func,k,t,a,field,field_index)					\
-	OPTION(struct pp_instance,func,k,t,a,field,cfg.updated_fields_mask,field_index,1)
+#define INST_OPTION(func,k,t,a,field)					\
+    OPTION_OPEN() \
+	OPTION(struct pp_instance,func,k,t,a,field,1) \
+	OPTION_CLOSE()
 
-#define INST_OPTION_INT_TRACK(k,t,a,field,field_index)					\
-	INST_OPTION(f_simple_int,k,t,a,field,field_index)
+#define INST_OPTION_FCT(func,k,t)					\
+	    OPTION_OPEN() \
+		OPTION(struct pp_instance,func,k,t,NULL,cfg,1) \
+		OPTION_CLOSE()
+
+#define INST_OPTION_STR(k,field)					\
+	INST_OPTION(f_string,k,ARG_STR,NULL,field)
+
+#define INST_OPTION_INT_RANGE(k,t,a,field,mn,mx)					\
+	OPTION_OPEN() \
+	OPTION(struct pp_instance,f_simple_int,k,t,a,field,1) \
+	.min_max.min.min_int = mn,\
+	.min_max.max.max_int = mx,\
+	OPTION_CLOSE()
 
 #define INST_OPTION_INT(k,t,a,field)					\
-		INST_OPTION_INT_TRACK(k,t,a,field,OPT_INST_NO_UPDATE)
+		INST_OPTION_INT_RANGE(k,t,a,field,INT_MIN,INT_MAX)
 
-#define INST_OPTION_BOOL_TRACK(k,field,field_index)					\
-	INST_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field,field_index)
 
 #define INST_OPTION_BOOL(k,field)					\
-	INST_OPTION_BOOL_TRACK(k,field,OPT_INST_NO_UPDATE)
+	INST_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field)
 
-#define INST_OPTION_INT64_TRACK(k,t,a,field,field_index)					\
-	INST_OPTION(f_simple_int64,k,t,a,field,field_index)
+#define INST_OPTION_INT64_RANGE(k,t,a,field,mn,mx)					\
+	OPTION_OPEN() \
+	OPTION(struct pp_instance,f_simple_int64,k,t,a,field,1) \
+	.min_max.min.min_int64 = mn,\
+	.min_max.max.max_int64 = mx,\
+	OPTION_CLOSE()
 
 #define INST_OPTION_INT64(k,t,a,field)					\
-		INST_OPTION_INT64_TRACK(k,t,a,field,OPT_INST_NO_UPDATE)
+		INST_OPTION_INT64_RANGE(k,t,a,field,INT64_MIN,INT64_MAX)
 
-#define INST_OPTION_DOUBLE_TRACK(k,t,a,field,field_index)					\
-	INST_OPTION(f_simple_double,k,t,a,field,field_index)
+#define INST_OPTION_DOUBLE_RANGE(k,t,a,field,mn,mx)					\
+	OPTION_OPEN() \
+	OPTION(struct pp_instance,f_simple_double,k,t,a,field,1) \
+	.min_max.min.min_double = mn,\
+	.min_max.max.max_double = mx,\
+	OPTION_CLOSE()
 
 #define INST_OPTION_DOUBLE(k,t,a,field)					\
-		INST_OPTION_DOUBLE_TRACK(k,t,a,field,OPT_INST_NO_UPDATE)
+		INST_OPTION_DOUBLE_RANGE(k,t,a,field,DBL_MIN,DBL_MAX)
 
+#define RT_OPTION(func,k,t,a,field)					\
+	OPTION_OPEN() \
+	OPTION(struct pp_runtime_opts,func,k,t,a,field,0)\
+	OPTION_CLOSE()
 
-#define RT_OPTION(func,k,t,a,field,field_index)					\
-	OPTION(struct pp_runtime_opts,func,k,t,a,field,updated_fields_mask,field_index,0)
-
-#define GLOB_OPTION(func,k,t,a,field)					\
-	OPTION(struct pp_globals,func,k,t,a,field,field,0,0)
-
-#define RT_OPTION_INT_TRACK(k,t,a,field,field_index)					\
-	RT_OPTION(f_simple_int,k,t,a,field,field_index)
+#define RT_OPTION_INT_RANGE(k,t,a,field,mn,mx)					\
+	OPTION_OPEN() \
+	OPTION(struct pp_runtime_opts,f_simple_int,k,t,a,field,0) \
+	.min_max.min.min_int = mn,\
+	.min_max.max.max_int = mx,\
+	OPTION_CLOSE()
 
 #define RT_OPTION_INT(k,t,a,field)					\
-		RT_OPTION_INT_TRACK(k,t,a,field,OPT_RT_NO_UPDATE)
-
-#define RT_OPTION_BOOL_TRACK(k,field,field_index)					\
-	RT_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field,field_index)
+	RT_OPTION_INT_RANGE(k,t,a,field,INT_MIN,INT_MAX)
 
 #define RT_OPTION_BOOL(k,field)					\
-	RT_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field,OPT_RT_NO_UPDATE)
+	RT_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field)
+
+
+#define GLOB_OPTION(func,k,t,a,field)					\
+	OPTION_OPEN() \
+	OPTION(struct pp_globals,func,k,t,a,field,0) \
+	OPTION_CLOSE()
+
+#define GLOB_OPTION_INT_RANGE(k,t,a,field,mn,mx)					\
+	OPTION_OPEN() \
+	OPTION(struct pp_globals,f_simple_int,k,t,a,field,0) \
+	.min_max.min.min_int = mn,\
+	.min_max.max.max_int = mx,\
+	OPTION_CLOSE()
 
 #define GLOB_OPTION_INT(k,t,a,field)					\
-	GLOB_OPTION(f_simple_int,k,t,a,field)
-
-#define IS_INST_OPTION_UPDATED(ppi, index) \
-	(( ppi->cfg.updated_fields_mask & (1 << (index-1)))!=0 )
-
-#define IS_RT_OPTION_UPDATED(ppg, index) \
-	(( ppg->rt_opts.updated_fields_mask & (1 << (index-1)))!=0 )
-
+	GLOB_OPTION_INT_RANGE(k,t,a,field,INT_MIN,INT_MAX)
 
 /* Both the architecture and the extension can provide config arguments */
 extern struct pp_argline pp_arch_arglines[];

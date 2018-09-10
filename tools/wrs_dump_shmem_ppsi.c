@@ -168,7 +168,6 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(pointer, servo),		/* FIXME: follow this */
 	DUMP_FIELD(unsigned_long, d_flags),
 	DUMP_FIELD(unsigned_char, flags),
-	DUMP_FIELD(int, role),
 	DUMP_FIELD(int, proto),
 	DUMP_FIELD(int, delayMechanism),
 	DUMP_FIELD(pointer, glbs),

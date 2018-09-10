@@ -64,21 +64,18 @@ static int f_port(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		return -1; \
 	}})
 
-static inline void MARK_UPDATED_FIELD(struct pp_argline *l, struct pp_globals *ppg) {
-	if (l->updated_field_index )
-		*(uint32_t *)(((void *)CUR_PPI(ppg)) + l->updated_field_offset) |= 1<<(l->updated_field_index-1);
-}
-
 static inline void ASSIGN_INT_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
 					int v)
 {
-	if (l->needs_port) {
-		*(int *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
-		MARK_UPDATED_FIELD(l,ppg);
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	/* Check min/max */
+	if ( v<l->min_max.min.min_int || v>l->min_max.max.max_int) {
+		pp_printf("Parameter %s(%ld) out of range\n", l->keyword, (long)v);\
+		return;
 	}
-	else
-		*(int *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+	*(int *)( dest + l->field_offset) = v;
 }
 
 int f_simple_int(struct pp_argline *l, int lineno,
@@ -93,12 +90,14 @@ static inline void ASSIGN_INT64_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
 				    int64_t v)
 {
-	if (l->needs_port) {
-		*(int64_t *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
-		MARK_UPDATED_FIELD(l,ppg);
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	/* Check min/max */
+	if ( v<l->min_max.min.min_int64 || v>l->min_max.max.max_int64 ) {
+		pp_printf("Parameter %s(%ld) out of range\n", l->keyword, (long)v);\
+		return;
 	}
-	else
-		*(int64_t *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+	*(int64_t *)( dest + l->field_offset) = v;
 }
 
 static int f_simple_int64(struct pp_argline *l, int lineno,
@@ -113,12 +112,14 @@ static inline void ASSIGN_DOUBLE_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
 				    double v)
 {
-	if (l->needs_port) {
-		*(double *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
-		MARK_UPDATED_FIELD(l,ppg);
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	/* Check min/max */
+	if ( v<l->min_max.min.min_double || v>l->min_max.max.max_double ) {
+		pp_printf("Parameter %s(%lf) out of range\n", l->keyword, v);\
+		return;
 	}
-	else
-		*(double *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+	*(double *)( dest + l->field_offset) = v;
 }
 
 static int f_simple_double( struct pp_argline *l, int lineno,
@@ -133,12 +134,9 @@ static inline void ASSIGN_BOOL_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
 				    Boolean v)
 {
-	if (l->needs_port) {
-		*(Boolean *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
-		MARK_UPDATED_FIELD(l,ppg);
-	}
-	else
-		*(Boolean *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	*(Boolean *)( dest + l->field_offset) = v;
 }
 
 static int f_simple_bool( struct pp_argline *l, int lineno,
@@ -150,11 +148,20 @@ static int f_simple_bool( struct pp_argline *l, int lineno,
 }
 
 
-static int f_if(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+static inline void ASSIGN_STRING_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    char *src)
+{
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	strcpy((char *)dest+l->field_offset, src);
+}
+
+static int f_string(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		union pp_cfg_arg *arg)
 {
-	CHECK_PPI(1);
-	strcpy(CUR_PPI(ppg)->cfg.iface_name, arg->s);
+	CHECK_PPI(l->needs_port);
+	ASSIGN_STRING_FIELD(l, ppg, arg->s);
 	return 0;
 }
 
@@ -171,7 +178,7 @@ static int f_diag(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-/* VLAN support is per-port, and it depends on configuration itmes */
+/* VLAN support is per-port, and it depends on configuration items */
 static int f_vlan(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		  union pp_cfg_arg *arg)
 {
@@ -227,12 +234,7 @@ static int f_vlan(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 	for (i = 0; i < ppi->nvlans; i++)
 		pp_diag(NULL, config, 2, "  parsed vlan %4i for %s (%s)\n",
 			ppi->vlans[i], ppi->cfg.port_name, ppi->cfg.iface_name);
-	pp_diag(NULL, config, 2, "role %i\n", ppi->role);
-	if (ppi->role != PPSI_ROLE_MASTER && ppi->nvlans > 1) {
-		pp_printf("config line %i: too many vlans (%i) for slave "
-			  "or auto role\n", lineno, ppi->nvlans);
-		return -1;
-	}
+
 	ppi->proto = PPSI_PROTO_VLAN;
 	return 0;
 }
@@ -252,21 +254,6 @@ static int f_servo_pi(struct pp_argline *l, int lineno,
 	return 0;
 }
 
-static int f_announce_intvl(struct pp_argline *l, int lineno,
-			    struct pp_globals *ppg, union pp_cfg_arg *arg)
-{
-	int i = arg->i;
-
-	CHECK_PPI(0);
-	if (i < 0 || i > 4) {
-		i = i < 0 ? 0 : 4;
-		pp_printf("config line %i: announce interval out of range: %i, "
-			  "forced to %i\n", lineno, arg->i, i);
-	}
-	GOPTS(ppg)->logAnnounceInterval = i;
-	return 0;
-}
-
 /* These are the tables for the parser */
 static struct pp_argname arg_proto[] = {
 	{"raw", PPSI_PROTO_RAW},
@@ -274,63 +261,87 @@ static struct pp_argname arg_proto[] = {
 	/* PROTO_VLAN is an internal modification of PROTO_RAW */
 	{},
 };
-static struct pp_argname arg_role[] = {
-	{"auto", PPSI_ROLE_AUTO},
-	{"master",PPSI_ROLE_MASTER},
-	{"slave", PPSI_ROLE_SLAVE},
+static struct pp_argname arg_bool[] = {
+	{"true 1 on y", 1},
+	{"false 0 off n", 0},
 	{},
 };
+
+static struct pp_argname arg_states[] = {
+	{ "initializing", PPS_INITIALIZING},
+	{ "faulty", PPS_FAULTY},
+	{ "disabled", PPS_DISABLED},
+	{ "listening", PPS_LISTENING},
+	{ "pre-master", PPS_PRE_MASTER},
+	{ "master", PPS_MASTER},
+	{ "passive", PPS_PASSIVE},
+	{ "uncalibrated", PPS_UNCALIBRATED},
+	{ "slave", PPS_SLAVE},
+	{},
+};
+
 static struct pp_argname arg_profile[] = {
-	{"none", PPSI_PROFILE_PTP}, /* none is equal to ptp for backward compatibility */
-	{"ptp", PPSI_PROFILE_PTP},
+	{"none ptp", PPSI_PROFILE_PTP}, /* none is equal to ptp for backward compatibility */
 #if CONFIG_PROFILE_WR == 1
-	{"whiterabbit", PPSI_PROFILE_WR},
-	{"wr", PPSI_PROFILE_WR},
+	{"whiterabbit wr", PPSI_PROFILE_WR},
 #endif
 #if CONFIG_PROFILE_HA == 1
-	{"highaccuracy", PPSI_PROFILE_HA},
-	{"ha", PPSI_PROFILE_HA},
+	{"highaccuracy ha", PPSI_PROFILE_HA},
 #endif
 	{},
 };
 static struct pp_argname arg_delayMechanism[] = {
-	{"request-response", E2E},
-	{"delay", E2E},
-	{"e2e", E2E},
+	{"request-response delay e2e", E2E},
 #if CONFIG_HAS_P2P == 1
-	{"peer-delay", P2P},
-	{"pdelay", P2P},
-	{"p2p", P2P},
+	{"peer-delay pdelay p2p", P2P},
 #endif
 	{},
 };
 
 static struct pp_argline pp_global_arglines[] = {
-	LEGACY_OPTION(f_port, "port", ARG_STR),
-	LEGACY_OPTION(f_port, "link", ARG_STR), /* Old name for port */
-	LEGACY_OPTION(f_if, "iface", ARG_STR),
+	INST_OPTION_FCT(f_port, "link port", ARG_STR),
+	INST_OPTION_FCT(f_servo_pi, "servo-pi", ARG_INT2),
+	INST_OPTION_FCT(f_vlan, "vlan", ARG_STR),
+	INST_OPTION_FCT(f_diag, "diagnostic", ARG_STR),
+	INST_OPTION_STR("iface",cfg.iface_name),
+	INST_OPTION_BOOL("masterOnly", cfg.masterOnly),
 	INST_OPTION_INT("proto", ARG_NAMES, arg_proto, proto),
-	INST_OPTION_INT("role", ARG_NAMES, arg_role, role),
-	INST_OPTION_INT("extension", ARG_NAMES, arg_profile, cfg.profile), /* TODO: stay for backward compatibility. Should be removed in the future */
-	INST_OPTION_INT("profile", ARG_NAMES, arg_profile, cfg.profile),
+	INST_OPTION_INT("extension profile", ARG_NAMES, arg_profile, cfg.profile),
 	INST_OPTION_INT("mechanism", ARG_NAMES, arg_delayMechanism, cfg.delayMechanism),
+	INST_OPTION_INT_RANGE("sync-interval", ARG_INT, NULL, cfg.sync_interval,
+			PP_MIN_SYNC_INTERVAL,PP_MAX_SYNC_INTERVAL),
+	INST_OPTION_INT_RANGE("announce-interval", ARG_INT, NULL, cfg.announce_interval,
+			PP_MIN_ANNOUNCE_INTERVAL,PP_MAX_ANNOUNCE_INTERVAL),
+	INST_OPTION_INT_RANGE("announce-receipt-timeout", ARG_INT, NULL, cfg.announce_receipt_timeout,
+			PP_MIN_ANNOUNCE_RECEIPT_TIMEOUT,PP_MAX_ANNOUNCE_RECEIPT_TIMEOUT),
+	INST_OPTION_INT_RANGE("min-delay-req-interval", ARG_INT, NULL, cfg.min_delay_req_interval,
+			PP_MIN_MIN_DELAY_REQ_INTERVAL,PP_MAX_MIN_DELAY_REQ_INTERVAL),
+	INST_OPTION_INT_RANGE("min-pdelay-req-interval", ARG_INT, NULL, cfg.min_pdelay_req_interval,
+			PP_MIN_MIN_PDELAY_REQ_INTERVAL,PP_MAX_MIN_PDELAY_REQ_INTERVAL),
+#if CONFIG_EXT_L1SYNC==1
+	INST_OPTION_INT_RANGE("l1sync-interval", ARG_INT, NULL, cfg.l1sync_interval,
+			L1E_MIN_L1SYNC_INTERVAL,L1E_MAX_L1SYNC_INTERVAL),
+	INST_OPTION_INT_RANGE("l1sync-receipt-timeout", ARG_INT, NULL, cfg.l1sync_receipt_timeout,
+			L1E_MIN_L1SYNC_RECEIPT_TIMEOUT,L1E_MAX_L1SYNC_RECEIPT_TIMEOUT),
+#endif
+	INST_OPTION_INT("desiredState", ARG_NAMES, arg_states, cfg.desiredState),
 	INST_OPTION_INT64("egressLatency", ARG_INT64, NULL,cfg.egressLatency_ps),
 	INST_OPTION_INT64("ingressLatency", ARG_INT64, NULL,cfg.ingressLatency_ps),
-	INST_OPTION_DOUBLE("delayCoefficient", ARG_DOUBLE, NULL,cfg.delayCoefficient),
 	INST_OPTION_INT64("constantAsymmetry", ARG_INT64, NULL,cfg.constantAsymmetry_ps),
-	LEGACY_OPTION(f_vlan, "vlan", ARG_STR),
-	LEGACY_OPTION(f_diag, "diagnostic", ARG_STR),
-	RT_OPTION_INT("clock-class", ARG_INT, NULL, clock_quality.clockClass),
-	RT_OPTION_INT("clock-accuracy", ARG_INT, NULL,
-		      clock_quality.clockAccuracy),
-	RT_OPTION_INT("clock-allan-variance", ARG_INT, NULL,
-		      clock_quality.offsetScaledLogVariance),
-	LEGACY_OPTION(f_servo_pi, "servo-pi", ARG_INT2),
-	RT_OPTION_INT("domain-number", ARG_INT, NULL, domainNumber),
-	LEGACY_OPTION(f_announce_intvl, "announce-interval", ARG_INT),
-	RT_OPTION_INT("sync-interval", ARG_INT, NULL, logSyncInterval),
-	RT_OPTION_INT("priority1", ARG_INT, NULL, priority1),
-	RT_OPTION_INT("priority2", ARG_INT, NULL, priority2),
+	INST_OPTION_DOUBLE("delayCoefficient", ARG_DOUBLE, NULL,cfg.delayCoefficient),
+	RT_OPTION_INT_RANGE("clock-class", ARG_INT, NULL, clock_quality.clockClass,
+			PP_MIN_CLOCK_CLASS,PP_MAX_CLOCK_CLASS),
+	RT_OPTION_INT_RANGE("clock-accuracy", ARG_INT, NULL,clock_quality.clockAccuracy,
+			PP_MIN_CLOCK_ACCURACY,PP_MAX_CLOCK_ACCURACY),
+	RT_OPTION_INT_RANGE("clock-allan-variance", ARG_INT, NULL,clock_quality.offsetScaledLogVariance,
+			PP_MIN_CLOCK_VARIANCE,PP_MAX_CLOCK_VARIANCE),
+	RT_OPTION_INT_RANGE("domain-number", ARG_INT, NULL, domainNumber,
+			PP_MIN_DOMAIN_NUMBER,PP_MAX_DOMAIN_NUMBER),
+	RT_OPTION_INT_RANGE("priority1", ARG_INT, NULL, priority1,
+			PP_MIN_PRIORITY1, PP_MAX_PRIORITY1),
+	RT_OPTION_INT_RANGE("priority2", ARG_INT, NULL, priority2,
+			PP_MIN_PRIORITY2, PP_MAX_PRIORITY2),
+	RT_OPTION_BOOL("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
 	{}
 };
 
@@ -457,6 +468,20 @@ static int parse_time(struct pp_cfg_time *ts, char *s)
 	return 0;
 }
 
+/**
+ * Remove leading and trailing unexpected characters in a string
+ * Returns ta pointer to the first non whitespace character in the string
+ * and replace trailing whitespace with '\0'. NULL is returned if the string is empty.
+ */
+static char *trim(char *str) {
+	int len = strlen(str);
+	char *p=str;
+
+	while( len && blank(str[len - 1])) len--; // Remove trailing unexpected characters
+	while( *p && blank(*p)) p++; // remove leading unexpected characters
+	return *p ? p : NULL ;
+}
+
 static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 {
 	union pp_cfg_arg cfg_arg;
@@ -504,7 +529,8 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 	}
 	keyword_found:
 
-	if ((l->t != ARG_NONE) && (!*line)) {
+	line=trim(line);
+	if ((l->t != ARG_NONE) && !line) {
 		pp_error("line %i: no argument for option \"%s\"\n", lineno,
 									word);
 		return -1;
@@ -545,9 +571,6 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		}
 		break;
 	case ARG_STR:
-		while (*line && blank(*line))
-			line++;
-
 		cfg_arg.s = line;
 		break;
 

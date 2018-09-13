@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 	}
 	/* Set default configuration value for all instances */
 	for (i = 0; i < ppg->max_links; i++) {
-		memcpy(INST(ppg, i), &__pp_default_instance_cfg,sizeof(__pp_default_instance_cfg));
+		memcpy(&INST(ppg, i)->cfg, &__pp_default_instance_cfg,sizeof(__pp_default_instance_cfg));
 	}
 
 	/* Set offset here, so config parsing can override it */

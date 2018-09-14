@@ -117,7 +117,7 @@ out:
 	}
 
 	if (pre) {
-		if (CONFIG_HAS_P2P && ppi->delayMechanism == PP_P2P_MECH) {
+		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
 			ppi->next_delay = pp_next_delay_2(ppi,
 				PP_TO_QUALIFICATION, PP_TO_REQUEST);
 		} else {
@@ -125,12 +125,12 @@ out:
 				PP_TO_QUALIFICATION);			
 		}		
 	} else {
-		if (CONFIG_HAS_P2P && ppi->delayMechanism == PP_P2P_MECH) {
+		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
 			ppi->next_delay = pp_next_delay_3(ppi,
 				PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
 		} else {
 			ppi->next_delay = pp_next_delay_2(ppi,
-				PP_TO_ANN_SEND, PP_TO_SYNC_SEND);			
+				PP_TO_ANN_SEND, PP_TO_SYNC_SEND);
 		}		
 	}
 	

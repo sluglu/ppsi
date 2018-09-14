@@ -280,9 +280,11 @@ int main(int argc, char **argv)
 				ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
 						(RelativeDifference)(ppi->cfg.delayCoefficient * (double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT));
 
-				/* Set L1SYNC portDS */
-				L1E_DSPOR_BS(ppi)->logL1SyncInterval=ppi->cfg.l1sync_interval;
-				L1E_DSPOR_BS(ppi)->L1SyncReceiptTimeout=ppi->cfg.l1sync_receipt_timeout;
+				/* Set L1SYNC state. Must be done here because the init hook is called only if the initializing state. It
+				 * the port is not connected, the initializing is then never called so the L1SYNC state is invalid (0)
+				 */
+				L1E_DSPOR_BS(ppi)->L1SyncState=L1SYNC_DISABLED;
+
 				/* Set L1SYNC extension hooks */
 				ppi->ext_hooks=&l1e_ext_hooks;
 			}

@@ -105,10 +105,6 @@ void l1e_servo_reset(struct pp_instance *ppi)
 
 	struct l1e_servo_state *s=L1E_SRV(ppi);
 
-	if (!s) {
-		/* Don't clean servo state when is not available */
-		return;
-	}
 	/* shmem lock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 	ppi->flags = 0;

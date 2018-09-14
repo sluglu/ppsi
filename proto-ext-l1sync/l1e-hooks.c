@@ -84,8 +84,6 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 	bds->rxCoherentIsRequired     = TRUE;
 	bds->congruentIsRequired      = TRUE;
 	bds->optParamsEnabled         = FALSE;
-	bds->logL1SyncInterval        = 0;
-	bds->L1SyncReceiptTimeout     = L1E_DEFAULT_L1SYNC_RECEIPT_TIMEOUT;
 	// init dynamic data set members with zeros/defaults
 	bds->L1SyncLinkAlive          = FALSE;
 	bds->isTxCoherent             = FALSE;
@@ -98,6 +96,9 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 	bds->peerIsTxCoherent     	  = FALSE;
 	bds->peerIsRxCoherent     	  = FALSE;
 	bds->peerIsCongruent          = FALSE;
+	/* Init  configurable parameters */
+	bds->logL1SyncInterval=ppi->cfg.l1sync_interval;
+	bds->L1SyncReceiptTimeout=ppi->cfg.l1sync_receipt_timeout;
 
 	/* Init other specific members */
 	bds->next_state=bds->L1SyncState;
@@ -145,6 +146,9 @@ static int l1e_handle_resp(struct pp_instance *ppi)
 
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
+	if ( l1epds->basic.L1SyncState != L1SYNC_UP )
+		return 0;
+
 	/* This correction_field we received is already part of t4 */
 
 	/*
@@ -161,7 +165,7 @@ static int l1e_handle_resp(struct pp_instance *ppi)
 		pp_servo_got_resp(ppi);
 		/*
 		 * pps always on if offset less than 1 second,
-		 * until ve have a configurable threshold */
+		 * until we have a configurable threshold */
 		WRH_OPER()->enable_timing_output(ppi, ofm->secs==0);
 
 	}
@@ -191,6 +195,12 @@ static int l1e_handle_followup(struct pp_instance *ppi,
 static __attribute__((used)) int l1e_handle_presp(struct pp_instance *ppi)
 {
 	struct pp_time *ofm = &SRV(ppi)->offsetFromMaster;
+	l1e_ext_portDS_t *pds=L1E_DSPOR(ppi);
+
+
+	/* Servo is active only when the state is UP */
+	if ( pds->basic.L1SyncState != L1SYNC_UP )
+		return 0;
 
 	/*
 	 * If no WR mode is on, run normal code, if T2/T3 are valid.

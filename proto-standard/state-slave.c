@@ -42,6 +42,13 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 	if (!msg_from_current_master(ppi))
 		return 0;
 
+	if ( ppi->delayMechanism==E2E &&  ppi->t1.scaled_nsecs==0 && ppi->t1.secs==0 ) {
+		/* First time we receive the SYNC message in uncalib/slave state
+		 * We set the REQUEST time-out to the minDelayReqInterval/2 value (500ms)
+		 * in order to provide quickly a DelayReq message
+		 */
+		__pp_timeout_set(ppi, PP_TO_REQUEST, (1000*(1<<PP_MIN_MIN_DELAY_REQ_INTERVAL))/2);
+	}
 	/* t2 may be overriden by follow-up, save it immediately */
 	ppi->t2 = ppi->last_rcv_time;
 	msg_unpack_sync(buf, &sync);
@@ -51,17 +58,17 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 		ppi->recv_sync_sequence_id = hdr->sequenceId;
 		/* for two-step, the stamp comes later */
 		ppi->t1 = hdr->cField; /* most likely 0 */
-		return 0;
+	} else {
+		/* one-step follows */
+		ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
+		ppi->t1 = sync.originTimestamp;
+		pp_time_add(&ppi->t1, &hdr->cField);
+		ppi->syncCF = 0;
+		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
+			pp_servo_got_psync(ppi);
+		else
+			pp_servo_got_sync(ppi);
 	}
-	/* one-step folllows */
-	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
-	ppi->t1 = sync.originTimestamp;
-	pp_time_add(&ppi->t1, &hdr->cField);
-	ppi->syncCF = 0;
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
-		pp_servo_got_psync(ppi);
-	else
-		pp_servo_got_sync(ppi);
 	return 0;
 }
 
@@ -165,8 +172,11 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	ret = st_com_handle_announce(ppi, buf, len);
 	if (ret)
 		return ret;
-	
-	if (!msg_from_current_master(ppi))
+
+	/* If externalPortConfiguration option is set, we consider that all
+	 * announce messages come from the current master.
+	 */
+	if (!DSDEF(ppi)->externalPortConfigurationEnabled && !msg_from_current_master(ppi))
 		return 0;
 	
 	/* 9.2.6.11 a) reset timeout */

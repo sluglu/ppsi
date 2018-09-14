@@ -14,8 +14,6 @@ typedef struct {
 	int (*action)(struct pp_instance *ppi, Boolean newState);
 }l1e_state_machine_t;
 
-#define L1E_DEFAULT_DELAY 500
-
 extern char *l1e_state_name[];
 
 #define MAX_STATE_ACTIONS (sizeof(le1_state_actions)/sizeof(l1e_state_machine_t))
@@ -63,7 +61,8 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 	int delay;
 
 	if ( nextState>=MAX_STATE_ACTIONS)
-		return L1E_DEFAULT_DELAY; /* return default delay */
+		return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC);
+
 
 	/*
 	 *  Update the L1SYNC dynamic data independent of the state machine
@@ -72,9 +71,11 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 	/* By design, when link is up, it is always tx coherent and congruent*/
 	basicDS->isTxCoherent= ppi->link_up ? 1 : 0;
 
-	/* Check SYNC reception Time-out */
+	/* Check L1SYNC reception Time-out */
 	if ( pp_timeout(ppi, L1E_TIMEOUT_RX_SYNC) ) {
 		/* Time-out detected */
+		int timeout_tx_sync = (4 << (basicDS->logL1SyncInterval + 8)) * basicDS->L1SyncReceiptTimeout;
+		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, timeout_tx_sync);
 		basicDS->L1SyncLinkAlive = FALSE;
 	}
 
@@ -92,7 +93,7 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 }
 
 static int l1e_empty_action(struct pp_instance *ppi, Boolean new_state){
-	return L1E_DEFAULT_DELAY; /* return default delay */
+	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* L1_SYNC_RESET event */
@@ -202,7 +203,7 @@ static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state)
 		 L1E_DSPOR_BS(ppi)->next_state=L1SYNC_IDLE;
 		 return 0; /* no wait to evaluate next state */
 	}
-	return L1E_DEFAULT_DELAY; /* return default delay */
+	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* IDLE state */
@@ -230,15 +231,15 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 	if ( !le1_evt_L1_SYNC_ENABLED(ppi) || le1_evt_L1_SYNC_RESET(ppi) ) {
 		/* Go to DISABLE state */
 		l1e_portDS->basic.next_state=L1SYNC_DISABLED;
-		return L1E_DEFAULT_DELAY; /* return default delay */
+		return 0; /* Treatment required asap */
 	}
 	if ( le1_evt_LINK_OK(ppi) ) {
 		l1e_portDS->basic.next_state=L1SYNC_LINK_ALIVE;
- 		return L1E_DEFAULT_DELAY; /* return default delay */
+		return 0; /* Treatment required asap */
 	}
 	/* Iterative treatment */
 	l1e_send_sync_msg(ppi,0);
-	return L1E_DEFAULT_DELAY; /* return default delay */
+	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* LINK_ALIVE state */
@@ -256,16 +257,16 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 	if ( !le1_evt_LINK_OK(ppi) ) {
 		/* Go to IDLE state */
 		basic->next_state=L1SYNC_IDLE;
-		return L1E_DEFAULT_DELAY; /* return default delay */
+		return 0; /* Treatment required asap */
 	}
 	/* we will allow to go to CONFIG_MATH only for UNCALIBRATED and MASTER states */
-	if ( le1_evt_CONFIG_OK(ppi) && (ppi->state==PPS_UNCALIBRATED || ppi->state==PPS_MASTER)) {
+	if ( le1_evt_CONFIG_OK(ppi) && (ppi->state==PPS_UNCALIBRATED || ppi->state==PPS_SLAVE || ppi->state==PPS_MASTER)) {
 		basic->next_state=L1SYNC_CONFIG_MATCH;
-		return 0; /* Try to treat next state asap */
+		return 0; /* Treatment required asap */
 	}
 	/* Iterative treatment */
 	l1e_send_sync_msg(ppi,0);
-	return  pp_next_delay_1(ppi, L1E_TIMEOUT_TX_SYNC); /* Return the timeout for next invocation */
+	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* CONFIG_MATCH state */
@@ -295,21 +296,21 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 	if ( !le1_evt_LINK_OK(ppi) ) {
 		/* Go to IDLE state */
 		L1E_DSPOR_BS(ppi)->next_state=L1SYNC_IDLE;
-		return L1E_DEFAULT_DELAY; /* return default delay */
+		return 0; /* Treatment required asap */
 	}
 	if ( !le1_evt_CONFIG_OK(ppi) ) {
 		/* Return to LINK_ALIVE state */
 		L1E_DSPOR_BS(ppi)->next_state=L1SYNC_LINK_ALIVE;
-		return L1E_DEFAULT_DELAY; /* return default delay */
+		return 0; /* Treatment required asap */
 	}
 	if ( le1_evt_STATE_OK(ppi) ) {
 		/* Return to UP state */
 		L1E_DSPOR_BS(ppi)->next_state=L1SYNC_UP;
-		return 0; /* Treat next state asap */
+		return 0; /* Treatment required asap */
 	}
 	/* Iterative treatment */
 	l1e_send_sync_msg(ppi,0);
-	return  pp_next_delay_1(ppi, L1E_TIMEOUT_TX_SYNC); /* Return the timeout for next invocation */
+	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* UP state */
@@ -350,5 +351,5 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	/* Iterative treatment */
 	l1e_update_correction_values(ppi);
 	l1e_send_sync_msg(ppi,0);
-	return  pp_next_delay_1(ppi, L1E_TIMEOUT_TX_SYNC); /* Return the timeout for next invocation */
+	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 }

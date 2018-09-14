@@ -20,7 +20,7 @@ struct timeout_config {
 
 /* most timeouts have a static configuration. Save it here */
 static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
-	[PP_TO_REQUEST] =	{"REQUEST",	RAND_0_200,},
+	[PP_TO_REQUEST] =	{"REQUEST", /* RAND defined at run-time */},
 	[PP_TO_SYNC_SEND] =	{"SYNC_SEND",	RAND_70_130,},
 	[PP_TO_BMC] =		{"BMC",		RAND_NONE,},
 	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	RAND_NONE,},
@@ -36,12 +36,17 @@ static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 void pp_timeout_init(struct pp_instance *ppi)
 {
 	portDS_t *port = ppi->portDS;
-
-	to_configs[PP_TO_REQUEST].value = (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) ?
+	Boolean p2p=CONFIG_HAS_P2P && ppi->delayMechanism == P2P;
+	Integer8 logDelayRequest=p2p ?
 			port->logMinPdelayReqInterval : port->logMinDelayReqInterval;
+
+	to_configs[PP_TO_REQUEST].which_rand = p2p ? RAND_NONE : RAND_0_200;
+	to_configs[PP_TO_REQUEST].value= p2p ?
+			1000*(1<<logDelayRequest) :
+			logDelayRequest;
 	/* fault timeout is 4 avg request intervals, not randomized */
 	to_configs[PP_TO_FAULT].value =
-		1 << (port->logMinDelayReqInterval + 12); /* 0 -> 4096ms */
+		1 << (logDelayRequest + 12); /* 0 -> 4096ms */
 	to_configs[PP_TO_SYNC_SEND].value = port->logSyncInterval;
 	to_configs[PP_TO_BMC].value = 1000 * (1 << port->logAnnounceInterval);
 	to_configs[PP_TO_ANN_RECEIPT].value = 1000 * (

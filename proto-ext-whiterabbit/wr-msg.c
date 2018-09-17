@@ -154,10 +154,10 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	case CALIBRATE:
 		if (WR_DSPOR(ppi)->calibrated) {
 			put_be16(buf+56,
-				 (WR_DSPOR(ppi)->calRetry << 8 | 0x0000));
+				 (WR_DSPOR(ppi)->calRetry | 0x0000));
 		} else {
 			put_be16(buf+56,
-				 (WR_DSPOR(ppi)->calRetry << 8 | 0x0001));
+				 (WR_DSPOR(ppi)->calRetry | 0x0100));
 		}
 		put_be32(buf+58, WR_DSPOR(ppi)->calPeriod);
 		len = 14;
@@ -245,10 +245,15 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	switch (wr_msg_id) {
 	case CALIBRATE:
 		WR_DSPOR(ppi)->otherNodeCalSendPattern =
-			0x00FF & get_be16(buf+56);
-		WR_DSPOR(ppi)->otherNodeCalRetry =
 			0x00FF & (get_be16(buf+56) >> 8);
+		WR_DSPOR(ppi)->otherNodeCalRetry =
+			0x00FF & get_be16(buf+56);
 		WR_DSPOR(ppi)->otherNodeCalPeriod = get_be32(buf+58);
+
+		pp_diag(ppi, frames, 1, "otherNodeCalPeriod "
+			"from frame = 0x%x | stored = 0x%x \n", get_be32(buf+58),
+			 WR_DSPOR(ppi)->otherNodeCalPeriod);
+
 		break;
 
 	case CALIBRATED:

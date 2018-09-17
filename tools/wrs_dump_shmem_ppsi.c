@@ -183,6 +183,16 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(unsigned_long, ptp_rx_count),
 };
 
+#undef DUMP_STRUCT
+#define DUMP_STRUCT struct wr_dsport
+struct dump_info wr_dsport_info [] = {
+	DUMP_FIELD(UInteger16, otherNodeCalSendPattern),
+	DUMP_FIELD(UInteger8, otherNodeCalRetry),
+	DUMP_FIELD(UInteger32, otherNodeCalPeriod),
+	DUMP_FIELD(scaledPicoseconds, otherNodeDeltaTx),
+	DUMP_FIELD(scaledPicoseconds, otherNodeDeltaRx),
+};
+
 int dump_ppsi_mem(struct wrs_shm_head *head)
 {
 	struct pp_globals *ppg;
@@ -191,6 +201,8 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 	DSCurrent *dsc;
 	DSParent *dsp;
 	DSTimeProperties *dstp;
+	DSPort *port_ds;
+	struct wr_dsport *wr_port_ds;
 	struct wr_servo_state *global_ext_data;
 	int i;
 
@@ -228,6 +240,22 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 	for (i = 0; i < ppg->nlinks; i++) {
 		printf("ppsi instance %i:\n", i);
 		dump_many_fields(ppi + i, ppi_info, ARRAY_SIZE(ppi_info));
+		if ((ppi + i)->portDS) {
+			port_ds = wrs_shm_follow(head, (ppi + i)->portDS);
+			if (port_ds) {
+				wr_port_ds = wrs_shm_follow(head,
+							port_ds->ext_dsport);
+				if (wr_port_ds) {
+					printf("wr_port_ds:\n");
+					dump_many_fields(wr_port_ds,
+						   wr_dsport_info,
+						   ARRAY_SIZE(wr_dsport_info));
+				} else
+					printf("unable to follow wr_port_ds "
+					       "%p\n", wr_port_ds);
+			} else
+				printf("unable to follow port_ds\n");
+		}
 	}
 
 	return 0; /* this is complete */

@@ -136,6 +136,21 @@ int wrs_locking_enable(struct pp_instance *ppi)
 	return WR_SPLL_OK;
 }
 
+int wrs_locking_reset(struct pp_instance *ppi)
+{
+	int ret, rval;
+
+	pp_diag(ppi, time, 1, "Reset locking\n");
+
+	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
+			  &rval, ppi->iface_name, HEXP_LOCK_CMD_RESET, 0);
+
+	if ((ret < 0) || (rval < 0))
+		return WR_SPLL_ERROR;
+
+	return WR_SPLL_OK;
+}
+
 int wrs_locking_poll(struct pp_instance *ppi, int grandmaster)
 {
 	int ret, rval;
@@ -187,6 +202,34 @@ static int wrdate_get(struct pp_time *t)
 	return 0;
 }
 
+static int wrs_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
+{
+	return unix_time_ops.get_utc_time(ppi, hours, minutes, seconds);
+}
+
+static int wrs_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
+{
+	return unix_time_ops.get_utc_offset(ppi, offset, leap59, leap61);
+}
+
+static int wrs_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+{
+	return unix_time_ops.set_utc_offset(ppi, offset, leap59, leap61);
+}
+
+static int wrs_time_get_servo_state(struct pp_instance *ppi, int *state)
+{
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	int locked;
+	
+	locked = wrp->ops->locking_poll(ppi, 1);
+	if (locked == WR_SPLL_READY)
+		*state = PP_SERVO_LOCKED;
+	else
+		*state = PP_SERVO_UNLOCKED;
+	return 0;
+}
+
 /* This is only used when the wrs is slave to a non-WR master */
 static int wrs_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
@@ -222,7 +265,6 @@ static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	struct pp_time diff, now;
 	struct timex tx;
-	int tai_offset = 0;
 	int msec;
 
 	/*
@@ -279,25 +321,8 @@ static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 	if (t->secs < 1420730822 /* "now" as I write this */)
 		return 0;
 
-	/*
-	 * Finally, set unix time too, but count the UTC/TAI difference
-	 * assuming somebody has set up up for us
-	 */
-	memset(&tx, 0, sizeof(tx));
-	if (adjtimex(&tx) >= 0) {
-		/*
-		 * Our WRS kernel has tai support, but our compiler does not.
-		 * We are 32-bit only, and we know for sure that tai is
-		 * exactly after stbcnt. It's a bad hack, but it works
-		 */
-		tai_offset = *((int *)(&tx.stbcnt) + 1);
-	}
-
-	{
-		struct pp_time utc = *t; /* t is "const". uff.... */
-		utc.secs -= tai_offset;
-		unix_time_ops.set(ppi, &utc);
-	}
+	/* Finally, set unix time too */
+	unix_time_ops.set(ppi, t);
 
 	return 0;
 }
@@ -371,6 +396,10 @@ static unsigned long wrs_calc_timeout(struct pp_instance *ppi,
 }
 
 struct pp_time_operations wrs_time_ops = {
+	.get_utc_time = wrs_time_get_utc_time,
+	.get_utc_offset = wrs_time_get_utc_offset,
+	.set_utc_offset = wrs_time_set_utc_offset,
+	.get_servo_state = wrs_time_get_servo_state,
 	.get = wrs_time_get,
 	.set = wrs_time_set,
 	.adjust = wrs_time_adjust,

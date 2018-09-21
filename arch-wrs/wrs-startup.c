@@ -36,6 +36,7 @@ static struct wr_operations wrs_wr_operations = {
 	.locking_enable = wrs_locking_enable,
 	.locking_poll = wrs_locking_poll,
 	.locking_disable = wrs_locking_disable,
+	.locking_reset = wrs_locking_reset,
 	.enable_ptracker = wrs_enable_ptracker,
 
 	.adjust_in_progress = wrs_adjust_in_progress,

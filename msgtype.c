@@ -27,7 +27,7 @@ struct pp_msgtype_info pp_msgtype_info[16] = {
 		"delay_resp", PP_DELAY_RESP_LENGTH,
 		PP_NP_GEN, PP_E2E_MECH, 3, PP_LOG_REQUEST },
 	[PPM_PDELAY_R_FUP] = {
-		"pdelay_resp_follow_up",  PP_PDELAY_R_FUP_LENGTH,
+		"pdelay_resp_follow_up",  PP_PDELAY_RESP_FOLLOW_UP_LENGTH,
 		PP_NP_GEN, PP_P2P_MECH, 5, 0x7f },
 	[PPM_ANNOUNCE] = {
 		"announce", PP_ANNOUNCE_LENGTH,

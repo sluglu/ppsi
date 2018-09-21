@@ -13,7 +13,7 @@
  * PTP_INITIALIZING state after a grace period.
  */
 
-int pp_faulty(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_faulty(struct pp_instance *ppi, void *buf, int len)
 {
 	if (pp_timeout(ppi, PP_TO_FAULT)) {
 		ppi->next_state = PPS_INITIALIZING;

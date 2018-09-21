@@ -24,6 +24,8 @@ void bare_main_loop(struct pp_instance *ppi)
 {
 	int delay_ms;
 
+	/* just tell that the links are up */
+	ppi->link_up = TRUE; 
 	/*
 	 * The main loop here is based on select. While we are not
 	 * doing anything else but the protocol, this allows extra stuff

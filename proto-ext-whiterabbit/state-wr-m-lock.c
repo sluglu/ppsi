@@ -13,7 +13,7 @@
  * This the entry point for a WR master: send "LOCK" and wait
  * for "LOCKED". On timeout retry sending, for WR_STATE_RETRY times.
  */
-int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_m_lock(struct pp_instance *ppi, void *buf, int len)
 {
 	int e = 0, sendmsg = 0;
 	MsgSignaling wrsig_msg;
@@ -35,14 +35,14 @@ int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-
-		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
+		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
 			 &(wrp->msgTmpWrMessageID));
 
 		if (wrp->msgTmpWrMessageID == LOCKED)
 			ppi->next_state = WRS_CALIBRATION;
 	}
 
+	
 	ppi->next_delay = wrp->wrStateTimeout;
 
 	return e;

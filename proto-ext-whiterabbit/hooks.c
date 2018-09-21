@@ -1,10 +1,9 @@
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
-#include "../proto-standard/common-fun.h"
 
 /* ext-whiterabbit must offer its own hooks */
 
-static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_init(struct pp_instance *ppi, void *buf, int len)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
@@ -52,8 +51,7 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 
 		/* FIXME check if correct: assign to each instance the same
 		 * wr_data. May I move it to pp_globals? */
-		INST(ppg, i)->ext_data = ppg->global_ext_data;
-
+		INST(ppg, i)->ext_data = ppg->global_ext_data;		
 		if (ppi->cfg.ext == PPSI_EXT_WR) {
 			switch (ppi->role) {
 				case PPSI_ROLE_MASTER:
@@ -73,7 +71,7 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 	return 0;
 }
 
-static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_listening(struct pp_instance *ppi, void *buf, int len)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
@@ -82,7 +80,7 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	return 0;
 }
 
-static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
+static int wr_master_msg(struct pp_instance *ppi, void *buf, int len,
 			 int msgtype)
 {
 	MsgSignaling wrsig_msg;
@@ -105,7 +103,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 	/* This is missing in the standard protocol */
 	case PPM_SIGNALING:
-		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
+		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
 				 &(WR_DSPOR(ppi)->msgTmpWrMessageID));
 		if ((WR_DSPOR(ppi)->msgTmpWrMessageID == SLAVE_PRESENT) &&
 		    (WR_DSPOR(ppi)->wrConfig & WR_M_ONLY)) {
@@ -119,7 +117,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 	return msgtype;
 }
 
-static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_new_slave(struct pp_instance *ppi, void *buf, int len)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wr_servo_init(ppi);
@@ -161,27 +159,35 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	return 0;
 }
 
-static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
+static void wr_s1(struct pp_instance *ppi, struct pp_frgn_master *frgn_master)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
-		((ann->ext_specific & WR_NODE_MODE) != NON_WR);
+		((frgn_master->ext_specific & WR_NODE_MODE) != NON_WR);
 	WR_DSPOR(ppi)->parentWrModeOn =
-		(ann->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
+		(frgn_master->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
 	WR_DSPOR(ppi)->parentCalibrated =
-			((ann->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
-	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
+			((frgn_master->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
+	WR_DSPOR(ppi)->parentWrConfig = frgn_master->ext_specific & WR_NODE_MODE;
 	DSCUR(ppi)->primarySlavePortNumber =
 		DSPOR(ppi)->portIdentity.portNumber;
 }
 
-static int wr_execute_slave(struct pp_instance *ppi)
+int wr_execute_slave(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	if (pp_timeout(ppi, PP_TO_FAULT))
 		wr_servo_reset(ppi); /* the caller handles ptp state machine */
 
+	if ((ppi->state == PPS_SLAVE) &&
+		(WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
+		(WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
+	    (!WR_DSPOR(ppi)->wrModeOn || !WR_DSPOR(ppi)->parentWrModeOn)) {
+		/* We must start the handshake as a WR slave */
+		wr_handshake_init(ppi, PPS_SLAVE);
+	}
+	
 	/* The doRestart thing is not  used, it seems */
 	if (!WR_DSPOR(ppi)->doRestart)
 		return 0;
@@ -193,13 +199,19 @@ static int wr_execute_slave(struct pp_instance *ppi)
 static int wr_handle_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	if ((WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
-	    (1 /* FIXME: Recommended State, see page 33*/) &&
-	    (WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
-	    (!WR_DSPOR(ppi)->wrModeOn || !WR_DSPOR(ppi)->parentWrModeOn)) {
-		/* We must start the handshake as a WR slave */
-		wr_handshake_init(ppi, PPS_SLAVE);
+
+	if ((ppi->state == WRS_PRESENT) ||
+		(ppi->state == WRS_S_LOCK) ||
+		(ppi->state == WRS_LOCKED) ||
+		(ppi->state == WRS_CALIBRATION) ||
+		(ppi->state == WRS_CALIBRATED) ||
+		(ppi->state == WRS_RESP_CALIB_REQ) ||
+		(ppi->state == WRS_WR_LINK_ON)) {
+		/* reset announce timeout when in the WR slave states */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 	}
+
+	/* handshake is started in slave mode */
 	return 0;
 }
 
@@ -268,10 +280,68 @@ static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 	int msg_len = htons(*(UInteger16 *) (buf + 2));
 
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
-	if (msg_len > PP_ANNOUNCE_LENGTH)
+	if (msg_len >= WR_ANNOUNCE_LENGTH)
 		msg_unpack_announce_wr_tlv(buf, ann);
+	else
+		ann->ext_specific = 0;
 }
 
+/* State decision algorithm 9.3.3 Fig 26 with extension for wr */
+static int wr_state_decision(struct pp_instance *ppi, int next_state)
+{
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	
+	/* 
+	 * if in one of the WR states stay in them, 
+	 * they will eventually go back to the normal states 
+	 */
+	if ((ppi->state == WRS_PRESENT) ||
+		(ppi->state == WRS_M_LOCK) ||
+		(ppi->state == WRS_S_LOCK) ||
+		(ppi->state == WRS_LOCKED) ||
+		(ppi->state == WRS_CALIBRATION) ||
+		(ppi->state == WRS_CALIBRATED) ||
+		(ppi->state == WRS_RESP_CALIB_REQ) ||
+		(ppi->state == WRS_WR_LINK_ON))
+		return ppi->state;
+	
+	/* else do the normal statemachine */
+	return next_state;
+}
+
+static void wr_state_change(struct pp_instance *ppi)
+{
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	
+	if ((ppi->next_state == WRS_PRESENT) ||
+		(ppi->next_state == WRS_M_LOCK) ||
+		(ppi->next_state == WRS_S_LOCK) ||
+		(ppi->next_state == WRS_LOCKED) ||
+		(ppi->next_state == WRS_CALIBRATION) ||
+		(ppi->next_state == WRS_CALIBRATED) ||
+		(ppi->next_state == WRS_RESP_CALIB_REQ) ||
+		(ppi->next_state == WRS_WR_LINK_ON))
+		return;
+	
+	/* if we are leaving the WR locked states reset the WR process */
+	if ((ppi->next_state != ppi->state) &&	
+		(wrp->wrModeOn == TRUE) &&
+		((ppi->state == PPS_SLAVE) ||
+		 (ppi->state == PPS_MASTER))) {
+		
+		wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
+		wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
+		wrp->wrModeOn = FALSE;
+		wrp->parentWrConfig = NON_WR;
+		wrp->parentWrModeOn = FALSE;
+		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
+		
+		if (ppi->state == PPS_SLAVE)
+			wrp->ops->locking_reset(ppi);
+	}		 
+}
 
 struct pp_ext_hooks pp_hooks = {
 	.init = wr_init,
@@ -289,4 +359,6 @@ struct pp_ext_hooks pp_hooks = {
 #endif
 	.pack_announce = wr_pack_announce,
 	.unpack_announce = wr_unpack_announce,
+	.state_decision = wr_state_decision,
+	.state_change = wr_state_change,
 };

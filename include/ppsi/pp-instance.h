@@ -64,11 +64,23 @@ struct pp_channel {
  * it is called foreignMasterDS, see 9.3.2.4
  */
 struct pp_frgn_master {
-	PortIdentity port_id;	/* used to identify old/new masters */
-
-	/* We don't need all fields of the following ones */
-	MsgAnnounce ann;
-	MsgHeader hdr;
+	/* how many announce messages from this port where received in the
+	 * interval */
+	UInteger16 foreignMasterAnnounceMessages[PP_FOREIGN_MASTER_TIME_WINDOW];
+	/* on which port we received the frame */
+	PortIdentity receivePortIdentity;
+	/* BMC related information */
+	UInteger16 sequenceId;
+	PortIdentity sourcePortIdentity;
+	Octet flagField[2];
+	Integer16 currentUtcOffset;
+	UInteger8 grandmasterPriority1;
+	ClockQuality grandmasterClockQuality;
+	UInteger8 grandmasterPriority2;
+	ClockIdentity grandmasterIdentity;
+	UInteger16 stepsRemoved;
+	Enumeration8 timeSource;
+	unsigned long ext_specific;	/* used by extension */
 };
 
 /*
@@ -168,6 +180,7 @@ struct pp_instance {
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
 	MsgHeader received_ptp_header;
 
+	Boolean link_up;
 	char *iface_name; /* for direct actions on hardware */
 	char *port_name; /* for diagnostics, mainly */
 	int port_idx;
@@ -180,7 +193,6 @@ struct pp_instance {
 	unsigned long ptp_rx_count;
 };
 /* The following things used to be bit fields. Other flags are now enums */
-#define PPI_FLAG_FROM_CURRENT_PARENT	0x01
 #define PPI_FLAG_WAITING_FOR_F_UP	0x02
 #define PPI_FLAG_WAITING_FOR_RF_UP	0x04
 #define PPI_FLAGS_WAITING		0x06 /* both of the above */

@@ -57,25 +57,8 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 {
 	void *buf;
 	UInteger16 wr_flags = 0;
-	int locked, class = DSDEF(ppi)->clockQuality.clockClass;
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	buf = ppi->tx_ptp;
-
-	/* GM: update clock Class, according to whether we are locked or not */
-	if (class < PP_CLASS_DEFAULT) {
-		locked = wrp->ops->locking_poll(ppi, 1);
-		if (locked == WR_SPLL_READY)
-			class = PP_CLASS_WR_GM_LOCKED;
-		else
-			class = PP_CLASS_WR_GM_UNLOCKED;
-		m1(ppi);
-		if (class != DSDEF(ppi)->clockQuality.clockClass) {
-			pp_error("New class %i\n", class);
-			DSDEF(ppi)->clockQuality.clockClass = class;
-			*(UInteger8 *) (buf + 48) = class;
-		}
-	}
 
 	/* Change length */
 	*(UInteger16 *)(buf + 2) = htons(WR_ANNOUNCE_LENGTH);
@@ -124,7 +107,8 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
 		tlv_wrMessageID == ANN_SUFIX) {
 		ann->ext_specific = (UInteger16)get_be16(buf+76);
-	}
+	} else
+		ann->ext_specific = 0; 		
 }
 
 /* White Rabbit: packing WR Signaling messages*/

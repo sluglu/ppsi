@@ -9,53 +9,83 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len);
+
+static pp_action *actions[] = {
+	[PPM_SYNC]		= 0,
+	[PPM_DELAY_REQ]		= 0,
+#if CONFIG_HAS_P2P
+	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
+	[PPM_PDELAY_RESP]	= st_com_peer_handle_pres,
+	[PPM_PDELAY_R_FUP]	= st_com_peer_handle_pres_followup,
+#endif
+	[PPM_FOLLOW_UP]		= 0,
+	[PPM_DELAY_RESP]	= 0,
+	[PPM_ANNOUNCE]		= passive_handle_announce,
+	/* skip signaling and management, for binary size */
+};
+
+static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len)
+{
+	int ret = 0;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
+	
+	ret = st_com_handle_announce(ppi, buf, len);
+	if (ret)
+		return ret;
+	
+	if (!bmc_pidcmp(&hdr->sourcePortIdentity,
+		&erbest->sourcePortIdentity)) {
+		/* 
+		 * 9.2.6.11 d) reset timeout when an announce
+		 * is received from the clock putting it into passive (erbest)
+		 */
+		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+	}
+	
+	return 0;
+}
+
+int pp_passive(struct pp_instance *ppi, void *buf, int len)
 {
 	int e = 0; /* error var, to check errors in msg handling */
+	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	/* when the clock is using peer-delay, listening must send it too */
+	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
+					   * passive */
+
+	/* when the clock is using peer-delay, passive must send it too */
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		e  = pp_lib_may_issue_request(ppi);
 
-	switch (ppi->received_ptp_header.messageType) {
-
-	case PPM_ANNOUNCE:
-		e = pp_lib_handle_announce(ppi, pkt, plen);
-		break;
-
-	case PPM_SYNC:
-		e = st_com_master_handle_sync(ppi, pkt, plen);
-		break;
-
-	case PPM_PDELAY_REQ:
-		if (CONFIG_HAS_P2P)
-			st_com_peer_handle_preq(ppi, pkt, plen);
-		break;
-
-	case PPM_PDELAY_RESP:
-		if (CONFIG_HAS_P2P)
-			e = st_com_peer_handle_pres(ppi, pkt, plen);
-		break;
-
-	case PPM_PDELAY_R_FUP:
-		if (CONFIG_HAS_P2P)
-			e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
-		break;
-
-	default:
-		/* disreguard, nothing to do */
-		break;
-
+	/*
+	 * The management of messages is now table-driven
+	 */
+	if (hdr->messageType < ARRAY_SIZE(actions)
+	    && actions[hdr->messageType]) {
+		e = actions[hdr->messageType](ppi, buf, len);
+	} else {
+		if (len)
+			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
+				hdr->messageType);
 	}
 
-	if (e == 0)
-		e = st_com_execute_slave(ppi);
+	st_com_check_announce_receive_timeout(ppi);
 
-	if (e != 0) {
-		/* ignore: a lost frame is not the end of the world */
+	if (pp_timeout(ppi, PP_TO_FAULT))
+		ppi->next_state = PPS_FAULTY;
+
+	if (e != 0)
+		ppi->next_state = PPS_FAULTY;
+
+	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
+		ppi->next_delay = pp_next_delay_2(ppi, 
+			PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+	} else {
+		ppi->next_delay = pp_next_delay_1(ppi, 
+			PP_TO_ANN_RECEIPT);
 	}
-
-	ppi->next_delay = PP_DEFAULT_NEXT_DELAY_MS;
-
-	return 0;
+	
+	return e;
 }

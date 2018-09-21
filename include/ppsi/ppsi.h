@@ -70,8 +70,6 @@ extern struct pp_msgtype_info pp_msgtype_info[16];
 extern int pp_lib_may_issue_sync(struct pp_instance *ppi);
 extern int pp_lib_may_issue_announce(struct pp_instance *ppi);
 extern int pp_lib_may_issue_request(struct pp_instance *ppi);
-extern int pp_lib_handle_announce(struct pp_instance *ppi,
-				  unsigned char *buf, int len);
 
 /* We use data sets a lot, so have these helpers */
 static inline struct pp_globals *GLBS(struct pp_instance *ppi)
@@ -150,15 +148,15 @@ extern void pp_prepare_pointers(struct pp_instance *ppi);
  * allow NULL pointers.
  */
 struct pp_ext_hooks {
-	int (*init)(struct pp_instance *ppg, unsigned char *pkt, int plen);
+	int (*init)(struct pp_instance *ppg, void *buf, int len);
 	int (*open)(struct pp_globals *ppi, struct pp_runtime_opts *rt_opts);
 	int (*close)(struct pp_globals *ppg);
-	int (*listening)(struct pp_instance *ppi, unsigned char *pkt, int plen);
-	int (*master_msg)(struct pp_instance *ppi, unsigned char *pkt,
-			  int plen, int msgtype);
-	int (*new_slave)(struct pp_instance *ppi, unsigned char *pkt, int plen);
+	int (*listening)(struct pp_instance *ppi, void *buf, int len);
+	int (*master_msg)(struct pp_instance *ppi, void *buf,
+			  int len, int msgtype);
+	int (*new_slave)(struct pp_instance *ppi, void *buf, int len);
 	int (*handle_resp)(struct pp_instance *ppi);
-	void (*s1)(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
+	void (*s1)(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
 	int (*execute_slave)(struct pp_instance *ppi);
 	int (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi, struct pp_time *orig);
@@ -166,6 +164,8 @@ struct pp_ext_hooks {
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
+	int (*state_decision)(struct pp_instance *ppi, int next_state);
+	void (*state_change)(struct pp_instance *ppi);
 };
 
 extern struct pp_ext_hooks pp_hooks; /* The one for the extension we build */
@@ -198,6 +198,9 @@ extern struct pp_network_operations unix_net_ops;
  * If "set" receives a NULL time value, it should update the TAI offset.
  */
 struct pp_time_operations {
+	int (*get_utc_time)(struct pp_instance *ppi, int *hours, int *minutes, int *seconds);
+	int (*get_utc_offset)(struct pp_instance *ppi, int *offset, int *leap59, int *leap61);
+	int (*set_utc_offset)(struct pp_instance *ppi, int offset, int leap59, int leap61);
 	int (*get)(struct pp_instance *ppi, struct pp_time *t);
 	int (*set)(struct pp_instance *ppi, const struct pp_time *t);
 	/* freq_ppb is parts per billion */
@@ -205,6 +208,7 @@ struct pp_time_operations {
 	int (*adjust_offset)(struct pp_instance *ppi, long offset_ns);
 	int (*adjust_freq)(struct pp_instance *ppi, long freq_ppb);
 	int (*init_servo)(struct pp_instance *ppi);
+	int (*get_servo_state)(struct pp_instance *ppi, int *state);
 	unsigned long (*calc_timeout)(struct pp_instance *ppi, int millisec);
 };
 
@@ -231,6 +235,7 @@ extern struct pp_time_operations unix_time_ops;
  */
 extern void pp_timeout_init(struct pp_instance *ppi);
 extern void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec);
+extern void pp_timeout_clear(struct pp_instance *ppi, int index);
 extern void pp_timeout_set(struct pp_instance *ppi, int index);
 extern void pp_timeout_setall(struct pp_instance *ppi);
 extern int pp_timeout(struct pp_instance *ppi, int index)
@@ -358,13 +363,38 @@ extern void pp_servo_got_psync(struct pp_instance *ppi); /* got t1 and t2 */
 extern void pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
 
 /* bmc.c */
-extern void m1(struct pp_instance *ppi);
+extern void bmc_m1(struct pp_instance *ppi);
+extern void bmc_m2(struct pp_instance *ppi);
+extern void bmc_m3(struct pp_instance *ppi);
+extern void bmc_s1(struct pp_instance *ppi, 
+			   struct pp_frgn_master *frgn_master);
+extern void bmc_p1(struct pp_instance *ppi);
+extern void bmc_p2(struct pp_instance *ppi);
+extern void bmc_setup_local_frgn_master(struct pp_instance *ppi, 
+			   struct pp_frgn_master *frgn_master);
+extern int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b);
+extern int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b);
 extern int bmc(struct pp_instance *ppi);
+extern int bmc_gm_cmp(struct pp_instance *ppi,
+			   struct pp_frgn_master *a,
+			   struct pp_frgn_master *b);
+extern int bmc_topology_cmp(struct pp_instance *ppi,
+			   struct pp_frgn_master *a,
+			   struct pp_frgn_master *b);
+extern int bmc_dataset_cmp(struct pp_instance *ppi,
+			   struct pp_frgn_master *a,
+			   struct pp_frgn_master *b);
+extern void bmc_store_frgn_master(struct pp_instance *ppi, 
+		       struct pp_frgn_master *frgn_master, void *buf, int len);
+extern void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
+			    int len);
+extern int bmc_check_frgn_master(struct pp_instance *ppi);
 
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);
+extern int msg_from_current_master(struct pp_instance *ppi);
 extern int __attribute__((warn_unused_result))
-	msg_unpack_header(struct pp_instance *ppi, void *buf, int plen);
+	msg_unpack_header(struct pp_instance *ppi, void *buf, int len);
 extern void msg_unpack_sync(void *buf, MsgSync *sync);
 extern int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp);
 extern void msg_unpack_announce(void *buf, MsgAnnounce *ann);
@@ -383,7 +413,7 @@ extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req);
 #define PP_SEND_ERROR		-1
 #define PP_SEND_NO_STAMP	1
 #define PP_SEND_DROP		-2
-#define PP_RECV_DROP	PP_SEND_DROP
+#define PP_RECV_DROP		PP_SEND_DROP
 
 extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);
@@ -406,7 +436,7 @@ extern void pp_time_div2(struct pp_time *t);
  */
 
 /* Use a typedef, to avoid long prototypes */
-typedef int pp_action(struct pp_instance *ppi, uint8_t *packet, int plen);
+typedef int pp_action(struct pp_instance *ppi, void *buf, int len);
 
 struct pp_state_table_item {
 	int state;
@@ -421,8 +451,11 @@ extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
 		 pp_master, pp_passive, pp_uncalibrated,
 		 pp_slave, pp_pclock;;
 
+/* Enforce a state change */
+extern int pp_leave_current_state(struct pp_instance *ppi);
+
 /* The engine */
-extern int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen);
+extern int pp_state_machine(struct pp_instance *ppi, void *buf, int len);
 
 /* Frame-drop support -- rx before tx, alphabetically */
 extern void ppsi_drop_init(struct pp_globals *ppg, unsigned long seed);

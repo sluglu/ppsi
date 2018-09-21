@@ -624,12 +624,15 @@ static int unix_net_check_packet(struct pp_globals *ppg, int delay_ms)
 	}
 	i = select(maxfd + 1, &set, NULL, NULL, &arch_data->tv);
 
-	if (i < 0 && errno != EINTR)
-		exit(__LINE__);
-
-	if (i < 0)
-		return -1;
-
+	if ( i < 0 ) {
+		if ( errno != EINTR )
+			exit(__LINE__);
+		else {
+			arch_data->tv.tv_sec =
+			arch_data->tv.tv_usec =0;
+			return -1;
+		}
+	}
 	if (i == 0)
 		return 0;
 

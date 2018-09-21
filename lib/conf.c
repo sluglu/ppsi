@@ -116,7 +116,7 @@ static inline void ASSIGN_DOUBLE_FIELD(struct pp_argline *l,
 
 	/* Check min/max */
 	if ( v<l->min_max.min.min_double || v>l->min_max.max.max_double ) {
-		pp_printf("Parameter %s(%lf) out of range\n", l->keyword, v);\
+		pp_printf("Parameter %s out of range\n", l->keyword);\
 		return;
 	}
 	*(double *)( dest + l->field_offset) = v;

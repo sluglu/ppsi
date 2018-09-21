@@ -439,7 +439,7 @@ struct pp_argline {
 	OPTION_CLOSE()
 
 #define INST_OPTION_DOUBLE(k,t,a,field)					\
-		INST_OPTION_DOUBLE_RANGE(k,t,a,field,DBL_MIN,DBL_MAX)
+		INST_OPTION_DOUBLE_RANGE(k,t,a,field,-DBL_MAX,DBL_MAX)
 
 #define RT_OPTION(func,k,t,a,field)					\
 	OPTION_OPEN() \

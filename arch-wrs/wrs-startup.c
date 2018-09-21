@@ -276,6 +276,7 @@ int main(int argc, char **argv)
 				ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps);
 				ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps);
 				ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
+				ppi->asymmetryCorrectionPortDS.enable=TRUE;
 				ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
 				ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
 						(RelativeDifference)(ppi->cfg.delayCoefficient * (double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT));

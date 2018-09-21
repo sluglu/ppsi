@@ -330,6 +330,7 @@ typedef struct  { /*draft P1588_v_29: page 128*/
 typedef struct  { /*draft P1588_v_29: page129*/
 	TimeInterval	constantAsymmetry;
 	RelativeDifference	scaledDelayCoefficient;
+	Boolean enable;
 } asymmetryCorrectionPortDS_t;
 
 typedef struct {/*draft P1588_v_29: Clause 17.6.3 */

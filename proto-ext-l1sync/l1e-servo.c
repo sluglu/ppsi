@@ -157,20 +157,21 @@ int l1e_servo_got_delay(struct pp_instance *ppi)
 }
 
 /* update currentDS.meanDelay */
-static void l1e_update_meanDelay(struct pp_instance *ppi,struct l1e_servo_state *s) {
-	struct pp_time mtime;
-	mtime=s->delayMM;
-	pp_time_div2(&mtime);
-	DSCUR(ppi)->meanDelay=pp_time_to_interval(&mtime);
+static void l1e_update_meanDelay(struct pp_instance *ppi,struct l1e_servo_state *l1es) {
+	struct pp_servo *gs=SRV(ppi);
 
+	gs->meanDelay=l1es->delayMM;
+	pp_time_div2(&gs->meanDelay);
+	DSCUR(ppi)->meanDelay=pp_time_to_interval(&gs->meanDelay);
 }
 
 /* update currentDS.delayAsymmetry */
 static void l1e_update_delayAsymmetry(struct pp_instance *ppi,struct l1e_servo_state *s) {
-	DSPOR(ppi)->delayAsymmetry=picos_to_interval(s->delayMM_ps - 2LL * s->delayMS_ps);
+	DSPOR(ppi)->delayAsymmetry=picos_to_interval(s->delayMS_ps - s->delayMM_ps/ (int64_t)2);
 }
 
 static void l1e_update_offsetFromMaster (struct pp_instance *ppi,struct pp_time *offsetMS) {
+	SRV(ppi)->offsetFromMaster=*offsetMS;
 	DSCUR(ppi)->offsetFromMaster = pp_time_to_interval(offsetMS);
 }
 

@@ -49,9 +49,11 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 					   * master */
 
 	/* upgrade from pre-master to master */
-	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {
+	if (pre &&
+			pp_timeout(ppi, PP_TO_QUALIFICATION) &&
+			!DSDEF(ppi)->externalPortConfigurationEnabled) {
 		ppi->next_state = PPS_MASTER;
-		/* start sending imediately and reenter */
+		/* start sending immediately and reenter */
 		pp_timeout_clear(ppi, PP_TO_SYNC_SEND);
 		pp_timeout_clear(ppi, PP_TO_ANN_SEND);
 		ppi->next_delay = 0;

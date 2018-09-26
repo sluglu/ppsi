@@ -223,10 +223,12 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 		}
 	} else {
 		/* TODO add implementation specific SYNCHRONIZATION event */
-		if (! DSDEF(ppi)->externalPortConfigurationEnabled )
 			if (pp_timeout(ppi, PP_TO_FAULT))
 				ppi->next_state = PPS_UNCALIBRATED;
 	}
+	/* Force to stay on desired state if externalPortConfiguration option is enabled */
+	if (DSDEF(ppi)->externalPortConfigurationEnabled )
+		ppi->next_state = ppi->externalPortConfigurationPortDS.desiredState;
 
 	/* when entering uncalibrated init servo */
 	if (uncalibrated && (ppi->is_new_state)) {

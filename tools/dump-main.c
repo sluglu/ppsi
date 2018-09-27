@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 
 		/* get the VLAN for incomming frames */
 		vlan = -1;
-		if (aux) {
+		if (aux && aux->tp_status & TP_STATUS_VLAN_VALID) {
 			/* already in the network order */
 			vlan = aux->tp_vlan_tci & 0xfff;
 		}

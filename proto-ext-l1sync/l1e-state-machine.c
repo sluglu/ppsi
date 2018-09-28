@@ -191,6 +191,7 @@ static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 		int len;
 		int fmeas, lmeas;
 		int diff;
+		int tmo_ms;
 
 		fmeas=measure_first_time(ppi);
 		pp_diag(ppi, ext, 1, "Sending L1SYNC_TLV signaling msg\n");
@@ -203,8 +204,10 @@ static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 		 * the execution time of this function. With small time-out like 64ms,
 		 * the error become not negligible.
 		 */
-		__pp_timeout_set(ppi, L1E_TIMEOUT_TX_SYNC,
-				(4 << (L1E_DSPOR_BS(ppi)->logL1SyncInterval + 8))-diff); /* loop ever since */
+		tmo_ms=pp_timeout_log_to_ms(L1E_DSPOR_BS(ppi)->logL1SyncInterval);
+		if ( tmo_ms >= diff ) /* to be sure to have a positive value */
+			tmo_ms-=diff;
+		__pp_timeout_set(ppi, L1E_TIMEOUT_TX_SYNC,tmo_ms); /* loop ever since */
 	}
 }
 

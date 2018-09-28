@@ -32,6 +32,27 @@ static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 	[PP_TO_EXT_1]={"EXT_1", RAND_NONE,}
 };
 
+#define TIMEOUT_MAX_LOG_VALUE 21 /* 2^21 * 1000 =2097152000ms is the maximum value that can be stored in an integer */
+#define TIMEOUT_MIN_LOG_VALUE -9 /* 2^-9 = 1ms is the minimum value that can be stored in an integer */
+
+int pp_timeout_log_to_ms ( Integer8 logValue) {
+	/* logValue can be in range -128 , +127
+	 * However we restrict this range to TIMEOUT_MIN_LOG_VALUE, TIMEOUT_MAX_LOG_VALUE
+	 * in order to optimize the calculation
+	 */
+
+	if ( logValue >= 0 ) {
+		if ( logValue > TIMEOUT_MAX_LOG_VALUE )
+			logValue=TIMEOUT_MAX_LOG_VALUE;
+		return (1<< logValue)*1000;
+	}
+	else {
+		if (logValue<TIMEOUT_MIN_LOG_VALUE)
+			logValue=TIMEOUT_MIN_LOG_VALUE;
+		return 1000>>-logValue;
+	}
+}
+
 /* Init fills the timeout values */
 void pp_timeout_init(struct pp_instance *ppi)
 {
@@ -41,17 +62,15 @@ void pp_timeout_init(struct pp_instance *ppi)
 			port->logMinPdelayReqInterval : port->logMinDelayReqInterval;
 
 	to_configs[PP_TO_REQUEST].which_rand = p2p ? RAND_NONE : RAND_0_200;
-	to_configs[PP_TO_REQUEST].value= p2p ?
-			1000*(1<<logDelayRequest) :
-			logDelayRequest;
+	to_configs[PP_TO_REQUEST].value= pp_timeout_log_to_ms(logDelayRequest);
 	/* fault timeout is 4 avg request intervals, not randomized */
 	to_configs[PP_TO_FAULT].value =
-		1 << (logDelayRequest + 12); /* 0 -> 4096ms */
-	to_configs[PP_TO_SYNC_SEND].value = port->logSyncInterval;
-	to_configs[PP_TO_BMC].value = 1000 * (1 << port->logAnnounceInterval);
+			pp_timeout_log_to_ms(logDelayRequest + 12); /* 0 -> 4096ms */
+	to_configs[PP_TO_SYNC_SEND].value =  pp_timeout_log_to_ms(port->logSyncInterval);
+	to_configs[PP_TO_BMC].value = pp_timeout_log_to_ms(port->logAnnounceInterval);
 	to_configs[PP_TO_ANN_RECEIPT].value = 1000 * (
 		port->announceReceiptTimeout << port->logAnnounceInterval);
-	to_configs[PP_TO_ANN_SEND].value = port->logAnnounceInterval;
+	to_configs[PP_TO_ANN_SEND].value =  pp_timeout_log_to_ms(port->logAnnounceInterval);
 	to_configs[PP_TO_QUALIFICATION].value =
 	    (1000 << port->logAnnounceInterval)*(DSCUR(ppi)->stepsRemoved + 1);
 }
@@ -74,11 +93,9 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 	int millisec;
 	struct timeout_config * to_config=&to_configs[index];
 
-	if (to_config->which_rand==RAND_NONE ) {
-		millisec = to_config->value; /* Just a constant */
-	} else {
+	millisec = to_config->value;
+	if (to_config->which_rand!=RAND_NONE ) {
 		uint32_t rval;
-		int logval = to_config->value;
 
 		if (!seed) {
 			uint32_t *p;
@@ -96,12 +113,6 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 		seed += 12345;
 		rval <<= 10;
 		rval ^= (unsigned int) (seed / 65536) % 1024;
-
-		/*
-		 * logval is signed. Let's imagine it's no less than -4.
-		 * Here below, 0 gets to 16 * 25 = 400ms, 40% of the nominal value
-		 */
-		millisec = (1 << (logval + 4)) * 25;
 
 		switch(to_config->which_rand) {
 		case RAND_70_130:

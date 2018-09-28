@@ -154,6 +154,9 @@ int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
 
 	/* Sync message */
 	memset((buf + 34), 0, 10);
+
+	/* Adjust time stamp */
+	pp_time_add_interval(orig_tstamp,ppi->timestampCorrectionPortDS.egressLatency);
 	*(UInteger16 *)(buf + 34) = htons(orig_tstamp->secs >> 32);
 	*(UInteger32 *)(buf + 36) = htonl(orig_tstamp->secs);
 	*(UInteger32 *)(buf + 40) = htonl(orig_tstamp->scaled_nsecs >> 16);
@@ -378,6 +381,8 @@ static int msg_pack_delay_req(struct pp_instance *ppi,
 
 	/* Delay_req message - we may send zero instead */
 	memset((buf + 34), 0, 10);
+	/* Adjust time stamp */
+	pp_time_add_interval(now,ppi->timestampCorrectionPortDS.egressLatency);
 	*(UInteger16 *) (buf + 34) = htons(now->secs >> 32);
 	*(UInteger32 *) (buf + 36) = htonl(now->secs);
 	*(UInteger32 *) (buf + 40) = htonl(now->scaled_nsecs >> 16);

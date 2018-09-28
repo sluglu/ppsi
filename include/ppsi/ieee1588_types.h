@@ -54,6 +54,10 @@ typedef struct _UInteger64 { /*/* TODO : Should be replaced by UInteger64 */
 #define TIME_INTERVAL_FRACBITS 16
 #define TIME_INTERVAL_FRACBITS_AS_FLOAT 16.0
 
+/* Min/max value expressed in picos (int64_t) which can be stored in a TimeInterval type */
+#define TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64 ((int64_t) 0xFE0C000000000000)
+#define TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64 ((int64_t) 0x1F3FFFFFFFFFC18)
+
 typedef Integer64 TimeInterval;
 
 /* White Rabbit extension */
@@ -69,6 +73,10 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 /** ******************* IEEE1588-2018 **************************************/
 #define REL_DIFF_FRACBITS 62
 #define REL_DIFF_FRACBITS_AS_FLOAT 62.0
+
+/* Min/max values for  RelativeDifference type */
+#define RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE -2.0
+#define RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE 1.9999999999999989
 
 /*draft P1588_v_29: page 17*/
 /* The scaledRelativeDifference member is the relative difference expressed

@@ -9,6 +9,7 @@
 /* This file is built in hosted environments, so following headers are Ok */
 #include <stdio.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -94,7 +95,7 @@ static inline void ASSIGN_INT64_FIELD(struct pp_argline *l,
 
 	/* Check min/max */
 	if ( v<l->min_max.min.min_int64 || v>l->min_max.max.max_int64 ) {
-		pp_printf("Parameter %s(%ld) out of range\n", l->keyword, (long)v);\
+		pp_printf("Parameter %s(%" PRId64 ") out of range\n", l->keyword, v);\
 		return;
 	}
 	*(int64_t *)( dest + l->field_offset) = v;
@@ -325,10 +326,14 @@ static struct pp_argline pp_global_arglines[] = {
 			L1E_MIN_L1SYNC_RECEIPT_TIMEOUT,L1E_MAX_L1SYNC_RECEIPT_TIMEOUT),
 #endif
 	INST_OPTION_INT("desiredState", ARG_NAMES, arg_states, cfg.desiredState),
-	INST_OPTION_INT64("egressLatency", ARG_INT64, NULL,cfg.egressLatency_ps),
-	INST_OPTION_INT64("ingressLatency", ARG_INT64, NULL,cfg.ingressLatency_ps),
-	INST_OPTION_INT64("constantAsymmetry", ARG_INT64, NULL,cfg.constantAsymmetry_ps),
-	INST_OPTION_DOUBLE("delayCoefficient", ARG_DOUBLE, NULL,cfg.delayCoefficient),
+	INST_OPTION_INT64_RANGE("egressLatency", ARG_INT64, NULL,cfg.egressLatency_ps,
+			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
+	INST_OPTION_INT64_RANGE("ingressLatency", ARG_INT64, NULL,cfg.ingressLatency_ps,
+			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
+	INST_OPTION_INT64_RANGE("constantAsymmetry", ARG_INT64, NULL,cfg.constantAsymmetry_ps,
+			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
+	INST_OPTION_DOUBLE_RANGE("delayCoefficient", ARG_DOUBLE, NULL,cfg.delayCoefficient,
+			RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE,RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE),
 	RT_OPTION_INT_RANGE("clock-class", ARG_INT, NULL, clock_quality.clockClass,
 			PP_MIN_CLOCK_CLASS,PP_MAX_CLOCK_CLASS),
 	RT_OPTION_INT_RANGE("clock-accuracy", ARG_INT, NULL,clock_quality.clockAccuracy,
@@ -549,7 +554,7 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		break;
 
 	case ARG_INT64:
-		if (sscanf(line, "%lli", &(cfg_arg.i64)) != 1) {
+		if (sscanf(line, "%" SCNd64, &(cfg_arg.i64)) != 1) {
 			pp_error("line %i: \"%s\"[%s]: not int64\n", lineno, word,line);
 			return -1;
 		}

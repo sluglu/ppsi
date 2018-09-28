@@ -57,7 +57,7 @@ int l1e_update_correction_values(struct pp_instance *ppi)
 			__func__);
 		return -1;
 	}
-	pp_diag(ppi, ext, 2, "ML- Updated correction values: Clock period=%d [ps]",
+	pp_diag(ppi, ext, 2, "ML- Updated correction values: Clock period=%d [ps]\n",
 		s->clock_period_ps);
 
 	return 0;
@@ -234,11 +234,7 @@ static int l1e_ready_for_slave(struct pp_instance *ppi)
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	/* Current state is UNCALIBRATED. Can we go to SLAVE state ? */
-	/* YES if L1SYNC state is UP. It means that the PPL is locked*/
-	if ( L1E_DSPOR_BS(ppi)->L1SyncState!=L1SYNC_UP &&
-		 L1E_DSPOR_BS(ppi)->L1SyncEnabled == TRUE) {
-		return 0; /* Not ready */
-	}
+	/* We do not wait L1SYNC_UP do go to slave state */
 	return 1; /* Ready for slave */
 }
 
@@ -248,8 +244,8 @@ static 	void l1e_state_change(struct pp_instance *ppi) {
 		case PPS_DISABLED :
 			/* In PPSI we go to DISABLE state when the link is down */
 			/* For the time being, it should be done like this because fsm is not called when the link is down */
-			l1e_run_state_machine(ppi); /* First call to choose the next state */
-			l1e_run_state_machine(ppi); /* Second call to apply next state */
+			L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */
+			l1e_run_state_machine(ppi);
 			break;
 		case PPS_INITIALIZING :
 			L1E_DSPOR(ppi)->basic.L1SyncState=L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED;

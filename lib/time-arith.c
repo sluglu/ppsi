@@ -148,7 +148,27 @@ TimeInterval pp_time_to_interval(struct pp_time *ts)
 
 TimeInterval picos_to_interval(int64_t picos)
 {
-	return (picos << TIME_INTERVAL_FRACBITS)/1000;
+	if ( picos <= TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64) {
+		/* special case : Return the minimum value */
+		/* The evaluation is made at compilation time */
+		return (TimeInterval) 1<<(64-1); /* Maximum negative value */
+	}
+	if (  picos >= TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64 ) {
+		/* special case : Return the maximum */
+		/* The evaluation is made at compilation time */
+		return (TimeInterval) (((TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64/1000) <<  TIME_INTERVAL_FRACBITS)|
+				(((TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64%1000) << TIME_INTERVAL_FRACBITS)/1000));
+	} else {
+
+		int64_t scaled_ns;
+
+		int sign = (picos < 0 ? -1 : 1);
+		picos *= sign;
+		scaled_ns=(picos/1000) << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
+		scaled_ns|=((picos%1000) << TIME_INTERVAL_FRACBITS)/1000; /* Add picos */
+
+		return scaled_ns*sign;
+	}
 }
 
 int64_t interval_to_picos(TimeInterval interval)

@@ -308,7 +308,7 @@ static struct pp_argline pp_global_arglines[] = {
 	INST_OPTION_BOOL("masterOnly", cfg.masterOnly),
 	INST_OPTION_INT("proto", ARG_NAMES, arg_proto, proto),
 	INST_OPTION_INT("extension profile", ARG_NAMES, arg_profile, cfg.profile),
-	INST_OPTION_INT("mechanism", ARG_NAMES, arg_delayMechanism, cfg.delayMechanism),
+	INST_OPTION_INT("mechanism dm", ARG_NAMES, arg_delayMechanism, cfg.delayMechanism),
 	INST_OPTION_INT_RANGE("sync-interval", ARG_INT, NULL, cfg.sync_interval,
 			PP_MIN_SYNC_INTERVAL,PP_MAX_SYNC_INTERVAL),
 	INST_OPTION_INT_RANGE("announce-interval", ARG_INT, NULL, cfg.announce_interval,

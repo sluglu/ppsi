@@ -161,8 +161,12 @@ int wrs_locking_poll(struct pp_instance *ppi, int grandmaster)
 
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_CHECK, 0);
-	if (ret != HEXP_LOCK_STATUS_LOCKED) {
-		pp_diag(ppi, time, 2, "PLL is not ready\n");
+	if ( ret<0 ) {
+		pp_diag(ppi, time, 2, "PLL is not ready: minirpc communication error %s\n",strerror(errno));
+		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
+	}
+	if (rval != HEXP_LOCK_STATUS_LOCKED) {
+		pp_diag(ppi, time, 2, "PLL not locked(%d)\n",rval);
 		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
 	}
 	pp_diag(ppi, time, 2, "PLL is locked\n");

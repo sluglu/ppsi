@@ -55,7 +55,7 @@ static l1e_state_machine_t le1_state_actions[] ={
  */
 int l1e_run_state_machine(struct pp_instance *ppi) {
 	L1SyncBasicPortDS_t * basicDS=L1E_DSPOR_BS(ppi);
-
+	static Boolean execute_state_machine=TRUE;
 	Enumeration8 nextState=basicDS->next_state;
 	Boolean newState=nextState!=basicDS->L1SyncState;
 	int delay;
@@ -77,6 +77,12 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 		int timeout_tx_sync = (4 << (basicDS->logL1SyncInterval + 8)) * basicDS->L1SyncReceiptTimeout;
 		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, timeout_tx_sync);
 		basicDS->L1SyncLinkAlive = FALSE;
+		execute_state_machine=TRUE;
+	}
+
+	/* Check L1SYNC transmission Time-out */
+	if ( pp_timeout(ppi, L1E_TIMEOUT_TX_SYNC) ) {
+		execute_state_machine=TRUE;
 	}
 
 	/*
@@ -85,8 +91,20 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 	if ( newState ) {
 		basicDS->L1SyncState=nextState;
 		pp_diag(ppi, ext, 2, "L1SYNC state: Enter %s\n", l1e_state_name[nextState]);
+		execute_state_machine=TRUE;
 	}
-	delay=(*le1_state_actions[basicDS->L1SyncState].action) (ppi,newState);
+
+	if ( execute_state_machine ) {
+		/* The state machine is executed only when really needed because
+		 * fsm can call this function too often.
+		 */
+		delay=(*le1_state_actions[basicDS->L1SyncState].action) (ppi,newState);
+	} else
+		delay=pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+
+	/* If return delay is 0, it means that the state machine should be executed at last call */
+	execute_state_machine= (delay==0);
+
 	if ( basicDS->L1SyncState != basicDS->next_state )
 		pp_diag(ppi, ext, 2, "L1SYNC state: Exit %s\n", l1e_state_name[basicDS->L1SyncState]);
 	return delay;

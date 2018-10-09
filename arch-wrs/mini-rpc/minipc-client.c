@@ -130,14 +130,17 @@ int minipc_call(struct minipc_ch *ch, int millisec_timeout,
 	pfd.fd = ch->fd;
 	pfd.events = POLLIN | POLLHUP;
 	pfd.revents = 0;
-	pollnr = poll(&pfd, 1, millisec_timeout);
-	if (pollnr < 0) {
-		/* errno already set */
-		return -1;
-	}
-	if (pollnr == 0) {
-		errno = ETIMEDOUT;
-		return -1;
+	while ( 1 ) {
+		if ( (pollnr = poll(&pfd, 1, millisec_timeout)) > 0 )
+			break;
+		if (pollnr < 0 && errno!=EINTR) {
+			/* errno already set */
+			return -1;
+		}
+		if (pollnr == 0) {
+			errno = ETIMEDOUT;
+			return -1;
+		}
 	}
 
 	if (shm) {

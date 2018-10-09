@@ -89,7 +89,7 @@ static int run_all_state_machines(struct pp_globals *ppg)
 	return delay_ms;
 }
 
-static int  alarmDetected=0;
+static int  alarmDetected=1;
 
 static void sched_handler(int sig, siginfo_t *si, void *uc)
 {

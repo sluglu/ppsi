@@ -157,9 +157,8 @@ static int l1e_handle_resp(struct pp_instance *ppi)
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
 	if (!l1epds->head.extModeOn) {
-		if (is_incorrect(&ppi->t2) || is_incorrect(&ppi->t3)) {
-			pp_diag(ppi, servo, 1,
-				"T2 or T3 incorrect, discarding tuple\n");
+		if ( is_timestamps_incorrect(ppi, NULL, 0x6 /* mask=t2&t3 */) ) {
+			pp_diag(ppi, servo, 1,"T2 or T3 incorrect, discarding tuple\n");
 			return 0;
 		}
 		pp_servo_got_resp(ppi);
@@ -209,7 +208,7 @@ static __attribute__((used)) int l1e_handle_presp(struct pp_instance *ppi)
 	 */
 
 	if (!WRH_DSPOR_HEAD(ppi)->extModeOn) {
-		if (is_incorrect(&ppi->t3) || is_incorrect(&ppi->t6)) {
+		if ( is_timestamps_incorrect(ppi, NULL, 0x24 /* mask=t3&t6 */) ) {
 			pp_diag(ppi, servo, 1,
 				"T3 or T6 incorrect, discarding tuple\n");
 			return 0;

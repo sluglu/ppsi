@@ -205,17 +205,8 @@ static int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
 	uint64_t big_delta_fix_ps;
 	static int errcount;
 
-	if (is_incorrect(&s->t3) || is_incorrect(&s->t4)
-	    || is_incorrect(&s->t5) || is_incorrect(&s->t6)) {
-		errcount++;
-		if (errcount > 5)	/* a 2-3 in a row are expected */
-			pp_error("%s: TimestampsIncorrect: %d %d %d %d\n",
-				 __func__, !is_incorrect(&s->t3),
-				 !is_incorrect(&s->t4), !is_incorrect(&s->t5),
-				 !is_incorrect(&s->t6));
+	if ( is_timestamps_incorrect(ppi,&errcount, 0x3C /* mask=t3&t4&t5&t6*/))
 		return 0;
-	}
-	errcount = 0;
 
 	SRV(ppi)->update_count++;
 	ppi->t_ops->get(ppi, &s->update_time);
@@ -262,15 +253,9 @@ static int wr_p2p_offset(struct pp_instance *ppi,
 {
 	static int errcount;
 
-	if (is_incorrect(&s->t1) || is_incorrect(&s->t2)) {
-		errcount++;
-		if (errcount > 5)	/* a 2-3 in a row are expected */
-			pp_error("%s: TimestampsIncorrect: %d %d \n",
-				 __func__, !is_incorrect(&s->t1),
-				 !is_incorrect(&s->t2));
+	if ( is_timestamps_incorrect(ppi,&errcount, 0x3 /* mask=t1&t2 */))
 		return 0;
-	}
-	errcount = 0;
+
 	got_sync = 0;
 
 	SRV(ppi)->update_count++;
@@ -297,21 +282,11 @@ static int wr_e2e_offset(struct pp_instance *ppi,
 	uint64_t delay_ms_fix;
 	static int errcount;
 
-	if (is_incorrect(&s->t1) || is_incorrect(&s->t2)
-	    || is_incorrect(&s->t3) || is_incorrect(&s->t4)) {
-		errcount++;
-		if (errcount > 5) /* a 2-3 in a row are expected */
-			pp_error("%s: TimestampsIncorrect: %d %d %d %d\n",
-				 __func__, !is_incorrect(&s->t1),
-				 !is_incorrect(&s->t2), !is_incorrect(&s->t3),
-				 !is_incorrect(&s->t4));
+	if ( is_timestamps_incorrect(ppi,&errcount, 0xF /* mask=t1&t2&t3&t4 */))
 		return 0;
-	}
 
 	if (WRH_OPER()->servo_hook) /* FIXME: check this, missing in p2p */
 		WRH_OPER()->servo_hook(ppi, WRH_SERVO_ENTER);
-
-	errcount = 0;
 
 	SRV(ppi)->update_count++;
 	ppi->t_ops->get(ppi, &s->update_time);

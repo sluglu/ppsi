@@ -207,10 +207,15 @@ static int unix_time_set(struct pp_instance *ppi, const struct pp_time *t)
 	/* UTC = TAI - 35 */
 	tp.tv_sec = t->secs - DSPRO(ppi)->currentUtcOffset;
 	tp.tv_nsec = t->scaled_nsecs >> 16;
-	if (clock_settime(CLOCK_REALTIME, &tp) < 0)
-		clock_fatal_error("clock_settime");
-	pp_diag(ppi, time, 1, "%s: %9li.%09li\n", __func__,
-		tp.tv_sec, tp.tv_nsec);
+	if ( tp.tv_sec < 0  || tp.tv_nsec<0) {
+		pp_error("%s: Cannot set clock time with negative values: %lisec %lins\n", __func__,(long int) tp.tv_sec,tp.tv_nsec );
+	} else {
+		if (clock_settime(CLOCK_REALTIME, &tp) < 0) {
+			clock_fatal_error("clock_settime");
+		}
+		pp_diag(ppi, time, 1, "%s: %9li.%09li\n", __func__,
+				tp.tv_sec, tp.tv_nsec);
+	}
 	return 0;
 }
 

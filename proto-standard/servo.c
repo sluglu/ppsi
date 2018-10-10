@@ -81,7 +81,10 @@ static char *fmt_ppt(struct pp_time *t)
 void pp_servo_got_sync(struct pp_instance *ppi)
 {
 	struct pp_time *delayMS = &SRV(ppi)->delayMS;
+	static int errcount=0;
 
+	if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
+		return;
 	/*
 	 * calc 'master_to_slave_delay'; no correction field
 	 * appears in the formulas because it's already merged with t1
@@ -99,6 +102,10 @@ void pp_servo_got_psync(struct pp_instance *ppi)
 	struct pp_time *mpd = &SRV(ppi)->meanDelay;
 	struct pp_time *ofm = &SRV(ppi)->offsetFromMaster;
 	int adj32;
+	static int errcount=0;
+
+	if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
+		return;
 
 	pp_diag(ppi, servo, 2, "T1: %s\n", fmt_ppt(&ppi->t1));
 	pp_diag(ppi, servo, 2, "T2: %s\n", fmt_ppt(&ppi->t2));
@@ -142,6 +149,7 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	struct pp_time *ofm = &SRV(ppi)->offsetFromMaster;
 	struct pp_avg_fltr *mpd_fltr = &SRV(ppi)->mpd_fltr;
 	int adj32;
+	static int errcount=0;
 
 
 	/* We sometimes enter here before we got sync/f-up */
@@ -149,6 +157,9 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 		pp_diag(ppi, servo, 2, "discard T3/T4: we miss T1/T2\n");
 		return;
 	}
+
+	if ( is_timestamps_incorrect(ppi,&errcount,0xF /* mask=t1&t2&t3&t4 */)  )
+		return;
 
 	shmem_lock(); /* Share memory locked */
     /*
@@ -172,8 +183,10 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	DSCUR(ppi)->meanDelay=pp_time_to_interval (mpd); /* Update currentDS */
 	pp_diag(ppi, servo, 1, "meanDelay: %s\n", fmt_ppt(mpd));
 
-	if (mpd->secs) /* Hmm.... we called this "bad event" */
+	if (mpd->secs) {/* Hmm.... we called this "bad event" */
+		shmem_unlock(); /* Share memory unlocked */
 		return;
+	}
 
 	/* mean path delay filtering */
 	pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
@@ -187,10 +200,12 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 		/* apply controller output as a clock tick rate adjustment, if
 		 * provided by arch, or as a raw offset otherwise */
 		if (pp_can_adjust(ppi)) {
-			if (ppi->t_ops->adjust_freq)
+			if (ppi->t_ops->adjust_freq) {
 				ppi->t_ops->adjust_freq(ppi, -adj32);
-			else
+			}
+			else {
 				ppi->t_ops->adjust_offset(ppi, -adj32);
+			}
 		}
 	}
 	SRV(ppi)->update_count++;
@@ -207,7 +222,10 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	struct pp_time *delaySM = &SRV(ppi)->delaySM;
 	struct pp_time *mpd = &SRV(ppi)->meanDelay;
 	struct pp_avg_fltr *mpd_fltr = &SRV(ppi)->mpd_fltr;
+	static int errcount=0;
 
+	if ( is_timestamps_incorrect(ppi,&errcount,0x3C /* mask=&t3&t4&t5&t6 */)  )
+		return;
 
 	shmem_lock(); /* Share memory locked */
      /*
@@ -301,6 +319,11 @@ static void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_f
 		(int)mpd_fltr->s_exp, (int)(mpd->scaled_nsecs >> 16));
 }
 
+/* Thresholds are used to decide if we must use time or frequency adjustment
+ * 20ms: This is the minimum value because it is used as a threshold to set the time in wrs_set_time() */
+#define TIME_ADJUST_THRESHOLD_SCALED_NS	(((int64_t)20000000)<<TIME_INTERVAL_FRACBITS) /* 20ms */
+#define TIME_ADJUST_THRESHOLD_SEC 0
+
 static int pp_servo_offset_master(struct pp_instance *ppi, struct pp_time *mpd,
 			    struct pp_time *ofm, struct pp_time *delayMS)
 {
@@ -310,8 +333,12 @@ static int pp_servo_offset_master(struct pp_instance *ppi, struct pp_time *mpd,
 	DSCUR(ppi)->offsetFromMaster=pp_time_to_interval(ofm);
 	pp_diag(ppi, servo, 1, "Offset from master:     %s\n", fmt_ppt(ofm));
 
-	if (!ofm->secs)
+	if ( !( ofm->secs ||
+			(ofm->scaled_nsecs>TIME_ADJUST_THRESHOLD_SCALED_NS ) ||
+			(ofm->scaled_nsecs<-TIME_ADJUST_THRESHOLD_SCALED_NS)
+			)) {
 		return 0; /* proceeed with adjust */
+	}
 
 	if (!pp_can_adjust(ppi))
 		return 0; /* e.g., a loopback test run... "-t" on cmdline */

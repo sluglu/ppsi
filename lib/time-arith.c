@@ -175,3 +175,42 @@ int64_t interval_to_picos(TimeInterval interval)
 {
 	return (interval * 1000) >>  TIME_INTERVAL_FRACBITS;
 }
+
+/*
+ * Check the timestamps (t1 to t6).
+ * err_count is a counter to avoid printing the first time the error messages
+ * ts_mask is the mask of the timestamps to check.
+ * Returns 1 if a timestamp is incorrect otherwise 0.
+ */
+int is_timestamps_incorrect(struct pp_instance *ppsi, int *err_count, int ts_mask) {
+	static int ts_ppsi_offset[6]={
+			offsetof(struct pp_instance,t1),
+			offsetof(struct pp_instance,t2),
+			offsetof(struct pp_instance,t3),
+			offsetof(struct pp_instance,t4),
+			offsetof(struct pp_instance,t5),
+			offsetof(struct pp_instance,t6)
+	};
+	int mask=1,i,local_err_count;
+
+	if ( err_count==NULL ) {
+		/* Optimize the execution of the next code avoiding checking err_count at each step */
+		err_count=&local_err_count;
+		local_err_count=5; /* Force printing immediately if a timestamp is incorrect */
+	}
+
+	for ( i=0; i<6 && ts_mask; i++ ) { // Check up to 6 timestamps
+		if ( mask & ts_mask ) {
+			struct pp_time *ts=(void *) ppsi + ts_ppsi_offset[i] ;
+			if ( is_incorrect(ts) ) {
+				if ( (*err_count)++ > 5 ) {
+					pp_error("%s: t%d is incorrect\n",__func__,i+1);
+				}
+				return 1;
+			}
+		}
+		ts_mask &=~mask;
+		mask<<=1;
+	}
+	return *err_count=0;
+}

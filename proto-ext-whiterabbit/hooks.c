@@ -187,10 +187,8 @@ static int wr_handle_announce(struct pp_instance *ppi)
 	return 0;
 }
 
-static int wr_handle_followup(struct pp_instance *ppi,
-			      struct pp_time *t1) /* t1 == &ppi->t1 */
-{
-	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+static int  wr_sync_followup(struct pp_instance *ppi, struct pp_time *t1) {
+
 	if (!WR_DSPOR(ppi)->head.extModeOn)
 		return 0;
 
@@ -200,6 +198,20 @@ static int wr_handle_followup(struct pp_instance *ppi,
 		wr_servo_update(ppi);
 
 	return 1; /* the caller returns too */
+}
+
+static int wr_handle_sync(struct pp_instance *ppi, struct pp_time *t1)
+{
+	/* This handle is called in case of one step clock */
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	return wr_sync_followup(ppi,t1);
+}
+
+static int wr_handle_followup(struct pp_instance *ppi, struct pp_time *t1)
+{
+	/* This handle is called in case of two step clock */
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	return wr_sync_followup(ppi,t1);
 }
 
 static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
@@ -326,6 +338,7 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.s1 = wr_s1,
 	.execute_slave = wr_execute_slave,
 	.handle_announce = wr_handle_announce,
+	.handle_sync = wr_handle_sync,
 	.handle_followup = wr_handle_followup,
 #if CONFIG_HAS_P2P
 	.handle_presp = wr_handle_presp,

@@ -213,6 +213,7 @@ struct pp_ext_hooks {
 	void (*s1)(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
 	int (*execute_slave)(struct pp_instance *ppi);
 	int (*handle_announce)(struct pp_instance *ppi);
+	int (*handle_sync)(struct pp_instance *ppi, struct pp_time *orig);
 	int (*handle_followup)(struct pp_instance *ppi, struct pp_time *orig);
 	int (*handle_preq) (struct pp_instance * ppi);
 	int (*handle_presp) (struct pp_instance * ppi);

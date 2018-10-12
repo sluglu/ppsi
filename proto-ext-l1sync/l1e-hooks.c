@@ -173,13 +173,9 @@ static int l1e_handle_resp(struct pp_instance *ppi)
 	return 0;
 }
 
-/* Hmm... "execute_slave" should look for errors; but it's off in WR too */
-static int l1e_handle_followup(struct pp_instance *ppi,
-			      struct pp_time *t1)
-{
+static int  l1e_sync_followup(struct pp_instance *ppi, struct pp_time *t1) {
 	l1e_ext_portDS_t *pds=L1E_DSPOR(ppi);
 
-	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if ((pds->basic.L1SyncState  != L1SYNC_UP) || !pds->head.extModeOn )
 		return 0;
 
@@ -189,6 +185,23 @@ static int l1e_handle_followup(struct pp_instance *ppi,
 		l1e_servo_update(ppi);
 
 	return 1; /* the caller returns too */
+}
+
+/* Hmm... "execute_slave" should look for errors; but it's off in WR too */
+static int l1e_handle_followup(struct pp_instance *ppi,
+			      struct pp_time *t1)
+{
+	/* This handle is called in case of two step clock */
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	return l1e_sync_followup(ppi,t1);
+}
+
+static int l1e_handle_sync(struct pp_instance *ppi,
+			      struct pp_time *t1)
+{
+	/* This handle is called in case of one step clock */
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	return l1e_sync_followup(ppi,t1);
 }
 
 static __attribute__((used)) int l1e_handle_presp(struct pp_instance *ppi)
@@ -260,6 +273,7 @@ struct pp_ext_hooks l1e_ext_hooks = {
 	.run_ext_state_machine = l1e_run_state_machine,
 	.ready_for_slave = l1e_ready_for_slave,
 	.handle_resp = l1e_handle_resp,
+	.handle_sync = l1e_handle_sync,
 	.handle_followup = l1e_handle_followup,
 #if CONFIG_HAS_P2P
 	.handle_presp = l1e_handle_presp,

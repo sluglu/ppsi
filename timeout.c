@@ -34,6 +34,8 @@ static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 
 #define TIMEOUT_MAX_LOG_VALUE 21 /* 2^21 * 1000 =2097152000ms is the maximum value that can be stored in an integer */
 #define TIMEOUT_MIN_LOG_VALUE -9 /* 2^-9 = 1ms is the minimum value that can be stored in an integer */
+#define TIMEOUT_MAX_VALUE_MS  ((1<< TIMEOUT_MAX_LOG_VALUE)*1000)
+#define TIMEOUT_MIN_VALUE_MS  (1000>>-(TIMEOUT_MIN_LOG_VALUE))
 
 int pp_timeout_log_to_ms ( Integer8 logValue) {
 	/* logValue can be in range -128 , +127
@@ -42,14 +44,14 @@ int pp_timeout_log_to_ms ( Integer8 logValue) {
 	 */
 
 	if ( logValue >= 0 ) {
-		if ( logValue > TIMEOUT_MAX_LOG_VALUE )
-			logValue=TIMEOUT_MAX_LOG_VALUE;
-		return (1<< logValue)*1000;
+		return ( logValue > TIMEOUT_MAX_LOG_VALUE ) ?
+				TIMEOUT_MAX_VALUE_MS :
+			    ((1<< logValue)*1000);
 	}
 	else {
-		if (logValue<TIMEOUT_MIN_LOG_VALUE)
-			logValue=TIMEOUT_MIN_LOG_VALUE;
-		return 1000>>-logValue;
+		return (logValue<TIMEOUT_MIN_LOG_VALUE) ?
+				TIMEOUT_MIN_VALUE_MS :
+				(1000>>-logValue);
 	}
 }
 
@@ -64,8 +66,9 @@ void pp_timeout_init(struct pp_instance *ppi)
 	to_configs[PP_TO_REQUEST].which_rand = p2p ? RAND_NONE : RAND_0_200;
 	to_configs[PP_TO_REQUEST].value= pp_timeout_log_to_ms(logDelayRequest);
 	/* fault timeout is 4 avg request intervals, not randomized */
-	to_configs[PP_TO_FAULT].value =
-			pp_timeout_log_to_ms(logDelayRequest + 12); /* 0 -> 4096ms */
+	to_configs[PP_TO_FAULT].value = pp_timeout_log_to_ms(logDelayRequest);
+	if ( to_configs[PP_TO_FAULT].value < (TIMEOUT_MAX_VALUE_MS>>2))
+		to_configs[PP_TO_FAULT].value<<=2; /* We can multiply by 4. No risk of overload */
 	to_configs[PP_TO_SYNC_SEND].value =  pp_timeout_log_to_ms(port->logSyncInterval);
 	to_configs[PP_TO_BMC].value = pp_timeout_log_to_ms(port->logAnnounceInterval);
 	to_configs[PP_TO_ANN_RECEIPT].value = 1000 * (
@@ -114,6 +117,7 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 		rval <<= 10;
 		rval ^= (unsigned int) (seed / 65536) % 1024;
 
+		millisec>>=1; /* keep 50% of the reference value */
 		switch(to_config->which_rand) {
 		case RAND_70_130:
 			/*

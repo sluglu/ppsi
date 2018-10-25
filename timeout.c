@@ -117,7 +117,7 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 		rval <<= 10;
 		rval ^= (unsigned int) (seed / 65536) % 1024;
 
-		millisec>>=1; /* keep 50% of the reference value */
+		millisec=(millisec<<1)/5; /* keep 40% of the reference value */
 		switch(to_config->which_rand) {
 		case RAND_70_130:
 			/*

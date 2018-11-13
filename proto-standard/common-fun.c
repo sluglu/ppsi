@@ -124,6 +124,7 @@ int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 		} else {
 			ppi->next_state = PPS_LISTENING;
 		}
+		bmc_flush_erbest(ppi); /* ErBest is removed from the foreign master list and ErBest need to be re-computed */
 	}
 	return 0;
 }

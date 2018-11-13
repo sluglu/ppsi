@@ -527,6 +527,7 @@ extern void bmc_store_frgn_master(struct pp_instance *ppi,
 		       struct pp_frgn_master *frgn_master, void *buf, int len);
 extern void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
 			    int len);
+extern void bmc_flush_erbest(struct pp_instance *ppi);
 
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);

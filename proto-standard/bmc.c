@@ -349,46 +349,76 @@ int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b)
 	return a->portNumber - b->portNumber;
 }
 
+static int are_qualified(struct pp_instance *ppi,
+			   struct pp_frgn_master *a,
+			   struct pp_frgn_master *b, int *ret) {
+	UInteger16 *ca = a->foreignMasterAnnounceMessages;
+	UInteger16 *cb = b->foreignMasterAnnounceMessages;
+	int a_is_qualified = 0;
+	int b_is_qualified = 0;
+	int i;
+
+	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
+		a_is_qualified += ca[i];
+		b_is_qualified += cb[i];
+	}
+	a_is_qualified=a_is_qualified >= PP_FOREIGN_MASTER_THRESHOLD;
+	b_is_qualified=b_is_qualified >= PP_FOREIGN_MASTER_THRESHOLD;
+
+
+	if ( ppi->frgn_rec_best!=-1 ) {
+		PortIdentity *erBestPortIdentity=&(ppi->frgn_master[ppi->frgn_rec_best].sourcePortIdentity);
+
+		/* Do not check qualification on erBest */
+		if ( !a_is_qualified  && bmc_pidcmp(&a->sourcePortIdentity,erBestPortIdentity)==0 ) {
+			/* a is erbest and not qualified */
+			a_is_qualified=1; /* Say it is qualified */
+		} else {
+			if ( !b_is_qualified && bmc_pidcmp(&b->sourcePortIdentity,erBestPortIdentity)==0 ) {
+				/* b is erbest */
+				b_is_qualified=1; /* Say it is qualified */
+			}
+		}
+	}
+
+	/* if B is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b)*/
+	if ( a_is_qualified && !b_is_qualified ) {
+		pp_diag(ppi, bmc, 2, "Dataset B not qualified\n");
+		*ret=-1;
+		return 0;
+	}
+
+	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
+	if (b_is_qualified && !a_is_qualified) {
+		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
+		*ret= 1;
+		return 0;
+	}
+
+	/* if both are not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
+	if ( !a_is_qualified && !b_is_qualified ) {
+		pp_diag(ppi, bmc, 2, "Dataset A & B not qualified\n");
+		*ret= 0;
+		return 0;
+	}
+	return 1;
+
+}
+
 /* compare part2 of the datasets which is the topology, fig 27, page 89 */
 static int bmc_gm_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
-	int i;
+	int ret;
 	struct ClockQuality *qa = &a->grandmasterClockQuality;
 	struct ClockQuality *qb = &b->grandmasterClockQuality;
-	UInteger16 *ca = a->foreignMasterAnnounceMessages;
-	UInteger16 *cb = b->foreignMasterAnnounceMessages;
-	int qualifieda = 0;
-	int qualifiedb = 0;
 
 	/* bmc_gm_cmp is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
-		qualifieda += ca[i];
-		qualifiedb += cb[i];
-	}
-
-	/* if B is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b)*/
-	if ((qualifieda >= PP_FOREIGN_MASTER_THRESHOLD)
-	    && (qualifiedb < PP_FOREIGN_MASTER_THRESHOLD)) {
-		pp_diag(ppi, bmc, 2, "Dataset B not qualified\n");
-		return -1;
-	}
-
-	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
-	if ((qualifiedb >= PP_FOREIGN_MASTER_THRESHOLD)
-	    && (qualifieda < PP_FOREIGN_MASTER_THRESHOLD)) {
-		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
-		return 1;
-	}
-
-	/* if both are not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
-	if ((qualifieda < PP_FOREIGN_MASTER_THRESHOLD)
-	    && (qualifiedb < PP_FOREIGN_MASTER_THRESHOLD)) {
-		pp_diag(ppi, bmc, 2, "Dataset A & B not qualified\n");
-		return 0;
+	if ( !are_qualified(ppi,a,b,&ret) ) {
+		return ret;
 	}
 
 	if (a->grandmasterPriority1 != b->grandmasterPriority1) {
@@ -440,44 +470,19 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
-	int i;
+	int ret;
 	struct PortIdentity *pidtxa = &a->sourcePortIdentity;
 	struct PortIdentity *pidtxb = &b->sourcePortIdentity;
 	struct PortIdentity *pidrxa = &a->receivePortIdentity;
 	struct PortIdentity *pidrxb = &b->receivePortIdentity;
-	UInteger16 *ca = a->foreignMasterAnnounceMessages;
-	UInteger16 *cb = b->foreignMasterAnnounceMessages;
-	int qualifieda = 0;
-	int qualifiedb = 0;
 	int diff;
 
 	/* bmc_topology_cmp is called several times, so report only at level 2
 	 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
-		qualifieda += ca[i];
-		qualifiedb += cb[i];
-	}
-	qualifieda=qualifieda >= PP_FOREIGN_MASTER_THRESHOLD;
-	qualifiedb=qualifiedb >= PP_FOREIGN_MASTER_THRESHOLD;
-
-	/* if B is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b)*/
-	if ( qualifieda && !qualifiedb ) {
-		pp_diag(ppi, bmc, 2, "Dataset B not qualified\n");
-		return -1;
-	}
-
-	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
-	if (qualifiedb && !qualifieda) {
-		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
-		return 1;
-	}
-
-	/* if both are not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
-	if ( !qualifieda && !qualifiedb ) {
-		pp_diag(ppi, bmc, 2, "Dataset A & B not qualified\n");
-		return 0;
+	if ( !are_qualified(ppi,a,b,&ret) ) {
+		return ret;
 	}
 
 	diff = a->stepsRemoved - b->stepsRemoved;
@@ -571,26 +576,17 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 /* State decision algorithm 9.3.3 Fig 26 */
 static int bmc_state_decision(struct pp_instance *ppi)
 {
-	int i;
 	int cmpres;
 	struct pp_frgn_master d0;
 	parentDS_t *parent = DSPAR(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
 	struct pp_instance *ppi_best;
-	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
+	struct pp_frgn_master *erbest = ppi->frgn_rec_best!=-1 ? &ppi->frgn_master[ppi->frgn_rec_best] : NULL;
 	struct pp_frgn_master *ebest;
-	int foreign_master_qualified = 0;
 
 	/* bmc_state_decision is called several times, so report only at
 	 * level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
-
-	/* check if the erbest is qualified */
-	if (ppi->frgn_rec_num) {
-		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-			foreign_master_qualified += erbest->foreignMasterAnnounceMessages[i];
-		foreign_master_qualified= foreign_master_qualified >= PP_FOREIGN_MASTER_THRESHOLD; /* True means qualified */
-	}
 
 	/* Clause 17.6.5.3: The state machines of Figure 30 or Figure 31 shall not be used */
 	if ( DSDEF(ppi)->externalPortConfigurationEnabled) {
@@ -599,16 +595,18 @@ static int bmc_state_decision(struct pp_instance *ppi)
 
 		/* Update the data set for a PTP port in SLAVE or UNCALIBRATED states: Table 137 */
 		if ( (dstate==PPS_SLAVE || dstate==PPS_UNCALIBRATED ) &&
-				(ppi->port_idx == ppg->ebest_idx)) {
+				(ppi->port_idx == ppg->ebest_idx) && erbest) {
 					/* if on this configured port is ebest it will be taken as parent */
 			bmc_s1(ppi, erbest);
+		} else {
+			bmc_m1(ppi);
 		}
 		return dstate;
 	}
 
 	if (DSDEF(ppi)->slaveOnly) {
-		if ( !foreign_master_qualified )
-    			return PPS_LISTENING;
+		if ( !erbest )
+    			return PPS_LISTENING; /* No foreign master */
 		/* if this is the slave port of the whole system then go to slave otherwise stay in listening*/
 		if (ppi->port_idx == ppg->ebest_idx) {
 			/* if on this configured port is ebest it will be taken as
@@ -620,8 +618,8 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	}
 
 
-	if ( !foreign_master_qualified && (ppi->state == PPS_LISTENING))
-		return PPS_LISTENING;
+	if ( !erbest && (ppi->state == PPS_LISTENING))
+		return PPS_LISTENING; /* No foreign master && LISTENING state*/
 
 	/* copy local information to a foreign_master structure */
 	bmc_setup_local_frgn_master(ppi, &d0);
@@ -1066,6 +1064,38 @@ static void bmc_flush_frgn_master(struct pp_instance *ppi)
 	ppi->frgn_rec_num = 0;
 }
 
+static void bmc_remove_foreign_master(struct pp_instance *ppi, int frg_master_idx) {
+	int i;
+	for (i = frg_master_idx; i < PP_NR_FOREIGN_RECORDS; i++) {
+		if (frg_master_idx < (ppi->frgn_rec_num-1)) {
+			/* overwrite and shift next foreign
+			 * master in */
+			memcpy(&ppi->frgn_master[i],
+			       &ppi->frgn_master[i+1],
+			       sizeof(struct pp_frgn_master));
+		} else {
+			/* clear the last (and others) since
+			 * shifted */
+			memset(&ppi->frgn_master[i], 0,
+			       sizeof(struct pp_frgn_master));
+		}
+	}
+
+	/* one less and restart at the shifted one */
+	ppi->frgn_rec_num--;
+}
+
+void bmc_flush_erbest(struct pp_instance *ppi)
+{
+	if ( ppi->frgn_rec_best!=-1 && ppi->frgn_rec_best<ppi->frgn_rec_num ) {
+		pp_diag(ppi, bmc, 1, "Aged out ErBest foreign master %i/%i\n",
+			ppi->frgn_rec_best, ppi->frgn_rec_num);
+		bmc_remove_foreign_master(ppi,ppi->frgn_rec_best);
+	}
+	ppi->frgn_rec_best=-1;
+
+}
+
 static void bmc_age_frgn_master(struct pp_instance *ppi)
 {
 	int i, j;
@@ -1098,28 +1128,11 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 		/* clear lowest */
 		ppi->frgn_master[i].foreignMasterAnnounceMessages[0] = 0;
 
-		/* remove aged out and shift foreign masters*/
-		if (qualified == 0) {
-			for (j = i; j < PP_NR_FOREIGN_RECORDS; j++) {
-				if (j < (ppi->frgn_rec_num-1)) {
-					/* overwrite and shift next foreign
-					 * master in */
-					memcpy(&ppi->frgn_master[j],
-					       &ppi->frgn_master[(j+1)],
-					       sizeof(ppi->frgn_master[j]));
-				} else {
-					/* clear the last (and others) since
-					 * shifted */
-					memset(&ppi->frgn_master[j], 0,
-					       sizeof(ppi->frgn_master[j]));
-				}
-			}
-
+		/* remove aged out and shift foreign masters but not for erBest */
+		if ((qualified == 0) && (i!=ppi->frgn_rec_best) ) {
 			pp_diag(ppi, bmc, 1, "Aged out foreign master %i/%i\n",
-				i, ppi->frgn_rec_num);
-
-			/* one less and restart at the shifted one */
-			ppi->frgn_rec_num--;
+					i, ppi->frgn_rec_num);
+			bmc_remove_foreign_master(ppi,i);
 			i--;
 		}
 	}
@@ -1229,13 +1242,12 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 			ppi->frgn_rec_best = best;
 		} else {
 			ppi->frgn_rec_num = 0;
-			ppi->frgn_rec_best = 0;
+			ppi->frgn_rec_best = -1;
 			memset(&ppi->frgn_master, 0,
 				   sizeof(ppi->frgn_master));
 		}
 	} else {
-		/* lets just set the first one */
-		ppi->frgn_rec_best = 0;
+		ppi->frgn_rec_best = -1;
 	}
 
 }
@@ -1276,7 +1288,7 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 			ppi_best = INST(ppg, best);
 			ppi = INST(ppg, i);
 
-			if ((ppi->frgn_rec_num > 0) &&
+			if ((ppi->frgn_rec_best!=-1) &&
 				((bmc_dataset_cmp(ppi,
 				  &ppi->frgn_master[ppi->frgn_rec_best],
 				  &ppi_best->frgn_master[ppi_best->frgn_rec_best]

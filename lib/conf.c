@@ -263,8 +263,8 @@ static struct pp_argname arg_proto[] = {
 	{},
 };
 static struct pp_argname arg_bool[] = {
-	{"true 1 on y", 1},
-	{"false 0 off n", 0},
+	{"t true 1 on y yes", 1},
+	{"f false 0 off n no", 0},
 	{},
 };
 
@@ -273,7 +273,7 @@ static struct pp_argname arg_states[] = {
 	{ "faulty", PPS_FAULTY},
 	{ "disabled", PPS_DISABLED},
 	{ "listening", PPS_LISTENING},
-	{ "pre-master", PPS_PRE_MASTER},
+	{ "pre_master", PPS_PRE_MASTER},
 	{ "master", PPS_MASTER},
 	{ "passive", PPS_PASSIVE},
 	{ "uncalibrated", PPS_UNCALIBRATED},
@@ -289,6 +289,7 @@ static struct pp_argname arg_profile[] = {
 #if CONFIG_PROFILE_HA == 1
 	{"highaccuracy ha", PPSI_PROFILE_HA},
 #endif
+	{"custom", PPSI_PROFILE_CUSTOM},
 	{},
 };
 static struct pp_argname arg_delayMechanism[] = {
@@ -309,28 +310,37 @@ static struct pp_argline pp_global_arglines[] = {
 	INST_OPTION_INT("proto", ARG_NAMES, arg_proto, proto),
 	INST_OPTION_INT("extension profile", ARG_NAMES, arg_profile, cfg.profile),
 	INST_OPTION_INT("mechanism dm", ARG_NAMES, arg_delayMechanism, cfg.delayMechanism),
-	INST_OPTION_INT_RANGE("sync-interval", ARG_INT, NULL, cfg.sync_interval,
+	INST_OPTION_INT_RANGE("sync-interval logSyncInterval", ARG_INT, NULL, cfg.sync_interval,
 			PP_MIN_SYNC_INTERVAL,PP_MAX_SYNC_INTERVAL),
-	INST_OPTION_INT_RANGE("announce-interval", ARG_INT, NULL, cfg.announce_interval,
+	INST_OPTION_INT_RANGE("announce-interval logAnnounceInterval", ARG_INT, NULL, cfg.announce_interval,
 			PP_MIN_ANNOUNCE_INTERVAL,PP_MAX_ANNOUNCE_INTERVAL),
-	INST_OPTION_INT_RANGE("announce-receipt-timeout", ARG_INT, NULL, cfg.announce_receipt_timeout,
+	INST_OPTION_INT_RANGE("announce-receipt-timeout announceReceiptTimeout", ARG_INT, NULL, cfg.announce_receipt_timeout,
 			PP_MIN_ANNOUNCE_RECEIPT_TIMEOUT,PP_MAX_ANNOUNCE_RECEIPT_TIMEOUT),
-	INST_OPTION_INT_RANGE("min-delay-req-interval", ARG_INT, NULL, cfg.min_delay_req_interval,
+	INST_OPTION_INT_RANGE("min-delay-req-interval logMinDelayReqInterval", ARG_INT, NULL, cfg.min_delay_req_interval,
 			PP_MIN_MIN_DELAY_REQ_INTERVAL,PP_MAX_MIN_DELAY_REQ_INTERVAL),
-	INST_OPTION_INT_RANGE("min-pdelay-req-interval", ARG_INT, NULL, cfg.min_pdelay_req_interval,
+	INST_OPTION_INT_RANGE("min-pdelay-req-interval logMinPDelayReqInterval", ARG_INT, NULL, cfg.min_pdelay_req_interval,
 			PP_MIN_MIN_PDELAY_REQ_INTERVAL,PP_MAX_MIN_PDELAY_REQ_INTERVAL),
+
 #if CONFIG_EXT_L1SYNC==1
-	INST_OPTION_INT_RANGE("l1sync-interval", ARG_INT, NULL, cfg.l1sync_interval,
+	INST_OPTION_INT_RANGE("l1sync-interval logL1SyncInterval", ARG_INT, NULL, cfg.l1syncInterval,
 			L1E_MIN_L1SYNC_INTERVAL,L1E_MAX_L1SYNC_INTERVAL),
-	INST_OPTION_INT_RANGE("l1sync-receipt-timeout", ARG_INT, NULL, cfg.l1sync_receipt_timeout,
+	INST_OPTION_INT_RANGE("l1sync-receipt-timeout l1SyncReceiptTimeout", ARG_INT, NULL, cfg.l1syncReceiptTimeout,
 			L1E_MIN_L1SYNC_RECEIPT_TIMEOUT,L1E_MAX_L1SYNC_RECEIPT_TIMEOUT),
+    INST_OPTION_BOOL("l1SyncEnabled", cfg.l1SyncEnabled),
+    INST_OPTION_BOOL("l1SyncRxCoherencyIsRequired", cfg.l1SyncRxCoherencyIsRequired),
+    INST_OPTION_BOOL("l1SyncTxCoherencyIsRequired", cfg.l1SyncTxCoherencyIsRequired),
+    INST_OPTION_BOOL("l1SyncCongruencyIsRequired", cfg.l1SyncCongruencyIsRequired),
+    INST_OPTION_BOOL("l1SyncOptParamsEnabled", cfg.l1SyncOptParamsEnabled),
 #endif
+
+	INST_OPTION_BOOL("asymmetryCorrectionEnable", cfg.asymmetryCorrectionEnable),
+	INST_OPTION_INT64_RANGE("constantAsymmetry", ARG_INT64, NULL,cfg.constantAsymmetry_ps,
+			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
+
 	INST_OPTION_INT("desiredState", ARG_NAMES, arg_states, cfg.desiredState),
 	INST_OPTION_INT64_RANGE("egressLatency", ARG_INT64, NULL,cfg.egressLatency_ps,
 			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
 	INST_OPTION_INT64_RANGE("ingressLatency", ARG_INT64, NULL,cfg.ingressLatency_ps,
-			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
-	INST_OPTION_INT64_RANGE("constantAsymmetry", ARG_INT64, NULL,cfg.constantAsymmetry_ps,
 			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
 	INST_OPTION_DOUBLE_RANGE("delayCoefficient", ARG_DOUBLE, NULL,cfg.delayCoefficient,
 			RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE,RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE),
@@ -347,6 +357,7 @@ static struct pp_argline pp_global_arglines[] = {
 	RT_OPTION_INT_RANGE("priority2", ARG_INT, NULL, priority2,
 			PP_MIN_PRIORITY2, PP_MAX_PRIORITY2),
 	RT_OPTION_BOOL("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
+	RT_OPTION_BOOL("slaveOnly",slaveOnly),
 	{}
 };
 

@@ -29,13 +29,13 @@ static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	int ret = 0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
-	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
+	struct pp_frgn_master *erbest = ppi->frgn_rec_best!=-1 ? &ppi->frgn_master[ppi->frgn_rec_best] : NULL;
 	
 	ret = st_com_handle_announce(ppi, buf, len);
 	if (ret)
 		return ret;
 	
-	if (!bmc_pidcmp(&hdr->sourcePortIdentity,
+	if (erbest!=NULL && !bmc_pidcmp(&hdr->sourcePortIdentity,
 		&erbest->sourcePortIdentity)) {
 		/* 
 		 * 9.2.6.11 d) reset timeout when an announce

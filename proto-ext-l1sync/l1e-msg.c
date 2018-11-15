@@ -19,6 +19,12 @@
 #define MSG_OFFSET_TLV_LENGTH_FIELD       (MSG_OFFSET_TLV+2)
 #define MSG_OFFSET_TLV_L1SYNC_PEER_CONF   (MSG_OFFSET_TLV+4)
 #define MSG_OFFSET_TLV_L1SYNC_PEER_ACTIVE (MSG_OFFSET_TLV+5)
+#define MSG_OFFSET_TLV_L1SYNC_OPT_CONFIG                    (MSG_OFFSET_TLV+6)
+#define MSG_OFFSET_TLV_L1SYNC_OPT_PHASE_OFFSET_TX           (MSG_OFFSET_TLV+7)
+#define MSG_OFFSET_TLV_L1SYNC_OPT_PHASE_OFFSET_TX_TIMESTAMP (MSG_OFFSET_TLV+15)
+#define MSG_OFFSET_TLV_L1SYNC_OPT_FREQ_OFFSET_TX            (MSG_OFFSET_TLV+25)
+#define MSG_OFFSET_TLV_L1SYNC_OPT_FREQ_OFFSET_TX_TIMESTAMP  (MSG_OFFSET_TLV+33)
+#define MSG_OFFSET_TLV_L1SYNC_OPT_RESERVED                  (MSG_OFFSET_TLV+43)
 
 
 #define MSG_OFFSET_HEADER_TYPE (MSG_OFFSET_HEADER+0)
@@ -41,6 +47,8 @@
 #define MSG_SET_TLV_L1SYNC_PEER_CONF(buf,val)        MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_PEER_CONF)= val
 #define MSG_SET_TLV_L1SYNC_PEER_ACTIVE(buf,val)      MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_PEER_ACTIVE)=val
 
+#define MSG_SET_TLV_L1SYNC_OPT_CONFIG(buf,val)       MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_OPT_CONFIG)=val
+
 #define  TLV_TYPE_L1_SYNC		0x8001
 
 #define MSG_L1SYNC_LEN 50
@@ -51,6 +59,7 @@ int l1e_pack_signal(struct pp_instance *ppi)
 	PortIdentity targetPortIdentity;
 	uint8_t local_config, local_active;
 	L1SyncBasicPortDS_t * bds=L1E_DSPOR_BS(ppi);
+	UInteger16 msgLen=MSG_L1SYNC_LEN; /* Length of a message with a basic L1SYNC TLV */
 
 	memset(&targetPortIdentity,-1,sizeof(targetPortIdentity)); /* cloclk identity and port set all 1's */
 	/* Generic pack of a signaling message */
@@ -71,8 +80,19 @@ int l1e_pack_signal(struct pp_instance *ppi)
 
 	l1e_print_L1Sync_basic_bitmaps(ppi, local_config,local_active, "Sent");
 
+	if ( bds->optParamsEnabled ) {
+		/* Extended format of L1_SYNC TLV */
+		L1SyncOptParamsPortDS_t * ods=L1E_DSPOR_OP(ppi);
+
+		local_config= (ods->timestampsCorrectedTx? 1 : 0) |
+				(ods->phaseOffsetTxValid ? 2 : 0 ) |
+				(ods->frequencyOffsetTxValid ? 4 : 0 );
+		MSG_SET_TLV_L1SYNC_OPT_CONFIG(buf,local_config);
+		msgLen+=38;
+		/* TODO : The extension fields must be filled with L1SyncOptParamsPortDS_t data set */
+	}
 	/* header len */
-	MSG_SET_HEADER_MESSAGE_LENGTH(buf,MSG_L1SYNC_LEN);
+	MSG_SET_HEADER_MESSAGE_LENGTH(buf,msgLen);
 
 	return MSG_L1SYNC_LEN;
 }

@@ -280,6 +280,7 @@ typedef struct  {			/* page 72 */
 	Boolean		       portEnable;                   /*draft P1588_v_29: page 124 */
 	Boolean		       masterOnly;                   /*draft P1588_v_29: page 124 */
 	/** *********************** */
+	RelativeDifference delayAsymCoeff; /* alpha/(alpha+2). Used to compute delayAsymmetry */
 } portDS_t;
 
 /* Time Properties Data Set */

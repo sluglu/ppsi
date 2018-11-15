@@ -61,17 +61,46 @@ struct wrs_shm_head *ppsi_head;
 
 extern struct pp_ext_hooks  pp_hooks;
 
-/*
- * we need to call calloc, to reset all stuff that used to be static,
- * but we'd better have a simple prototype, compatilble with wrs_shm_alloc()
+#if CONFIG_EXT_L1SYNC
+/**
+ * Enable the l1sync extension for a given ppsi instance
  */
-static void *local_malloc(struct wrs_shm_head *headptr, size_t size)
-{
-	void *retval = malloc(size);
+static  int enable_l1Sync(struct pp_instance *ppi, Boolean enable) {
+	if ( enable ) {
+		ppi->protocol_extension=PPSI_EXT_L1S;
+		/* Add L1SYNC extension portDS */
+		if ( !(ppi->portDS->ext_dsport =wrs_shm_alloc(ppsi_head, sizeof(l1e_ext_portDS_t))) ) {
+			return 0;
+		}
 
-	if (retval)
-		memset(retval, 0, size);
-	return retval;
+		/* Allocate L1SYNC data extension */
+		if (! (ppi->ext_data = wrs_shm_alloc(ppsi_head,sizeof(struct l1e_data))) ) {
+			return 0;
+		}
+		/* Set L1SYNC state. Must be done here because the init hook is called only in the initializing state. If
+		 * the port is not connected, the initializing is then never called so the L1SYNC state is invalid (0)
+		 */
+		L1E_DSPOR_BS(ppi)->L1SyncState=L1SYNC_DISABLED;
+		L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
+		/* Set L1SYNC extension hooks */
+		ppi->ext_hooks=&l1e_ext_hooks;
+	}
+	return 1;
+}
+#endif
+
+/**
+ * Enable/disable asymmetry correction
+ */
+static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable ) {
+	double delayAsymCoeff;
+	if ( (ppi->asymmetryCorrectionPortDS.enable=enable)==TRUE ) {
+		ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
+		ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
+				(RelativeDifference)(ppi->cfg.delayCoefficient * (double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT));
+		delayAsymCoeff=ppi->cfg.delayCoefficient/(ppi->cfg.delayCoefficient+(double)2.0);
+		ppi->portDS->delayAsymCoeff=(RelativeDifference)(delayAsymCoeff * (double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT));
+	}
 }
 
 int main(int argc, char **argv)
@@ -83,8 +112,6 @@ int main(int argc, char **argv)
 	int i, hal_retries;
 	struct wrs_shm_head *hal_head;
 	struct hal_shmem_header *h;
-	void *(*alloc_fn)(struct wrs_shm_head *headptr, size_t size);
-	alloc_fn = local_malloc;
 
 	setbuf(stdout, NULL);
 
@@ -165,21 +192,20 @@ int main(int argc, char **argv)
 			strerror(errno));
 		exit(1);
 	}
-	alloc_fn = wrs_shm_alloc;
 	ppsi_head->version = WRS_PPSI_SHMEM_VERSION;
 
-	ppg = alloc_fn(ppsi_head, sizeof(*ppg));
-	ppg->defaultDS = alloc_fn(ppsi_head, sizeof(*ppg->defaultDS));
-	ppg->currentDS = alloc_fn(ppsi_head, sizeof(*ppg->currentDS));
-	ppg->parentDS =  alloc_fn(ppsi_head, sizeof(*ppg->parentDS));
-	ppg->timePropertiesDS = alloc_fn(ppsi_head,sizeof(*ppg->timePropertiesDS));
+	ppg = wrs_shm_alloc(ppsi_head, sizeof(*ppg));
+	ppg->defaultDS = wrs_shm_alloc(ppsi_head, sizeof(*ppg->defaultDS));
+	ppg->currentDS = wrs_shm_alloc(ppsi_head, sizeof(*ppg->currentDS));
+	ppg->parentDS =  wrs_shm_alloc(ppsi_head, sizeof(*ppg->parentDS));
+	ppg->timePropertiesDS = wrs_shm_alloc(ppsi_head,sizeof(*ppg->timePropertiesDS));
 	ppg->rt_opts = &__pp_default_rt_opts;
 
 	ppg->max_links = PP_MAX_LINKS;
 
 	/* NOTE: arch_data is not in shmem */
 	ppg->arch_data = malloc( sizeof(struct unix_arch_data));
-	ppg->pp_instances = alloc_fn(ppsi_head,
+	ppg->pp_instances = wrs_shm_alloc(ppsi_head,
 				     ppg->max_links * sizeof(*ppi));
 
 	if ((!ppg->arch_data) || (!ppg->pp_instances)) {
@@ -217,14 +243,12 @@ int main(int argc, char **argv)
 		for (i = 0; i < WRS_NUMBER_PHYSICAL_PORTS; i++) {
 			Boolean configured=FALSE;
 #if CONFIG_PROFILE_HA == 1
-			sprintf(s, "port %i; iface wri%i; proto raw;"
-				"profile ha; role auto", i + 1, i + 1);
+			sprintf(s, "port %i; iface wri%i; proto raw; profile ha", i + 1, i + 1);
 			configured=TRUE;
 #endif
 #if CONFIG_PROFILE_WR == 1
 			if ( ! configured )
-				sprintf(s, "port %i; iface wri%i; proto raw;"
-					"profile wr; role auto", i + 1, i + 1);
+				sprintf(s, "port %i; iface wri%i; proto raw; profile wr", i + 1, i + 1);
 #endif
 			pp_config_string(ppg, s);
 		}
@@ -239,57 +263,65 @@ int main(int argc, char **argv)
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
 		ppi->delayMechanism = ppi->cfg.delayMechanism;
-		ppi->portDS = alloc_fn(ppsi_head, sizeof(*ppi->portDS));
-		ppi->servo = alloc_fn(ppsi_head, sizeof(*ppi->servo));
+		ppi->portDS = wrs_shm_alloc(ppsi_head, sizeof(*ppi->portDS));
+		ppi->servo = wrs_shm_alloc(ppsi_head, sizeof(*ppi->servo));
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
 		if (ppi->portDS) {
+			switch (ppi->cfg.profile) {
 #if CONFIG_PROFILE_WR == 1
-			if ( ppi->cfg.profile==PPSI_PROFILE_WR ) {
+			case PPSI_PROFILE_WR :
 				ppi->protocol_extension=PPSI_EXT_WR;
 				/* Add WR extension portDS */
 				if ( !(ppi->portDS->ext_dsport =
-						alloc_fn(ppsi_head, sizeof(struct wr_dsport))) ) {
+						wrs_shm_alloc(ppsi_head, sizeof(struct wr_dsport))) ) {
 						goto exit_out_of_memory;
 				}
 
 				/* Allocate WR data extension */
-				if (! (ppi->ext_data = alloc_fn(ppsi_head,sizeof(struct wr_data))) ) {
+				if (! (ppi->ext_data = wrs_shm_alloc(ppsi_head,sizeof(struct wr_data))) ) {
 					goto exit_out_of_memory;
 				}
 				/* Set WR extension hooks */
 				ppi->ext_hooks=&wr_ext_hooks;
-			}
+				ppi->cfg.egressLatency_ps=ppi->cfg.ingressLatency_ps=0; /* Forced to 0: Already taken into account in WR calculation */
+				break;
 #endif
 #if CONFIG_PROFILE_HA == 1
-			if ( ppi->cfg.profile==PPSI_PROFILE_HA ) {
-				ppi->protocol_extension=PPSI_EXT_L1S;
-				/* Add L1E extension portDS */
-				if ( !(ppi->portDS->ext_dsport =alloc_fn(ppsi_head, sizeof(l1e_ext_portDS_t))) ) {
+			case PPSI_PROFILE_HA :
+				if ( !enable_l1Sync(ppi,TRUE) )
 					goto exit_out_of_memory;
-				}
-
-				/* Allocate WR data extension */
-				if (! (ppi->ext_data = alloc_fn(ppsi_head,sizeof(struct l1e_data))) ) {
-					goto exit_out_of_memory;
-				}
-				/* Set ingress/egress latencies */
-				ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps);
-				ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps);
-				ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
-				ppi->asymmetryCorrectionPortDS.enable=TRUE;
-				ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
-				ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
-						(RelativeDifference)(ppi->cfg.delayCoefficient * (double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT));
-
-				/* Set L1SYNC state. Must be done here because the init hook is called only if the initializing state. It
-				 * the port is not connected, the initializing is then never called so the L1SYNC state is invalid (0)
-				 */
-				L1E_DSPOR_BS(ppi)->L1SyncState=L1SYNC_DISABLED;
-
-				/* Set L1SYNC extension hooks */
-				ppi->ext_hooks=&l1e_ext_hooks;
-			}
+				/* Force mandatory attributes - Do not take care of the configuration */
+				L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =
+						L1E_DSPOR_BS(ppi)->txCoherentIsRequired =
+								L1E_DSPOR_BS(ppi)->congruentIsRequired=
+										L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
+				L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
+				enable_asymmetryCorrection(ppi,TRUE);
+				break;
 #endif
+			case PPSI_PROFILE_PTP :
+				/* Do not take care of L1SYNC */
+				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
+				break;
+			case PPSI_PROFILE_CUSTOM :
+#if CONFIG_EXT_L1SYNC
+				if (ppi->cfg.l1SyncEnabled ) {
+					if ( !enable_l1Sync(ppi,TRUE) )
+						goto exit_out_of_memory;
+					/* Read L1SYNC parameters */
+					L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =ppi->cfg.l1SyncRxCoherencyIsRequired;
+					L1E_DSPOR_BS(ppi)->txCoherentIsRequired =ppi->cfg.l1SyncTxCoherencyIsRequired;
+					L1E_DSPOR_BS(ppi)->congruentIsRequired =ppi->cfg.l1SyncCongruencyIsRequired;
+					L1E_DSPOR_BS(ppi)->optParamsEnabled=ppi->cfg.l1SyncOptParamsEnabled;
+				}
+#endif
+				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
+				break;
+			}
+			/* Parameters profile independent */
+			ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps);
+			ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps);
+			ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
 			ppi->portDS->masterOnly= ppi->cfg.masterOnly; /* can be overridden in pp_init_globals() */
 			ppi->portDS->logAnnounceInterval=ppi->cfg.announce_interval;
 			ppi->portDS->announceReceiptTimeout=ppi->cfg.announce_receipt_timeout;
@@ -328,5 +360,4 @@ int main(int argc, char **argv)
 	exit_out_of_memory:;
 	fprintf(stderr, "ppsi: out of memory\n");
 	exit(1);
-
 }

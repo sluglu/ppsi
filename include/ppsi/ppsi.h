@@ -500,10 +500,10 @@ extern int f_simple_int(struct pp_argline *l, int lineno,
 #define PPSI_EXT_L1S	2   /* L1SYNC extension */
 
 /* Define the PPSI profiles */  
-#define PPSI_PROFILE_PTP 0 /* Default PTP profile without extensions */
-#define PPSI_PROFILE_WR  1 /* WR profile using WR extension */
-#define PPSI_PROFILE_HA  2 /* HA profile using L1S extension, masterOnly and externalPortConfiguration options */
-
+#define PPSI_PROFILE_PTP     0 /* Default PTP profile without extensions */
+#define PPSI_PROFILE_WR      1 /* WR profile using WR extension */
+#define PPSI_PROFILE_HA      2 /* HA profile using L1S extension, masterOnly and externalPortConfiguration options */
+#define PPSI_PROFILE_CUSTOM  3 /* Custom profile. Give free access to all options and attributes */
 
 /* Servo */
 extern void pp_servo_init(struct pp_instance *ppi);

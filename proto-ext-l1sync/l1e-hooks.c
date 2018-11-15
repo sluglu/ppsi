@@ -78,12 +78,6 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 
 	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__,
 		ppi->protocol_extension);
-	// init configurable data set members with proper config values
-	bds->L1SyncEnabled            = TRUE;
-	bds->txCoherentIsRequired     = TRUE;
-	bds->rxCoherentIsRequired     = TRUE;
-	bds->congruentIsRequired      = TRUE;
-	bds->optParamsEnabled         = FALSE;
 	// init dynamic data set members with zeros/defaults
 	bds->L1SyncLinkAlive          = FALSE;
 	bds->isTxCoherent             = FALSE;
@@ -97,14 +91,14 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 	bds->peerIsRxCoherent     	  = FALSE;
 	bds->peerIsCongruent          = FALSE;
 	/* Init  configurable parameters */
-	bds->logL1SyncInterval=ppi->cfg.l1sync_interval;
-	bds->L1SyncReceiptTimeout=ppi->cfg.l1sync_receipt_timeout;
+	bds->logL1SyncInterval=ppi->cfg.l1syncInterval;
+	bds->L1SyncReceiptTimeout=ppi->cfg.l1syncReceiptTimeout;
 
 	/* Init other specific members */
 	bds->next_state=bds->L1SyncState;
 
 	/* Init configuration members of L1SyncOptParamsPortDS */
-	L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=FALSE;
+	L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=TRUE;
 
 	return 0;
 }

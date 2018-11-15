@@ -89,14 +89,14 @@ typedef struct  { /*draft P1588_v_29: page 100 and 333-335 */
 
 typedef struct { /*draft P1588_v_29: page 101 and 340-341  */
 	/* configurable members */
-	Boolean		timestampsCorrectedTx;
+	Boolean		 timestampsCorrectedTx;
 	/* dynamic members */
-	Boolean		phaseOffsetTxValid;
-	Boolean		frequencyOffsetTxValid;
-	struct pp_time 	phaseOffsetTx;
-	Timestamp	phaseOffsetTxTimesatmp;
-	struct pp_time 	frequencyOffsetTx;
-	Timestamp	frequencyOffsetTxTimesatmp;
+	Boolean		 phaseOffsetTxValid;
+	Boolean		 frequencyOffsetTxValid;
+	TimeInterval phaseOffsetTx;
+	Timestamp	 phaseOffsetTxTimesatmp;
+	TimeInterval frequencyOffsetTx;
+	Timestamp	 frequencyOffsetTxTimesatmp;
 } L1SyncOptParamsPortDS_t;
 
 /* Add all extension port DS related structure must be store here */

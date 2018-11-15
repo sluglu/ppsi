@@ -39,9 +39,15 @@ struct pp_instance_cfg __pp_default_instance_cfg = {
 		.min_delay_req_interval=PP_DEFAULT_MIN_DELAY_REQ_INTERVAL,
 		.min_pdelay_req_interval=PP_DEFAULT_MIN_PDELAY_REQ_INTERVAL,
 #if CONFIG_EXT_L1SYNC == 1
-		.l1sync_interval=L1E_DEFAULT_L1SYNC_INTERVAL,
-		.l1sync_receipt_timeout=L1E_DEFAULT_L1SYNC_RECEIPT_TIMEOUT,
+		.l1SyncEnabled=FALSE,
+		.l1SyncRxCoherencyIsRequired=FALSE,
+		.l1SyncTxCoherencyIsRequired=FALSE,
+		.l1SyncCongruencyIsRequired=FALSE,
+		.l1SyncOptParamsEnabled=FALSE,
+		.l1syncInterval=L1E_DEFAULT_L1SYNC_INTERVAL,
+		.l1syncReceiptTimeout=L1E_DEFAULT_L1SYNC_RECEIPT_TIMEOUT,
 #endif
+		.asymmetryCorrectionEnable=FALSE,
 		.egressLatency_ps=0,
 		.ingressLatency_ps=0,
 		.constantAsymmetry_ps=0,
@@ -78,7 +84,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	memcpy(&def->clockQuality, &rt_opts->clock_quality,
 		   sizeof(ClockQuality));
 
-	if ( def->slaveOnly ) {
+	if ( (def->slaveOnly=rt_opts->slaveOnly)==TRUE ) {
 		if ( def->numberPorts > 1 ) {
 			/* Check if slaveOnly is allowed
 			 * Only one ppsi instance must exist however n instances on the same physical port

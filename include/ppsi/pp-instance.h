@@ -25,6 +25,7 @@ struct pp_runtime_opts {
 	int priority2;
 	int domainNumber;
 	Boolean externalPortConfigurationEnabled;
+	Boolean slaveOnly;
 	void *arch_opts;
 };
 
@@ -141,14 +142,22 @@ struct pp_instance_cfg {
 	int sync_interval; /* Sync messages interval */
 	int min_delay_req_interval; /* delay request messages interval */
 	int min_pdelay_req_interval;/* pdelay request messages interval */
-	int l1sync_interval; /* L1SYNC/HA: l1sync messages interval */
-	int l1sync_receipt_timeout; /* L1SYNC/HA: l1sync messages receipttimeout */
+#if	CONFIG_EXT_L1SYNC
+	Boolean l1SyncEnabled; /* L1SYNC: protocol enabled */
+	Boolean l1SyncRxCoherencyIsRequired; /* L1SYNC: Rx coherency is required */
+	Boolean l1SyncTxCoherencyIsRequired; /* L1SYNC: Tx coherency is required */
+	Boolean l1SyncCongruencyIsRequired; /* L1SYNC: Congruency isrRequired */
+	Boolean l1SyncOptParamsEnabled; /* L1SYNC: Optional parameters enabled */
+	int l1syncInterval; /* L1SYNC: l1sync messages interval */
+	int l1syncReceiptTimeout; /* L1SYNC: l1sync messages receipt timeout */
+#endif
 	int64_t egressLatency_ps; /* egressLatency in picos */
 	int64_t ingressLatency_ps; /* ingressLatency in picos */
 	int64_t constantAsymmetry_ps; /* constantAsymmetry in picos */
 	double delayCoefficient; /* fiber delay coefficient as a double */
 	int desiredState; /* externalPortConfigurationPortDS.desiredState */
 	Boolean masterOnly; /* masterOnly */
+	Boolean asymmetryCorrectionEnable; /* asymmetryCorrectionPortDS.enable */
 };
 
 /*

@@ -181,8 +181,11 @@ int wr_servo_init(struct pp_instance *ppi)
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 	/* Determine the alpha coefficient */
 	if (wrp->ops->read_calib_data(ppi, 0, 0,
-		&s->fiber_fix_alpha, &s->clock_period_ps) != WR_HW_CALIB_OK)
+		&s->fiber_fix_alpha, &s->clock_period_ps) != WR_HW_CALIB_OK) {
+		wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
+
 		return -1;
+		}
 
 	wrp->ops->enable_timing_output(ppi, 0);
 

@@ -11,7 +11,7 @@
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data
  * structure */
-#define WRS_PPSI_SHMEM_VERSION 30 /* added HAL_PORT_STATE_RESET to hal */
+#define WRS_PPSI_SHMEM_VERSION 31 /* changed wrs_shm_head */
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__

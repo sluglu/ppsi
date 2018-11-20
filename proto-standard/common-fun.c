@@ -8,13 +8,6 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 #include "../lib/network_types.h"
-#include "../proto-ext-whiterabbit/wr-api.h" /* FIXME: phase_to_cf_units */
-
-#ifdef CONFIG_ARCH_WRS
-#define ARCH_IS_WRS 1
-#else
-#define ARCH_IS_WRS 0
-#endif
 
 void *msg_copy_header(MsgHeader *dest, MsgHeader *src)
 {
@@ -98,7 +91,7 @@ int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			if (DSDEF(ppi)->numberPorts > 1) {
+			if (!CODEOPT_ONE_PORT() &&  DSDEF(ppi)->numberPorts > 1) {
 				for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
 					if ((INST(ppg, i)->state == PPS_UNCALIBRATED) ||
 						(INST(ppg, i)->state == PPS_SLAVE))

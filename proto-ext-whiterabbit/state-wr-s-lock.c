@@ -43,5 +43,8 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len)
 		ppi->next_delay = 0;
 	}
 
+	/* Calibration can take time so we restart the BMC timer to avoid aged foreign master removed. */
+	pp_timeout_set(ppi, PP_TO_BMC);
+
 	return 0;
 }

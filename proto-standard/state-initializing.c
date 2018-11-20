@@ -53,7 +53,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 		goto failure;
 
 	/* only fill in the data set when initializing */
-	if (DSDEF(ppi)->numberPorts > 1) {
+	if (!CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
 		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
 			if ((INST(ppg, i)->state != PPS_INITIALIZING) && (INST(ppg, i)->link_up == TRUE)) 
 				initds = 0;
@@ -65,7 +65,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	 */
 	if (initds) 
 	{
-		if (DSDEF(ppi)->numberPorts > 1) {
+		if (!CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
 			/* Clock identity comes from mac address with 0xff:0xfe intermixed */
 			mac = ppi->ch[PP_NP_GEN].addr;
 			/* calculate MAC of Port 0 */
@@ -84,14 +84,9 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 				mac_port1[i] = ((unsigned char*)ppi->ch[PP_NP_GEN].addr)[i];
 		}
 			
-		DSDEF(ppi)->clockIdentity.id[0] = mac_port1[0];
-		DSDEF(ppi)->clockIdentity.id[1] = mac_port1[1];
-		DSDEF(ppi)->clockIdentity.id[2] = mac_port1[2];
+		memcpy( DSDEF(ppi)->clockIdentity.id, mac_port1, PP_CLOCK_IDENTITY_LENGTH);
 		DSDEF(ppi)->clockIdentity.id[3] = 0xff;
 		DSDEF(ppi)->clockIdentity.id[4] = 0xfe;
-		DSDEF(ppi)->clockIdentity.id[5] = mac_port1[3];
-		DSDEF(ppi)->clockIdentity.id[6] = mac_port1[4];
-		DSDEF(ppi)->clockIdentity.id[7] = mac_port1[5];
 
 		init_parent_ds(ppi);	
 	}

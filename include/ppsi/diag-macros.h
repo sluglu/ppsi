@@ -81,6 +81,26 @@ extern void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
 		(PP_HAS_DIAG && __PP_DIAG_ALLOW(ppi_,  pp_dt_ ## th_, level_))
 
 /*
+ * Set of useful macros to store temporary diag messages
+ * 'buff' parameter can be a global or local char pointer.
+ * Local variables use less code to access them (measure done with lm32 compiler)
+ */
+#define pp_diag_set_msg(buff,msg)					\
+	({								\
+	if (PP_HAS_DIAG)				\
+	   buff=msg;            \
+	PP_HAS_DIAG; /* return 1 if done, 0 if not done */		\
+	})
+
+#define pp_diag_clear_msg(buff)	 pp_diag_set_msg(buff,0)
+
+#define pp_diag_get_msg(buff)	 buff
+
+#define pp_diag_is_msg_set(buff)					\
+		(PP_HAS_DIAG && (buff!=0))
+
+
+/*
  * And this is the parser of the string. Internally it obeys VERB_LOG_MESGS
  * to set the value to 0xfffffff0 to be compatible with previous usage.
  */

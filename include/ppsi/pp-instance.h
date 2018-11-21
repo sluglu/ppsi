@@ -161,6 +161,21 @@ struct pp_instance_cfg {
 };
 
 /*
+ * Time-out structure and enumeration
+ */
+enum  to_rand_type {
+	TO_RAND_NONE,	/* Not randomized */
+	TO_RAND_70_130,	/* Should be 70% to 130% of 1 << value */
+	TO_RAND_0_200,	/* Should be 0% to 200% of 1 << value */
+} ;
+
+typedef struct  {
+	enum to_rand_type which_rand;
+	unsigned int initValueMs;
+	unsigned long tmo;
+} t_timeOutConfig;
+
+/*
  * Structure for the individual ppsi link
  */
 struct pp_instance {
@@ -220,7 +235,7 @@ struct pp_instance {
 	externalPortConfigurationPortDS_t  externalPortConfigurationPortDS; /*draft P1588: Clause 17.6.3*/
 	/************************* */
 
-	unsigned long timeouts[__PP_TO_ARRAY_SIZE];
+	t_timeOutConfig timeouts[__PP_TO_ARRAY_SIZE];
 	UInteger16 recv_sync_sequence_id;
 
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */

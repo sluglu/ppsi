@@ -6,30 +6,17 @@
  */
 #include <ppsi/ppsi.h>
 
-enum rand_type {
-	RAND_NONE,	/* Not randomized */
-	RAND_70_130,	/* Should be 70% to 130% of 1 << value */
-	RAND_0_200,	/* Should be 0% to 200% of 1 << value */
-};
-
-struct timeout_config {
-	char *name;
-	int which_rand;
-	int value;
-};
-
-/* most timeouts have a static configuration. Save it here */
-static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
-	[PP_TO_REQUEST] =	{"REQUEST", /* RAND defined at run-time */},
-	[PP_TO_SYNC_SEND] =	{"SYNC_SEND",	RAND_70_130,},
-	[PP_TO_BMC] =		{"BMC",		RAND_NONE,},
-	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	RAND_NONE,},
-	[PP_TO_ANN_SEND] =	{"ANN_SEND",	RAND_70_130,},
-	[PP_TO_FAULT] =		{"FAULT",	RAND_NONE, 4000},
-	[PP_TO_QUALIFICATION] = {"QUAL",	RAND_NONE,},
-	/* extension timeouts are explicitly set to a value */
-	[PP_TO_EXT_0]={"EXT_0", RAND_NONE,},
-	[PP_TO_EXT_1]={"EXT_1", RAND_NONE,}
+/* time-out counter names */
+static const char *timeOutNames[__PP_TO_ARRAY_SIZE]={
+		"REQUEST",
+		"SYNC_SEND",
+		"BMC",
+		"ANN_RECEIPT",
+		"ANN_SEND",
+		"FAULT",
+		"QUAL",
+		"EXT_0",
+		"EXT_1"
 };
 
 #define TIMEOUT_MAX_LOG_VALUE 21 /* 2^21 * 1000 =2097152000ms is the maximum value that can be stored in an integer */
@@ -59,30 +46,41 @@ int pp_timeout_log_to_ms ( Integer8 logValue) {
 void pp_timeout_init(struct pp_instance *ppi)
 {
 	portDS_t *port = ppi->portDS;
+	t_timeOutConfig *timeouts=ppi->timeouts;
+
 	Boolean p2p=CONFIG_HAS_P2P && ppi->delayMechanism == P2P;
 	Integer8 logDelayRequest=p2p ?
 			port->logMinPdelayReqInterval : port->logMinDelayReqInterval;
 
-	to_configs[PP_TO_REQUEST].which_rand = p2p ? RAND_NONE : RAND_0_200;
-	to_configs[PP_TO_REQUEST].value= pp_timeout_log_to_ms(logDelayRequest);
+	timeouts[PP_TO_REQUEST].which_rand = p2p ? TO_RAND_NONE : TO_RAND_0_200;
+	timeouts[PP_TO_SYNC_SEND].which_rand=
+			timeouts[PP_TO_ANN_SEND].which_rand=TO_RAND_70_130;
+	timeouts[PP_TO_BMC].which_rand =
+			timeouts[PP_TO_QUALIFICATION].which_rand =
+			timeouts[PP_TO_ANN_RECEIPT].which_rand =
+			timeouts[PP_TO_FAULT].which_rand =
+			timeouts[PP_TO_EXT_0].which_rand =
+			timeouts[PP_TO_EXT_1].which_rand = TO_RAND_NONE;
+
+	timeouts[PP_TO_REQUEST].initValueMs= pp_timeout_log_to_ms(logDelayRequest);
 	/* fault timeout is 4 avg request intervals, not randomized */
-	to_configs[PP_TO_FAULT].value = pp_timeout_log_to_ms(logDelayRequest);
-	if ( to_configs[PP_TO_FAULT].value < (TIMEOUT_MAX_VALUE_MS>>2))
-		to_configs[PP_TO_FAULT].value<<=2; /* We can multiply by 4. No risk of overload */
-	to_configs[PP_TO_SYNC_SEND].value =  pp_timeout_log_to_ms(port->logSyncInterval);
-	to_configs[PP_TO_BMC].value = pp_timeout_log_to_ms(port->logAnnounceInterval);
-	to_configs[PP_TO_ANN_RECEIPT].value = 1000 * (
+	timeouts[PP_TO_FAULT].initValueMs = pp_timeout_log_to_ms(logDelayRequest);
+	if ( timeouts[PP_TO_FAULT].initValueMs < (TIMEOUT_MAX_VALUE_MS>>2))
+		timeouts[PP_TO_FAULT].initValueMs<<=2; /* We can multiply by 4. No risk of overload */
+	timeouts[PP_TO_SYNC_SEND].initValueMs =  pp_timeout_log_to_ms(port->logSyncInterval);
+	timeouts[PP_TO_BMC].initValueMs = pp_timeout_log_to_ms(port->logAnnounceInterval);
+	timeouts[PP_TO_ANN_RECEIPT].initValueMs = 1000 * (
 		port->announceReceiptTimeout << port->logAnnounceInterval);
-	to_configs[PP_TO_ANN_SEND].value =  pp_timeout_log_to_ms(port->logAnnounceInterval);
-	to_configs[PP_TO_QUALIFICATION].value =
+	timeouts[PP_TO_ANN_SEND].initValueMs =  pp_timeout_log_to_ms(port->logAnnounceInterval);
+	timeouts[PP_TO_QUALIFICATION].initValueMs =
 	    (1000 << port->logAnnounceInterval)*(DSCUR(ppi)->stepsRemoved + 1);
 }
 
 void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
 {
-	ppi->timeouts[index] = ppi->t_ops->calc_timeout(ppi, millisec);
+	ppi->timeouts[index].tmo = ppi->t_ops->calc_timeout(ppi, millisec);
 	pp_diag(ppi, time, 3, "Set timeout for %s : %i / %lu\n",
-		to_configs[index].name, millisec, ppi->timeouts[index]);
+			timeOutNames[index], millisec, ppi->timeouts[index].tmo);
 }
 
 void pp_timeout_clear(struct pp_instance *ppi, int index)
@@ -94,10 +92,10 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 {
 	static uint32_t seed;
 	int millisec;
-	struct timeout_config * to_config=&to_configs[index];
+	t_timeOutConfig *timeouts=&ppi->timeouts[index];
 
-	millisec = to_config->value;
-	if (to_config->which_rand!=RAND_NONE ) {
+	millisec = timeouts->initValueMs;
+	if (timeouts->which_rand!=TO_RAND_NONE ) {
 		uint32_t rval;
 
 		if (!seed) {
@@ -118,8 +116,8 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 		rval ^= (unsigned int) (seed / 65536) % 1024;
 
 		millisec=(millisec<<1)/5; /* keep 40% of the reference value */
-		switch(to_config->which_rand) {
-		case RAND_70_130:
+		switch(timeouts->which_rand) {
+		case TO_RAND_70_130:
 			/*
 			 * We are required to fit between 70% and 130%
 			 * of the value for 90% of the time, at least.
@@ -128,10 +126,12 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 			 */
 			millisec = (millisec * 2) + rval % millisec;
 			break;
-		case RAND_0_200:
+		case TO_RAND_0_200:
 			millisec = rval % (millisec * 5);
 			break;
+		default:
 		/* RAND_NONE already treated */
+			break;
 		}
 	}
 	__pp_timeout_set(ppi, index, millisec);
@@ -157,11 +157,11 @@ void pp_timeout_setall(struct pp_instance *ppi)
 int pp_timeout(struct pp_instance *ppi, int index)
 {
 	unsigned long now=ppi->t_ops->calc_timeout(ppi, 0);
-	int ret = time_after_eq(now,ppi->timeouts[index]);
+	int ret = time_after_eq(now,ppi->timeouts[index].tmo);
 
 	if (ret)
 		pp_diag(ppi, time, 1, "timeout expired: %s / %lu\n",
-			to_configs[index].name,now);
+				timeOutNames[index],now);
 	return ret;
 }
 
@@ -174,7 +174,7 @@ int pp_next_delay_1(struct pp_instance *ppi, int i1)
 	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
 	signed long r1;
 
-	r1 = ppi->timeouts[i1] - now;
+	r1 = ppi->timeouts[i1].tmo - now;
 	return r1 < 0 ? 0 : r1;
 }
 
@@ -183,8 +183,8 @@ int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2)
 	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
 	signed long r1, r2;
 
-	r1 = ppi->timeouts[i1] - now;
-	r2 = ppi->timeouts[i2] - now;
+	r1 = ppi->timeouts[i1].tmo - now;
+	r2 = ppi->timeouts[i2].tmo - now;
 	if (r2 < r1)
 		r1 = r2;
 	return r1 < 0 ? 0 : r1;
@@ -195,9 +195,9 @@ int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3)
 	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
 	signed long r1, r2, r3;
 
-	r1 = ppi->timeouts[i1] - now;
-	r2 = ppi->timeouts[i2] - now;
-	r3 = ppi->timeouts[i3] - now;
+	r1 = ppi->timeouts[i1].tmo - now;
+	r2 = ppi->timeouts[i2].tmo - now;
+	r3 = ppi->timeouts[i3].tmo - now;
 	if (r2 < r1)
 		r1 = r2;
 	if (r3 < r1)

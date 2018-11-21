@@ -200,6 +200,7 @@ struct dump_info portDS_info [] = {
 	DUMP_FIELD(UInteger4, versionNumber),
 	DUMP_FIELD(UInteger4, minorVersionNumber),
 	DUMP_FIELD(TimeInterval, delayAsymmetry),
+	DUMP_FIELD(RelativeDifference, delayAsymCoeff),
 	DUMP_FIELD(Boolean, portEnable),
 	DUMP_FIELD(Boolean, masterOnly)
 };

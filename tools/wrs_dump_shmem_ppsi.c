@@ -121,6 +121,39 @@ struct dump_info l1e_servo_state_info [] = {
 	DUMP_FIELD(Integer64, prev_delayMS_ps),
 	DUMP_FIELD(int, missed_iters),
 };
+
+#undef DUMP_STRUCT
+#define DUMP_STRUCT l1e_ext_portDS_t
+struct dump_info l1e_ext_portDS_info [] = {
+	DUMP_FIELD(Boolean,  parentExtModeOn),
+	DUMP_FIELD(Boolean,  basic.L1SyncEnabled),
+	DUMP_FIELD(Boolean,  basic.txCoherentIsRequired),
+	DUMP_FIELD(Boolean,  basic.rxCoherentIsRequired),
+	DUMP_FIELD(Boolean,  basic.congruentIsRequired),
+	DUMP_FIELD(Boolean,  basic.optParamsEnabled),
+	DUMP_FIELD(Integer8, basic.logL1SyncInterval),
+	DUMP_FIELD(Integer8, basic.L1SyncReceiptTimeout),
+	DUMP_FIELD(Boolean,  basic.L1SyncLinkAlive),
+	DUMP_FIELD(Boolean,  basic.isTxCoherent),
+	DUMP_FIELD(Boolean,  basic.isRxCoherent),
+	DUMP_FIELD(Boolean,  basic.isCongruent),
+	DUMP_FIELD(Enumeration8,  basic.L1SyncState),
+	DUMP_FIELD(Boolean,  basic.peerTxCoherentIsRequired),
+	DUMP_FIELD(Boolean,  basic.peerRxCoherentIsRequired),
+	DUMP_FIELD(Boolean,  basic.peerCongruentIsRequired),
+	DUMP_FIELD(Boolean,  basic.peerIsTxCoherent),
+	DUMP_FIELD(Boolean,  basic.peerIsRxCoherent),
+	DUMP_FIELD(Boolean,  basic.peerIsCongruent),
+	DUMP_FIELD(Enumeration8,  basic.next_state),
+	DUMP_FIELD(Boolean,  opt_params.timestampsCorrectedTx),
+	DUMP_FIELD(Boolean,  opt_params.phaseOffsetTxValid),
+	DUMP_FIELD(Boolean,  opt_params.frequencyOffsetTxValid),
+	DUMP_FIELD(time,     opt_params.phaseOffsetTx),
+	DUMP_FIELD(Timestamp,opt_params.phaseOffsetTxTimesatmp),
+	DUMP_FIELD(time,     opt_params.frequencyOffsetTx),
+	DUMP_FIELD(Timestamp,opt_params.frequencyOffsetTxTimesatmp),
+};
+
 #endif
 
 #if CONFIG_EXT_WR == 1
@@ -338,8 +371,19 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 	}
 
 	for (i = 0; i < ppg->nlinks; i++) {
+		struct pp_instance * ppi= pp_instances+i;
+
 		sprintf(prefix,"ppsi.inst.%d.info",i);
-		dump_many_fields(pp_instances + i, ppi_info, ARRAY_SIZE(ppi_info),prefix);
+		dump_many_fields(ppi, ppi_info, ARRAY_SIZE(ppi_info),prefix);
+#if CONFIG_EXT_L1SYNC == 1
+		if ( ppi->protocol_extension == PPSI_EXT_L1S) {
+			portDS_t *portDS=wrs_shm_follow(head, ppi->portDS);
+			l1e_ext_portDS_t *data=wrs_shm_follow(head, portDS->ext_dsport);
+			sprintf(prefix,"ppsi.inst.%d.l1sync_portDS",i);
+			dump_many_fields(data, l1e_ext_portDS_info, ARRAY_SIZE(l1e_ext_portDS_info),prefix);
+
+		}
+#endif
 	}
 	return 0; /* this is complete */
 }

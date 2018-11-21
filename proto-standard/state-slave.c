@@ -38,7 +38,7 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
-	int ret;
+	int ret = 0;
 
 	if (!msg_from_current_master(ppi))
 		return 0;

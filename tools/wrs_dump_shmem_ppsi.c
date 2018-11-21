@@ -38,7 +38,7 @@ struct dump_info dsd_info [] = {
 	DUMP_FIELD(Boolean, slaveOnly),
 	DUMP_FIELD(Timestamp,	currentTime),
 	DUMP_FIELD(Boolean,	instanceEnable),
-	DUMP_FIELD(Enumeration8, externalPortConfigurationEnabled),
+	DUMP_FIELD(Boolean, externalPortConfigurationEnabled),
 	DUMP_FIELD(Enumeration8, maxStepsRemoved),
 	DUMP_FIELD(Enumeration8, SdoId),
 	DUMP_FIELD(Enumeration8, instanceType),
@@ -48,8 +48,8 @@ struct dump_info dsd_info [] = {
 #define DUMP_STRUCT currentDS_t/* Horrible typedef */
 struct dump_info dsc_info [] = {
 	DUMP_FIELD(UInteger16, stepsRemoved),
-	DUMP_FIELD(time, offsetFromMaster),
-	DUMP_FIELD(time, meanDelay), /* oneWayDelay */
+	DUMP_FIELD(TimeInterval, offsetFromMaster),
+	DUMP_FIELD(TimeInterval, meanDelay), /* oneWayDelay */
 	DUMP_FIELD(UInteger16, primarySlavePortNumber),
 };
 
@@ -83,15 +83,15 @@ struct dump_info dstp_info [] = {
 struct dump_info servo_state_info [] = {
 	DUMP_FIELD(int , state),
 	DUMP_FIELD(time, delayMS),
-	DUMP_FIELD(time, obs_drift),
 	DUMP_FIELD(time, delaySM),
+	DUMP_FIELD(long_long, obs_drift),
 	DUMP_FIELD(Integer64, mpd_fltr.m),
 	DUMP_FIELD(Integer64, mpd_fltr.y),
 	DUMP_FIELD(Integer64, mpd_fltr.s_exp),
 	DUMP_FIELD(time, meanDelay),
 	DUMP_FIELD(time, offsetFromMaster),
 	DUMP_FIELD(unsigned_long,      flags),
-	DUMP_FIELD(Integer32, update_count),
+	DUMP_FIELD(UInteger32, update_count),
 	DUMP_FIELD_SIZE(char, servo_state_name,32),
 	DUMP_FIELD(int,       servo_locked),
 };
@@ -118,7 +118,7 @@ struct dump_info l1e_servo_state_info [] = {
 	DUMP_FIELD(time, t4),
 	DUMP_FIELD(time, t5),
 	DUMP_FIELD(time, t6),
-	DUMP_FIELD(Integer32, prev_delayMS_ps),
+	DUMP_FIELD(Integer64, prev_delayMS_ps),
 	DUMP_FIELD(int, missed_iters),
 };
 #endif
@@ -149,10 +149,27 @@ struct dump_info wr_servo_state_info [] = {
 	DUMP_FIELD(time, t4),
 	DUMP_FIELD(time, t5),
 	DUMP_FIELD(time, t6),
-	DUMP_FIELD(Integer32, prev_delayMS_ps),
+	DUMP_FIELD(Integer64, prev_delayMS_ps),
 	DUMP_FIELD(int, missed_iters),
 };
 #endif
+
+#undef DUMP_STRUCT
+#define DUMP_STRUCT portDS_t
+struct dump_info portDS_info [] = {
+	DUMP_FIELD(PortIdentity, portIdentity),
+	DUMP_FIELD(Integer8, logMinDelayReqInterval),
+	DUMP_FIELD(Integer8, logAnnounceInterval),
+	DUMP_FIELD(UInteger8, announceReceiptTimeout),
+	DUMP_FIELD(Integer8, logSyncInterval),
+	DUMP_FIELD(pointer, ext_dsport),
+	DUMP_FIELD(Integer8, logMinPdelayReqInterval),
+	DUMP_FIELD(UInteger4, versionNumber),
+	DUMP_FIELD(UInteger4, minorVersionNumber),
+	DUMP_FIELD(TimeInterval, delayAsymmetry),
+	DUMP_FIELD(Boolean, portEnable),
+	DUMP_FIELD(Boolean, masterOnly)
+};
 
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct pp_instance
@@ -205,18 +222,22 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(time, t5),
 	DUMP_FIELD(time, t6),
 	DUMP_FIELD(uint64_t, syncCF),
+	DUMP_FIELD(Integer32, t4_cf),
+	DUMP_FIELD(Integer32, t6_cf),
 	DUMP_FIELD(time, last_rcv_time),
 	DUMP_FIELD(time, last_snt_time),
 	DUMP_FIELD(UInteger16, frgn_rec_num),
 	DUMP_FIELD(Integer16,  frgn_rec_best),
 	//DUMP_FIELD(struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS]),
 	DUMP_FIELD(pointer, portDS),
+	DUMP_FIELD(Boolean,asymmetryCorrectionPortDS.enable),
 	DUMP_FIELD(TimeInterval,asymmetryCorrectionPortDS.constantAsymmetry),
 	DUMP_FIELD(RelativeDifference,asymmetryCorrectionPortDS.scaledDelayCoefficient),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.egressLatency),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.ingressLatency),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.messageTimestampPointLatency),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.semistaticLatency),
+	DUMP_FIELD(Enumeration8,externalPortConfigurationPortDS.desiredState),
 
 	//DUMP_FIELD(unsigned long timeouts[__PP_TO_ARRAY_SIZE]),
 	DUMP_FIELD(UInteger16, recv_sync_sequence_id),
@@ -224,8 +245,8 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD_SIZE(bina, received_ptp_header, sizeof(MsgHeader)),
 	DUMP_FIELD(Boolean, link_up),
 
-	// DUMP_FIELD(pointer, iface_name),
-	// DUMP_FIELD(pointer, port_name),
+	DUMP_FIELD_SIZE(char, iface_name,16),
+	DUMP_FIELD_SIZE(char, port_name,16),
 	DUMP_FIELD(int, port_idx),
 	DUMP_FIELD(int, vlans_array_len),
 	/* pass the size of a vlans array in the nvlans field */
@@ -259,7 +280,6 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 	currentDS_t *dsc;
 	parentDS_t *dsp;
 	timePropertiesDS_t *dstp;
-	struct wr_servo_state *global_ext_data;
 	int i;
 
 	if (head->version != WRS_PPSI_SHMEM_VERSION) {
@@ -287,16 +307,21 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 	printf("time properties data set:\n");
 	dump_many_fields(dstp, dstp_info, ARRAY_SIZE(dstp_info));
 
-	global_ext_data = wrs_shm_follow(head, ppg->global_ext_data);
-	printf("global servo data set:\n");
-	dump_many_fields(global_ext_data, servo_state_info,
-			 ARRAY_SIZE(servo_state_info));
-
 	pp_instances = wrs_shm_follow(head, ppg->pp_instances);
 	/* print extension servo data set */
 	for (i = 0; i < ppg->nlinks; i++) {
 		struct pp_instance * ppi= pp_instances+i;
+
+		printf("portDS for instance %d :\n",i);
+		dump_many_fields( wrs_shm_follow(head, ppi->portDS)
+				, portDS_info,
+				 ARRAY_SIZE(portDS_info));
+
 		if ( ppi->state == PPS_SLAVE ) {
+			printf("servo data set for instance %d :\n",i);
+			dump_many_fields( wrs_shm_follow(head, ppi->servo)
+					, servo_state_info,
+					 ARRAY_SIZE(servo_state_info));
 #if CONFIG_EXT_WR == 1
 			if ( ppi->protocol_extension == PPSI_EXT_WR) {
 				struct wr_data *data;

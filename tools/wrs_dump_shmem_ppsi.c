@@ -245,8 +245,8 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD_SIZE(bina, received_ptp_header, sizeof(MsgHeader)),
 	DUMP_FIELD(Boolean, link_up),
 
-	DUMP_FIELD_SIZE(char, iface_name,16),
-	DUMP_FIELD_SIZE(char, port_name,16),
+	DUMP_FIELD_SIZE(pointer, iface_name,16),
+	DUMP_FIELD_SIZE(pointer, port_name,16),
 	DUMP_FIELD(int, port_idx),
 	DUMP_FIELD(int, vlans_array_len),
 	/* pass the size of a vlans array in the nvlans field */
@@ -281,6 +281,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 	parentDS_t *dsp;
 	timePropertiesDS_t *dstp;
 	int i;
+	char prefix[64];
 
 	if (head->version != WRS_PPSI_SHMEM_VERSION) {
 		fprintf(stderr, "dump ppsi: unknown version %i (known is %i)\n",
@@ -288,60 +289,57 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 		return -1;
 	}
 	ppg = (void *)head + head->data_off;
-	printf("ppsi globals:\n");
-	dump_many_fields(ppg, ppg_info, ARRAY_SIZE(ppg_info));
+	dump_many_fields(ppg, ppg_info, ARRAY_SIZE(ppg_info),"ppsi.globalDS");
 
 	dsd = wrs_shm_follow(head, ppg->defaultDS);
-	printf("default data set:\n");
-	dump_many_fields(dsd, dsd_info, ARRAY_SIZE(dsd_info));
+	dump_many_fields(dsd, dsd_info, ARRAY_SIZE(dsd_info),"ppsi.defaulDS");
 
 	dsc = wrs_shm_follow(head, ppg->currentDS);
-	printf("current data set:\n");
-	dump_many_fields(dsc, dsc_info, ARRAY_SIZE(dsc_info));
+	dump_many_fields(dsc, dsc_info, ARRAY_SIZE(dsc_info),"ppsi.currentDS");
 
 	dsp = wrs_shm_follow(head, ppg->parentDS);
-	printf("parent data set:\n");
-	dump_many_fields(dsp, dsp_info, ARRAY_SIZE(dsp_info));
+	dump_many_fields(dsp, dsp_info, ARRAY_SIZE(dsp_info),"ppsi.parentDS");
 
 	dstp = wrs_shm_follow(head, ppg->timePropertiesDS);
-	printf("time properties data set:\n");
-	dump_many_fields(dstp, dstp_info, ARRAY_SIZE(dstp_info));
+	dump_many_fields(dstp, dstp_info, ARRAY_SIZE(dstp_info),"ppsi.timePropertiesDS");
 
 	pp_instances = wrs_shm_follow(head, ppg->pp_instances);
 	/* print extension servo data set */
 	for (i = 0; i < ppg->nlinks; i++) {
 		struct pp_instance * ppi= pp_instances+i;
 
-		printf("portDS for instance %d :\n",i);
+		sprintf(prefix,"ppsi.inst.%d.portDS",i);
 		dump_many_fields( wrs_shm_follow(head, ppi->portDS)
 				, portDS_info,
-				 ARRAY_SIZE(portDS_info));
+				 ARRAY_SIZE(portDS_info),prefix);
 
 		if ( ppi->state == PPS_SLAVE ) {
-			printf("servo data set for instance %d :\n",i);
+			sprintf(prefix,"ppsi.inst.%d.servo",i);
 			dump_many_fields( wrs_shm_follow(head, ppi->servo)
 					, servo_state_info,
-					 ARRAY_SIZE(servo_state_info));
+					 ARRAY_SIZE(servo_state_info),prefix);
 #if CONFIG_EXT_WR == 1
 			if ( ppi->protocol_extension == PPSI_EXT_WR) {
 				struct wr_data *data;
 				data = wrs_shm_follow(head, ppi->ext_data);
-				dump_many_fields(&data->servo_state, wr_servo_state_info, ARRAY_SIZE(wr_servo_state_info));
+				sprintf(prefix,"ppsi.inst.%d.servo.wr",i);
+				dump_many_fields(&data->servo_state, wr_servo_state_info, ARRAY_SIZE(wr_servo_state_info),prefix);
 			}
 #endif
 #if CONFIG_EXT_L1SYNC == 1
 			if ( ppi->protocol_extension == PPSI_EXT_L1S) {
 				struct l1e_data *data;
 				data = wrs_shm_follow(head, ppi->ext_data);
-				dump_many_fields(&data->servo_state, l1e_servo_state_info, ARRAY_SIZE(l1e_servo_state_info));
+				sprintf(prefix,"ppsi.inst.%d.servo.l1sync",i);
+				dump_many_fields(&data->servo_state, l1e_servo_state_info, ARRAY_SIZE(l1e_servo_state_info),prefix);
 			}
 #endif
 		}
 	}
 
 	for (i = 0; i < ppg->nlinks; i++) {
-		printf("ppsi instance %i:\n", i);
-		dump_many_fields(pp_instances + i, ppi_info, ARRAY_SIZE(ppi_info));
+		sprintf(prefix,"ppsi.inst.%d.info",i);
+		dump_many_fields(pp_instances + i, ppi_info, ARRAY_SIZE(ppi_info),prefix);
 	}
 	return 0; /* this is complete */
 }

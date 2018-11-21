@@ -38,7 +38,6 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
-	int ret = 0;
 
 	if (!msg_from_current_master(ppi))
 		return 0;
@@ -66,12 +65,13 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 		pp_time_add(&ppi->t1, &hdr->cField);
 		ppi->syncCF = 0;
 		/* Call the extension; it may do it all and ask to return */
-		if (ppi->ext_hooks->handle_sync)
-			ret = ppi->ext_hooks->handle_sync(ppi, &ppi->t1);
-		if (ret == 1)
-			return 0;
-		if (ret < 0)
-			return ret;
+		if (ppi->ext_hooks->handle_sync) {
+			int ret = ppi->ext_hooks->handle_sync(ppi, &ppi->t1);
+			if (ret == 1)
+				return 0;
+			if (ret < 0)
+				return ret;
+		}
 		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 			pp_servo_got_psync(ppi);
 		else

@@ -311,7 +311,7 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber; /* FIXME: why? */
 	/* We should copy the correction field and add our fractional part */
 	hdr->cField.scaled_nsecs
-		+= htonl(prec_orig_tstamp->scaled_nsecs & 0xffff);
+		+= prec_orig_tstamp->scaled_nsecs & 0xffff;
 	normalize_pp_time(&hdr->cField);
 	*(Integer32 *) (buf + 8) = htonl(hdr->cField.scaled_nsecs >> 32);
 	*(Integer32 *) (buf + 12) = htonl((int)hdr->cField.scaled_nsecs);

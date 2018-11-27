@@ -52,6 +52,8 @@
 #define  TLV_TYPE_L1_SYNC		0x8001
 
 #define MSG_L1SYNC_LEN 50
+#define MSG_L1SYNC_TLV_LENGTH 2
+#define MSG_L1SYNC_TLV_EXTENDED_LENGTH 40
 
 int l1e_pack_signal(struct pp_instance *ppi)
 {
@@ -63,7 +65,7 @@ int l1e_pack_signal(struct pp_instance *ppi)
 
 	memset(&targetPortIdentity,-1,sizeof(targetPortIdentity)); /* cloclk identity and port set all 1's */
 	/* Generic pack of a signaling message */
-	msg_pack_signaling_no_fowardable(ppi,&targetPortIdentity,TLV_TYPE_L1_SYNC,2);
+	msg_pack_signaling_no_fowardable(ppi,&targetPortIdentity,TLV_TYPE_L1_SYNC,MSG_L1SYNC_TLV_LENGTH);
 
 	/* Clause O.6.4 */
 	local_config = l1e_creat_L1Sync_bitmask(bds->txCoherentIsRequired,
@@ -89,12 +91,13 @@ int l1e_pack_signal(struct pp_instance *ppi)
 				(ods->frequencyOffsetTxValid ? 4 : 0 );
 		MSG_SET_TLV_L1SYNC_OPT_CONFIG(buf,local_config);
 		msgLen+=38;
+		MSG_SET_TLV_LENGTH_FIELD(buf,MSG_L1SYNC_TLV_EXTENDED_LENGTH);
 		/* TODO : The extension fields must be filled with L1SyncOptParamsPortDS_t data set */
 	}
 	/* header len */
 	MSG_SET_HEADER_MESSAGE_LENGTH(buf,msgLen);
 
-	return MSG_L1SYNC_LEN;
+	return msgLen;
 }
 
 int l1e_unpack_signal(struct pp_instance *ppi, void *buf, int plen)

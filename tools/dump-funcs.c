@@ -281,7 +281,8 @@ static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 	/* the field includes 6 bytes of the header, excludes 4 of them. Bah! */
 	int explen = ntohs(tlv->len) + 4;
 
-	printf("TLV: type %04x len %i conf %02x act %02x ",
+	printf("%sTLV: type %04x len %i conf %02x act %02x\n",
+			prefix,
 			ntohs(tlv->type), explen,
 			(int) tlv->config,
 			(int) tlv->active);

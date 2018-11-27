@@ -217,8 +217,6 @@ static int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
 		stime = s->t6; pp_time_sub(&stime, &s->t3);
 		mtime = s->t5; pp_time_sub(&mtime, &s->t4);
 		s->delayMM = stime; pp_time_sub(&s->delayMM, &mtime);
-
-		/* update currentDS.meanDelay */
     }
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 1)) {

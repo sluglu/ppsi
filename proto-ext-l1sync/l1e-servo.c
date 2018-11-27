@@ -43,7 +43,7 @@ static void l1e_apply_faulty_stamp(struct l1e_servo_state *s, int index)
 
 static void l1e_dump_timestamp(struct pp_instance *ppi, char *what,struct pp_time ts)
 {
-	pp_diag(ppi, servo, 2, "%s = %ld:%09ld:%03ld\n", what, (long)ts.secs,
+	pp_diag(ppi, servo, 2, "%s = %ld.%09ld%03ld\n", what, (long)ts.secs,
 		(long)(ts.scaled_nsecs >> 16),
 		/* unlikely what we had earlier, third field is not phase */
 		((long)(ts.scaled_nsecs & 0xffff) * 1000 + 0x8000) >> 16);
@@ -124,6 +124,9 @@ void l1e_servo_reset(struct pp_instance *ppi)
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
 }
 
+/**
+ *  SYNC/FOLLOW_UP messages have been received: t1/t2 are available
+ */
 int l1e_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
 		      struct pp_time *t2)
 {
@@ -135,6 +138,10 @@ int l1e_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
 
 	return 0;
 }
+
+/**
+ *  DELAY_RESPONSE message has been received: t3/t4 are available
+ */
 
 int l1e_servo_got_delay(struct pp_instance *ppi)
 {
@@ -156,28 +163,54 @@ int l1e_servo_got_delay(struct pp_instance *ppi)
 	return 0;
 }
 
-/* update currentDS.meanDelay */
-static void l1e_update_meanDelay(struct pp_instance *ppi,struct l1e_servo_state *l1es) {
-	struct pp_servo *gs=SRV(ppi);
+#define BITS_IN_INT64 (sizeof(int64_t)*8)
 
-	gs->meanDelay=l1es->delayMM;
-	pp_time_div2(&gs->meanDelay);
-	DSCUR(ppi)->meanDelay=pp_time_to_interval(&gs->meanDelay);
+/* Get the position of the first bit set on the left of a 64 bits integer */
+static int getMsbSet(int64_t value) {
+	if ( value==0 )
+		return 0; /* value=0 so return bit 0 */
+	if ( value<0 )
+		value=-value; /* Negative value: change it to its positive value for the calculation */
+	return BITS_IN_INT64 - __builtin_clzll(value); /* using gcc built-in function */
 }
 
-/* update currentDS.delayAsymmetry */
-static void l1e_update_delayAsymmetry(struct pp_instance *ppi,struct l1e_servo_state *s) {
-	DSPOR(ppi)->delayAsymmetry=picos_to_interval(s->delayMS_ps - s->delayMM_ps/ (int64_t)2);
+#define DELAY_ASYM_BASE_FRACTION 50 /* Maxim value that can be used for the calculation */
+
+/**
+ * Calculate the delayAsymmetry : delayAsymCoeff * meanDelay
+ *
+ * This calculation is made in order to use the maximum of bits in the fraction part. It will depend
+ * on the value of delayAsymCoeff and meanDelay. The smaller these values will be, bigger
+ * the fraction part will be.
+ */
+
+static TimeInterval calculateDelayAsymmetry(RelativeDifference scaledDelayAsymCoeff, TimeInterval scaledMeanDelay) {
+	TimeInterval delayAsym;
+	int64_t rescaledAsymDelayCoeff,rescaledMeanDelay;
+	int lostBits,fracBitsUsed;
+
+	lostBits=getMsbSet(scaledDelayAsymCoeff)-(REL_DIFF_FRACBITS-DELAY_ASYM_BASE_FRACTION)+
+			getMsbSet(scaledMeanDelay)+(DELAY_ASYM_BASE_FRACTION-TIME_INTERVAL_FRACBITS)-BITS_IN_INT64;
+	if ( lostBits<0 )
+		lostBits=0;
+	fracBitsUsed=DELAY_ASYM_BASE_FRACTION-(lostBits>>1)-1;
+	rescaledMeanDelay = scaledMeanDelay<<(fracBitsUsed-TIME_INTERVAL_FRACBITS);
+	rescaledAsymDelayCoeff=scaledDelayAsymCoeff>>(REL_DIFF_FRACBITS-fracBitsUsed);
+	delayAsym= rescaledAsymDelayCoeff*rescaledMeanDelay;
+	delayAsym+=(1<<(fracBitsUsed-1));
+	delayAsym>>=fracBitsUsed;
+	delayAsym>>=(fracBitsUsed-TIME_INTERVAL_FRACBITS);
+	return delayAsym;
 }
 
-static void l1e_update_offsetFromMaster (struct pp_instance *ppi,struct pp_time *offsetMS) {
-	SRV(ppi)->offsetFromMaster=*offsetMS;
-	DSCUR(ppi)->offsetFromMaster = pp_time_to_interval(offsetMS);
-}
+/**
+ *  PDELAY_RESPONSE/PDELAY_RESPONSE_FOLLOW_UP messages have been received: t3/t4/t5/t6 are available
+ */
 
 static int l1e_p2p_delay(struct pp_instance *ppi, struct l1e_servo_state *s)
 {
 	static int errcount;
+	int64_t  meanLinkDelay_ps;
 
 	if ( is_timestamps_incorrect(ppi,&errcount, 0x3C /* mask=t3&t4&t5&t6*/))
 		return 0;
@@ -185,6 +218,10 @@ static int l1e_p2p_delay(struct pp_instance *ppi, struct l1e_servo_state *s)
 	SRV(ppi)->update_count++;
 	ppi->t_ops->get(ppi, &s->update_time);
 
+	/*
+	 * Calculate of the round trip delay (delayMM)
+	 * delayMM = (t6-t3)-(t5-t4)
+	 */
 	{ /* avoid modifying stamps in place */
 		struct pp_time mtime, stime;
 
@@ -193,6 +230,18 @@ static int l1e_p2p_delay(struct pp_instance *ppi, struct l1e_servo_state *s)
 		s->delayMM = stime; pp_time_sub(&s->delayMM, &mtime);
 	}
 
+	s->delayMM_ps = pp_time_to_picos(&s->delayMM);
+
+	/*
+	 * Calculate the meanLinkDelay
+	 * meanLinkDelay=delayMM/2)
+	 */
+	if (s->delayMM_ps < 0) {
+		s->delayMM_ps =meanLinkDelay_ps=0;
+		picos_to_pp_time(s->delayMM_ps, &s->delayMM);
+	} else {
+		meanLinkDelay_ps=s->delayMM_ps>>1; /* meanLinkDelay=delayMM/2 */
+	}
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 1)) {
 		l1e_dump_timestamp(ppi, "servo:t1", s->t1);
@@ -204,11 +253,22 @@ static int l1e_p2p_delay(struct pp_instance *ppi, struct l1e_servo_state *s)
 		l1e_dump_timestamp(ppi, "->delayMM", s->delayMM);
 	}
 
-	s->delayMM_ps = pp_time_to_picos(&s->delayMM);
-	/* delayMS[ps] = (fix_alpha*delayMM[ps])/2e40 +delayMM[ps]/2 */
-	s->delayMS_ps =
-	    ((s->delayMM_ps * ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient) >> REL_DIFF_FRACBITS)
-	    + (s->delayMM_ps >> 1);
+	if ( ppi->asymmetryCorrectionPortDS.enable ) {
+		/* Enabled: The delay asymmetry must be calculated
+		 * delayAsymmetry=delayAsymCoefficient * meanPathDelay
+		 */
+		ppi->portDS->delayAsymmetry=calculateDelayAsymmetry(ppi->portDS->delayAsymCoeff,picos_to_interval(meanLinkDelay_ps));
+	} else {
+		/* Disabled: The delay asymmetry is provided by configuration */
+		ppi->portDS->delayAsymmetry=ppi->asymmetryCorrectionPortDS.constantAsymmetry;
+	}
+
+	/* delayMS = meanLinkDelay + delayAsym */
+	s->delayMS_ps = meanLinkDelay_ps + interval_to_picos(ppi->portDS->delayAsymmetry);
+	picos_to_pp_time(s->delayMS_ps, &SRV(ppi)->delayMS);
+
+	DSCUR(ppi)->meanDelay=picos_to_interval(meanLinkDelay_ps); /* update currentDS.meanDelay */
+	picos_to_pp_time(meanLinkDelay_ps,&SRV(ppi)->meanDelay); /* update servo.meanDelay */
 
 	return 1;
 }
@@ -226,23 +286,27 @@ static int l1e_p2p_offset(struct pp_instance *ppi,
 	SRV(ppi)->update_count++;
 	ppi->t_ops->get(ppi, &s->update_time);
 
+	/* Calculate offsetFromMaster : t1-t2+meanLinkDelay+delayAsym=t1-t2+delayMS */
 	*offsetMS = s->t1;
 	pp_time_sub(offsetMS, &s->t2);
-	pp_time_add(offsetMS, &SRV(ppi)->delayMS);
+	pp_time_add(offsetMS, &SRV(ppi)->delayMS); /* Add delayMS */
 
 	/* is it possible to calculate it in client,
 	 * but then t1 and t2 require shmem locks */
 
 	s->tracking_enabled =  l1e_tracking_enabled;
+
+	SRV(ppi)->offsetFromMaster=*offsetMS;  /* Update servo.offsetFromMaster */
+	DSCUR(ppi)->offsetFromMaster = pp_time_to_interval(offsetMS);  /* Update currentDS.offsetFromMaster */
+
 	return 1;
 }
-
-static int l1e_e2e_offset(struct pp_instance *ppi,
-		  struct l1e_servo_state *s, struct pp_time *offsetMS)
-{
+static int l1e_e2e_offset(struct pp_instance *ppi, struct l1e_servo_state *s,
+		struct pp_time *offsetMS) {
 	static int errcount;
+	int64_t  meanPathDelay_ps;
 
-	if ( is_timestamps_incorrect(ppi,&errcount, 0xF /* mask=t1&t2&t3&t4 */))
+	if (is_timestamps_incorrect(ppi, &errcount, 0xF /* mask=t1&t2&t3&t4 */))
 		return 0;
 
 	if (WRH_OPER()->servo_hook)
@@ -253,20 +317,33 @@ static int l1e_e2e_offset(struct pp_instance *ppi,
 
 	l1e_got_sync = 0;
 
-	{ /* avoid modifying stamps in place */
+	/*
+	 * Calculate of the round trip delay (delayMM)
+	 * delayMM = t4-t1-(t3-t2)
+	 */
+	{
+		/* Avoid modifying stamps in place*/
 		struct pp_time mtime, stime;
 
-		mtime = s->t4; pp_time_sub(&mtime, &s->t1);
-		stime = s->t3; pp_time_sub(&stime, &s->t2);
-		s->delayMM = mtime; pp_time_sub(&s->delayMM, &stime);
+		mtime = s->t4;
+		pp_time_sub(&mtime, &s->t1);
+		stime = s->t3;
+		pp_time_sub(&stime, &s->t2);
+		s->delayMM = mtime;
+		pp_time_sub(&s->delayMM, &stime);
 	}
 
 	s->delayMM_ps = pp_time_to_picos(&s->delayMM);
 
-	/* avoid negatives in calculations */
-	if ( s->delayMM_ps < 0 ) {
-		 s->delayMM_ps=0;
-		 picos_to_pp_time(s->delayMM_ps,&s->delayMM);
+	/*
+	 * Calculate the meanPathDelay
+	 * meanPathDelay=delayMM/2)
+	 */
+	if (s->delayMM_ps < 0) {
+		s->delayMM_ps =meanPathDelay_ps=0;
+		picos_to_pp_time(s->delayMM_ps, &s->delayMM);
+	} else {
+		meanPathDelay_ps=s->delayMM_ps>>1; /* meanPathDelay=delayMM/2 */
 	}
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 1)) {
@@ -277,24 +354,31 @@ static int l1e_e2e_offset(struct pp_instance *ppi,
 		l1e_dump_timestamp(ppi, "delayMM", s->delayMM);
 	}
 
-	/* delayMS = (delayMM * fix_alpha) + delayMM/2*/
-	s->delayMS_ps = ((s->delayMM_ps * ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient) >> REL_DIFF_FRACBITS) + (s->delayMM_ps >> 1);
-
-	{ /* offsetMS = t1-t2 + delayMS */
-		struct pp_time tmp1;
-
-		*offsetMS = s->t1; pp_time_sub(offsetMS, &s->t2);
-	    picos_to_pp_time(s->delayMS_ps,&tmp1);
-	    pp_time_add(offsetMS, &tmp1);
+	if ( ppi->asymmetryCorrectionPortDS.enable ) {
+		/* Enabled: The delay asymmetry must be calculated
+		 * delayAsymmetry=delayAsymCoefficient * meanPathDelay
+		 */
+		ppi->portDS->delayAsymmetry=calculateDelayAsymmetry(ppi->portDS->delayAsymCoeff,picos_to_interval(meanPathDelay_ps));
+	} else {
+		/* Disabled: The delay asymmetry is provided by configuration */
+		ppi->portDS->delayAsymmetry=ppi->asymmetryCorrectionPortDS.constantAsymmetry;
 	}
+	/* delayMS = meanPathDelay + delayAsym */
+	s->delayMS_ps = meanPathDelay_ps + interval_to_picos(ppi->portDS->delayAsymmetry);
+	picos_to_pp_time(s->delayMS_ps, &SRV(ppi)->delayMS);
 
-	s->tracking_enabled =  l1e_tracking_enabled;
+	/* Calculate offsetFromMaster : t1-t2+meanPathDelay+delayAsym=t1-t2+delayMS */
+	*offsetMS = s->t1;
+	pp_time_sub(offsetMS, &s->t2);
+	pp_time_add(offsetMS, &SRV(ppi)->delayMS); /* Add delayMS */
 
-	picos_to_pp_time(s->delayMS_ps,&SRV(ppi)->delayMS);
+	s->tracking_enabled = l1e_tracking_enabled;
 
-	l1e_update_meanDelay(ppi,s); /* update currentDS.meanDelay */
-	l1e_update_delayAsymmetry(ppi,s); /* update currentDS.delayAsymmetry */
+	SRV(ppi)->offsetFromMaster=*offsetMS;  /* Update servo.offsetFromMaster */
+	DSCUR(ppi)->offsetFromMaster = pp_time_to_interval(offsetMS);  /* Update currentDS.offsetFromMaster */
 
+	picos_to_pp_time(meanPathDelay_ps,&SRV(ppi)->meanDelay); /* update servo.meanDelay */
+	DSCUR(ppi)->meanDelay=picos_to_interval(meanPathDelay_ps); /* update currentDS.meanDelay */
 	return 1;
 }
 
@@ -327,7 +411,6 @@ int l1e_servo_update(struct pp_instance *ppi)
 			goto out;
 	}
 
-	l1e_update_offsetFromMaster(ppi,&offsetMS); /* Update currentDS.offsetFromMaster */
 	s->offsetMS_ps=pp_time_to_picos(&offsetMS);
 	pp_diag(ppi, servo, 2,
 			"ML: scaledDelayCoeff = %lld, delayMS = %lld, offsetMS = %lld [ps]\n",
@@ -339,7 +422,7 @@ int l1e_servo_update(struct pp_instance *ppi)
 
 	pp_time_hardwarize(&offsetMS, s->clock_period_ps,
 		      &offset_ticks, &offset_ps);
-	pp_diag(ppi, servo, 2, "offsetMS: %li.%09li (+%li)\n",
+	pp_diag(ppi, servo, 2, "offsetMS: %li sec %09li ticks (%li ps)\n",
 		(long)offsetMS.secs, (long)offset_ticks,
 		(long)offset_ps);
 

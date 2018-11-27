@@ -35,7 +35,7 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 	 * way as the HAL itself was doing to fill the RPC structure.
 	 * Formulas copied from libwr/hal_shmem.c (get_exported_state).
 	 */
-	port_fix_alpha =  (double)pow(2.0, 40.0) *
+	port_fix_alpha =  FIX_ALPHA_TWO_POW_FRACBITS *
 		((p->calib.sfp.alpha + 1.0) / (p->calib.sfp.alpha + 2.0)
 		 - 0.5);
 
@@ -70,8 +70,8 @@ int wrs_read_correction_data(struct pp_instance *ppi, int64_t *fiber_fix_alpha,
 	wrs_read_calibration_data(ppi, NULL, NULL,NULL, &port_cP, bit_slide_ps);
 
 	if(fiber_fix_alpha) {
-		alpha  = ((double) ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient)/(double)pow(2.0, REL_DIFF_FRACBITS_AS_FLOAT);
-		*fiber_fix_alpha = (double)pow(2.0, FIX_ALPHA_FRACBITS_AS_FLOAT) * ((alpha + 1.0) / (alpha + 2.0) - 0.5);
+		alpha  = ((double) ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient)/REL_DIFF_TWO_POW_FRACBITS;
+		*fiber_fix_alpha = FIX_ALPHA_TWO_POW_FRACBITS * ((alpha + 1.0) / (alpha + 2.0) - 0.5);
 	}
 	if(clock_period_ps)
 		*clock_period_ps     =  port_cP; /* REF_CLOCK_PERIOD_PS */

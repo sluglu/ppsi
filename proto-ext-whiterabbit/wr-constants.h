@@ -20,6 +20,8 @@
 #define WR_TLV_TYPE			0x2004
 
 #define FIX_ALPHA_FRACBITS 40
+#define FIX_ALPHA_FRACBITS_AS_FLOAT 40.0
+#define FIX_ALPHA_TWO_POW_FRACBITS  ((double)1.099511627776E12) /* double value returned by pow(2.0,40.0) */
 
 #define WR_DEFAULT_CAL_PERIOD		3000	/* [us] */
 

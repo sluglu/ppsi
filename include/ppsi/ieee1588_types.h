@@ -145,7 +145,7 @@ typedef struct MsgHeader {
 
 /* Announce Message (table 25, page 129) */
 typedef struct MsgAnnounce {
-	Timestamp	originTimestamp;
+	struct pp_time	originTimestamp;
 	Integer16	currentUtcOffset;
 	UInteger8	grandmasterPriority1;
 	ClockQuality	grandmasterClockQuality;

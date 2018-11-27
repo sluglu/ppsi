@@ -303,6 +303,10 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	struct pp_channel *ch1, *ch2;
 	struct ethhdr *hdr = pkt;
 	int ret = -1;
+	char prefix[32];
+
+	if (pp_diag_allow(ppi, frames, 2) || pp_diag_allow(ppi, time, 1) )
+		sprintf(prefix,"recv-%s: ",(ppi ? ppi->port_name: "ppsi"));
 
 	switch(ppi->proto) {
 	case PPSI_PROTO_RAW:
@@ -315,8 +319,8 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		memcpy(ppi->peer, hdr->h_source, ETH_ALEN);
 		if (pp_diag_allow(ppi, frames, 2)) {
 			if (ppi->proto == PPSI_PROTO_VLAN)
-				pp_printf("recv: VLAN %i\n", ppi->peer_vid);
-			dump_1588pkt("recv: ", pkt, ret, t, -1);
+				pp_printf("%sVLAN %i\n",prefix, ppi->peer_vid);
+			dump_1588pkt(prefix, pkt, ret, t, -1);
 		}
 		break;
 
@@ -332,7 +336,7 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		if (ret < 0)
 			break;
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_payloadpkt("recv: ", pkt, ret, t);
+			dump_payloadpkt(prefix, pkt, ret, t);
 		break;
 
 	default:
@@ -341,7 +345,7 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 	if (ret < 0)
 		return ret;
-	pp_diag(ppi, time, 1, "recv stamp: %s\n", fmt_time(t));
+	pp_diag(ppi, time, 1, "%sstamp: %s\n", prefix, fmt_time(t));
 	return ret;
 }
 
@@ -471,6 +475,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 	};
 	struct wrs_socket *s;
 	int ret, fd, drop;
+	char prefix[32];
 
 	s = (struct wrs_socket *)ppi->ch[PP_NP_GEN].arch_data;
 
@@ -480,6 +485,8 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 	 * hardware stamp. Thus, remember if we drop, and use this info.
 	 */
 	drop = ppsi_drop_tx();
+	if (pp_diag_allow(ppi, frames, 2))
+		sprintf(prefix,"send-%s: ",(ppi ? ppi->port_name: "ppsi"));
 
 	switch (ppi->proto) {
 	case PPSI_PROTO_RAW:
@@ -507,7 +514,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", pkt, len, t, -1);
+			dump_1588pkt(prefix, pkt, len, t, -1);
 		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 
@@ -540,7 +547,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", pkt, len, t, ppi->peer_vid);
+			dump_1588pkt(prefix, pkt, len, t, ppi->peer_vid);
 		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 
@@ -564,7 +571,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_payloadpkt("send: ", pkt, len, t);
+			dump_payloadpkt(prefix, pkt, len, t);
 		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 

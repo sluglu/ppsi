@@ -91,14 +91,14 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 	UInteger16 tlv_wrMessageID;
 
 	tlv_type = (UInteger16)get_be16(buf+64);
-	tlv_organizationID = htons(*(UInteger16 *)(buf+68)) << 8;
-	tlv_organizationID = htons(*(UInteger16 *)(buf+70)) >> 8
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf+68)) << 8;
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf+70)) >> 8
 		| tlv_organizationID;
-	tlv_magicNumber = 0xFF00 & (htons(*(UInteger16 *)(buf+70)) << 8);
-	tlv_magicNumber = htons(*(UInteger16 *)(buf+72)) >> 8
+	tlv_magicNumber = 0xFF00 & (ntohs(*(UInteger16 *)(buf+70)) << 8);
+	tlv_magicNumber = ntohs(*(UInteger16 *)(buf+72)) >> 8
 		| tlv_magicNumber;
-	tlv_versionNumber = 0xFF & htons(*(UInteger16 *)(buf+72));
-	tlv_wrMessageID = htons(*(UInteger16 *)(buf+74));
+	tlv_versionNumber = 0xFF & ntohs(*(UInteger16 *)(buf+72));
+	tlv_wrMessageID = ntohs(*(UInteger16 *)(buf+74));
 
 	if (tlv_type == TLV_TYPE_ORG_EXTENSION &&
 		tlv_organizationID == WR_TLV_ORGANIZATION_ID &&
@@ -220,13 +220,13 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	wrsig_msg->targetPortIdentity.portNumber = (UInteger16)get_be16(buf+42);
 
 	tlv_type           = (UInteger16)get_be16(buf + 44);
-	tlv_organizationID = htons(*(UInteger16 *)(buf + 48)) << 8;
-	tlv_organizationID = htons(*(UInteger16 *)(buf + 50)) >> 8
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf + 48)) << 8;
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf + 50)) >> 8
 				| tlv_organizationID;
-	tlv_magicNumber = 0xFF00 & (htons(*(UInteger16 *)(buf + 50)) << 8);
-	tlv_magicNumber = htons(*(UInteger16 *)(buf + 52)) >>  8
+	tlv_magicNumber = 0xFF00 & (ntohs(*(UInteger16 *)(buf + 50)) << 8);
+	tlv_magicNumber = ntohs(*(UInteger16 *)(buf + 52)) >>  8
 				| tlv_magicNumber;
-	tlv_versionNumber = 0xFF & htons(*(UInteger16 *)(buf + 52));
+	tlv_versionNumber = 0xFF & ntohs(*(UInteger16 *)(buf + 52));
 
 	if (tlv_type != TLV_TYPE_ORG_EXTENSION) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, This is not "
@@ -252,7 +252,7 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		return;
 	}
 
-	wr_msg_id = htons(*(UInteger16 *)(buf + 54));
+	wr_msg_id = ntohs(*(UInteger16 *)(buf + 54));
 
 	if (pwr_msg_id) {
 		*pwr_msg_id = wr_msg_id;

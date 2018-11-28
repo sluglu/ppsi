@@ -84,7 +84,18 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	memcpy(&def->clockQuality, &rt_opts->clock_quality,
 		   sizeof(ClockQuality));
 
-	if ( (def->slaveOnly=rt_opts->slaveOnly)==TRUE ) {
+	/* Clause 17.6.5.3 : Clause 9.2.2 shall not be in effect. If implemented, defaultDS.slaveOnly should be FALSE, and
+	 * portDS.masterOnly should be FALSE on all PTP Ports of the PTP Instance.
+	 */
+	def->externalPortConfigurationEnabled=pp_rt_opts->externalPortConfigurationEnabled;
+	def->slaveOnly=rt_opts->slaveOnly;
+	if ( def->slaveOnly && def->externalPortConfigurationEnabled ) {
+		pp_printf("ppsi: Incompatible configuration: SlaveOnly  and externalPortConfigurationEnabled\n");
+		def->slaveOnly=FALSE;
+	}
+
+
+	if ( def->slaveOnly ) {
 		if ( def->numberPorts > 1 ) {
 			/* Check if slaveOnly is allowed
 			 * Only one ppsi instance must exist however n instances on the same physical port
@@ -127,16 +138,6 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 		ppi->frgn_rec_best = -1;
 	}
 
-	/* Clause 17.6.2 : On an Ordinary Clock that is slaveOnly by configuration or by-design, an attempt
-	 * to set the defaultDS.externalPortConfigurationEnabled to TRUE should result in a management error,
-	 * and the value of defaultDS.externalPortConfigurationEnabled shall remain FALSE
-	 */
-	def->externalPortConfigurationEnabled=pp_rt_opts->externalPortConfigurationEnabled;
-	if ( def->slaveOnly && def->externalPortConfigurationEnabled ) {
-		pp_printf("ppsi: Incompatible configuration: SlaveOnly  and externalPortConfigurationEnabled\n");
-		def->externalPortConfigurationEnabled=FALSE;
-	}
-
 	if ( ppg->defaultDS->externalPortConfigurationEnabled  ) {
 		for (i = 0; i < def->numberPorts; i++) {
 			struct pp_instance *ppi = INST(ppg, i);
@@ -145,7 +146,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			if ( ppi->portDS->masterOnly ) {
 				/* priority given to externalPortConfigurationEnabled */
 				ppi->portDS->masterOnly=FALSE;
-				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. externalPortConfigurationEnabled set to FALSE\n");
+				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. materOnly set to FALSE\n");
 			}
 			ppi->externalPortConfigurationPortDS.desiredState =ppi->cfg.desiredState ;
 		}

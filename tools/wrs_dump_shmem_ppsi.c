@@ -154,6 +154,18 @@ struct dump_info l1e_ext_portDS_info [] = {
 	DUMP_FIELD(Timestamp,opt_params.frequencyOffsetTxTimesatmp),
 };
 
+
+#undef DUMP_STRUCT
+#define DUMP_STRUCT l1e_ext_portDS_t
+l1e_ext_portDS_t l1eLocalPortDS= { /* Local structure used only to print that L1Sync is disabled */
+		.basic.L1SyncEnabled=0,
+		.basic.L1SyncState=L1SYNC_DISABLED
+};
+struct dump_info l1e_local_portDS_info [] = {
+		DUMP_FIELD(Boolean,  basic.L1SyncEnabled),
+		DUMP_FIELD(Enumeration8,  basic.L1SyncState),
+};
+
 #endif
 
 #if CONFIG_EXT_WR == 1
@@ -306,6 +318,7 @@ struct dump_info wr_dsport_info [] = {
 	DUMP_FIELD(scaledPicoseconds, otherNodeDeltaRx),
 };
 
+
 int dump_ppsi_mem(struct wrs_shm_head *head)
 {
 	struct pp_globals *ppg;
@@ -377,12 +390,13 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 		sprintf(prefix,"ppsi.inst.%d.info",i);
 		dump_many_fields(ppi, ppi_info, ARRAY_SIZE(ppi_info),prefix);
 #if CONFIG_EXT_L1SYNC == 1
+		sprintf(prefix,"ppsi.inst.%d.l1sync_portDS",i);
 		if ( ppi->protocol_extension == PPSI_EXT_L1S) {
 			portDS_t *portDS=wrs_shm_follow(head, ppi->portDS);
 			l1e_ext_portDS_t *data=wrs_shm_follow(head, portDS->ext_dsport);
-			sprintf(prefix,"ppsi.inst.%d.l1sync_portDS",i);
 			dump_many_fields(data, l1e_ext_portDS_info, ARRAY_SIZE(l1e_ext_portDS_info),prefix);
-
+		} else  {
+			dump_many_fields(&l1eLocalPortDS, l1e_local_portDS_info, ARRAY_SIZE(l1e_local_portDS_info),prefix);
 		}
 #endif
 	}

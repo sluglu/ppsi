@@ -51,6 +51,7 @@ struct pp_instance_cfg __pp_default_instance_cfg = {
 		.egressLatency_ps=0,
 		.ingressLatency_ps=0,
 		.constantAsymmetry_ps=0,
+		.scaledDelayCoefficient=0,
 		.delayCoefficient=0,
 		.desiredState=PPS_PASSIVE, /* Clause 17.3.6.2 ; The default value should be PASSIVE unless otherwise specified */
 		.masterOnly=FALSE

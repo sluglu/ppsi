@@ -103,7 +103,9 @@ static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable )
 	if ( (ppi->asymmetryCorrectionPortDS.enable=enable)==TRUE ) {
 		/* Enabled: The delay asymmetry will be calculated */
 		ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
-				(RelativeDifference)(ppi->cfg.delayCoefficient * REL_DIFF_TWO_POW_FRACBITS);
+				ppi->cfg.scaledDelayCoefficient != 0 ?
+						ppi->cfg.scaledDelayCoefficient :
+						(RelativeDifference)(ppi->cfg.delayCoefficient * REL_DIFF_TWO_POW_FRACBITS);
 		ppi->portDS->delayAsymCoeff=(RelativeDifference)(calculateDelayAsymCoefficient(ppi->cfg.delayCoefficient) * REL_DIFF_TWO_POW_FRACBITS);
 	} else {
 		/* Disabled: The delay asymmetry will be provided by the config (constantAsymmetry) */

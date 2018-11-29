@@ -76,6 +76,8 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 #define REL_DIFF_TWO_POW_FRACBITS  ((double)4.611686018427388E18) /* double value returned by pow(2.0,62.0) */
 
 /* Min/max values for  RelativeDifference type */
+#define RELATIVE_DIFFERENCE_MIN_VALUE  INT64_MIN
+#define RELATIVE_DIFFERENCE_MAX_VALUE  INT64_MAX
 #define RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE -2.0
 #define RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE 1.9999999999999989
 

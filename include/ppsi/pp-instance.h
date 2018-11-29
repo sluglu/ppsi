@@ -150,11 +150,13 @@ struct pp_instance_cfg {
 	Boolean l1SyncOptParamsEnabled; /* L1SYNC: Optional parameters enabled */
 	int l1syncInterval; /* L1SYNC: l1sync messages interval */
 	int l1syncReceiptTimeout; /* L1SYNC: l1sync messages receipt timeout */
+	Boolean  l1SyncOptParamsTimestampsCorrectedTx; /* L1SYNC: correction of the transmitted egress timestamps */
 #endif
 	int64_t egressLatency_ps; /* egressLatency in picos */
 	int64_t ingressLatency_ps; /* ingressLatency in picos */
 	int64_t constantAsymmetry_ps; /* constantAsymmetry in picos */
 	double delayCoefficient; /* fiber delay coefficient as a double */
+	int64_t scaledDelayCoefficient; /* fiber delay coefficient as RelativeDifference type */
 	int desiredState; /* externalPortConfigurationPortDS.desiredState */
 	Boolean masterOnly; /* masterOnly */
 	Boolean asymmetryCorrectionEnable; /* asymmetryCorrectionPortDS.enable */

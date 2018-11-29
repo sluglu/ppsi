@@ -323,6 +323,9 @@ int main(int argc, char **argv)
 					L1E_DSPOR_BS(ppi)->txCoherentIsRequired =ppi->cfg.l1SyncTxCoherencyIsRequired;
 					L1E_DSPOR_BS(ppi)->congruentIsRequired =ppi->cfg.l1SyncCongruencyIsRequired;
 					L1E_DSPOR_BS(ppi)->optParamsEnabled=ppi->cfg.l1SyncOptParamsEnabled;
+					if ( L1E_DSPOR_BS(ppi)->optParamsEnabled ) {
+						L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=ppi->cfg.l1SyncOptParamsTimestampsCorrectedTx;
+					}
 				}
 #endif
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);

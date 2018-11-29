@@ -44,6 +44,7 @@ struct pp_instance_cfg __pp_default_instance_cfg = {
 		.l1SyncTxCoherencyIsRequired=FALSE,
 		.l1SyncCongruencyIsRequired=FALSE,
 		.l1SyncOptParamsEnabled=FALSE,
+		.l1SyncOptParamsTimestampsCorrectedTx=FALSE,
 		.l1syncInterval=L1E_DEFAULT_L1SYNC_INTERVAL,
 		.l1syncReceiptTimeout=L1E_DEFAULT_L1SYNC_RECEIPT_TIMEOUT,
 #endif

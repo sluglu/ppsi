@@ -331,6 +331,7 @@ static struct pp_argline pp_global_arglines[] = {
     INST_OPTION_BOOL("l1SyncTxCoherencyIsRequired", cfg.l1SyncTxCoherencyIsRequired),
     INST_OPTION_BOOL("l1SyncCongruencyIsRequired", cfg.l1SyncCongruencyIsRequired),
     INST_OPTION_BOOL("l1SyncOptParamsEnabled", cfg.l1SyncOptParamsEnabled),
+    INST_OPTION_BOOL("l1SyncTimestampsCorrectedTxEnabled", cfg.l1SyncOptParamsTimestampsCorrectedTx),
 #endif
 
 	INST_OPTION_BOOL("asymmetryCorrectionEnable", cfg.asymmetryCorrectionEnable),

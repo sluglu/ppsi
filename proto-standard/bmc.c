@@ -341,7 +341,7 @@ int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b)
 int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b)
 {
 	int ret;
-	
+
 	ret = bmc_idcmp(&a->clockIdentity, &b->clockIdentity);
 	if (ret != 0)
 		return ret;
@@ -349,37 +349,44 @@ int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b)
 	return a->portNumber - b->portNumber;
 }
 
+/* Check if the foreign master is the ebest */
+
+static int is_ebest(struct pp_globals *ppg, struct pp_frgn_master *foreignMaster) {
+	if ( ppg->ebest_idx!=-1 ) {
+		/* ebest exists */
+		struct pp_instance *ppi_best = INST(ppg, ppg->ebest_idx);
+		if ( ppi_best->frgn_rec_best!=-1 ) {
+			/* Should be always true */
+			struct pp_frgn_master *erbest=&ppi_best->frgn_master[ppi_best->frgn_rec_best];
+
+			if ( (erbest==foreignMaster) ||  bmc_pidcmp(&foreignMaster->sourcePortIdentity,&erbest->sourcePortIdentity)==0)
+				return 1; /* This is the ebest */
+		}
+	}
+	return 0;
+}
+
+static int is_qualified(struct pp_instance *ppi, struct pp_frgn_master *foreignMaster) {
+	int i;
+	int qualified=0;
+	UInteger16 *annMsgs = foreignMaster->foreignMasterAnnounceMessages;
+
+	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
+		qualified += annMsgs[i];
+	qualified=qualified >= PP_FOREIGN_MASTER_THRESHOLD;
+
+	if ( !qualified )
+		qualified=is_ebest(GLBS(ppi),foreignMaster);
+
+	return qualified;
+}
+
 static int are_qualified(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b, int *ret) {
-	UInteger16 *ca = a->foreignMasterAnnounceMessages;
-	UInteger16 *cb = b->foreignMasterAnnounceMessages;
-	int a_is_qualified = 0;
-	int b_is_qualified = 0;
-	int i;
+	int a_is_qualified = is_qualified(ppi,a);
+	int b_is_qualified = is_qualified(ppi,b);
 
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
-		a_is_qualified += ca[i];
-		b_is_qualified += cb[i];
-	}
-	a_is_qualified=a_is_qualified >= PP_FOREIGN_MASTER_THRESHOLD;
-	b_is_qualified=b_is_qualified >= PP_FOREIGN_MASTER_THRESHOLD;
-
-
-	if ( ppi->frgn_rec_best!=-1 ) {
-		PortIdentity *erBestPortIdentity=&(ppi->frgn_master[ppi->frgn_rec_best].sourcePortIdentity);
-
-		/* Do not check qualification on erBest */
-		if ( !a_is_qualified  && bmc_pidcmp(&a->sourcePortIdentity,erBestPortIdentity)==0 ) {
-			/* a is erbest and not qualified */
-			a_is_qualified=1; /* Say it is qualified */
-		} else {
-			if ( !b_is_qualified && bmc_pidcmp(&b->sourcePortIdentity,erBestPortIdentity)==0 ) {
-				/* b is erbest */
-				b_is_qualified=1; /* Say it is qualified */
-			}
-		}
-	}
 
 	/* if B is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b)*/
 	if ( a_is_qualified && !b_is_qualified ) {
@@ -576,13 +583,15 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 /* State decision algorithm 9.3.3 Fig 26 */
 static int bmc_state_decision(struct pp_instance *ppi)
 {
+	static struct pp_frgn_master empty_frn_master;
 	int cmpres;
 	struct pp_frgn_master d0;
 	parentDS_t *parent = DSPAR(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
 	struct pp_instance *ppi_best;
-	struct pp_frgn_master *erbest = ppi->frgn_rec_best!=-1 ? &ppi->frgn_master[ppi->frgn_rec_best] : NULL;
-	struct pp_frgn_master *ebest;
+	int erbestValid=ppi->frgn_rec_best!=-1;
+	struct pp_frgn_master *erbest = erbestValid ? &ppi->frgn_master[ppi->frgn_rec_best] : &empty_frn_master;
+	struct pp_frgn_master *ebest=&empty_frn_master;;
 
 	/* bmc_state_decision is called several times, so report only at
 	 * level 2 */
@@ -595,7 +604,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 
 		/* Update the data set for a PTP port in SLAVE or UNCALIBRATED states: Table 137 */
 		if ( (dstate==PPS_SLAVE || dstate==PPS_UNCALIBRATED ) &&
-				(ppi->port_idx == ppg->ebest_idx) && erbest) {
+				(ppi->port_idx == ppg->ebest_idx) && erbestValid) {
 					/* if on this configured port is ebest it will be taken as parent */
 			bmc_s1(ppi, erbest);
 		} else {
@@ -605,7 +614,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	}
 
 	if (DSDEF(ppi)->slaveOnly) {
-		if ( !erbest )
+		if ( !erbestValid )
     			return PPS_LISTENING; /* No foreign master */
 		/* if this is the slave port of the whole system then go to slave otherwise stay in listening*/
 		if (ppi->port_idx == ppg->ebest_idx) {
@@ -618,8 +627,8 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	}
 
 
-	if ( !erbest && (ppi->state == PPS_LISTENING))
-		return PPS_LISTENING; /* No foreign master && LISTENING state*/
+	if ( !erbestValid && (ppi->state == PPS_LISTENING))
+		return PPS_LISTENING; /* (E best is the empty set) AND (PTP Port state is LISTENING)*/
 
 	/* copy local information to a foreign_master structure */
 	bmc_setup_local_frgn_master(ppi, &d0);
@@ -811,11 +820,12 @@ slave_s1:
 		return PPS_UNCALIBRATED;
 	} else {
 		/* if the master changed we go to uncalibrated*/
+		/* At this point we are in state SLAVE or UNCALIBRATED */
 		if (cmpres) {
 			pp_diag(ppi, bmc, 1,
-				"new master, change to uncalibrated\n");
+				"new foreign master, change to uncalibrated\n");
 			/* 9.2.6.11 c) reset ANNOUNCE RECEIPT timeout when entering*/
-			if (ppi->state != PPS_UNCALIBRATED)
+			if (ppi->state != PPS_UNCALIBRATED )
 				pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 			return PPS_UNCALIBRATED;
 		} else {
@@ -1114,22 +1124,22 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 #endif
 	{
 		/* get qualification */
-		qualified = 0;
-		for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
-			qualified += ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
+		if ( !(qualified=is_ebest(GLBS(ppi),&ppi->frgn_master[i])) ) {
+			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
+				qualified += ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
+		}
 
 		/* shift qualification */
 		for (j = 1; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
 			ppi->frgn_master[i].foreignMasterAnnounceMessages[
-				      (PP_FOREIGN_MASTER_TIME_WINDOW - j)] =
+					  (PP_FOREIGN_MASTER_TIME_WINDOW - j)] =
 				ppi->frgn_master[i].foreignMasterAnnounceMessages[
-				      (PP_FOREIGN_MASTER_TIME_WINDOW - j - 1)];
-
+					  (PP_FOREIGN_MASTER_TIME_WINDOW - j - 1)];
 		/* clear lowest */
 		ppi->frgn_master[i].foreignMasterAnnounceMessages[0] = 0;
 
-		/* remove aged out and shift foreign masters but not for erBest */
-		if ((qualified == 0) && (i!=ppi->frgn_rec_best) ) {
+		/* remove aged out */
+		if ( !qualified ) {
 			pp_diag(ppi, bmc, 1, "Aged out foreign master %i/%i\n",
 					i, ppi->frgn_rec_num);
 			bmc_remove_foreign_master(ppi,i);
@@ -1253,13 +1263,14 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 }
 
 /* Find Erbest, 9.3.2.2 */
-static void bmc_update_erbest(struct pp_globals *ppg)
+static void bmc_update_erbest(struct pp_instance *ppi)
 {
 	int i;
+	struct pp_globals *ppg=GLBS(ppi);
 
 	/* bmc_update_erbest is called several times, so report only at
 	 * level 2 */
-	pp_diag(INST(ppg, 0), bmc, 2, "%s\n", __func__);
+	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
 	i=0;
 #if CODEOPT_ONE_PORT()==0
@@ -1271,10 +1282,11 @@ static void bmc_update_erbest(struct pp_globals *ppg)
 }
 
 /* Find Ebest, 9.3.2.2 */
-static void bmc_update_ebest(struct pp_globals *ppg)
+static void bmc_update_ebest(struct pp_instance *ppi)
 {
-	int i, best=0;
-	struct pp_instance *ppi, *ppi_best;
+	int i, best=-1;
+	struct pp_globals *ppg=GLBS(ppi);
+	struct pp_instance *tppi, *ppi_best;
 	PortIdentity *frgn_master_pid;
 
 	/* bmc_update_ebest is called several times, so report only at
@@ -1283,26 +1295,30 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 
 	if ( !CODEOPT_ONE_PORT()) {
 		/* Code optimization if just one port is declared */
-		for (i = 1; i < ppg->defaultDS->numberPorts; i++) {
+		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+			tppi = INST(ppg, i);
 
-			ppi_best = INST(ppg, best);
-			ppi = INST(ppg, i);
+			if ( best==-1 && (tppi->frgn_rec_best!=-1) ) {
+				/* Best not set yet but first erbest found */
+				best=i;
+			} else {
+				ppi_best = INST(ppg, best);
 
-			if ((ppi->frgn_rec_best!=-1) &&
-				((bmc_dataset_cmp(ppi,
-				  &ppi->frgn_master[ppi->frgn_rec_best],
-				  &ppi_best->frgn_master[ppi_best->frgn_rec_best]
-				) < 0) || (ppi_best->frgn_rec_num == 0)))
+				if ((tppi->frgn_rec_best!=-1) &&
+					((bmc_dataset_cmp(tppi,
+					  &tppi->frgn_master[tppi->frgn_rec_best],
+					  &ppi_best->frgn_master[ppi_best->frgn_rec_best]
+					) < 0) || (ppi_best->frgn_rec_num == 0)))
 
-					best = i;
+						best = i;
+				}
 		}
 	}
 	/* check if best master is qualified */
-	ppi_best = INST(ppg, best);
-	if (ppi_best->frgn_rec_num == 0) {
-		pp_diag(ppi_best, bmc, 2, "No Ebest at port %i\n", (best+1));
-		best = -1;
+	if (best==-1) {
+		pp_diag(ppi, bmc, 2, "No Ebest\n");
 	} else {
+		ppi_best = INST(ppg, best);
 		pp_diag(ppi_best, bmc, 1, "Best foreign master is at port "
 			"%i\n", (best+1));
 		frgn_master_pid = &ppi_best->frgn_master[ppi_best->frgn_rec_best].sourcePortIdentity;
@@ -1314,11 +1330,10 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 			frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
 			frgn_master_pid->portNumber);
 	}
-
 	if (ppg->ebest_idx != best) {
-		ppg->ebest_idx = best;
 		ppg->ebest_updated = 1;
 	}
+	ppg->ebest_idx=best;
 }
 
 static void bmc_update_clock_quality(struct pp_instance *ppi)
@@ -1464,7 +1479,7 @@ int bmc(struct pp_instance *ppi)
 	}
 
 	/* Calculate Erbest of all ports Figure 25 */
-	bmc_update_erbest(ppg);
+	bmc_update_erbest(ppi);
 
 	if ( !CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
 	    /* Code optimization if only one port declared */
@@ -1472,7 +1487,10 @@ int bmc(struct pp_instance *ppi)
 	}
 
 	/* Calulate Ebest Figure 25 */
-	bmc_update_ebest(ppg);
+	/* TODO: ebest should be calculated only once after the calculation of the erbest on all ports
+	 *       See Figure 25 ��� STATE_DECISION_EVENT logic
+	 */
+	bmc_update_ebest(ppi);
 
 	/* Clause 17.6.5.3: The state machines of Figure 30 or Figure 31 shall not be used */
 	if ( DSDEF(ppi)->externalPortConfigurationEnabled) {

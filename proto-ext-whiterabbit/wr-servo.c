@@ -1,6 +1,7 @@
 #include <ppsi/ppsi.h>
 #include <ppsi/assert.h>
 #include <libwr/shmem.h>
+#include "../proto-standard/common-fun.h"
 
 /* prototypes */
 static int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s);
@@ -183,12 +184,13 @@ int wr_servo_got_delay(struct pp_instance *ppi)
 }
 
 /* update currentDS.meanDelay */
-static void update_meanDelay(struct pp_instance *ppi,struct wr_servo_state *s) {
+static void calculate_update_meanDelay(struct pp_instance *ppi,struct wr_servo_state *s) {
 	struct pp_time mtime;
+
 	mtime=s->delayMM;
 	pp_time_div2(&mtime);
-	DSCUR(ppi)->meanDelay=pp_time_to_interval(&mtime);
 
+	update_meanDelay(ppi,pp_time_to_interval(&mtime));
 }
 
 /* update currentDS.delayAsymmetry */
@@ -240,7 +242,7 @@ static int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
 	    + s->delta_txm_ps + s->delta_rxs_ps;
 	picos_to_pp_time(s->delayMS_ps,&SRV(ppi)->delayMS);
 
-	update_meanDelay(ppi,s); /* update currentDS.meanDelay */
+	calculate_update_meanDelay(ppi,s); /* calculate and update currentDS.meanDelay & portDS.meanLinkDelay*/
 	update_delayAsymmetry(ppi,s); /* update currentDS.delayAsymmetry */
 
 	return 1;
@@ -343,7 +345,7 @@ static int wr_e2e_offset(struct pp_instance *ppi,
 	picos_to_pp_time(s->delayMS_ps,&SRV(ppi)->delayMS);
 
 	update_offsetFromMaster(ppi,offset); /* Update currentDS.offsetFromMaster */
-	update_meanDelay(ppi,s); /* update currentDS.meanDelay */
+	calculate_update_meanDelay(ppi,s); /* calculate and update currentDS.meanDelay & portDS.meanLinkDelay*/
 	update_delayAsymmetry(ppi,s); /* update currentDS.delayAsymmetry */
 
 	return 1;

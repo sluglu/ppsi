@@ -209,6 +209,7 @@ struct dump_info portDS_info [] = {
 	DUMP_FIELD(Integer8, logSyncInterval),
 	DUMP_FIELD(pointer, ext_dsport),
 	DUMP_FIELD(Integer8, logMinPdelayReqInterval),
+	DUMP_FIELD(TimeInterval, meanLinkDelay),
 	DUMP_FIELD(UInteger4, versionNumber),
 	DUMP_FIELD(UInteger4, minorVersionNumber),
 	DUMP_FIELD(TimeInterval, delayAsymmetry),

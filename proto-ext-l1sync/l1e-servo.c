@@ -8,6 +8,7 @@
 #include <ppsi/ppsi.h>
 #include "l1e-constants.h"
 #include <libwr/shmem.h>
+#include "../proto-standard/common-fun.h"
 
 static const char *l1e_servo_state_name[] = {
 	[L1E_UNINITIALIZED] = "Uninitialized",
@@ -267,7 +268,7 @@ static int l1e_p2p_delay(struct pp_instance *ppi, struct l1e_servo_state *s)
 	s->delayMS_ps = meanLinkDelay_ps + interval_to_picos(ppi->portDS->delayAsymmetry);
 	picos_to_pp_time(s->delayMS_ps, &SRV(ppi)->delayMS);
 
-	DSCUR(ppi)->meanDelay=picos_to_interval(meanLinkDelay_ps); /* update currentDS.meanDelay */
+	update_meanDelay(ppi,picos_to_interval(meanLinkDelay_ps)); /* update currentDS.meanDelay and portDS.meanLinkDelay (idf needed) */
 	picos_to_pp_time(meanLinkDelay_ps,&SRV(ppi)->meanDelay); /* update servo.meanDelay */
 
 	return 1;
@@ -378,7 +379,7 @@ static int l1e_e2e_offset(struct pp_instance *ppi, struct l1e_servo_state *s,
 	DSCUR(ppi)->offsetFromMaster = pp_time_to_interval(offsetMS);  /* Update currentDS.offsetFromMaster */
 
 	picos_to_pp_time(meanPathDelay_ps,&SRV(ppi)->meanDelay); /* update servo.meanDelay */
-	DSCUR(ppi)->meanDelay=picos_to_interval(meanPathDelay_ps); /* update currentDS.meanDelay */
+	update_meanDelay(ppi,picos_to_interval(meanPathDelay_ps)); /* update currentDS.meanDelay and portDS.meanLinkDelay (idf needed) */
 	return 1;
 }
 

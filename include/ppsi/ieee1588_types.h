@@ -279,6 +279,7 @@ typedef struct  {			/* page 72 */
 	Integer8	       logMinPdelayReqInterval;      /*draft P1588_v_29: page 124 */
 	UInteger4	       minorVersionNumber;           /*draft P1588_v_29: page 124 */
 	TimeInterval       delayAsymmetry;               /*draft P1588_v_29: page 124 */
+	TimeInterval       meanLinkDelay;                /* P2P: estimation of the current one-way propagation delay */
 	/** Optional: */
 	Boolean		       portEnable;                   /*draft P1588_v_29: page 124 */
 	Boolean		       masterOnly;                   /*draft P1588_v_29: page 124 */

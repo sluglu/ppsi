@@ -157,4 +157,18 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 	return 0;
 }
 
+/* Update currentDS.meanDelay and portDS.meanLinkDelay
+ * This function overwrite the one declared if the P2P mechanism is not compiled
+ */
+void update_meanDelay(struct pp_instance *ppi, TimeInterval meanDelay) {
+	/* clause 11.4.2.d.f : the <meanLinkDelay> shall be stored ... for the P2P port in the PTP SLAVE state in currentDS.meanDelay.*/
+	if ( ppi->delayMechanism==P2P ) {
+		DSPOR(ppi)->meanLinkDelay=meanDelay;
+		if ( ppi->state != PPS_SLAVE )
+			return;
+	}
+	DSCUR(ppi)->meanDelay=meanDelay;
+}
+
+
 #endif

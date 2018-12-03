@@ -18,6 +18,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf, int len);
 int st_com_peer_handle_pres_followup(struct pp_instance *ppi, void *buf, int len);
 int st_com_handle_announce(struct pp_instance *ppi, void *buf,  int len);
 int st_com_handle_signaling(struct pp_instance *ppi, void *buf, int len);
+void update_meanDelay(struct pp_instance *ppi, TimeInterval meanDelay);
 
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_format msg_fmt);
 

@@ -166,3 +166,12 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_f
 
 	return 0;
 }
+
+/* Update currentDS.meanDelay
+ * This function can be redeclared if P2P mechanism is compiled
+ */
+void __attribute__((weak)) update_meanDelay(struct pp_instance *ppi, TimeInterval meanDelay) {
+	DSCUR(ppi)->meanDelay=meanDelay;
+}
+
+

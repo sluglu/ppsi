@@ -7,6 +7,7 @@
  */
 
 #include <ppsi/ppsi.h>
+#include "../proto-standard/common-fun.h"
 
 #ifdef CONFIG_ARCH_WRS
 
@@ -180,7 +181,7 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	*mpd = SRV(ppi)->delayMS;
 	pp_time_add(mpd, &SRV(ppi)->delaySM);
 	pp_time_div2(mpd);
-	DSCUR(ppi)->meanDelay=pp_time_to_interval (mpd); /* Update currentDS */
+	update_meanDelay(ppi,pp_time_to_interval(mpd)); /* update currentDS.meanDelay and portDS.meanLinkDelay (idf needed) */
 	pp_diag(ppi, servo, 1, "meanDelay: %s\n", fmt_ppt(mpd));
 
 	if (mpd->secs) {/* Hmm.... we called this "bad event" */
@@ -249,7 +250,7 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	*mpd = SRV(ppi)->delayMS;
 	pp_time_add(mpd, &SRV(ppi)->delaySM);
 	pp_time_div2(mpd);
-	DSCUR(ppi)->meanDelay=pp_time_to_interval(mpd); /* Update currentDS */
+	update_meanDelay(ppi,pp_time_to_interval(mpd)); /* update currentDS.meanDelay and portDS.meanLinkDelay (idf needed) */
 	pp_diag(ppi, servo, 1, "meanDelay: %s\n", fmt_ppt(mpd));
 
 	if (!mpd->secs) /* =0 Hmm.... we called this "bad event" */
@@ -314,7 +315,7 @@ static void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_f
 	y = (mpd_fltr->y * (mpd_fltr->s_exp - 1) + mpd->scaled_nsecs);
 	__div64_32(&y, mpd_fltr->s_exp);
 	mpd->scaled_nsecs =	mpd_fltr->y = y;
-	DSCUR(ppi)->meanDelay=pp_time_to_interval(mpd); /* Update meanDelay in CurrentDS */
+	update_meanDelay(ppi,picos_to_interval(pp_time_to_interval(mpd))); /* update currentDS.meanDelay and portDS.meanLinkDelay (idf needed) */
 	pp_diag(ppi, servo, 1, "After avg(%i), meanDelay: %i\n",
 		(int)mpd_fltr->s_exp, (int)(mpd->scaled_nsecs >> 16));
 }

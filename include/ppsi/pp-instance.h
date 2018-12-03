@@ -254,6 +254,10 @@ struct pp_instance {
 
 	unsigned long ptp_tx_count;
 	unsigned long ptp_rx_count;
+#if CONFIG_HAS_P2P == 1
+	Boolean received_dresp; /* Count the number of delay response messages received for a given delay request */
+	Boolean received_dresp_fup; /* Count the number of delay response follow up messages received for a given delay request */
+#endif
 
 };
 

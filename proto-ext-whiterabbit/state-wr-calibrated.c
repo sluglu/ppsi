@@ -35,7 +35,7 @@ int wr_calibrated(struct pp_instance *ppi, void *buf, int len)
 
 	if (enable)
         {
-		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->wrStateTimeout);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_CALIBRATED_TIMEOUT_MS);
 		e = msg_issue_wrsig(ppi, CALIBRATED);
         }
 

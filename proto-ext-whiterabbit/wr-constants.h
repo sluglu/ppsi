@@ -23,12 +23,18 @@
 #define FIX_ALPHA_FRACBITS_AS_FLOAT 40.0
 #define FIX_ALPHA_TWO_POW_FRACBITS  ((double)1.099511627776E12) /* double value returned by pow(2.0,40.0) */
 
-#define WR_DEFAULT_CAL_PERIOD		3000	/* [us] */
+#define WR_DEFAULT_STATE_TIMEOUT_MS	300	/* [ms] ML: not really used*/
 
-#define WR_DEFAULT_STATE_TIMEOUT_MS	300	/* [ms] */
-#define WR_WRS_PRESENT_TIMEOUT_MS	1000
+#define WR_PRESENT_TIMEOUT_MS	         1000
 #define WR_M_LOCK_TIMEOUT_MS		15000
 #define WR_S_LOCK_TIMEOUT_MS		15000
+#define WR_LOCKED_TIMEOUT_MS              300
+#define WR_CALIBRATION_TIMEOUT_MS        3000
+#define WR_RESP_CALIB_REQ_TIMEOUT_MS        3
+#define WR_CALIBRATED_TIMEOUT_MS          300
+
+#define WR_DEFAULT_CAL_PERIOD		WR_CALIBRATION_TIMEOUT_MS	/* [us] */
+
 #define WR_STATE_RETRY			3	/* if WR handhsake fails */
 
 /* White Rabbit package Size */

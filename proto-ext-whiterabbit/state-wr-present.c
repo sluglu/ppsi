@@ -32,7 +32,7 @@ int wr_present(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	if (sendmsg) {
-		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_WRS_PRESENT_TIMEOUT_MS);
+		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_PRESENT_TIMEOUT_MS);
 		e = msg_issue_wrsig(ppi, SLAVE_PRESENT);
 	}
 

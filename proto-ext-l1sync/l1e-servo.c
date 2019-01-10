@@ -495,11 +495,11 @@ int l1e_servo_update(struct pp_instance *ppi)
 			/*
 			 * Now, let's fix system time. We pass here
 			 * once only, so that's the best place to do
-			 * it. We can't use current WR time, as we
-			 * still miss the method to get it (through IPC).
-			 * So use T4, which is a good approximation.
-			 */
-			unix_time_ops.set(ppi, &ppi->t4);
+			 * it. We use current WR time.
+			 * */
+			struct pp_time t;
+			ppi->t_ops->get(ppi,&t);
+			unix_time_ops.set(ppi, &t);
 			pp_diag(ppi, time, 1, "system time set to %li TAI\n",
 				(long)ppi->t4.secs);
 		}

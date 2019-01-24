@@ -43,7 +43,11 @@ void wr_handshake_fail(struct pp_instance *ppi)
 		ppi->next_state = PPS_MASTER;
 	else
 		ppi->next_state = PPS_SLAVE;
-	wrp->wrMode = NON_WR;
+	wrp->wrMode =
+			wrp->parentWrConfig = NON_WR;
+	wrp->parentIsWRnode =
+			wrp->parentWrModeOn =
+					wrp->parentCalibrated = FALSE;
 }
 
 

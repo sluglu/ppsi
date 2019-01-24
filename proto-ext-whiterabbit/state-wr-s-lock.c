@@ -16,21 +16,24 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len)
 
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
+		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_S_LOCK_TIMEOUT_MS*(WR_STATE_RETRY+1));
 		enable = 1;
-	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
-		WRH_OPER()->locking_disable(ppi);
-		if (wr_handshake_retry(ppi))
-			enable = 1;
-		else
-			return 0; /* non-wr already */
+	} else {
+		int rms=pp_next_delay_1(ppi, PP_TO_EXT_0);
+		if ( rms==0 || rms<(wrp->wrStateRetry*WR_S_LOCK_TIMEOUT_MS)) {
+			WRH_OPER()->locking_disable(ppi);
+			if (wr_handshake_retry(ppi))
+				enable = 1;
+			else
+				return 0; /* non-wr already */
+			}
 	}
 
 	if (enable) {
 		WRH_OPER()->locking_enable(ppi);
-		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_S_LOCK_TIMEOUT_MS);
 	}
 
-	ppi->next_delay = wrp->wrStateTimeout;
+	ppi->next_delay = pp_next_delay_1(ppi,PP_TO_EXT_0)-wrp->wrStateRetry*WR_S_LOCK_TIMEOUT_MS;
 
 	poll_ret = WRH_OPER()->locking_poll(ppi, 0);
 	if (poll_ret == WRH_SPLL_READY) {

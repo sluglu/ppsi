@@ -46,20 +46,6 @@ enum {
 #define PROTO_EXT_HAS_FAULTS 0
 #endif
 
-
-/* Contains portDS common stuff which is manipulated outside of the protocol extension code */
-/* Must be declared on top of the extension portDS structure */
-typedef struct {
-	Boolean extModeOn;
-    Boolean ppsOutputOn;
-} wrh_portds_head_t;
-
-/* The head is expected at the beginning of the portDS structure */
-static inline wrh_portds_head_t *WRH_DSPOR_HEAD(struct pp_instance *ppi)
-{
-	return (wrh_portds_head_t *) ppi->portDS->ext_dsport;
-}
-
 /* White Rabbit hw-dependent functions (code in arch-wrpc and arch-wrs) */
 struct wrh_operations {
 	int (*locking_enable)(struct pp_instance *ppi);

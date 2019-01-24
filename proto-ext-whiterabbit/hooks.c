@@ -10,9 +10,9 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 
 	wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
 	wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
-	wrp->head.extModeOn = 0;
+	wrp->wrModeOn =
+	wrp->parentWrModeOn = FALSE;
 	wrp->parentWrConfig = NON_WR;
-	wrp->parentExtModeOn = 0;
 	wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 
 #ifdef CONFIG_ABSCAL
@@ -111,7 +111,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	 * After we adjusted the pps counter, stamps are invalid, so
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
-	if (!wrp->head.extModeOn) {
+	if (!wrp->wrModeOn) {
 		if ( is_timestamps_incorrect(ppi, NULL, 0x6 /* mask=t2&t3 */) ) {
 			pp_diag(ppi, servo, 1,
 				"T2 or T3 incorrect, discarding tuple\n");
@@ -135,7 +135,7 @@ static void wr_s1(struct pp_instance *ppi, struct pp_frgn_master *frgn_master)
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
 		((frgn_master->ext_specific & WR_NODE_MODE) != NON_WR);
-	WR_DSPOR(ppi)->parentExtModeOn =
+	WR_DSPOR(ppi)->parentWrModeOn =
 		(frgn_master->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
 	WR_DSPOR(ppi)->parentCalibrated =
 			((frgn_master->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
@@ -154,7 +154,7 @@ int wr_execute_slave(struct pp_instance *ppi)
 	if ((ppi->state == PPS_SLAVE) &&
 		(WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
 		(WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
-	    (!WR_DSPOR(ppi)->head.extModeOn || !WR_DSPOR(ppi)->parentExtModeOn)) {
+	    (!WR_DSPOR(ppi)->wrModeOn || !WR_DSPOR(ppi)->parentWrModeOn)) {
 		/* We must start the handshake as a WR slave */
 		wr_handshake_init(ppi, PPS_SLAVE);
 	}
@@ -189,7 +189,7 @@ static int wr_handle_announce(struct pp_instance *ppi)
 
 static int  wr_sync_followup(struct pp_instance *ppi, struct pp_time *t1) {
 
-	if (!WR_DSPOR(ppi)->head.extModeOn)
+	if (!WR_DSPOR(ppi)->wrModeOn)
 		return 0;
 
 	wr_servo_got_sync(ppi, t1, &ppi->t2);
@@ -225,7 +225,7 @@ static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
 
-	if (!wrp->head.extModeOn) {
+	if (!wrp->wrModeOn) {
 		if ( is_timestamps_incorrect(ppi, NULL, 0x24 /* mask=t3&t6 */) ) {
 			pp_diag(ppi, servo, 1,
 				"T3 or T6 incorrect, discarding tuple\n");
@@ -312,15 +312,15 @@ static void wr_state_change(struct pp_instance *ppi)
 	
 	/* if we are leaving the WR locked states reset the WR process */
 	if ((ppi->next_state != ppi->state) &&	
-		(wrp->head.extModeOn == TRUE) &&
+		wrp->wrModeOn &&
 		((ppi->state == PPS_SLAVE) ||
 		 (ppi->state == PPS_MASTER))) {
 		
 		wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
 		wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
-		wrp->head.extModeOn = FALSE;
+		wrp->wrModeOn =
+				wrp->parentWrModeOn = FALSE;
 		wrp->parentWrConfig = NON_WR;
-		wrp->parentExtModeOn = FALSE;
 		wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 		
 		if (ppi->state == PPS_SLAVE)

@@ -20,16 +20,19 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len)
 
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
+		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->calPeriod*(WR_STATE_RETRY+1));
 		sendmsg = 1;
-	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
-		if (wr_handshake_retry(ppi))
-			sendmsg = 1;
-		else
-			return 0; /* non-wr already */
+	} else {
+		int rms=pp_next_delay_1(ppi, PP_TO_EXT_0);
+		if ( rms==0 || rms<(wrp->wrStateRetry*wrp->calPeriod)) {
+			if (wr_handshake_retry(ppi))
+				sendmsg = 1;
+			else
+				return 0; /* non-wr already */
+		}
 	}
 
 	if (sendmsg) {
-		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->calPeriod);
 		msg_issue_wrsig(ppi, CALIBRATE);
 		wrp->wrPortState = WR_PORT_CALIBRATION_0;
 		if (wrp->calibrated)
@@ -134,7 +137,7 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len)
 		break;
 	}
 
-	ppi->next_delay = wrp->wrStateTimeout;
+	ppi->next_delay = pp_next_delay_1(ppi,PP_TO_EXT_0)-wrp->wrStateRetry*wrp->calPeriod;
 
 	return 0; /* ignore error */
 }

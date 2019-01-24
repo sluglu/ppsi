@@ -17,21 +17,23 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
+		__pp_timeout_set(ppi, PP_TO_EXT_0,WR_RESP_CALIB_REQ_TIMEOUT_MS*(WR_STATE_RETRY+1));
 		enable = 1;
-	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
-		if (send_pattern)
-			WRH_OPER()->calib_pattern_disable(ppi);
-		if (wr_handshake_retry(ppi))
-			enable = 1;
-		else
-			return 0; /* non-wr already */
+	} else {
+		int rms=pp_next_delay_1(ppi, PP_TO_EXT_0);
+		if ( rms==0 || rms<(wrp->wrStateRetry*WR_RESP_CALIB_REQ_TIMEOUT_MS)) {
+			if (send_pattern)
+				WRH_OPER()->calib_pattern_disable(ppi);
+			if (wr_handshake_retry(ppi))
+				enable = 1;
+			else
+				return 0; /* non-wr already */
+		}
 	}
 
 	if (enable) { /* first or retry */
 		if (send_pattern)
 			WRH_OPER()->calib_pattern_enable(ppi, 0, 0, 0);
-		__pp_timeout_set(ppi, PP_TO_EXT_0,
-			       WR_RESP_CALIB_REQ_TIMEOUT_MS);
 	}
 
 	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
@@ -49,6 +51,6 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
 		}
 	}
 
-	ppi->next_delay = wrp->wrStateTimeout;
+	ppi->next_delay = pp_next_delay_1(ppi,PP_TO_EXT_0)-wrp->wrStateRetry*WR_RESP_CALIB_REQ_TIMEOUT_MS;
 	return e;
 }

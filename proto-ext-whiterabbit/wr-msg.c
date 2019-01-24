@@ -77,7 +77,7 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 	if (WR_DSPOR(ppi)->calibrated)
 		wr_flags = WR_IS_CALIBRATED | wr_flags;
 
-	if (WR_DSPOR(ppi)->head.extModeOn)
+	if (WR_DSPOR(ppi)->wrModeOn)
 		wr_flags = WR_IS_WR_MODE | wr_flags;
 	*(UInteger16 *)(buf + 76) = htons(wr_flags);
 }

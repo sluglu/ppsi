@@ -29,9 +29,8 @@
  * (see wrspec.v2-06-07-2011, page 17)
  */
 struct wr_dsport {
-	wrh_portds_head_t head; /* Must on top of portDS */
-
-	Boolean parentExtModeOn;
+	Boolean    wrModeOn; /* True when extension is running */
+	Boolean    parentWrModeOn;
 	FixedDelta deltaTx;
 	FixedDelta deltaRx;
 	FixedDelta otherNodeDeltaTx;

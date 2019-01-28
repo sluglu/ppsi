@@ -296,29 +296,34 @@ static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 	/*
 	 * We can adjust nanoseconds or seconds, but not both at the
 	 * same time. When an adjustment is in progress we can't do
-	 * the other.  So make nanoseconds first if > 20ms, and the
-	 * servo will call us again later for the seconds part.
+	 * the other.  So make seconds first and then nanoseconds if > 20ms.
+	 * The servo will call us again later for the seconds part.
 	 * Thus, we fall near, and can then trim frequency (hopefully).
+	 * Seconds have to be adjusted first otherwise when a jitter greater
+	 * than 20ms is observed with peer, seconds are never adjusted.
 	 */
 	msec = (diff.scaled_nsecs >> 16) / 1000 / 1000;;
 	#define THRESHOLD_MS 20
-	if ((msec > THRESHOLD_MS && msec < (1000 - THRESHOLD_MS))
-	    || (msec < -THRESHOLD_MS && msec > (-1000 + THRESHOLD_MS))) {
-		pp_diag(ppi, time, 1, "%s: adjusting nanoseconds: %li\n",
-			__func__, (long)(diff.scaled_nsecs >> 16));
-		diff.secs = 0;
-	} else {
+
+	if ( diff.secs ) {
 		diff.scaled_nsecs = 0;
 		if (msec > 500)
 			diff.secs++;
-		if (msec < -500)
+		else if (msec < -500)
 			diff.secs--;
-
 		pp_diag(ppi, time, 1, "%s: adjusting seconds: %li\n",
 			__func__, (long)diff.secs);
+	} else {
+		if ((msec > THRESHOLD_MS && msec < (1000 - THRESHOLD_MS))
+		    || (msec < -THRESHOLD_MS && msec > (-1000 + THRESHOLD_MS))) {
+			pp_diag(ppi, time, 1, "%s: adjusting nanoseconds: %li\n",
+				__func__, (long)(diff.scaled_nsecs >> 16));
+			diff.secs = 0;
+		}
+		else
+			diff.scaled_nsecs = 0;
 	}
 	wrs_adjust_counters(diff.secs, diff.scaled_nsecs >> 16);
-
 
 	/* If WR time is unrelated to real-world time, we are done. */
 	if (t->secs < 1420730822 /* "now" as I write this */)

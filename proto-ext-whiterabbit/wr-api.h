@@ -110,8 +110,7 @@ int wr_execute_slave(struct pp_instance *ppi);
 int wr_servo_init(struct pp_instance *ppi);
 void wr_servo_reset(struct pp_instance *ppi);
 void wr_servo_enable_tracking(int enable);
-int wr_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
-		      struct pp_time *t2);
+int wr_servo_got_sync(struct pp_instance *ppi);
 int wr_servo_got_delay(struct pp_instance *ppi);
 int wr_servo_update(struct pp_instance *ppi);
 

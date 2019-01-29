@@ -52,7 +52,9 @@ typedef struct _UInteger64 { /*/* TODO : Should be replaced by UInteger64 */
 
 /* Page 19 :the time interval is expressed in units of nanoseconds and multiplied by 2 +16 */
 #define TIME_INTERVAL_FRACBITS 16
+#define TIME_INTERVAL_FRACMASK 0xFFFF
 #define TIME_INTERVAL_FRACBITS_AS_FLOAT 16.0
+#define TIME_INTERVAL_ROUNDING_VALUE (1<<(TIME_INTERVAL_FRACBITS-1))
 
 /* Min/max value expressed in picos (int64_t) which can be stored in a TimeInterval type */
 #define TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64 ((int64_t) 0xFE0C000000000000)
@@ -74,6 +76,7 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 #define REL_DIFF_FRACBITS 62
 #define REL_DIFF_FRACBITS_AS_FLOAT 62.0
 #define REL_DIFF_TWO_POW_FRACBITS  ((double)4.611686018427388E18) /* double value returned by pow(2.0,62.0) */
+#define REL_DIFF_FRACMASK 0x3fffffffffffffff
 
 /* Min/max values for  RelativeDifference type */
 #define RELATIVE_DIFFERENCE_MIN_VALUE  INT64_MIN

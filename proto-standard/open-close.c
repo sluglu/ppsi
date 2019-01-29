@@ -158,7 +158,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 		struct pp_instance *ppi = INST(ppg, i);
 		int r;
 
-		if (ppi->ext_hooks->open) {
+		if (is_ext_hook_available(ppi,open)) {
 		   ret=(r=ppi->ext_hooks->open(ppi, rt_opts))==0 ? ret : r;
 		}
 	}
@@ -174,7 +174,7 @@ int pp_close_globals(struct pp_globals *ppg)
 		struct pp_instance *ppi = INST(ppg, i);
 		int r;
 
-		if (ppi->ext_hooks->close) {
+		if (is_ext_hook_available(ppi,close) ){
 		   ret=(r=ppi->ext_hooks->close(ppi))==0 ? ret : r;
 		}
 	}

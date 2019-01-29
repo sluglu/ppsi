@@ -6,6 +6,9 @@
  */
 
 #include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
 #include <ppsi/ppsi.h>
 
 void normalize_pp_time(struct pp_time *t)
@@ -38,16 +41,29 @@ void normalize_pp_time(struct pp_time *t)
 /* Add a TimeInterval to a pp_time */
 void pp_time_add_interval(struct pp_time *t1, TimeInterval t2)
 {
-	t1->scaled_nsecs += t2;
-	normalize_pp_time(t1);
+	struct pp_time t = {
+			.secs=0,
+			.scaled_nsecs=t2
+	};
+	normalize_pp_time(&t);
+	pp_time_add(t1,&t);
 }
 
 /* Substract a TimeInterval to a pp_time */
 void pp_time_sub_interval(struct pp_time *t1, TimeInterval t2)
 {
-	t1->scaled_nsecs -= t2;
-	normalize_pp_time(t1);
+	struct pp_time t = {
+			.secs=0,
+			.scaled_nsecs=t2
+	};
+	normalize_pp_time(&t);
+	pp_time_sub(t1,&t);
 }
+
+#define IS_ADD_WILL_OVERFLOW(a,b) \
+		( (((a > 0) && (b > INT64_MAX - a))) ||\
+		  (((a < 0) && (b < INT64_MIN - a)))   \
+		)
 
 void pp_time_add(struct pp_time *t1, struct pp_time *t2)
 {
@@ -55,6 +71,11 @@ void pp_time_add(struct pp_time *t1, struct pp_time *t2)
 	t1->scaled_nsecs += t2->scaled_nsecs;
 	normalize_pp_time(t1);
 }
+
+#define IS_SUB_WILL_OVERFLOW(a,b) \
+		( ((b < 0) && (a > INT64_MAX + b)) ||\
+		  ((b > 0) && (a < INT64_MIN + b))   \
+		)
 
 void pp_time_sub(struct pp_time *t1, struct pp_time *t2)
 {
@@ -76,28 +97,28 @@ void pp_time_div2(struct pp_time *t)
 
 int64_t pp_time_to_picos(struct pp_time *ts)
 {
-	return ts->secs * PP_NSEC_PER_SEC
-		+ ((ts->scaled_nsecs * 1000 + 0x8000) >> TIME_INTERVAL_FRACBITS);
+	return ts->secs * PP_PSEC_PER_SEC
+		+ ((ts->scaled_nsecs * 1000 + TIME_ROUNDING_VALUE) >> TIME_FRACBITS);
 }
 
 void picos_to_pp_time(int64_t picos, struct pp_time *ts)
 {
 	uint64_t sec, nsec;
-	int phase;
 	int sign = (picos < 0 ? -1 : 1);
 
 	picos *= sign;
-	nsec = picos;
-	phase = __div64_32(&nsec, 1000);
-	sec = nsec;
+	sec=picos/PP_PSEC_PER_SEC;
+	picos-=sec*PP_PSEC_PER_SEC;
+	nsec = picos/1000;
+	picos-=nsec*1000;
 
-	ts->scaled_nsecs = ((int64_t)__div64_32(&sec, PP_NSEC_PER_SEC)) << TIME_INTERVAL_FRACBITS;
-	ts->scaled_nsecs += (phase << TIME_INTERVAL_FRACBITS) / 1000;
+	ts->scaled_nsecs = nsec << TIME_FRACBITS;
+	ts->scaled_nsecs += (picos << TIME_FRACBITS) / 1000;
 	ts->scaled_nsecs *= sign;
 	ts->secs = sec * sign;
 }
 
-
+#if 0
 /* "Hardwarizes" the timestamp - e.g. makes the nanosecond field a multiple
  * of 8/16ns cycles and puts the extra nanoseconds in the picos result */
 void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
@@ -105,6 +126,10 @@ void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
 {
 	int32_t s, ns, ps, clock_ns;
 
+	if ( clock_period_ps <= 0 ) {
+		pp_error("%s : Invalid clock period %d\n",__func__, clock_period_ps);
+		exit(-1);
+	}
 	/* clock_period_ps *must* be a multiple of 1000 -- assert()? */
 	clock_ns = clock_period_ps / 1000;
 
@@ -139,7 +164,26 @@ void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
 	*ticks = ns;
 	*picos = ps;
 }
+#else
+/* "Hardwarizes" the timestamp - e.g. makes the nanosecond field a multiple
+ * of 8/16ns cycles and puts the extra nanoseconds in the picos result */
+void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
+			  int32_t *ticks, int32_t *picos)
+{
+	int64_t ps, adj_ps;
+	int32_t sign=(time->scaled_nsecs<0) ? -1 : 1;
+	int64_t scaled_nsecs=time->scaled_nsecs*sign;
 
+	if ( clock_period_ps <= 0 ) {
+		pp_error("%s : Invalid clock period %d\n",__func__, clock_period_ps);
+		return;
+	}
+	ps = (scaled_nsecs * 1000L+TIME_INTERVAL_ROUNDING_VALUE) >> TIME_INTERVAL_FRACBITS; /* now picoseconds 0..999 -- positive*/
+	adj_ps=ps - ps%clock_period_ps;
+	*picos=(int32_t)(ps-adj_ps)*sign;
+	*ticks = (int32_t)(adj_ps/1000)*sign;
+}
+#endif
 
 TimeInterval pp_time_to_interval(struct pp_time *ts)
 {
@@ -165,7 +209,7 @@ TimeInterval picos_to_interval(int64_t picos)
 		int sign = (picos < 0 ? -1 : 1);
 		picos *= sign;
 		scaled_ns=(picos/1000) << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
-		scaled_ns|=((picos%1000) << TIME_INTERVAL_FRACBITS)/1000; /* Add picos */
+		scaled_ns+=((picos%1000) << TIME_INTERVAL_FRACBITS)/1000; /* Add picos */
 
 		return scaled_ns*sign;
 	}
@@ -213,4 +257,66 @@ int is_timestamps_incorrect(struct pp_instance *ppsi, int *err_count, int ts_mas
 		mask<<=1;
 	}
 	return *err_count=0;
+}
+
+static char time_as_string[32];
+
+/* Convert pp_time to string */
+char *time_to_string(struct pp_time *t)
+{
+	struct pp_time time=*t;
+	int picos;
+	char *sign;
+
+	if (t->secs < 0 || (t->secs == 0 && t->scaled_nsecs < 0) ) {
+		sign="-";
+		time.scaled_nsecs=-t->scaled_nsecs;
+		time.secs=-t->secs;
+	} else {
+		sign="";
+		time=*t;
+	}
+	picos=((int)(time.scaled_nsecs&TIME_FRACMASK)*1000+TIME_ROUNDING_VALUE)>>TIME_FRACBITS;
+	pp_sprintf(time_as_string, "%s%d.%09d%03d",
+		   sign,
+		   (int)time.secs,
+		   (int)(time.scaled_nsecs >> TIME_FRACBITS),
+		   picos);
+	return time_as_string;
+}
+
+/* Convert TimeInterval to string */
+char *interval_to_string(TimeInterval time)
+{
+	int64_t sign,nanos,picos;
+
+	if ( time<0 && time !=INT64_MIN) {
+		sign=-1;
+		time=-time;
+	} else {
+		sign=1;
+	}
+	nanos = time >> TIME_INTERVAL_FRACBITS;
+	picos = (((time & TIME_INTERVAL_FRACMASK) * 1000) + TIME_INTERVAL_ROUNDING_VALUE ) >> TIME_INTERVAL_FRACBITS;
+	sprintf(time_as_string,"%" PRId64 ".%03" PRId64, sign*nanos,picos);
+	return time_as_string;
+}
+
+/* Convert RelativeInterval to string */
+char *relative_interval_to_string(TimeInterval time) {
+    int32_t nsecs=time >> REL_DIFF_FRACBITS;
+	uint64_t sub_yocto=0;
+    int64_t fraction;
+	uint64_t bitWeight=500000000000000000;
+	uint64_t mask;
+
+
+    fraction=time & REL_DIFF_FRACMASK;
+	for (mask=(uint64_t) 1<< (REL_DIFF_FRACBITS-1);mask!=0; mask>>=1 ) {
+		if ( mask & fraction )
+			sub_yocto+=bitWeight;
+		bitWeight/=2;
+	}
+	sprintf(time_as_string,"%"PRId32".%018"PRIu64, nsecs, sub_yocto);
+	return time_as_string;
 }

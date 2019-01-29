@@ -15,10 +15,11 @@ static const char *timeOutNames[__PP_TO_ARRAY_SIZE]={
 		"ANN_SEND",
 		"FAULT",
 		"QUAL",
+		"PROT_STATE",
 		"EXT_0",
 		"EXT_1"
 };
-
+#define TIMEOUT_FAULTY_STATE_MS (60*1000) /* define the time to stay on faulty state before to go to initializing state */
 #define TIMEOUT_MAX_LOG_VALUE 21 /* 2^21 * 1000 =2097152000ms is the maximum value that can be stored in an integer */
 #define TIMEOUT_MIN_LOG_VALUE -9 /* 2^-9 = 1ms is the minimum value that can be stored in an integer */
 #define TIMEOUT_MAX_VALUE_MS  ((1<< TIMEOUT_MAX_LOG_VALUE)*1000)
@@ -59,14 +60,17 @@ void pp_timeout_init(struct pp_instance *ppi)
 			timeouts[PP_TO_QUALIFICATION].which_rand =
 			timeouts[PP_TO_ANN_RECEIPT].which_rand =
 			timeouts[PP_TO_FAULT].which_rand =
+			timeouts[PP_TO_PROT_STATE].which_rand =
 			timeouts[PP_TO_EXT_0].which_rand =
 			timeouts[PP_TO_EXT_1].which_rand = TO_RAND_NONE;
 
 	timeouts[PP_TO_REQUEST].initValueMs= pp_timeout_log_to_ms(logDelayRequest);
+
 	/* fault timeout is 4 avg request intervals, not randomized */
 	timeouts[PP_TO_FAULT].initValueMs = pp_timeout_log_to_ms(logDelayRequest);
 	if ( timeouts[PP_TO_FAULT].initValueMs < (TIMEOUT_MAX_VALUE_MS>>2))
 		timeouts[PP_TO_FAULT].initValueMs<<=2; /* We can multiply by 4. No risk of overload */
+
 	timeouts[PP_TO_SYNC_SEND].initValueMs =  pp_timeout_log_to_ms(port->logSyncInterval);
 	timeouts[PP_TO_BMC].initValueMs = pp_timeout_log_to_ms(port->logAnnounceInterval);
 	timeouts[PP_TO_ANN_RECEIPT].initValueMs = 1000 * (
@@ -145,9 +149,13 @@ void pp_timeout_setall(struct pp_instance *ppi)
 {
 	int i;
 	for (i = 0; i < __PP_TO_ARRAY_SIZE; i++) {
-		/* keep BMC timeout */
-		if (i!=PP_TO_BMC) {
-			pp_timeout_set(ppi, i);
+		if ( i==PP_TO_FAULT && ppi->next_state==PPS_FAULTY ){
+			__pp_timeout_set(ppi,PP_TO_FAULT,TIMEOUT_FAULTY_STATE_MS);
+		} else {
+			/* keep BMC timeout */
+			if (i!=PP_TO_BMC) {
+				pp_timeout_set(ppi, i);
+			}
 		}
 	}
 	/* but announce_send must be send soon */

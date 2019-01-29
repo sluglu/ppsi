@@ -11,6 +11,7 @@
 
 /* general purpose constants */
 #define PP_NSEC_PER_SEC (1000*1000*1000)
+#define PP_PSEC_PER_SEC ((int64_t)1000*(int64_t)PP_NSEC_PER_SEC)
 
 /* implementation specific constants */
 #define PP_MAX_LINKS				64
@@ -112,6 +113,7 @@ enum pp_timeouts {
 	PP_TO_ANN_SEND,
 	PP_TO_FAULT,
 	PP_TO_QUALIFICATION,
+	PP_TO_PROT_STATE,
 	/* Two timeouts for the protocol extension  */
 	PP_TO_EXT_0,
 	PP_TO_EXT_1,

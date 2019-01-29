@@ -103,7 +103,11 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	pp_timeout_setall(ppi);/* PP_TO_BMC is not set by default */
 	pp_timeout_set(ppi, PP_TO_BMC);
 
-	if (ppi->ext_hooks->init)
+	ppi->link_state=PP_LSTATE_PROTOCOL_DETECTION;
+	ppi->ptp_msg_received=FALSE;
+	ppi->ext_enabled=(ppi->protocol_extension!=PPSI_EXT_NONE);
+
+	if (is_ext_hook_available(ppi,init))
 		ret = ppi->ext_hooks->init(ppi, buf, len);
 	if (ret) {
 		pp_diag(ppi, ext, 1, "%s: can't init extension\n", __func__);

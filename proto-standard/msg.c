@@ -237,7 +237,7 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(UInteger8 *) (buf + 62) = (UInteger8)DSCUR(ppi)->stepsRemoved;
 	*(Enumeration8 *) (buf + 63) = DSPRO(ppi)->timeSource;
 
-	if (ppi->ext_hooks->pack_announce)
+	if (is_ext_hook_available(ppi,pack_announce))
 		len = ppi->ext_hooks->pack_announce(ppi);
 	return len;
 }
@@ -263,7 +263,7 @@ void msg_unpack_announce(struct pp_instance *ppi, void *buf, MsgAnnounce *ann)
 	ann->timeSource = *(Enumeration8 *) (buf + 63);
 
 	/* this can fill in extention specific flags otherwise just zero them*/
-	if (ppi->ext_hooks->unpack_announce)
+	if (is_ext_hook_available(ppi,unpack_announce))
 		ppi->ext_hooks->unpack_announce(buf, ann);
 	else
 		ann->ext_specific = 0;

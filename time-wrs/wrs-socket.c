@@ -239,27 +239,28 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 			aux = (struct tpacket_auxdata *)dp;
 	}
 
-	if(sts && t)
-	{
-		int cntr_ahead = sts->hwtimeraw.tv_sec & 0x80000000 ? 1: 0;
-		t->scaled_nsecs = (long long)sts->hwtimeraw.tv_nsec << 16;
-		t->secs = sts->hwtimeraw.tv_sec & 0x7fffffff;
+	if ( t ) {
+		if (sts) {
+			int cntr_ahead = sts->hwtimeraw.tv_sec & 0x80000000 ? 1: 0;
+			t->scaled_nsecs = (long long)sts->hwtimeraw.tv_nsec << 16;
+			t->secs = sts->hwtimeraw.tv_sec & 0x7fffffff;
 
-		update_dmtd(s, ppi);
-		if ( WRH_DSPOR_HEAD(ppi)==NULL || !WRH_DSPOR_HEAD(ppi)->extModeOn) {
-			goto drop;
-		}
-		if (s->dmtd_phase_valid) {
-			wrs_linearize_rx_timestamp(t, s->dmtd_phase,
-				cntr_ahead, s->phase_transition, s->clock_period);
+			update_dmtd(s, ppi);
+			if ( ppi->ext_hooks->require_precise_timestamp!=NULL  &&
+					(*ppi->ext_hooks->require_precise_timestamp)(ppi)) {
+				/* Precise time stamp required */
+				if (s->dmtd_phase_valid) {
+					wrs_linearize_rx_timestamp(t, s->dmtd_phase,
+						cntr_ahead, s->phase_transition, s->clock_period);
+				} else {
+					mark_incorrect(t);
+				}
+			}
 		} else {
 			mark_incorrect(t);
 		}
-	} else {
-		mark_incorrect(t);
 	}
 
-drop:
 	/* For UDP, avoid all of the following, as we don't have vlans */
 	if (ppi->proto == PPSI_PROTO_UDP)
 		goto out;

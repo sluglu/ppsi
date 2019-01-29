@@ -105,21 +105,38 @@ struct pp_avg_fltr {
 #define PP_SERVO_FLAG_VALID	    (1<<0)
 #define PP_SERVO_FLAG_WAIT_HW	(1<<1)
 
-struct pp_servo {
-	int state;
+#define PP_SERVO_RESET_DATA_SIZE        (sizeof(struct pp_servo)-offsetof(struct pp_servo,reset_address))
+#define PP_SERVO_RESET_DATA(servo)      memset(&servo->reset_address,0,PP_SERVO_RESET_DATA_SIZE);
 
-	struct pp_time delayMS;
-	struct pp_time delaySM;
+struct pp_servo {
+	/* ptp servo specific data */
 	long long obs_drift;
 	struct pp_avg_fltr mpd_fltr;
-	struct pp_time meanDelay;
-	struct pp_time offsetFromMaster;
 
-	/* diagnostic data */
+	/* Data shared with extension servo */
+	struct pp_time delayMM; /* Shared with extension servo */
+	struct pp_time delayMS; /* Shared with extension servo */
+	struct pp_time meanDelay; /* Shared with extension servo */
+	struct pp_time offsetFromMaster; /* Shared with extension servo */
 	unsigned long flags; /* PP_SERVO_FLAG_INVALID, PP_SERVO_FLAG_VALID, ...*/
-	uint32_t update_count; /* incremented each time the servo is running */
+
+	/* Data used only by extensions */
+	int state;
 	char servo_state_name[32]; /* Updated by the servo itself */
+
+	/*
+	 * ----- All data after this line will be cleared during by a servo initialization
+	 */
+	int reset_address;
+
+	/* Data shared with extension servo */
+	uint32_t update_count; /* incremented each time the servo is running */
+	struct pp_time update_time; /* Last updated time of the servo */
+	struct pp_time t1, t2, t3, t4, t5, t6;
+
+	/* ptp servo specific data */
 	int servo_locked; /* TRUE when servo is locked. This info can be used by HAL */
+	int got_sync; /* True when T1/T2 are available */
 };
 
 enum { /* The two sockets. They are called "net path" for historical reasons */
@@ -176,6 +193,17 @@ typedef struct  {
 	unsigned int initValueMs;
 	unsigned long tmo;
 } t_timeOutConfig;
+
+/*
+ * This enumeration correspond to the protocol state of a pp_instance.
+ * It is used to decide which instance must be active on a given port.
+ */
+typedef enum  {
+	PP_LSTATE_PROTOCOL_DETECTION, /* Checking if the peer instance is using the same protocol */
+	PP_LSTATE_IN_PROGRESS, /* Right protocol detected. Try to establish the link with peer instance */
+	PP_LSTATE_LINKED, /* Link with peer well established */
+	PP_LSTATE_FAILURE /* Impossible to connect correctly to a peer instance */
+} pp_link_state;
 
 /*
  * Structure for the individual ppsi link
@@ -258,7 +286,10 @@ struct pp_instance {
 	Boolean received_dresp; /* Count the number of delay response messages received for a given delay request */
 	Boolean received_dresp_fup; /* Count the number of delay response follow up messages received for a given delay request */
 #endif
-
+	Boolean ptp_msg_received; /* Use to detect reception of a ptp message after an ppsi instance initialization */
+	Boolean ptp_support; /* True if allow pure PTP support */
+	Boolean ext_enabled; /* True if the extension is enabled */
+	pp_link_state link_state;
 };
 
 /* The following things used to be bit fields. Other flags are now enums */

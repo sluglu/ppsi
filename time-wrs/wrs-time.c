@@ -101,10 +101,10 @@ int wrs_enable_timing_output(struct pp_instance *ppi, int enable)
 {
 	int ret, rval;
 	hexp_pps_params_t p;
+	static int ppsOutputOn=-1; /* -1 means we don't know the state */
 
-	if (enable == WRH_DSPOR_HEAD(ppi)->ppsOutputOn)
+	if (enable == ppsOutputOn)
 		return WRH_SPLL_OK;
-	WRH_DSPOR_HEAD(ppi)->ppsOutputOn = enable;
 
 	p.pps_valid = enable;
 
@@ -113,6 +113,7 @@ int wrs_enable_timing_output(struct pp_instance *ppi, int enable)
 
 	if ((ret < 0) || (rval < 0))
 		return WRH_SPLL_ERROR;
+	ppsOutputOn = enable;
 
 	return WRH_SPLL_OK;
 }

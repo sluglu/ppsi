@@ -101,11 +101,8 @@ typedef struct { /*draft P1588_v_29: page 101 and 340-341  */
 
 /* Add all extension port DS related structure must be store here */
 typedef struct  {
-	wrh_portds_head_t  head; /* Must be always at the first place */
 	L1SyncBasicPortDS_t      basic;
 	L1SyncOptParamsPortDS_t  opt_params;
-
-	Boolean    parentExtModeOn;
 }l1e_ext_portDS_t;
 
 static inline  l1e_ext_portDS_t *L1E_DSPOR(struct pp_instance *ppi)
@@ -127,13 +124,23 @@ static inline  L1SyncOptParamsPortDS_t *L1E_DSPOR_OP(struct pp_instance *ppi)
 /****************************************************************************************/
 /* l1e_servo interface */
 
+#define L1E_SERVO_RESET_DATA_SIZE        (sizeof(struct l1e_servo_state)-offsetof(struct l1e_servo_state,reset_address))
+#define L1E_SERVO_RESET_DATA(servo)      memset(&servo->reset_address,0,L1E_SERVO_RESET_DATA_SIZE);
+
 struct l1e_servo_state {
+	/* Values used by snmp. Values are increased at servo update when
+	 * erroneous condition occurs. */
+	uint32_t n_err_state;
+	uint32_t n_err_offset;
+	uint32_t n_err_delta_rtt;
+
+	/* ----- All data after this line will cleared during a servo reset */
+	int reset_address;
 
 	/* These fields are used by servo code, after setting at init time */
 	int32_t clock_period_ps;
 
 	/* Following fields are for monitoring/diagnostics (use w/ shmem) */
-	struct pp_time delayMM;
 	int64_t delayMM_ps;
 	int32_t cur_setpoint_ps;
 	int64_t delayMS_ps;
@@ -141,15 +148,7 @@ struct l1e_servo_state {
 	int64_t skew_ps;
 	int64_t offsetMS_ps;
 
-	/* Values used by snmp. Values are increased at servo update when
-	 * erroneous condition occurs. */
-	uint32_t n_err_state;
-	uint32_t n_err_offset;
-	uint32_t n_err_delta_rtt;
-	struct pp_time update_time;
-
 	/* These fields are used by servo code, across iterations */
-	struct pp_time t1, t2, t3, t4, t5, t6;
 	int64_t prev_delayMS_ps;
 	int missed_iters;
 };
@@ -158,9 +157,9 @@ struct l1e_servo_state {
 int     l1e_servo_init(struct pp_instance *ppi);
 void    l1e_servo_reset(struct pp_instance *ppi);
 void    l1e_servo_enable_tracking(int enable);
-int     l1e_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
-		      struct pp_time *t2);
-int     l1e_servo_got_delay(struct pp_instance *ppi);
+int     l1e_servo_got_sync(struct pp_instance *ppi);
+int     l1e_servo_got_resp(struct pp_instance *ppi);
+int     l1e_servo_got_presp(struct pp_instance *ppi);
 int     l1e_servo_update(struct pp_instance *ppi);
 uint8_t l1e_creat_L1Sync_bitmask(int tx_coh, int rx_coh, int congru);
 void    l1e_print_L1Sync_basic_bitmaps(struct pp_instance *ppi,
@@ -180,6 +179,9 @@ static inline  struct l1e_servo_state *L1E_SRV(struct pp_instance *ppi)
 }
 
 
+static inline  int l1e_get_rx_tmo_ms(L1SyncBasicPortDS_t * bds) {
+	return (4 << (bds->logL1SyncInterval + 8)) * bds->L1SyncReceiptTimeout;
+}
 
 extern struct pp_ext_hooks l1e_ext_hooks;
 

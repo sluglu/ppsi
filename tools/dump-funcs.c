@@ -14,6 +14,7 @@
 #define CALIBRATED_MASK 0x4
 #define WR_CONFIG_MASK 0x3
 
+#if CONFIG_PROFILE_WR == 1
 static char *wr_message_name[] = {
     "SLAVE_PRESENT",
     "LOCK",
@@ -22,6 +23,7 @@ static char *wr_message_name[] = {
     "CALIBRATED",
     "WR_MODE_ON",
 };
+#endif
 
 static int dump_vlan(char *prefix, int vlan);
 
@@ -165,6 +167,8 @@ static void dump_msg_resp_etc(char *prefix, char *s, struct ptp_sync_etc *p)
 	dump_1port(prefix, s, p->port);
 }
 
+#if CONFIG_PROFILE_WR == 1
+
 /* TLV dumper, now white-rabbit aware */
 static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 {
@@ -275,6 +279,9 @@ static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 
 	return explen;
 }
+#endif
+
+#if CONFIG_EXT_L1SYNC == 1
 
 static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 {
@@ -299,6 +306,7 @@ static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 		   explen - sizeof(*tlv));
 	return explen;
 }
+#endif
 
 /* A big function to dump the ptp information */
 static void dump_payload(char *prefix, void *pl, int len)
@@ -396,12 +404,16 @@ static void dump_payload(char *prefix, void *pl, int len)
 			break;
 		}
 		switch ( messageType) {
+#if CONFIG_PROFILE_WR == 1
 		case PPM_ANNOUNCE :
 			donelen += wr_dump_tlv(prefix, pl + donelen, n);
 			break;
+#endif
+#if CONFIG_EXT_L1SYNC == 1
 		case PPM_SIGNALING :
 			donelen += l1sync_dump_tlv(prefix, pl + donelen, n);
 			break;
+#endif
 		default :
 			goto out;
 		}

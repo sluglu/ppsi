@@ -21,11 +21,20 @@ static int presp_call_servo(struct pp_instance *ppi)
 		return 0; /* not an error, just no data */
 
 	pp_timeout_set(ppi, PP_TO_FAULT);
-	if (ppi->ext_hooks->handle_presp)
+	if (is_ext_hook_available(ppi,handle_presp))
 		ret = ppi->ext_hooks->handle_presp(ppi);
-	else
-		pp_servo_got_presp(ppi);
-
+	else {
+		if ( pp_servo_got_presp(ppi) && !ppi->ext_enabled ) {
+			ppi->link_state=PP_LSTATE_LINKED;
+		}
+	}
+	if ( ppi->state==PPS_MASTER) {
+		/* Called to update meanLinkDelay
+		 * No risk of interaction with the slave servo.
+		 * Each instance has its own servo structure
+		 */
+		pp_servo_calculate_delays(ppi);
+	}
 	return ret;
 }
 
@@ -146,13 +155,17 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 	if (ppi->delayMechanism != P2P)
 		return 0;
 	
-	if (ppi->ext_hooks->handle_preq)
+	if (is_ext_hook_available(ppi,handle_preq))
 		e = ppi->ext_hooks->handle_preq(ppi);
 	if (e)
 		return e;
 
 	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
 	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+	if ( !ppi->ext_enabled ) {
+		ppi->link_state=PP_LSTATE_LINKED;
+	}
+
 
 	return 0;
 }

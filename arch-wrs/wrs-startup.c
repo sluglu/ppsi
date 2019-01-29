@@ -102,15 +102,18 @@ static __inline__ double  calculateDelayAsymCoefficient(double  delayCoefficient
 static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable ) {
 	if ( (ppi->asymmetryCorrectionPortDS.enable=enable)==TRUE ) {
 		/* Enabled: The delay asymmetry will be calculated */
-		ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=
-				ppi->cfg.scaledDelayCoefficient != 0 ?
-						ppi->cfg.scaledDelayCoefficient :
-						(RelativeDifference)(ppi->cfg.delayCoefficient * REL_DIFF_TWO_POW_FRACBITS);
-		ppi->portDS->delayAsymCoeff=(RelativeDifference)(calculateDelayAsymCoefficient(ppi->cfg.delayCoefficient) * REL_DIFF_TWO_POW_FRACBITS);
-	} else {
-		/* Disabled: The delay asymmetry will be provided by the config (constantAsymmetry) */
-		ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
+		double delayCoefficient;
+
+		if ( ppi->cfg.scaledDelayCoefficient != 0) {
+			ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=ppi->cfg.scaledDelayCoefficient;
+			delayCoefficient=ppi->cfg.scaledDelayCoefficient/REL_DIFF_TWO_POW_FRACBITS;
+		} else {
+			ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=(RelativeDifference)(ppi->cfg.delayCoefficient * REL_DIFF_TWO_POW_FRACBITS);
+			delayCoefficient=ppi->cfg.delayCoefficient;
+		}
+		ppi->portDS->delayAsymCoeff=(RelativeDifference)(calculateDelayAsymCoefficient(delayCoefficient) * REL_DIFF_TWO_POW_FRACBITS);
 	}
+	ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
 }
 
 int main(int argc, char **argv)
@@ -266,9 +269,9 @@ int main(int argc, char **argv)
 			Boolean configured=FALSE;
 #if CONFIG_PROFILE_HA == 1
 			sprintf(s, "port %i; iface wri%i; proto raw; profile ha", i + 1, i + 1);
-			configured=TRUE;
 #endif
 #if CONFIG_PROFILE_WR == 1
+			configured=TRUE;
 			if ( ! configured )
 				sprintf(s, "port %i; iface wri%i; proto raw; profile wr", i + 1, i + 1);
 #endif
@@ -288,6 +291,7 @@ int main(int argc, char **argv)
 		ppi->portDS = wrs_shm_alloc(ppsi_head, sizeof(*ppi->portDS));
 		ppi->servo = wrs_shm_alloc(ppsi_head, sizeof(*ppi->servo));
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
+		ppi->ptp_support=FALSE;
 		if (ppi->portDS) {
 			switch (ppi->cfg.profile) {
 #if CONFIG_PROFILE_WR == 1
@@ -324,9 +328,11 @@ int main(int argc, char **argv)
 			case PPSI_PROFILE_PTP :
 				/* Do not take care of L1SYNC */
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
+				ppi->protocol_extension=PPSI_EXT_NONE;
 				break;
 #if CONFIG_PROFILE_CUSTOM == 1
 			case PPSI_PROFILE_CUSTOM :
+				ppi->protocol_extension=PPSI_EXT_NONE; /* can be changed ...*/
 #if CONFIG_EXT_L1SYNC
 				if (ppi->cfg.l1SyncEnabled ) {
 					if ( !enable_l1Sync(ppi,TRUE) )

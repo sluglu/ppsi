@@ -213,8 +213,8 @@ struct pp_ext_hooks {
 	void (*s1)(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
 	int (*execute_slave)(struct pp_instance *ppi);
 	int (*handle_announce)(struct pp_instance *ppi);
-	int (*handle_sync)(struct pp_instance *ppi, struct pp_time *orig);
-	int (*handle_followup)(struct pp_instance *ppi, struct pp_time *orig);
+	int (*handle_sync)(struct pp_instance *ppi);
+	int (*handle_followup)(struct pp_instance *ppi);
 	int (*handle_preq) (struct pp_instance * ppi);
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*handle_signaling) (struct pp_instance * ppi, void *buf, int len);
@@ -224,7 +224,13 @@ struct pp_ext_hooks {
 	int (*state_decision)(struct pp_instance *ppi, int next_state);
 	void (*state_change)(struct pp_instance *ppi);
 	int (*run_ext_state_machine) (struct pp_instance *ppi);
+	void (*servo_reset)(struct pp_instance *ppi);
+	/* If the extension requires hardware support for precise time stamp, returns 1 */
+	int (*require_precise_timestamp)(struct pp_instance *ppi);
+	int (*get_tmo_lstate_detection) (struct pp_instance *ppi);
 };
+
+#define is_ext_hook_available(p, c) ( /*p->ext_enabled && */ p->ext_hooks->c)
 
 /*
  * Network methods are encapsulated in a structure, so each arch only needs
@@ -508,9 +514,12 @@ extern int f_simple_int(struct pp_argline *l, int lineno,
 /* Servo */
 extern void pp_servo_init(struct pp_instance *ppi);
 extern void pp_servo_got_sync(struct pp_instance *ppi); /* got t1 and t2 */
-extern void pp_servo_got_resp(struct pp_instance *ppi); /* got all t1..t4 */
+extern int pp_servo_got_resp(struct pp_instance *ppi); /* got all t1..t4 */
 extern void pp_servo_got_psync(struct pp_instance *ppi); /* got t1 and t2 */
-extern void pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
+extern int pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
+extern int pp_servo_calculate_delays(struct pp_instance *ppi);
+extern void pp_servo_apply_faulty_stamp(struct pp_servo *s, struct pp_time *faulty_stamps, int index);
+
 
 /* bmc.c */
 extern void bmc_m1(struct pp_instance *ppi);
@@ -554,11 +563,13 @@ extern void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp);
 extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req);
 
 /* each of them returns 0 if ok, -1 in case of error in send, 1 if stamp err */
-#define PP_SEND_OK		0
-#define PP_SEND_ERROR		-1
-#define PP_SEND_NO_STAMP	1
-#define PP_SEND_DROP		-2
-#define PP_RECV_DROP		PP_SEND_DROP
+typedef enum {
+	PP_SEND_OK=0,
+	PP_SEND_ERROR=-1,
+	PP_SEND_NO_STAMP=1,
+    PP_SEND_DROP=-2,
+	PP_RECV_DROP=PP_SEND_DROP
+}pp_send_status;
 
 extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);
@@ -587,7 +598,9 @@ extern void picos_to_pp_time(int64_t picos, struct pp_time *ts);
 extern void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,int32_t *ticks, int32_t *picos);
 extern int64_t interval_to_picos(TimeInterval interval);
 extern int is_timestamps_incorrect(struct pp_instance *ppsi, int *err_count, int ts_mask);
-
+extern char *time_to_string(struct pp_time *t);
+extern char *interval_to_string(TimeInterval time);
+extern char *relative_interval_to_string(TimeInterval time);
 
 /*
  * The state machine itself is an array of these structures.

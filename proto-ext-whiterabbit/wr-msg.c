@@ -181,7 +181,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 		put_be32(buf+68, wrp->deltaRx.scaledPicoseconds.lsb);
 		len = 24;
 
-		/*JCB: Hack. serrvo_init() called too early. PTP state machine must be modify. */
+		/*JCB: Hack. servo_init() called too early. PTP state machine must be modify. */
 		/* We should stay in UNCALIBRATED state during WR protocol */
 		s->delta_txm_ps = delta_to_ps(wrp->otherNodeDeltaTx);
 		s->delta_rxm_ps = delta_to_ps(wrp->otherNodeDeltaRx);

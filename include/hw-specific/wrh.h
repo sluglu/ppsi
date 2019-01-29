@@ -29,12 +29,6 @@
 #define WRH_HW_CALIB_ERROR	-1
 #define WRH_HW_CALIB_NOT_FOUND	-3
 
-
-enum {
-	WRH_SERVO_ENTER, WRH_SERVO_LEAVE
-};
-
-
 #define FIX_ALPHA_FRACBITS 40
 #define FIX_ALPHA_FRACBITS_AS_FLOAT 40.0
 
@@ -70,7 +64,6 @@ struct wrh_operations {
 				    unsigned int calibrationPatternLen);
 	int (*calib_pattern_disable)(struct pp_instance *ppi);
 	int (*enable_timing_output)(struct pp_instance *ppi, int enable);
-	int (*servo_hook)(struct pp_instance *ppi, int action);
 	int (*read_corr_data)(struct pp_instance *ppi, int64_t *fixAlpha,
 			int32_t *clock_period, uint32_t *bit_slide_ps);
 

@@ -187,12 +187,12 @@ static int wr_handle_announce(struct pp_instance *ppi)
 	return 0;
 }
 
-static int  wr_sync_followup(struct pp_instance *ppi, struct pp_time *t1) {
+static int  wr_sync_followup(struct pp_instance *ppi) {
 
 	if (!WR_DSPOR(ppi)->wrModeOn)
 		return 0;
 
-	wr_servo_got_sync(ppi, t1, &ppi->t2);
+	wr_servo_got_sync(ppi);
 
 	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
 		wr_servo_update(ppi);
@@ -200,18 +200,18 @@ static int  wr_sync_followup(struct pp_instance *ppi, struct pp_time *t1) {
 	return 1; /* the caller returns too */
 }
 
-static int wr_handle_sync(struct pp_instance *ppi, struct pp_time *t1)
+static int wr_handle_sync(struct pp_instance *ppi)
 {
 	/* This handle is called in case of one step clock */
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	return wr_sync_followup(ppi,t1);
+	return wr_sync_followup(ppi);
 }
 
-static int wr_handle_followup(struct pp_instance *ppi, struct pp_time *t1)
+static int wr_handle_followup(struct pp_instance *ppi)
 {
 	/* This handle is called in case of two step clock */
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	return wr_sync_followup(ppi,t1);
+	return wr_sync_followup(ppi);
 }
 
 static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
@@ -328,6 +328,10 @@ static void wr_state_change(struct pp_instance *ppi)
 	}		 
 }
 
+static int wr_require_precise_timestamp(struct pp_instance *ppi) {
+	return WR_DSPOR(ppi)->wrModeOn;
+}
+
 struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
@@ -347,4 +351,6 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.unpack_announce = wr_unpack_announce,
 	.state_decision = wr_state_decision,
 	.state_change = wr_state_change,
+	.servo_reset= wr_servo_reset,
+	.require_precise_timestamp=wr_require_precise_timestamp,
 };

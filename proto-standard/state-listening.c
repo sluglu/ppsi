@@ -29,7 +29,7 @@ int pp_listening(struct pp_instance *ppi, void *buf, int len)
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
 	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we listen */
-	if (ppi->ext_hooks->listening)
+	if (is_ext_hook_available(ppi,listening))
 		e = ppi->ext_hooks->listening(ppi, buf, len);
 	if (e)
 		goto out;

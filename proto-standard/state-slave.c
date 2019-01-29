@@ -36,6 +36,7 @@ static pp_action *actions[] = {
 static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 			     int len)
 {
+	static int errcount=0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
 
@@ -64,18 +65,19 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 		ppi->t1 = sync.originTimestamp;
 		pp_time_add(&ppi->t1, &hdr->cField);
 		ppi->syncCF = 0;
+		/* t1 & t2 are saved in the instance. Check if they are correct */
+		if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
+			return 0;
+
 		/* Call the extension; it may do it all and ask to return */
-		if (ppi->ext_hooks->handle_sync) {
-			int ret = ppi->ext_hooks->handle_sync(ppi, &ppi->t1);
+		if ( is_ext_hook_available(ppi,handle_sync) ) {
+			int ret = ppi->ext_hooks->handle_sync(ppi);
 			if (ret == 1)
 				return 0;
 			if (ret < 0)
 				return ret;
 		}
-		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
-			pp_servo_got_psync(ppi);
-		else
-			pp_servo_got_sync(ppi);
+		pp_servo_got_sync(ppi);
 	}
 	return 0;
 }
@@ -83,8 +85,8 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 				 int len)
 {
+	static int errcount=0;
 	MsgFollowUp follow;
-	int ret = 0;
 
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
@@ -113,19 +115,19 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 	pp_time_add(&ppi->t1, &follow.preciseOriginTimestamp);
 	pp_time_add(&ppi->t1, &hdr->cField);
 	ppi->syncCF = hdr->cField.scaled_nsecs; /* for diag about TC */
-
-	/* Call the extension; it may do it all and ask to return */
-	if (ppi->ext_hooks->handle_followup)
-		ret = ppi->ext_hooks->handle_followup(ppi, &ppi->t1);
-	if (ret == 1)
+	/* t1 & t2 are saved in the instance. Check if they are correct */
+	if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
 		return 0;
-	if (ret < 0)
-		return ret;
-
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
-		pp_servo_got_psync(ppi);
-	else
-		pp_servo_got_sync(ppi);
+	/* Call the extension; it may do it all and ask to return */
+	if (is_ext_hook_available(ppi,handle_followup) ){
+		int ret = ppi->ext_hooks->handle_followup(ppi);
+		if (ret == 1)
+			return 0;
+		if (ret < 0)
+			return ret;
+	}
+	/* default servo action */
+	pp_servo_got_sync(ppi);
 
 	return 0;
 }
@@ -133,9 +135,9 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 static int slave_handle_response(struct pp_instance *ppi, void *buf,
 				 int len)
 {
-	int e = 0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgDelayResp resp;	
+	int ret;
 	
 	msg_unpack_delay_resp(buf, &resp);
 
@@ -155,15 +157,17 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 	/* WARNING: should be "sub" (see README-cfield::BUG)  */
 
 	pp_timeout_set(ppi, PP_TO_FAULT);
-	if (ppi->ext_hooks->handle_resp)
-		e = ppi->ext_hooks->handle_resp(ppi);
-	else
-		pp_servo_got_resp(ppi);
-	if (e)
-		return e;
+	if (is_ext_hook_available(ppi,handle_resp)) {
+		ret=ppi->ext_hooks->handle_resp(ppi);
+	}
+	else {
+		if ( (ret=pp_servo_got_resp(ppi)) && !ppi->ext_enabled ) {
+			ppi->link_state=PP_LSTATE_LINKED;
+		}
+	}
 
-	if (DSPOR(ppi)->logMinDelayReqInterval !=
-	    hdr->logMessageInterval) {
+	if ( ret &&
+			DSPOR(ppi)->logMinDelayReqInterval !=hdr->logMessageInterval) {
 		DSPOR(ppi)->logMinDelayReqInterval =
 			hdr->logMessageInterval;
 		/* new value for logMin */
@@ -200,7 +204,7 @@ static int slave_execute(struct pp_instance *ppi)
 {
 	int ret = 0;
 
-	if (ppi->ext_hooks->execute_slave)
+	if (is_ext_hook_available(ppi,execute_slave))
 		ret = ppi->ext_hooks->execute_slave(ppi);
 	if (ret == 1) /* done: just return */
 		return 0;
@@ -216,13 +220,13 @@ static int slave_execute(struct pp_instance *ppi)
  */
 int pp_slave(struct pp_instance *ppi, void *buf, int len)
 {
-	int e = 0; /* error var, to check errors in msg handling */
+	int ret = PP_SEND_OK; /* error var, to check errors in msg handling */
 	int uncalibrated = (ppi->state == PPS_UNCALIBRATED);
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
 	/* upgrade from uncalibrated to slave or back*/
 	if (uncalibrated) {
-		if ( ppi->ext_hooks->ready_for_slave != NULL )  {
+		if ( is_ext_hook_available(ppi,ready_for_slave) )  {
 			if ( (*ppi->ext_hooks->ready_for_slave)(ppi) ) {
 				ppi->next_state = PPS_SLAVE;
 			}
@@ -244,9 +248,9 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");	
 		pp_servo_init(ppi);
 
-		if (ppi->ext_hooks->new_slave)
-			e = ppi->ext_hooks->new_slave(ppi, buf, len);
-		if (e)
+		if (is_ext_hook_available(ppi,new_slave))
+			ret = ppi->ext_hooks->new_slave(ppi, buf, len);
+		if (ret!=PP_SEND_OK)
 			goto out;
 	}
 
@@ -258,7 +262,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	 */
 	if (hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
-		e = actions[hdr->messageType](ppi, buf, len);
+		ret = actions[hdr->messageType](ppi, buf, len);
 	} else {
 		if (len)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
@@ -269,25 +273,17 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	 * This function, common to uncalibrated and slave,
 	 * is the core of the slave: hook
 	 */
-	e = slave_execute(ppi);
+	ret = slave_execute(ppi);
 
 	st_com_check_announce_receive_timeout(ppi);
 
 out:
-	switch(e) {
-	case PP_SEND_OK: /* 0 */
-		break;
-	case PP_SEND_ERROR:
-		/* ignore: a lost frame is not the end of the world */
-		break;
-	case PP_SEND_NO_STAMP:
-		/* nothing, just keep the ball rolling */
-		e = 0;
-		break;
+	if ( ret==PP_SEND_NO_STAMP ) {
+		ret = PP_SEND_OK;/* nothing, just keep the ball rolling */
 	}
 
 	ppi->next_delay = pp_next_delay_2(ppi,
 		PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
-	return e;
+	return ret;
 }
 

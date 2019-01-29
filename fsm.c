@@ -276,7 +276,25 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	if (ppi->state != ppi->next_state)
 		return pp_leave_current_state(ppi);
 
-	if (!len)
+	if (len) {
+			if ( ppi->link_state == PP_LSTATE_PROTOCOL_DETECTION ) {
+				if ( ppi->ptp_msg_received==FALSE ) {
+					/* First frame received since instance initialization */
+					int tmo;
+
+					ppi->ptp_msg_received=TRUE;
+					if ( ppi->ext_hooks->get_tmo_lstate_detection!=NULL)
+						tmo=(*ppi->ext_hooks->get_tmo_lstate_detection)(ppi);
+					else
+						tmo= ppi->timeouts[PP_TO_ANN_RECEIPT].initValueMs;
+					__pp_timeout_set(ppi,PP_TO_PROT_STATE, tmo);
+				}
+			}
+			if ( !ppi->ext_enabled && ppi->link_state==PP_LSTATE_PROTOCOL_DETECTION) {
+				/* Ptp protocol only */
+				ppi->link_state= PP_LSTATE_IN_PROGRESS;
+			}
+	} else
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
 
 	err = ip->f1(ppi, buf, len);
@@ -287,6 +305,19 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	/* done: if new state mark it, and enter it now (0 ms) */
 	if (ppi->state != ppi->next_state)
 		return pp_leave_current_state(ppi);
+
+	/* Check protocol state */
+	if ( ppi->link_state==PP_LSTATE_PROTOCOL_DETECTION ) {
+		if ( ppi->ptp_msg_received && pp_timeout(ppi, PP_TO_PROT_STATE) ) {
+			if ( ppi->ptp_support && ppi->ext_enabled ) {
+				ppi->ext_enabled=FALSE;
+				ppi->ptp_msg_received=FALSE;
+			} else
+				ppi->link_state=PP_LSTATE_FAILURE;
+		}
+	}
+	if (ppi->link_state==PP_LSTATE_FAILURE ) {
+	}
 
 	/* run bmc independent of state, and since not message driven do this
 	 * here 9.2.6.8 */
@@ -307,6 +338,11 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	/* Run the extension state machine. The extension can provide its own time-out */
 	if ( ppi->ext_hooks->run_ext_state_machine) {
 		int delay = ppi->ext_hooks->run_ext_state_machine(ppi);
+		if ( ppi->link_state==PP_LSTATE_FAILURE && ppi->ptp_support && ppi->ext_enabled ) {
+			ppi->ext_enabled=FALSE;
+			ppi->link_state=PP_LSTATE_PROTOCOL_DETECTION;
+		}
+
 		ppi->next_delay= (delay < ppi->next_delay) ? delay : ppi->next_delay;
 	}
 

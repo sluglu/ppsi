@@ -284,7 +284,7 @@ void bmc_s1(struct pp_instance *ppi,
 	prop->ptpTimescale = ((frgn_master->flagField[1] & FFB_PTP) != 0);
 	prop->timeSource = frgn_master->timeSource;
 
-	if (ppi->ext_hooks->s1)
+	if (is_ext_hook_available(ppi,s1))
 		ppi->ext_hooks->s1(ppi, frgn_master);
 }
 
@@ -1509,7 +1509,7 @@ int bmc(struct pp_instance *ppi)
 	}
 
 	/* Extra states handled here */
-	if (ppi->ext_hooks->state_decision)
+	if (is_ext_hook_available(ppi,state_decision))
 		next_state = ppi->ext_hooks->state_decision(ppi, next_state);
 
 	return next_state;

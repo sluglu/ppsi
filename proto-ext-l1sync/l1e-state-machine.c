@@ -47,7 +47,6 @@ static l1e_state_machine_t le1_state_actions[] ={
 		},
 };
 
-
 /*
  * This hook is called by fsm to run the extension state machine.
  * It is used to send signaling messages.
@@ -59,6 +58,9 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 	Enumeration8 nextState=basicDS->next_state;
 	Boolean newState=nextState!=basicDS->L1SyncState;
 	int delay;
+
+	if ( !ppi->ext_enabled )
+		return INT_MAX; /* Return a big delay. fsm will then not use it */
 
 	if ( nextState>=MAX_STATE_ACTIONS)
 		return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC);
@@ -74,8 +76,7 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 	/* Check L1SYNC reception Time-out */
 	if ( pp_timeout(ppi, L1E_TIMEOUT_RX_SYNC) ) {
 		/* Time-out detected */
-		int timeout_tx_sync = (4 << (basicDS->logL1SyncInterval + 8)) * basicDS->L1SyncReceiptTimeout;
-		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, timeout_tx_sync);
+		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basicDS));
 		basicDS->L1SyncLinkAlive = FALSE;
 		execute_state_machine=TRUE;
 	}
@@ -248,8 +249,6 @@ static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state)
 																l1e_portDS->basic.peerIsRxCoherent =
 																		l1e_portDS->basic.peerIsCongruent =
 																				FALSE;
-		/* Set extension mode disabled */
-		l1e_portDS->head.extModeOn = l1e_portDS->parentExtModeOn = 0;
 	}
 	/* Check if state transition needed */
 	if ( le1_evt_L1_SYNC_ENABLED(ppi) && !le1_evt_L1_SYNC_RESET(ppi) ) {
@@ -276,8 +275,6 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 								l1e_portDS->basic.peerIsTxCoherent  =
 										l1e_portDS->basic.peerIsRxCoherent=
 												l1e_portDS->basic.peerIsCongruent = FALSE;
-		/* Set extension mode disabled */
-		l1e_portDS->head.extModeOn = l1e_portDS->parentExtModeOn = 0;
 		l1e_send_sync_msg(ppi,1); /* Send immediately a message */
 	}
 
@@ -285,6 +282,7 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 	if ( !le1_evt_L1_SYNC_ENABLED(ppi) || le1_evt_L1_SYNC_RESET(ppi) ) {
 		/* Go to DISABLE state */
 		l1e_portDS->basic.next_state=L1SYNC_DISABLED;
+		ppi->link_state=PP_LSTATE_FAILURE;
 		return 0; /* Treatment required asap */
 	}
 	if ( le1_evt_LINK_OK(ppi) ) {
@@ -303,8 +301,7 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 	/* State initialization */
 	if ( new_state ) {
 		/* Initialize time-out peer L1SYNC reception */
-		int timeout_tx_sync = (4 << (basic->logL1SyncInterval + 8)) * basic->L1SyncReceiptTimeout;
-		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, timeout_tx_sync);
+		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basic));
 
 	}
 	/* Check if state transition needed */
@@ -374,9 +371,9 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 
 	/* State initialization */
 	if ( new_state ) {
-		l1e_servo_init(ppi); /* The servo can be initialized because the PPL is locked */
-		l1e_portDS->head.extModeOn =
-				l1e_portDS->parentExtModeOn = 1;
+		// JCB - test one servo
+		// l1e_servo_init(ppi); /* The servo can be initialized because the PPL is locked */
+
 		WRH_OPER()->enable_ptracker(ppi);
 	}
 
@@ -384,6 +381,7 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	if ( !le1_evt_LINK_OK(ppi) ) {
 		/* Go to IDLE state */
 		next_state=L1SYNC_IDLE;
+		ppi->link_state=PP_LSTATE_FAILURE;
 	}
 	if ( !le1_evt_CONFIG_OK(ppi) ) {
 		/* Return to LINK_ALIVE state */
@@ -395,14 +393,13 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	}
 	if (next_state!=0 ) {
 		l1e_portDS->basic.next_state=next_state;
-		l1e_portDS->head.extModeOn =
-				l1e_portDS->parentExtModeOn = 0;
 		WRH_OPER()->locking_disable(ppi); /* Unlock the PLL */
 		l1e_servo_reset(ppi);
 		return 0; /* Treat the next state asap */
 	}
 
 	/* Iterative treatment */
+	ppi->link_state=PP_LSTATE_LINKED;
 	l1e_update_correction_values(ppi);
 	l1e_send_sync_msg(ppi,0);
 	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */

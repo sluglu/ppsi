@@ -150,14 +150,13 @@ int wr_servo_init(struct pp_instance *ppi)
 	return 0;
 }
 
-int wr_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
-		      struct pp_time *t2)
+int wr_servo_got_sync(struct pp_instance *ppi)
 {
 	struct wr_servo_state *s =
 			&((struct wr_data *)ppi->ext_data)->servo_state;
 
-	s->t1 = *t1; apply_faulty_stamp(s, 1);
-	s->t2 = *t2; apply_faulty_stamp(s, 2);
+	s->t1 = ppi->t1; apply_faulty_stamp(s, 1);
+	s->t2 = ppi->t2; apply_faulty_stamp(s, 2);
 	got_sync = 1;
 	return 0;
 }
@@ -222,8 +221,6 @@ static int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
     }
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 1)) {
-		dump_timestamp(ppi, "servo:t1", s->t1);
-		dump_timestamp(ppi, "servo:t2", s->t2);
 		dump_timestamp(ppi, "servo:t3", s->t3);
 		dump_timestamp(ppi, "servo:t4", s->t4);
 		dump_timestamp(ppi, "servo:t5", s->t5);
@@ -284,9 +281,6 @@ static int wr_e2e_offset(struct pp_instance *ppi,
 
 	if ( is_timestamps_incorrect(ppi,&errcount, 0xF /* mask=t1&t2&t3&t4 */))
 		return 0;
-
-	if (WRH_OPER()->servo_hook) /* FIXME: check this, missing in p2p */
-		WRH_OPER()->servo_hook(ppi, WRH_SERVO_ENTER);
 
 	SRV(ppi)->update_count++;
 	ppi->t_ops->get(ppi, &s->update_time);
@@ -522,9 +516,6 @@ int wr_servo_update(struct pp_instance *ppi)
 out:
 	/* shmem unlock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
-
-	if (WRH_OPER()->servo_hook)
-		WRH_OPER()->servo_hook(ppi, WRH_SERVO_LEAVE);
 
 	return 0;
 }

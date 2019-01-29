@@ -82,8 +82,8 @@ struct dump_info dstp_info [] = {
 #define DUMP_STRUCT struct pp_servo
 struct dump_info servo_state_info [] = {
 	DUMP_FIELD(int , state),
+	DUMP_FIELD(time, delayMM),
 	DUMP_FIELD(time, delayMS),
-	DUMP_FIELD(time, delaySM),
 	DUMP_FIELD(long_long, obs_drift),
 	DUMP_FIELD(Integer64, mpd_fltr.m),
 	DUMP_FIELD(Integer64, mpd_fltr.y),
@@ -91,7 +91,14 @@ struct dump_info servo_state_info [] = {
 	DUMP_FIELD(time, meanDelay),
 	DUMP_FIELD(time, offsetFromMaster),
 	DUMP_FIELD(unsigned_long,      flags),
+	DUMP_FIELD(time, update_time),
 	DUMP_FIELD(UInteger32, update_count),
+	DUMP_FIELD(time, t1),
+	DUMP_FIELD(time, t2),
+	DUMP_FIELD(time, t3),
+	DUMP_FIELD(time, t4),
+	DUMP_FIELD(time, t5),
+	DUMP_FIELD(time, t6),
 	DUMP_FIELD_SIZE(char, servo_state_name,32),
 	DUMP_FIELD(int,       servo_locked),
 };
@@ -101,7 +108,6 @@ struct dump_info servo_state_info [] = {
 #define DUMP_STRUCT struct l1e_servo_state
 struct dump_info l1e_servo_state_info [] = {
 	DUMP_FIELD(Integer32, clock_period_ps),
-	DUMP_FIELD(time,      delayMM),
 	DUMP_FIELD(Integer64, delayMM_ps),
 	DUMP_FIELD(Integer32, cur_setpoint_ps),
 	DUMP_FIELD(Integer64, delayMS_ps),
@@ -111,13 +117,6 @@ struct dump_info l1e_servo_state_info [] = {
 	DUMP_FIELD(UInteger32, n_err_state),
 	DUMP_FIELD(UInteger32, n_err_offset),
 	DUMP_FIELD(UInteger32, n_err_delta_rtt),
-	DUMP_FIELD(time, update_time),
-	DUMP_FIELD(time, t1),
-	DUMP_FIELD(time, t2),
-	DUMP_FIELD(time, t3),
-	DUMP_FIELD(time, t4),
-	DUMP_FIELD(time, t5),
-	DUMP_FIELD(time, t6),
 	DUMP_FIELD(Integer64, prev_delayMS_ps),
 	DUMP_FIELD(int, missed_iters),
 };
@@ -125,7 +124,6 @@ struct dump_info l1e_servo_state_info [] = {
 #undef DUMP_STRUCT
 #define DUMP_STRUCT l1e_ext_portDS_t
 struct dump_info l1e_ext_portDS_info [] = {
-	DUMP_FIELD(Boolean,  parentExtModeOn),
 	DUMP_FIELD(Boolean,  basic.L1SyncEnabled),
 	DUMP_FIELD(Boolean,  basic.txCoherentIsRequired),
 	DUMP_FIELD(Boolean,  basic.rxCoherentIsRequired),

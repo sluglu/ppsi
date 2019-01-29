@@ -122,14 +122,14 @@ int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	if ( ! DSPOR(ppi)->masterOnly ) {
 		bmc_add_frgn_master(ppi, buf, len);
 	}
-	if (ppi->ext_hooks->handle_announce)
+	if (is_ext_hook_available(ppi,handle_announce))
 		return ppi->ext_hooks->handle_announce(ppi);
 	return 0;
 }
 
 int st_com_handle_signaling(struct pp_instance *ppi, void *buf, int len)
 {
-	if (ppi->ext_hooks->handle_signaling)
+	if (is_ext_hook_available(ppi,handle_signaling))
 		return ppi->ext_hooks->handle_signaling(ppi,buf,len);
 	return 0;
 }
@@ -173,5 +173,3 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_f
 void __attribute__((weak)) update_meanDelay(struct pp_instance *ppi, TimeInterval meanDelay) {
 	DSCUR(ppi)->meanDelay=meanDelay;
 }
-
-

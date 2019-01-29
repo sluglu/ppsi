@@ -139,11 +139,23 @@ int main(int argc, char **argv)
 
 	/* check if pid is 0 (shm not filled) or process with provided
 	 * pid does not exist (probably crashed) */
-	if ((ppsi_head->pid != 0) && (kill(ppsi_head->pid, 0) == 0)) {
-		wrs_shm_put(ppsi_head);
-		pp_printf("Fatal: There is another PPSi instance running. "
-			  "Exit...\n\n");
-		exit(1);
+	{
+		int nbTry=1;
+
+		while ( nbTry >= 0 ) {
+			if ((ppsi_head->pid != 0) && (kill(ppsi_head->pid, 0) == 0)) {
+				nbTry--;
+				sleep(1);
+			}
+			else
+				break;
+		}
+		if ( nbTry<0 ) {
+			wrs_shm_put(ppsi_head);
+			pp_printf("Fatal: There is another PPSi instance running. "
+				  "Exit...\n\n");
+			exit(1);
+		}
 	}
 
 	/* try connecting to HAL multiple times in case it's still not ready */

@@ -325,6 +325,7 @@ int main(int argc, char **argv)
 				/* Do not take care of L1SYNC */
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
 				break;
+#if CONFIG_PROFILE_CUSTOM == 1
 			case PPSI_PROFILE_CUSTOM :
 #if CONFIG_EXT_L1SYNC
 				if (ppi->cfg.l1SyncEnabled ) {
@@ -342,6 +343,7 @@ int main(int argc, char **argv)
 #endif
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
 				break;
+#endif
 			}
 			/* Parameters profile independent */
 			ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps);

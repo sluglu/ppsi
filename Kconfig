@@ -101,6 +101,22 @@ menu "PTP Protocol Options"
 
 endmenu
 
+menu "Profiles"
+
+	config PROFILE_WR
+		bool "WhiteRabbit"
+		default y if ARCH_WRS
+
+	config PROFILE_HA
+		bool "HighAccuracy"
+		default y if ARCH_WRS || ARCH_WRPC
+
+	config PROFILE_CUSTOM
+		bool "Custom"
+		default y if ARCH_WRS
+
+endmenu
+
 config ASSERT
 	bool "Build assertion checks in the code"
 	default n
@@ -110,17 +126,9 @@ config ASSERT
 	    error message every second. OTOH, panic() is always built,
 	    with no Kconfig -- and it does the same, unconditionally.
 
-config PROFILE_WR
-	bool
-	default y if ARCH_WRS
-
-config PROFILE_HA
-	bool
-	default y if ARCH_WRS || ARCH_WRPC
-
 config PROFILE_PTP
 	bool
-	default y if !(PROFILE_WR || PROFILE_HA)
+	default y
 
 config EXT_WR
 	bool
@@ -132,7 +140,7 @@ config EXT_L1SYNC
 
 config EXT_NONE
 	bool 
-	default y if PROFILE_PTP
+	default y if !(PROFILE_WR || PROFILE_HA || PROFILE_CUSTOM)
 	
 config CROSS_COMPILE
        string "Cross compiler prefix"

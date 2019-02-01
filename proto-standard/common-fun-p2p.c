@@ -180,7 +180,8 @@ void update_meanDelay(struct pp_instance *ppi, TimeInterval meanDelay) {
 		if ( ppi->state != PPS_SLAVE )
 			return;
 	}
-	DSCUR(ppi)->meanDelay=meanDelay;
+	if (ppi->state == PPS_SLAVE )
+		DSCUR(ppi)->meanDelay=meanDelay;
 }
 
 

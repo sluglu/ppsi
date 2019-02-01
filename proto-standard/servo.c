@@ -211,7 +211,8 @@ int pp_servo_calculate_delays(struct pp_instance *ppi) {
 	pp_time_sub(&servo->offsetFromMaster, &servo->t2);
 	pp_time_add(&servo->offsetFromMaster, &servo->delayMS); /* Add delayMS */
 
-	DSCUR(ppi)->offsetFromMaster = pp_time_to_interval(&servo->offsetFromMaster);  /* Update currentDS.offsetFromMaster */
+	if ( ppi->state==PPS_SLAVE )
+		DSCUR(ppi)->offsetFromMaster = pp_time_to_interval(&servo->offsetFromMaster);  /* Update currentDS.offsetFromMaster */
 
 	picos_to_pp_time(meanDelay_ps,&servo->meanDelay); /* update servo.meanDelay */
 	update_meanDelay(ppi,picos_to_interval(meanDelay_ps)); /* update currentDS.meanDelay and portDS.meanLinkDelay (if needed) */

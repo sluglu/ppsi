@@ -14,7 +14,7 @@
 #define PP_PSEC_PER_SEC ((int64_t)1000*(int64_t)PP_NSEC_PER_SEC)
 
 /* implementation specific constants */
-#define PP_MAX_LINKS				64
+#define PP_MAX_LINKS				(CONFIG_NR_PORTS*CONFIG_NR_INSTANCES_PER_PORT)
 #define PP_DEFAULT_CONFIGFILE			"/etc/ppsi.conf"
 
 #define PP_DEFAULT_FLAGS			0
@@ -58,6 +58,14 @@
 
 #define PP_DEFAULT_EXT_PORT_CONFIG_ENABLE		0
 
+#define PP_MIN_PTP_PPSGEN_THRESHOLD_MS        1
+#define PP_MAX_PTP_PPSGEN_THRESHOLD_MS     1000
+#define PP_DEFAULT_PTP_PPSGEN_THRESHOLD_MS  500
+
+#define PP_MIN_GM_DELAY_TO_GEN_PPS_SEC        0
+#define PP_MAX_GM_DELAY_TO_GEN_PPS_SEC     1000
+#define PP_DEFAULT_GM_DELAY_TO_GEN_PPS_SEC    0 // No PPS
+
 /* Clock classes (pag 55, PTP-2008). See ppsi-manual for an explanation */
 #define PP_MIN_CLOCK_CLASS              0
 #define PP_MAX_CLOCK_CLASS              255
@@ -90,35 +98,19 @@
 #define PP_ARB_VARIANCE_GM_HOLDOVER		0xC71D
 #define PP_ARB_VARIANCE_GM_UNLOCKED		0xC71D
 
-#define PP_SERVO_UNKNOWN			0
-#define PP_SERVO_LOCKED				1
-#define PP_SERVO_HOLDOVER			2
-#define PP_SERVO_UNLOCKED			3
-
-#ifdef CONFIG_ARCH_WRPC
-#define PP_NR_FOREIGN_RECORDS			1  /* Does not follow the standard : Clause 9.3.2.4.5 */
-#else
-#define PP_NR_FOREIGN_RECORDS			5  /* Clause 9.3.2.4.5 : Minimum size capacity is 5 */
-#endif
-#define PP_FOREIGN_MASTER_TIME_WINDOW		4
+#define PP_NR_FOREIGN_RECORDS           CONFIG_NR_FOREIGN_RECORDS	  /* Clause 9.3.2.4.5 */
+#define PP_FOREIGN_MASTER_TIME_WINDOW	4
 #define PP_FOREIGN_MASTER_THRESHOLD		2
-#define PP_DEFAULT_TTL				1
+#define PP_DEFAULT_TTL				    1
 
-/* We use an array of timeouts, with these indexes */
-enum pp_timeouts {
-	PP_TO_REQUEST = 0,
-	PP_TO_SYNC_SEND,
-	PP_TO_BMC,
-	PP_TO_ANN_RECEIPT,
-	PP_TO_ANN_SEND,
-	PP_TO_FAULT,
-	PP_TO_QUALIFICATION,
-	PP_TO_PROT_STATE,
-	/* Two timeouts for the protocol extension  */
-	PP_TO_EXT_0,
-	PP_TO_EXT_1,
-	__PP_TO_ARRAY_SIZE,
-};
+typedef enum {
+	PP_TIMING_MODE_STATE_ERROR=-1,
+	PP_TIMING_MODE_STATE_UNLOCKED=0,
+	PP_TIMING_MODE_STATE_LOCKED,
+	PP_TIMING_MODE_STATE_HOLDOVER,
+	PP_TIMING_MODE_STATE_UNKNOWN
+}timing_mode_state_t;
+
 
 #define PP_ALTERNATE_MASTER_FLAG	1
 #define PP_TWO_STEP_FLAG		2

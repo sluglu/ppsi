@@ -30,15 +30,15 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen)
 
 	if (ppi->is_new_state) {
 		/* add 1s to be enough in the future, the first time */
-		__pp_timeout_set(ppi, PP_TO_EXT_0, 990 + next_pps_ms(ppi, &t));
+		pp_timeout_set_rename(ppi, wrTmoIdx, 990 + next_pps_ms(ppi, &t),"WR_ABSCAL");
 		return 0;
 	}
 
 	i = next_pps_ms(ppi, &t) - 10;
-	if (pp_timeout(ppi, PP_TO_EXT_0)) {
+	if (pp_timeout(ppi, wrTmoIdx)) {
 		uint64_t secs = t.secs;
 
-		wrp->ops->enable_timing_output(ppi, 1);
+		WRH_OPER()->enable_timing_output(GLBS(ppi), 1);
 
 		/* Wait for the second to tick */
 		while( ppi->t_ops->get(ppi, &t), t.secs == secs)
@@ -50,7 +50,7 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen)
 		__send_and_log(ppi, len, PP_NP_EVT);
 
 		/* And again next second */
-		__pp_timeout_set(ppi, PP_TO_EXT_0, next_pps_ms(ppi, &t) - 10);
+		pp_timeout_set(ppi, wrTmoIdx, next_pps_ms(ppi, &t) - 10);
 		ppi->next_delay = next_pps_ms(ppi, &t) - 10;
 		return 0;
 	}

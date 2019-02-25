@@ -22,8 +22,7 @@ static const char *l1e_servo_state_name[] = {
 
 /* Enable tracking by default. Disabling the tracking is used for demos. */
 static int l1e_tracking_enabled = 1;
-static struct pp_time l1e_faulty_stamps[6]; /* if unused, dropped at link time */
-
+extern struct pp_time faulty_stamps[6]; /* if unused, dropped at link time */
 
 /* prototypes */
 static int __l1e_servo_update(struct pp_instance *ppi);
@@ -49,8 +48,6 @@ int l1e_servo_init(struct pp_instance *ppi)
 	/* Update correction data in data sets*/
 	if (l1e_update_correction_values(ppi) < 0)
 		return -1;
-
-	WRH_OPER()->enable_timing_output(ppi, 0);
 
 	/*
 	 * Do not reset cur_setpoint, but trim it to be less than one tick.
@@ -105,8 +102,8 @@ int l1e_servo_got_sync(struct pp_instance *ppi)
 	/* shmem lock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
-	gs->t1=ppi->t1;pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps,1);
-	gs->t2=ppi->t2;pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps, 2);
+	gs->t1=ppi->t1;apply_faulty_stamp(ppi,1);
+	gs->t2=ppi->t2;apply_faulty_stamp(ppi,2);
 
 
 	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P && gs->got_sync) {
@@ -141,8 +138,8 @@ int l1e_servo_got_resp(struct pp_instance *ppi)
 
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
-	gs->t3 = ppi->t3; pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps,3);
-	gs->t4 = ppi->t4; pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps,4);
+	gs->t3 = ppi->t3; apply_faulty_stamp(ppi,3);
+	gs->t4 = ppi->t4; apply_faulty_stamp(ppi,4);
 
 	ret=__l1e_servo_update(ppi);
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
@@ -162,10 +159,10 @@ int l1e_servo_got_presp(struct pp_instance *ppi)
 
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
-	gs->t3 = ppi->t3; pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps,3);
-	gs->t4 = ppi->t4; pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps,4);
-	gs->t5 = ppi->t5; pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps,5);
-	gs->t6 = ppi->t6; pp_servo_apply_faulty_stamp(gs, l1e_faulty_stamps,6);
+	gs->t3 = ppi->t3; apply_faulty_stamp(ppi,3);
+	gs->t4 = ppi->t4; apply_faulty_stamp(ppi,4);
+	gs->t5 = ppi->t5; apply_faulty_stamp(ppi,5);
+	gs->t6 = ppi->t6; apply_faulty_stamp(ppi,6);
 
 	gs->got_sync=1;
 
@@ -204,23 +201,13 @@ static int __l1e_servo_update(struct pp_instance *ppi)
 	gs->update_count++;
 	ppi->t_ops->get(ppi, &gs->update_time);
 
-//	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
-//		if (!l1e_p2p_offset(ppi, s, &offsetMS))
-//			goto out;
-//	} else {
-//		if (!l1e_e2e_offset(ppi, s, &offsetMS))
-//			goto out;
-//	}
-
-
 	if (pds->basic.L1SyncState  != L1SYNC_UP)
 		return 1; /* State is not UP. We have to wait before to start the synchronisation */
 
-	locking_poll_ret = WRH_OPER()->locking_poll(ppi, 0);
+	locking_poll_ret = WRH_OPER()->locking_poll(ppi);
 	if (locking_poll_ret != WRH_SPLL_READY
 	    && locking_poll_ret != WRH_SPLL_CALIB_NOT_READY) {
-		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
-		WRH_OPER()->enable_timing_output(ppi, 0);
+		pp_diag(ppi, servo, 1, "PLL out of lock\n");
 		/* TODO check
 		 * DSPOR(ppi)->doRestart = TRUE; */
 	}
@@ -286,7 +273,7 @@ static int __l1e_servo_update(struct pp_instance *ppi)
 		gs->flags |= PP_SERVO_FLAG_WAIT_HW;
 		gs->state = L1E_WAIT_OFFSET_STABLE;
 
-		if (ARCH_IS_WRS) {
+		if (CONFIG_ARCH_IS_WRS) {
 			/*
 			 * Now, let's fix system time. We pass here
 			 * once only, so that's the best place to do
@@ -305,7 +292,7 @@ static int __l1e_servo_update(struct pp_instance *ppi)
 		/* ts_to_picos() below returns phase alone */
 		remaining_offset = abs(pp_time_to_picos(&offsetMS));
 		if(remaining_offset < WRH_SERVO_OFFSET_STABILITY_THRESHOLD) {
-			WRH_OPER()->enable_timing_output(ppi, 1);
+			WRH_OPER()->enable_timing_output(GLBS(ppi),1);
 			s->prev_delayMS_ps = s->delayMS_ps;
 			gs->state = L1E_TRACK_PHASE;
 		} else {

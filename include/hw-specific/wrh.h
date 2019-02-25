@@ -10,6 +10,7 @@
 #define __WRH_H__
 
 #include <stdint.h>
+#include <hal_exports.h>
 #include <ppsi/lib.h>
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data structure */
@@ -34,16 +35,19 @@
 
 #define WRH_SERVO_OFFSET_STABILITY_THRESHOLD 60 /* psec */
 
-#ifdef CONFIG_WRPC_FAULTS
-#define PROTO_EXT_HAS_FAULTS 1
-#else
-#define PROTO_EXT_HAS_FAULTS 0
-#endif
+/* Parameter of wrs_set_timing_mode */
+typedef enum {
+	TM_GRAND_MASTER=HAL_TIMING_MODE_GRAND_MASTER,
+	TM_FREE_MASTER= HAL_TIMING_MODE_FREE_MASTER,
+	TM_BOUNDARY_CLOCK=HAL_TIMING_MODE_BC,
+	TM_DISABLED=HAL_TIMING_MODE_DISABLED
+}timing_mode_t;
+
 
 /* White Rabbit hw-dependent functions (code in arch-wrpc and arch-wrs) */
 struct wrh_operations {
 	int (*locking_enable)(struct pp_instance *ppi);
-	int (*locking_poll)(struct pp_instance *ppi, int grandmaster);
+	int (*locking_poll)(struct pp_instance *ppi);
 	int (*locking_disable)(struct pp_instance *ppi);
 	int (*locking_reset)(struct pp_instance *ppi);
 	int (*enable_ptracker)(struct pp_instance *ppi);
@@ -63,10 +67,12 @@ struct wrh_operations {
 				    unsigned int calibrationPattern,
 				    unsigned int calibrationPatternLen);
 	int (*calib_pattern_disable)(struct pp_instance *ppi);
-	int (*enable_timing_output)(struct pp_instance *ppi, int enable);
+	int (*enable_timing_output)(struct pp_globals *,int enable);
 	int (*read_corr_data)(struct pp_instance *ppi, int64_t *fixAlpha,
 			int32_t *clock_period, uint32_t *bit_slide_ps);
-
+	timing_mode_t (*get_timing_mode)(struct pp_globals *);
+	timing_mode_state_t (*get_timing_mode_state)(struct pp_globals *);
+	int (*set_timing_mode)(struct pp_globals *, timing_mode_t tm);
 };
 
 extern struct wrh_operations wrh_oper;

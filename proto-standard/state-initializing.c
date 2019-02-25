@@ -13,6 +13,7 @@
  */
 static void init_parent_ds(struct pp_instance *ppi)
 {	
+
 	/* 8.2.3.2 */
 	DSPAR(ppi)->parentPortIdentity.clockIdentity =
 		DSDEF(ppi)->clockIdentity;
@@ -38,22 +39,39 @@ static void init_parent_ds(struct pp_instance *ppi)
 
 int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 {
-	unsigned char *mac;
-	unsigned char mac_port1[6];
 	portDS_t *port = DSPOR(ppi);
 	struct pp_globals *ppg = GLBS(ppi);
 	int ret = 0;
 	int i;
-	unsigned int portidx;
-	unsigned int remainder;
 	int initds = 1;
+
+	if ( ppg->waitGmLocking ) {
+		/* Waithing for GM locking */
+		if ( ppi->is_new_state ) {
+			/* Init time-out for next calls : Wait 2 x  the BMCA tmo */
+			pp_timeout_set(ppi,PP_TO_IN_STATE,TMO_DEFAULT_BMCA_MS<<1);
+		}else {
+			if ( pp_timeout(ppi,PP_TO_IN_STATE)) {
+				/* At this point, the BMCA already run. We can check the clockClass */
+				if ( DSDEF(ppi)->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
+					ppg->waitGmLocking=0; /* The clock is locked now */
+					pp_timeout_disable(ppi,PP_TO_IN_STATE);
+				}
+				else {
+					pp_timeout_reset(ppi,PP_TO_IN_STATE);
+					goto failure;
+				}
+			} else
+				goto failure;
+		}
+	}
 
 	if (ppi->n_ops->init(ppi) < 0) /* it must handle being called twice */
 		goto failure;
 
 	/* only fill in the data set when initializing */
-	if (!CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
-		for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
+	if ( get_numberPorts(GDSDEF(ppg)) > 1) {
+		for (i = 0; i < get_numberPorts(GDSDEF(ppg)); i++) {
 			if ((INST(ppg, i)->state != PPS_INITIALIZING) && (INST(ppg, i)->link_up == TRUE)) 
 				initds = 0;
 		}			
@@ -64,28 +82,35 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	 */
 	if (initds) 
 	{
-		if (!CODEOPT_ONE_PORT() && DSDEF(ppi)->numberPorts > 1) {
+		unsigned char mac_port1[PP_MAC_ADRESS_SIZE];
+		unsigned char *mac;
+		unsigned char *pci;
+
+		if (get_numberPorts(GDSDEF(ppg)) > 1) {
 			/* Clock identity comes from mac address with 0xff:0xfe intermixed */
-			mac = ppi->ch[PP_NP_GEN].addr;
 			/* calculate MAC of Port 0 */
-			portidx = ppi - ppi->glbs->pp_instances;
-			remainder = portidx;
-			for (i = 5; i >= 0; i--) {
-				mac_port1[i] = mac[i] - remainder;
-				if (mac[i] >= remainder)
-					remainder = 0;
-				else
-					remainder = 1;
+			unsigned char portIdx;
+
+			if ( (portIdx = ppi - ppi->glbs->pp_instances) > 0 ) {
+				unsigned char *mac = ppi->ch[PP_NP_GEN].addr;
+				unsigned char remainder = portIdx;
+				for (i = sizeof(mac_port1)-1; i >= 0; i--) {
+					mac_port1[i] = mac[i] - remainder;
+					if (mac[i] >= remainder)
+						remainder = 0;
+					else
+						remainder = 1;
+				}
 			}
 		} else {
-			/* Clock identity comes from mac address with 0xff:0xfe intermixed */
-			for (i = 5; i >= 0; i--)
-				mac_port1[i] = ((unsigned char*)ppi->ch[PP_NP_GEN].addr)[i];
+			memcpy (mac_port1,ppi->ch[PP_NP_GEN].addr,sizeof(mac_port1));
 		}
-			
-		memcpy( DSDEF(ppi)->clockIdentity.id, mac_port1, PP_CLOCK_IDENTITY_LENGTH);
-		DSDEF(ppi)->clockIdentity.id[3] = 0xff;
-		DSDEF(ppi)->clockIdentity.id[4] = 0xfe;
+		pci=DSDEF(ppi)->clockIdentity.id;
+		mac=mac_port1;
+		*(pci++)=*(mac++);*(pci++)=*(mac++); *(pci++)=*(mac++);
+		*(pci++)= 0xff;
+		*(pci++)= 0xfe;
+		*(pci++)=*(mac++); *(pci++)=*(mac++); *pci=*mac;
 
 		init_parent_ds(ppi);	
 	}
@@ -99,9 +124,15 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	port->portIdentity.portNumber = 1 + ppi - ppi->glbs->pp_instances;
 	port->versionNumber = PP_VERSION_PTP;
 	port->minorVersionNumber = PP_MINOR_VERSION_PTP;
+
+	/* Init timers */
+	ppi->portDS->logAnnounceInterval=(Integer8)ppi->cfg.announce_interval;
+	ppi->portDS->announceReceiptTimeout=(UInteger8)ppi->cfg.announce_receipt_timeout;
+	ppi->portDS->logSyncInterval=(Integer8)ppi->cfg.sync_interval;
+	ppi->portDS->logMinDelayReqInterval=(Integer8)ppi->cfg.min_delay_req_interval;
+	ppi->portDS->logMinPdelayReqInterval=(Integer8)ppi->cfg.min_pdelay_req_interval;
 	pp_timeout_init(ppi);
-	pp_timeout_setall(ppi);/* PP_TO_BMC is not set by default */
-	pp_timeout_set(ppi, PP_TO_BMC);
+	pp_timeout_setall(ppi);
 
 	ppi->link_state=PP_LSTATE_PROTOCOL_DETECTION;
 	ppi->ptp_msg_received=FALSE;
@@ -121,14 +152,29 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 
 	msg_init_header(ppi, ppi->tx_ptp); /* This is used for all tx */
 	
-	if (DSDEF(ppi)->externalPortConfigurationEnabled) {
+	if ( ppg->waitGmLocking ) {
+		/* must leave the BMC running before to check next time the clockClass */
+		ppi->next_delay = pp_gtimeout_get(ppg,PP_TO_BMC) << 1; /* wait 2 x BMCA tmo */
+		return 0;
+	}
+
+	if (is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 		/* Clause 17.6.5.2 : the member portDS.portState shall be set to
 		 * the value of the member externalPortConfigurationPortDS.desiredState
 		 */
-		if ( ppi->externalPortConfigurationPortDS.desiredState==PPS_SLAVE)
-			ppi->next_state=PPS_UNCALIBRATED;
-		else
-			ppi->next_state = ppi->externalPortConfigurationPortDS.desiredState;
+		Enumeration8 desiredState=ppi->externalPortConfigurationPortDS.desiredState;
+
+		if ( DSDEF(ppi)->clockQuality.clockClass<128  &&
+				(desiredState == PPS_SLAVE || desiredState == PPS_UNCALIBRATED)
+				) {
+			ppi->next_state=PPS_FAULTY;
+		} else {
+			if ( ppi->externalPortConfigurationPortDS.desiredState==PPS_SLAVE) {
+				ppi->next_state=PPS_UNCALIBRATED;
+			}
+			else
+				ppi->next_state = ppi->externalPortConfigurationPortDS.desiredState;
+		}
 	}
 	else
 		ppi->next_state = PPS_LISTENING;

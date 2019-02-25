@@ -17,55 +17,21 @@
 #include <ppsi/ieee1588_types.h>
 #include <ppsi/constants.h>
 #include <ppsi/jiffies.h>
-
+#include <ppsi/timeout_def.h>
 #include <ppsi/pp-instance.h>
 #include <ppsi/diag-macros.h>
 
 #include <arch/arch.h> /* ntohs and so on -- and wr-api.h for wr archs */
 
-#if CONFIG_EXT_WR==1
+/* Protocol extensions */
 #include "../proto-ext-whiterabbit/wr-api.h"
-#endif
-
-#if CONFIG_EXT_L1SYNC==1
 #include "../proto-ext-l1sync/l1e-api.h"
-#endif
 
 /* At this point in time, we need ARRAY_SIZE to conditionally build vlan code */
 #undef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-#ifdef CONFIG_WRPC_FAULTS
-#   define CONFIG_HAS_WRPC_FAULTS 1
-#else
-#   define CONFIG_HAS_WRPC_FAULTS 0
-#endif
-
-/* Default values for code optimization. Can be redefined for each targets in arch/arch.h*/
-#ifndef CODEOPT_BMCA
-	#define CODEOPT_BMCA        0  /* Code optimization for BMCA. If set to 0, remove all code optimizations  */
-#endif
-#ifndef CODEOPT_ONE_PORT
-#define CODEOPT_ONE_PORT()               (0 && CODEOPT_BMCA==1)  /* Code optimization when only one port is used. */
-#endif
-#ifndef CODEOPT_ONE_FMASTER
-#define CODEOPT_ONE_FMASTER()            ((PP_NR_FOREIGN_RECORDS==1) && CODEOPT_BMCA==1)  /* Code optimization when only one foreign master. */
-#endif
-#ifndef CODEOPT_ROLE_MASTER_SLAVE_ONLY
-#define CODEOPT_ROLE_MASTER_SLAVE_ONLY() ( 0  && CODEOPT_BMCA==1)  /* Code optimization when role auto not allowed. */
-#endif
-
-#ifdef CONFIG_ARCH_WRPC
-#define ARCH_IS_WRPC (1)
-#else
-#define ARCH_IS_WRPC (0)
-#endif
-
-#ifdef CONFIG_ARCH_WRS
-#define ARCH_IS_WRS (1)
-#else
-#define ARCH_IS_WRS (0)
-#endif
+#define CAN_BE_UNUSED __attribute__ ((unused))
 
 /* We can't include pp-printf.h when building freestading, so have it here */
 extern int pp_printf(const char *fmt, ...)
@@ -191,6 +157,18 @@ static inline struct pp_servo *SRV(struct pp_instance *ppi)
 	return ppi->servo;
 }
 
+static inline int is_externalPortConfigurationEnabled (defaultDS_t *def) {
+	return CONFIG_HAS_CODEOPT_EPC_ENABLED || def->externalPortConfigurationEnabled;
+}
+
+static inline int is_slaveOnly(defaultDS_t *def) {
+	return CONFIG_HAS_CODEOPT_SINGLE_PORT && (CONFIG_HAS_CODEOPT_SO_ENABLED || def->slaveOnly);
+}
+
+static inline int get_numberPorts(defaultDS_t *def) {
+	return CONFIG_HAS_CODEOPT_SINGLE_PORT ? 1 : def->numberPorts;
+}
+
 extern void pp_prepare_pointers(struct pp_instance *ppi);
 
 /*
@@ -268,9 +246,10 @@ struct pp_time_operations {
 	int (*adjust_offset)(struct pp_instance *ppi, long offset_ns);
 	int (*adjust_freq)(struct pp_instance *ppi, long freq_ppb);
 	int (*init_servo)(struct pp_instance *ppi);
-	int (*get_servo_state)(struct pp_instance *ppi, int *state);
 	unsigned long (*calc_timeout)(struct pp_instance *ppi, int millisec);
 };
+
+#include "timeout_prot.h"
 
 /* This is the struct pp_time_operations to be provided by time- dir */
 extern struct pp_time_operations DEFAULT_TIME_OPS;
@@ -286,211 +265,12 @@ extern struct pp_time_operations unix_time_ops;
 /* FIXME Restored to value of ptpd. What does this stand for, exactly? */
 #define  PP_ADJ_FREQ_MAX	512000
 
-/*
- * Timeouts.
- *
- * A timeout, is just a number that must be compared with the current counter.
- * So we don't need struct operations, as it is one function only,
- * which is folded into the "pp_time_operations" above.
- */
-extern void pp_timeout_init(struct pp_instance *ppi);
-extern void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec);
-extern void pp_timeout_clear(struct pp_instance *ppi, int index);
-extern void pp_timeout_set(struct pp_instance *ppi, int index);
-extern void pp_timeout_setall(struct pp_instance *ppi);
-extern int pp_timeout(struct pp_instance *ppi, int index)
-	__attribute__((warn_unused_result));
-extern int pp_next_delay_1(struct pp_instance *ppi, int i1);
-extern int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2);
-extern int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3);
-
 /* The channel for an instance must be created and possibly destroyed. */
 extern int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *opts);
 extern int pp_close_globals(struct pp_globals *ppg);
 
 extern int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv);
 
-/* platform independent timespec-like data structure */
-struct pp_cfg_time {
-	long tv_sec;
-	long tv_nsec;
-};
-
-/* Data structure used to pass just a single argument to configuration
- * functions. Any future new type for any new configuration function can be just
- * added inside here, without redefining cfg_handler prototype */
-union pp_cfg_arg {
-	int i;
-	int i2[2];
-	int64_t i64;
-	double d;
-	Boolean b;
-	char *s;
-	struct pp_cfg_time ts;
-};
-
-/*
- * Configuration: we are structure-based, and a typedef simplifies things
- */
-struct pp_argline;
-
-typedef int (*cfg_handler)(struct pp_argline *l, int lineno,
-			   struct pp_globals *ppg, union pp_cfg_arg *arg);
-
-struct pp_argname {
-	char *name;
-	int value;
-};
-enum pp_argtype {
-	ARG_NONE,
-	ARG_INT,
-	ARG_INT2,
-	ARG_STR,
-	ARG_NAMES,
-	ARG_TIME,
-	ARG_DOUBLE,
-	ARG_INT64
-};
-
-/* This enumeration gives the list of run-time options that should be marked when they are set in the configuration */
-enum {
-	OPT_RT_NO_UPDATE=0,
-};
-
-
-typedef struct {
-	union min {
-		int min_int;
-		Integer64 min_int64;
-		double min_double;
-	}min;
-	union max{
-		int max_int;
-		Integer64 max_int64;
-		double max_double;
-	}max;
-}pp_argline_min_max_t;
-
-struct pp_argline {
-	cfg_handler f;
-	char *keyword;	/* Each line starts with a keyword */
-	enum pp_argtype t;
-	struct pp_argname *args;
-	size_t field_offset;
-	int needs_port;
-	pp_argline_min_max_t min_max;
-};
-
-/* Below are macros for setting up pp_argline arrays */
-#define OFFS(s,f) offsetof(s, f)
-
-#define OPTION_OPEN() {
-#define OPTION_CLOSE() }
-#define OPTION(s,func,k,typ,a,field,np)	\
-		.f = func,						\
-		.keyword = k,						\
-		.t = typ,						\
-		.args = a,						\
-		.field_offset = OFFS(s,field),				\
-		.needs_port = np,
-
-#define LEGACY_OPTION(func,k,typ)					\
-	{								\
-		.f = func,						\
-		.keyword = k,						\
-		.t = typ,						\
-	}
-
-#define INST_OPTION(func,k,t,a,field)					\
-    OPTION_OPEN() \
-	OPTION(struct pp_instance,func,k,t,a,field,1) \
-	OPTION_CLOSE()
-
-#define INST_OPTION_FCT(func,k,t)					\
-	    OPTION_OPEN() \
-		OPTION(struct pp_instance,func,k,t,NULL,cfg,1) \
-		OPTION_CLOSE()
-
-#define INST_OPTION_STR(k,field)					\
-	INST_OPTION(f_string,k,ARG_STR,NULL,field)
-
-#define INST_OPTION_INT_RANGE(k,t,a,field,mn,mx)					\
-	OPTION_OPEN() \
-	OPTION(struct pp_instance,f_simple_int,k,t,a,field,1) \
-	.min_max.min.min_int = mn,\
-	.min_max.max.max_int = mx,\
-	OPTION_CLOSE()
-
-#define INST_OPTION_INT(k,t,a,field)					\
-		INST_OPTION_INT_RANGE(k,t,a,field,INT_MIN,INT_MAX)
-
-
-#define INST_OPTION_BOOL(k,field)					\
-	INST_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field)
-
-#define INST_OPTION_INT64_RANGE(k,t,a,field,mn,mx)					\
-	OPTION_OPEN() \
-	OPTION(struct pp_instance,f_simple_int64,k,t,a,field,1) \
-	.min_max.min.min_int64 = mn,\
-	.min_max.max.max_int64 = mx,\
-	OPTION_CLOSE()
-
-#define INST_OPTION_INT64(k,t,a,field)					\
-		INST_OPTION_INT64_RANGE(k,t,a,field,INT64_MIN,INT64_MAX)
-
-#define INST_OPTION_DOUBLE_RANGE(k,t,a,field,mn,mx)					\
-	OPTION_OPEN() \
-	OPTION(struct pp_instance,f_simple_double,k,t,a,field,1) \
-	.min_max.min.min_double = mn,\
-	.min_max.max.max_double = mx,\
-	OPTION_CLOSE()
-
-#define INST_OPTION_DOUBLE(k,t,a,field)					\
-		INST_OPTION_DOUBLE_RANGE(k,t,a,field,-DBL_MAX,DBL_MAX)
-
-#define RT_OPTION(func,k,t,a,field)					\
-	OPTION_OPEN() \
-	OPTION(struct pp_runtime_opts,func,k,t,a,field,0)\
-	OPTION_CLOSE()
-
-#define RT_OPTION_INT_RANGE(k,t,a,field,mn,mx)					\
-	OPTION_OPEN() \
-	OPTION(struct pp_runtime_opts,f_simple_int,k,t,a,field,0) \
-	.min_max.min.min_int = mn,\
-	.min_max.max.max_int = mx,\
-	OPTION_CLOSE()
-
-#define RT_OPTION_INT(k,t,a,field)					\
-	RT_OPTION_INT_RANGE(k,t,a,field,INT_MIN,INT_MAX)
-
-#define RT_OPTION_BOOL(k,field)					\
-	RT_OPTION(f_simple_bool,k,ARG_NAMES,arg_bool,field)
-
-
-#define GLOB_OPTION(func,k,t,a,field)					\
-	OPTION_OPEN() \
-	OPTION(struct pp_globals,func,k,t,a,field,0) \
-	OPTION_CLOSE()
-
-#define GLOB_OPTION_INT_RANGE(k,t,a,field,mn,mx)					\
-	OPTION_OPEN() \
-	OPTION(struct pp_globals,f_simple_int,k,t,a,field,0) \
-	.min_max.min.min_int = mn,\
-	.min_max.max.max_int = mx,\
-	OPTION_CLOSE()
-
-#define GLOB_OPTION_INT(k,t,a,field)					\
-	GLOB_OPTION_INT_RANGE(k,t,a,field,INT_MIN,INT_MAX)
-
-/* Both the architecture and the extension can provide config arguments */
-extern struct pp_argline pp_arch_arglines[];
-extern struct pp_argline pp_ext_arglines[];
-
-/* Note: config_string modifies the string it receives */
-extern int pp_config_string(struct pp_globals *ppg, char *s);
-extern int pp_config_file(struct pp_globals *ppg, int force, char *fname);
-extern int f_simple_int(struct pp_argline *l, int lineno,
-			struct pp_globals *ppg, union pp_cfg_arg *arg);
 
 #define PPSI_PROTO_RAW		0
 #define PPSI_PROTO_UDP		1
@@ -513,13 +293,11 @@ extern int f_simple_int(struct pp_argline *l, int lineno,
 
 /* Servo */
 extern void pp_servo_init(struct pp_instance *ppi);
-extern void pp_servo_got_sync(struct pp_instance *ppi); /* got t1 and t2 */
-extern int pp_servo_got_resp(struct pp_instance *ppi); /* got all t1..t4 */
+extern void pp_servo_got_sync(struct pp_instance *ppi,int allowTimingOutput); /* got t1 and t2 */
+extern int pp_servo_got_resp(struct pp_instance *ppi, int allowTimingOutput); /* got all t1..t4 */
 extern void pp_servo_got_psync(struct pp_instance *ppi); /* got t1 and t2 */
 extern int pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
 extern int pp_servo_calculate_delays(struct pp_instance *ppi);
-extern void pp_servo_apply_faulty_stamp(struct pp_servo *s, struct pp_time *faulty_stamps, int index);
-
 
 /* bmc.c */
 extern void bmc_m1(struct pp_instance *ppi);
@@ -531,12 +309,13 @@ extern void bmc_p1(struct pp_instance *ppi);
 extern void bmc_p2(struct pp_instance *ppi);
 extern int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b);
 extern int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b);
-extern int bmc(struct pp_instance *ppi);
+extern int bmc(struct pp_globals *ppg);
 extern void bmc_store_frgn_master(struct pp_instance *ppi, 
 		       struct pp_frgn_master *frgn_master, void *buf, int len);
-extern void bmc_add_frgn_master(struct pp_instance *ppi, void *buf,
-			    int len);
+extern void bmc_add_frgn_master(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
 extern void bmc_flush_erbest(struct pp_instance *ppi);
+extern void bmc_calculate_ebest(struct pp_globals *ppg);
+extern int bmc_apply_state_descision(struct pp_instance *ppi);
 
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);
@@ -635,5 +414,10 @@ extern int pp_state_machine(struct pp_instance *ppi, void *buf, int len);
 extern void ppsi_drop_init(struct pp_globals *ppg, unsigned long seed);
 extern int ppsi_drop_rx(void);
 extern int ppsi_drop_tx(void);
+
+#include <ppsi/faults.h>
+#include <ppsi/timeout_prot.h>
+#include <ppsi/conf.h>
+
 
 #endif /* __PPSI_PPSI_H__ */

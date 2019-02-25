@@ -168,12 +168,6 @@ static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int lea
 	return 0;
 }
 
-static int unix_time_get_servo_state(struct pp_instance *ppi, int *state)
-{
-	*state = PP_SERVO_UNKNOWN;
-	return 0;
-}
-
 static int unix_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct timespec tp;
@@ -290,7 +284,6 @@ struct pp_time_operations unix_time_ops = {
 	.get_utc_time = unix_time_get_utc_time,
 	.get_utc_offset = unix_time_get_utc_offset,
 	.set_utc_offset = unix_time_set_utc_offset,
-	.get_servo_state = unix_time_get_servo_state,
 	.get = unix_time_get,
 	.set = unix_time_set,
 	.adjust = unix_time_adjust,

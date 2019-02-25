@@ -51,6 +51,10 @@ struct wrh_operations wrh_oper = {
 	.calib_pattern_disable = wrs_calibration_pattern_disable,
 
 	.enable_timing_output = wrs_enable_timing_output,
+
+	.set_timing_mode= wrs_set_timing_mode,
+	.get_timing_mode= wrs_get_timing_mode,
+	.get_timing_mode_state= wrs_get_timing_mode_state,
 };
 
 struct minipc_ch *hal_ch;
@@ -61,7 +65,7 @@ struct wrs_shm_head *ppsi_head;
 
 extern struct pp_ext_hooks  pp_hooks;
 
-#if CONFIG_EXT_L1SYNC
+#if CONFIG_HAS_EXT_L1SYNC
 /**
  * Enable the l1sync extension for a given ppsi instance
  */
@@ -93,7 +97,7 @@ static  int enable_l1Sync(struct pp_instance *ppi, Boolean enable) {
  *    delayCoeff/(delayCoeff/2)
  */
 static __inline__ double  calculateDelayAsymCoefficient(double  delayCoefficient) {
-	return  delayCoefficient/(delayCoefficient+2.0L);
+	return delayCoefficient/(delayCoefficient+2.0);
 }
 
 /**
@@ -251,7 +255,7 @@ int main(int argc, char **argv)
 		 * exactly after stbcnt. It's a bad hack, but it works
 		 */
 		p = (int *)(&t.stbcnt) + 1;
-		ppg->timePropertiesDS->currentUtcOffset = *p;
+		ppg->timePropertiesDS->currentUtcOffset = (Integer16)*p;
 	}
 
 	if (pp_parse_cmdline(ppg, argc, argv) != 0)
@@ -263,18 +267,16 @@ int main(int argc, char **argv)
 	if (ppg->cfg.cfg_items == 0) {
 		/* Default configuration for switch is all ports - Priority given to HA */
 		char s[128];
-		int i;
 
 		for (i = 0; i < WRS_NUMBER_PHYSICAL_PORTS; i++) {
 			Boolean configured=FALSE;
-#if CONFIG_PROFILE_HA == 1
-			sprintf(s, "port %i; iface wri%i; proto raw; profile ha", i + 1, i + 1);
-#endif
-#if CONFIG_PROFILE_WR == 1
-			configured=TRUE;
-			if ( ! configured )
-				sprintf(s, "port %i; iface wri%i; proto raw; profile wr", i + 1, i + 1);
-#endif
+			if ( CONFIG_HAS_PROFILE_HA )
+				sprintf(s, "port %i; iface wri%i; proto raw; profile ha", i + 1, i + 1);
+			if ( CONFIG_HAS_PROFILE_WR ) {
+				configured=TRUE;
+				if ( ! configured )
+					sprintf(s, "port %i; iface wri%i; proto raw; profile wr", i + 1, i + 1);
+			}
 			pp_config_string(ppg, s);
 		}
 	}
@@ -291,76 +293,81 @@ int main(int argc, char **argv)
 		ppi->portDS = wrs_shm_alloc(ppsi_head, sizeof(*ppi->portDS));
 		ppi->servo = wrs_shm_alloc(ppsi_head, sizeof(*ppi->servo));
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
-		ppi->ptp_support=FALSE;
+		ppi->ptp_support=TRUE;
 		if (ppi->portDS) {
 			switch (ppi->cfg.profile) {
-#if CONFIG_PROFILE_WR == 1
 			case PPSI_PROFILE_WR :
-				ppi->protocol_extension=PPSI_EXT_WR;
-				/* Add WR extension portDS */
-				if ( !(ppi->portDS->ext_dsport =
-						wrs_shm_alloc(ppsi_head, sizeof(struct wr_dsport))) ) {
-						goto exit_out_of_memory;
-				}
+				if ( CONFIG_HAS_PROFILE_WR ) {
+					ppi->protocol_extension=PPSI_EXT_WR;
+					/* Add WR extension portDS */
+					if ( !(ppi->portDS->ext_dsport =
+							wrs_shm_alloc(ppsi_head, sizeof(struct wr_dsport))) ) {
+							goto exit_out_of_memory;
+					}
 
-				/* Allocate WR data extension */
-				if (! (ppi->ext_data = wrs_shm_alloc(ppsi_head,sizeof(struct wr_data))) ) {
-					goto exit_out_of_memory;
+					/* Allocate WR data extension */
+					if (! (ppi->ext_data = wrs_shm_alloc(ppsi_head,sizeof(struct wr_data))) ) {
+						goto exit_out_of_memory;
+					}
+					/* Set WR extension hooks */
+					ppi->ext_hooks=&wr_ext_hooks;
+					ppi->cfg.egressLatency_ps=ppi->cfg.ingressLatency_ps=0; /* Forced to 0: Already taken into account in WR calculation */
+				} else {
+					fprintf(stderr, "ppsi: Profile WR not supported");
+					exit(1);
 				}
-				/* Set WR extension hooks */
-				ppi->ext_hooks=&wr_ext_hooks;
-				ppi->cfg.egressLatency_ps=ppi->cfg.ingressLatency_ps=0; /* Forced to 0: Already taken into account in WR calculation */
 				break;
-#endif
-#if CONFIG_PROFILE_HA == 1
 			case PPSI_PROFILE_HA :
-				if ( !enable_l1Sync(ppi,TRUE) )
-					goto exit_out_of_memory;
-				/* Force mandatory attributes - Do not take care of the configuration */
-				L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =
-						L1E_DSPOR_BS(ppi)->txCoherentIsRequired =
-								L1E_DSPOR_BS(ppi)->congruentIsRequired=
-										L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
-				L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
-				enable_asymmetryCorrection(ppi,TRUE);
+				if ( CONFIG_HAS_PROFILE_HA ) {
+					if ( !enable_l1Sync(ppi,TRUE) )
+						goto exit_out_of_memory;
+					/* Force mandatory attributes - Do not take care of the configuration */
+					L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =
+							L1E_DSPOR_BS(ppi)->txCoherentIsRequired =
+									L1E_DSPOR_BS(ppi)->congruentIsRequired=
+											L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
+					L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
+					enable_asymmetryCorrection(ppi,TRUE);
+				}
+				else {
+					fprintf(stderr, "ppsi: Profile HA not supported");
+					exit(1);
+				}
 				break;
-#endif
 			case PPSI_PROFILE_PTP :
 				/* Do not take care of L1SYNC */
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
 				ppi->protocol_extension=PPSI_EXT_NONE;
 				break;
-#if CONFIG_PROFILE_CUSTOM == 1
 			case PPSI_PROFILE_CUSTOM :
+				if ( CONFIG_HAS_PROFILE_CUSTOM ) {
 				ppi->protocol_extension=PPSI_EXT_NONE; /* can be changed ...*/
-#if CONFIG_EXT_L1SYNC
-				if (ppi->cfg.l1SyncEnabled ) {
-					if ( !enable_l1Sync(ppi,TRUE) )
-						goto exit_out_of_memory;
-					/* Read L1SYNC parameters */
-					L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =ppi->cfg.l1SyncRxCoherencyIsRequired;
-					L1E_DSPOR_BS(ppi)->txCoherentIsRequired =ppi->cfg.l1SyncTxCoherencyIsRequired;
-					L1E_DSPOR_BS(ppi)->congruentIsRequired =ppi->cfg.l1SyncCongruencyIsRequired;
-					L1E_DSPOR_BS(ppi)->optParamsEnabled=ppi->cfg.l1SyncOptParamsEnabled;
-					if ( L1E_DSPOR_BS(ppi)->optParamsEnabled ) {
-						L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=ppi->cfg.l1SyncOptParamsTimestampsCorrectedTx;
+				if ( CONFIG_HAS_EXT_L1SYNC ) {
+					if (ppi->cfg.l1SyncEnabled ) {
+						if ( !enable_l1Sync(ppi,TRUE) )
+							goto exit_out_of_memory;
+						/* Read L1SYNC parameters */
+						L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =ppi->cfg.l1SyncRxCoherencyIsRequired;
+						L1E_DSPOR_BS(ppi)->txCoherentIsRequired =ppi->cfg.l1SyncTxCoherencyIsRequired;
+						L1E_DSPOR_BS(ppi)->congruentIsRequired =ppi->cfg.l1SyncCongruencyIsRequired;
+						L1E_DSPOR_BS(ppi)->optParamsEnabled=ppi->cfg.l1SyncOptParamsEnabled;
+						if ( L1E_DSPOR_BS(ppi)->optParamsEnabled ) {
+							L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=ppi->cfg.l1SyncOptParamsTimestampsCorrectedTx;
+						}
 					}
 				}
-#endif
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
+				} else {
+					fprintf(stderr, "ppsi: Profile CUSTOM not supported");
+					exit(1);
+				}
 				break;
-#endif
 			}
 			/* Parameters profile independent */
 			ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps);
 			ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps);
 			ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
 			ppi->portDS->masterOnly= ppi->cfg.masterOnly; /* can be overridden in pp_init_globals() */
-			ppi->portDS->logAnnounceInterval=ppi->cfg.announce_interval;
-			ppi->portDS->announceReceiptTimeout=ppi->cfg.announce_receipt_timeout;
-			ppi->portDS->logSyncInterval=ppi->cfg.sync_interval;
-			ppi->portDS->logMinDelayReqInterval=ppi->cfg.min_delay_req_interval;
-			ppi->portDS->logMinPdelayReqInterval=ppi->cfg.min_pdelay_req_interval;
 		} else {
 			goto exit_out_of_memory;
 		}
@@ -379,9 +386,63 @@ int main(int argc, char **argv)
 
 	pp_init_globals(ppg, &__pp_default_rt_opts);
 
-	seed = time(NULL);
+	{
+		timing_mode_t prev_timing_mode=WRH_OPER()->get_timing_mode(ppg);
+		int nbRetry;
+		int enablePPS;
+
+		if ( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED ) {
+			if (prev_timing_mode==-1) {
+				fprintf(stderr, "ppsi: Cannot get current timing mode\n");
+				exit(1);
+			}
+			/* If read timing mode was GM, then we do not reprogram the hardware because it
+			 * may unlock the PLL.
+			 */
+			if ( prev_timing_mode != TM_GRAND_MASTER ){
+				/* Timing mode was not GM before */
+				WRH_OPER()->set_timing_mode(ppg,TM_GRAND_MASTER);
+				ppg->waitGmLocking=1; /* We might wait PPL locking ... see below */
+			}
+		} else {
+			/* Timing mode will be set to BC when a port will become slave */
+			WRH_OPER()->set_timing_mode(ppg,TM_FREE_MASTER);
+		}
+		/* Waiting for PLL locking. We do not need a precise time-out here */
+		/* We are waiting up to 3s for PLL locking.
+		 * We do that to avoid to jump too quickly to a degraded clock class.
+		 */
+		nbRetry=2;
+		while(nbRetry>0) {
+			if ( WRH_OPER()->get_timing_mode_state(ppg)==PP_TIMING_MODE_STATE_LOCKED )
+				break;
+			sleep(1); // wait 1s
+			nbRetry--;
+		} // if nbRetry>0 it means that the PLL is locked
+
+		if ( (ppg->waitGmLocking=ppg->waitGmLocking && nbRetry==0)==1 ) {
+			/* we degrade the clockClass to be sure that all instances will stay in
+			 * initializing state until the clock class goes to PP_PTP_CLASS_GM_LOCKED
+			 */
+			//GDSDEF(ppg)->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
+		}
+
+		/* Enable the PPS generation only if
+		 * - Grand master and PLL is locked
+		 * OR
+		 * - Free running master (no condition required)
+		 * OOR
+		 * - Timing output is forced (for testing only)
+		 */
+		enablePPS=(nbRetry>0 && ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
+				( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_UNLOCKED ||
+						GOPTS(ppg)->forcePpsGen);
+		WRH_OPER()->enable_timing_output(ppg,enablePPS);
+	}
+
+	seed = (unsigned long) time(NULL);
 	if (getenv("PPSI_DROP_SEED"))
-		seed = atoi(getenv("PPSI_DROP_SEED"));
+		seed = (unsigned long) atoi(getenv("PPSI_DROP_SEED"));
 	ppsi_drop_init(ppg, seed);
 
 	/* release lock from wrs_shm_get */

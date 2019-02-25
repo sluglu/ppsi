@@ -10,8 +10,10 @@
  */
 
 #include <minipc.h>
+#include <hw-specific/wrh.h>
 #include <libwr/shmem.h>
 #include <libwr/hal_shmem.h>
+#include <ppsi/timeout_def.h>
 
 
 #define WRS_NUMBER_PHYSICAL_PORTS 18 /* Number of physical ports on a WR switch */
@@ -59,11 +61,16 @@ int wrs_read_correction_data(struct pp_instance *ppi, int64_t *fixAlpha,
 
 /* wrs-time.c (some should moce to wrs-spll.c) */
 int wrs_locking_enable(struct pp_instance *ppi);
-int wrs_locking_poll(struct pp_instance *ppi, int grandmaster);
+int wrs_locking_poll(struct pp_instance *ppi);
 int wrs_locking_disable(struct pp_instance *ppi);
 int wrs_locking_reset(struct pp_instance *ppi);
 int wrs_enable_ptracker(struct pp_instance *ppi);
 int wrs_adjust_in_progress(void);
 int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec);
 int wrs_adjust_phase(int32_t phase_ps);
-int wrs_enable_timing_output(struct pp_instance *ppi, int enable);
+int wrs_enable_timing_output(struct pp_globals *,int enable);
+timing_mode_t wrs_get_timing_mode(struct pp_globals *);
+timing_mode_state_t wrs_get_timing_mode_state(struct pp_globals *);
+int wrs_set_timing_mode(struct pp_globals *,timing_mode_t tm);
+
+

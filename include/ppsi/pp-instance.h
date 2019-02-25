@@ -24,8 +24,12 @@ struct pp_runtime_opts {
 	int priority1;
 	int priority2;
 	int domainNumber;
+	int ptpPpsThresholdMs;
+	int gmDelayToGenPpsSec;
 	Boolean externalPortConfigurationEnabled;
 	Boolean slaveOnly;
+	Boolean forcePpsGen;
+	Boolean ptpFallbackPpsGen;
 	void *arch_opts;
 };
 
@@ -49,13 +53,15 @@ extern struct pp_instance_cfg __pp_default_instance_cfg;
  * Communication channel. Is the abstraction of a unix socket, so that
  * this struct is platform independent
  */
+#define PP_MAC_ADRESS_SIZE 6
+
 struct pp_channel {
 	union {
 		int fd;		/* Posix wants fid descriptor */
 		void *custom;	/* Other archs want other stuff */
 	};
 	void *arch_data;	/* Other arch-private info, if any */
-	unsigned char addr[6];	/* Our own MAC address */
+	unsigned char addr[PP_MAC_ADRESS_SIZE];	/* Our own MAC address */
 	int pkt_present;
 };
 
@@ -159,7 +165,7 @@ struct pp_instance_cfg {
 	int sync_interval; /* Sync messages interval */
 	int min_delay_req_interval; /* delay request messages interval */
 	int min_pdelay_req_interval;/* pdelay request messages interval */
-#if	CONFIG_EXT_L1SYNC
+#if	CONFIG_HAS_EXT_L1SYNC
 	Boolean l1SyncEnabled; /* L1SYNC: protocol enabled */
 	Boolean l1SyncRxCoherencyIsRequired; /* L1SYNC: Rx coherency is required */
 	Boolean l1SyncTxCoherencyIsRequired; /* L1SYNC: Tx coherency is required */
@@ -178,21 +184,6 @@ struct pp_instance_cfg {
 	Boolean masterOnly; /* masterOnly */
 	Boolean asymmetryCorrectionEnable; /* asymmetryCorrectionPortDS.enable */
 };
-
-/*
- * Time-out structure and enumeration
- */
-enum  to_rand_type {
-	TO_RAND_NONE,	/* Not randomized */
-	TO_RAND_70_130,	/* Should be 70% to 130% of 1 << value */
-	TO_RAND_0_200,	/* Should be 0% to 200% of 1 << value */
-} ;
-
-typedef struct  {
-	enum to_rand_type which_rand;
-	unsigned int initValueMs;
-	unsigned long tmo;
-} t_timeOutConfig;
 
 /*
  * This enumeration correspond to the protocol state of a pp_instance.
@@ -265,7 +256,7 @@ struct pp_instance {
 	externalPortConfigurationPortDS_t  externalPortConfigurationPortDS; /*draft P1588: Clause 17.6.3*/
 	/************************* */
 
-	t_timeOutConfig timeouts[__PP_TO_ARRAY_SIZE];
+	timeOutInstCnt_t tmo_cfg[PP_TO_COUNT];
 	UInteger16 recv_sync_sequence_id;
 
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
@@ -282,7 +273,7 @@ struct pp_instance {
 
 	unsigned long ptp_tx_count;
 	unsigned long ptp_rx_count;
-#if CONFIG_HAS_P2P == 1
+#if CONFIG_HAS_P2P
 	Boolean received_dresp; /* Count the number of delay response messages received for a given delay request */
 	Boolean received_dresp_fup; /* Count the number of delay response follow up messages received for a given delay request */
 #endif
@@ -290,6 +281,7 @@ struct pp_instance {
 	Boolean ptp_support; /* True if allow pure PTP support */
 	Boolean ext_enabled; /* True if the extension is enabled */
 	pp_link_state link_state;
+	Boolean bmca_execute; /* True: Ask fsm to run bmca state decision */
 };
 
 /* The following things used to be bit fields. Other flags are now enums */
@@ -329,6 +321,9 @@ struct pp_globals {
 
 	void *arch_data;		/* if arch needs it */
 	void *global_ext_data;		/* if protocol ext needs it */
+
+	Boolean waitGmLocking; /* If set, instances must stay in initializing state until the GM PLL is locked */
+
 	/* FIXME Here include all is common to many interfaces */
 };
 

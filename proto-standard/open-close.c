@@ -26,6 +26,11 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 	.domainNumber =	PP_DEFAULT_DOMAIN_NUMBER,
 	.ttl =			PP_DEFAULT_TTL,
 	.externalPortConfigurationEnabled = PP_DEFAULT_EXT_PORT_CONFIG_ENABLE,
+	.ptpPpsThresholdMs=PP_DEFAULT_PTP_PPSGEN_THRESHOLD_MS,
+	.gmDelayToGenPpsSec=PP_DEFAULT_GM_DELAY_TO_GEN_PPS_SEC,
+	.forcePpsGen=    FALSE,
+	.ptpFallbackPpsGen=FALSE,
+
 };
 
 /* Default values used to fill configurable parameters associated to each instance */
@@ -38,7 +43,7 @@ struct pp_instance_cfg __pp_default_instance_cfg = {
 		.sync_interval=PP_DEFAULT_SYNC_INTERVAL,
 		.min_delay_req_interval=PP_DEFAULT_MIN_DELAY_REQ_INTERVAL,
 		.min_pdelay_req_interval=PP_DEFAULT_MIN_PDELAY_REQ_INTERVAL,
-#if CONFIG_EXT_L1SYNC == 1
+#if CONFIG_HAS_EXT_L1SYNC
 		.l1SyncEnabled=FALSE,
 		.l1SyncRxCoherencyIsRequired=FALSE,
 		.l1SyncTxCoherencyIsRequired=FALSE,
@@ -71,12 +76,13 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	 */
 	int i,ret=0;
 	defaultDS_t *def = ppg->defaultDS;
+	struct pp_runtime_opts *rt_opts;
+
 	def->twoStepFlag = TRUE;
 
 	/* if ppg->nlinks == 0, let's assume that the 'pp_links style'
 	 * configuration was not used, so we have 1 port */
 	def->numberPorts = ppg->nlinks > 0 ? ppg->nlinks : 1;
-	struct pp_runtime_opts *rt_opts;
 
 	if (!ppg->rt_opts)
 		ppg->rt_opts = pp_rt_opts;
@@ -91,21 +97,21 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	 */
 	def->externalPortConfigurationEnabled=pp_rt_opts->externalPortConfigurationEnabled;
 	def->slaveOnly=rt_opts->slaveOnly;
-	if ( def->slaveOnly && def->externalPortConfigurationEnabled ) {
+	if ( is_slaveOnly(def) && is_externalPortConfigurationEnabled(def) ) {
 		pp_printf("ppsi: Incompatible configuration: SlaveOnly  and externalPortConfigurationEnabled\n");
 		def->slaveOnly=FALSE;
 	}
 
 
-	if ( def->slaveOnly ) {
-		if ( def->numberPorts > 1 ) {
+	if ( is_slaveOnly(def) ) {
+		if ( get_numberPorts(def) > 1 ) {
 			/* Check if slaveOnly is allowed
 			 * Only one ppsi instance must exist however n instances on the same physical port
 			 * and  using the same protocol must be considered as one. We do this because these
 			 * instances are exclusive and will be never enabled at the same time
 			 */
 			struct pp_instance *ppi = INST(ppg, 0);
-			for (i = 1; i < def->numberPorts; i++) {
+			for (i = 1; i < get_numberPorts(def); i++) {
 				struct pp_instance *ppi_cmp = INST(ppg, i);
 				if ( ppi->proto != ppi_cmp->proto /* different protocol used */
 						|| strcmp(ppi->cfg.iface_name,ppi_cmp->cfg.iface_name)!=0 /* Not the same interface */
@@ -117,32 +123,35 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 				}
 			}
 		}
-		if ( def->slaveOnly ) {
-			def->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
+		if ( is_slaveOnly(def) ) {
+			/* Configured clockClass must be also changed to avoid to be set by BMCA bmc_update_clock_quality() */
+			rt_opts->clock_quality.clockClass =
+					def->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
 			pp_printf("Slave Only, clock class set to %d\n", def->clockQuality.clockClass);
 		}
 
-	}
-		if ( def->numberPorts > 1) {
-		/* slaveOnly can be applied only on a ordinary clock */
 	}
 
 	def->priority1 = rt_opts->priority1;
 	def->priority2 = rt_opts->priority2;
 	def->domainNumber = rt_opts->domainNumber;
 
-	for (i = 0; i < def->numberPorts; i++) {
+	for (i = 0; i < get_numberPorts(def); i++) {
 		struct pp_instance *ppi = INST(ppg, i);
 
 		ppi->state = PPS_INITIALIZING;
 		ppi->current_state_item = NULL;
 		ppi->port_idx = i;
 		ppi->frgn_rec_best = -1;
+		pp_timeout_disable_all(ppi); /* By default, disable all timers */
 	}
 
-	if ( ppg->defaultDS->externalPortConfigurationEnabled  ) {
-		for (i = 0; i < def->numberPorts; i++) {
+	if ( is_externalPortConfigurationEnabled(GDSDEF(ppg)) ) {
+		Boolean isSlavePresent=FALSE;
+
+		for (i = 0; i < get_numberPorts(def); i++) {
 			struct pp_instance *ppi = INST(ppg, i);
+			Enumeration8 desiradedState=ppi->cfg.desiredState;
 
 			/* Clause 17.6.5.3 : - Clause 9.2.2 shall not be in effect */
 			if ( ppi->portDS->masterOnly ) {
@@ -150,11 +159,19 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 				ppi->portDS->masterOnly=FALSE;
 				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. materOnly set to FALSE\n");
 			}
-			ppi->externalPortConfigurationPortDS.desiredState =ppi->cfg.desiredState ;
+			ppi->externalPortConfigurationPortDS.desiredState =desiradedState ;
+			isSlavePresent|=desiradedState==PPS_SLAVE || desiradedState==PPS_UNCALIBRATED;
+		}
+		if ( def->clockQuality.clockClass < 128 && isSlavePresent) {
+			/* clockClass cannot be < 128 if a port is configured as slave */
+			/* Configured clockClass must be also changed to avoid to be set by BMCA bmc_update_clock_quality() */
+			rt_opts->clock_quality.clockClass =
+					def->clockQuality.clockClass=PP_CLASS_DEFAULT;
+			pp_printf("PPSi: GM clock set but slave present. Clock class set to %d\n", def->clockQuality.clockClass);
 		}
 	}
 
-	for (i = 0; i < def->numberPorts; i++) {
+	for (i = 0; i < get_numberPorts(def); i++) {
 		struct pp_instance *ppi = INST(ppg, i);
 		int r;
 
@@ -170,7 +187,7 @@ int pp_close_globals(struct pp_globals *ppg)
 	int i,ret=0;;
 	defaultDS_t *def = ppg->defaultDS;
 
-	for (i = 0; i < def->numberPorts; i++) {
+	for (i = 0; i < get_numberPorts(def); i++) {
 		struct pp_instance *ppi = INST(ppg, i);
 		int r;
 

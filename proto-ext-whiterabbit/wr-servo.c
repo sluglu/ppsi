@@ -10,17 +10,6 @@ static int wr_e2e_offset(struct pp_instance *ppi,
 static int wr_p2p_offset(struct pp_instance *ppi,
 		  struct wr_servo_state *s, struct pp_time *offset_hw);
 
-
-struct pp_time faulty_stamps[6]; /* if unused, dropped at link time */
-
-static void apply_faulty_stamp(struct wr_servo_state *s, int index)
-{
-	if (PROTO_EXT_HAS_FAULTS) {
-		assert(index >= 1 && index <= 6, "Wrong T index %i\n", index);
-		pp_time_add(&s->t1 + index - 1, faulty_stamps + index - 1);
-	}
-}
-
 /* Define threshold values for SNMP */
 #define SNMP_MAX_OFFSET_PS 500
 #define SNMP_MAX_DELTA_RTT_PS 1000
@@ -117,9 +106,6 @@ int wr_servo_init(struct pp_instance *ppi)
 	/* Update scaledDelayCoefficient. Need conversion because they use two different fraction bits */
 	ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient= (int64_t)s->fiber_fix_alpha << (REL_DIFF_FRACBITS-FIX_ALPHA_FRACBITS);
 
-
-	WRH_OPER()->enable_timing_output(ppi, 0);
-
 	/*
 	 * Do not reset cur_setpoint, but trim it to be less than one tick.
 	 * The softpll code uses the module anyways, but if we unplug-replug
@@ -155,8 +141,8 @@ int wr_servo_got_sync(struct pp_instance *ppi)
 	struct wr_servo_state *s =
 			&((struct wr_data *)ppi->ext_data)->servo_state;
 
-	s->t1 = ppi->t1; apply_faulty_stamp(s, 1);
-	s->t2 = ppi->t2; apply_faulty_stamp(s, 2);
+	s->t1 = ppi->t1; apply_faulty_stamp(ppi, 1);
+	s->t2 = ppi->t2; apply_faulty_stamp(ppi, 2);
 	got_sync = 1;
 	return 0;
 }
@@ -168,12 +154,12 @@ int wr_servo_got_delay(struct pp_instance *ppi)
 
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
-	s->t3 = ppi->t3; apply_faulty_stamp(s, 3);
-	s->t4 = ppi->t4; apply_faulty_stamp(s, 4);
+	s->t3 = ppi->t3; apply_faulty_stamp(ppi, 3);
+	s->t4 = ppi->t4; apply_faulty_stamp(ppi, 4);
 
 	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
-		s->t5 = ppi->t5; apply_faulty_stamp(s, 5);
-		s->t6 = ppi->t6; apply_faulty_stamp(s, 6);
+		s->t5 = ppi->t5; apply_faulty_stamp(ppi, 5);
+		s->t6 = ppi->t6; apply_faulty_stamp(ppi, 6);
 
 		wr_p2p_delay(ppi, s);
 	}
@@ -377,11 +363,10 @@ int wr_servo_update(struct pp_instance *ppi)
 		(long)offset.secs, (long)offset_ticks,
 		(long)offset_ps,s->clock_period_ps);
 
-	locking_poll_ret = WRH_OPER()->locking_poll(ppi, 0);
+	locking_poll_ret = WRH_OPER()->locking_poll(ppi);
 	if (locking_poll_ret != WRH_SPLL_READY
 	    && locking_poll_ret != WRH_SPLL_CALIB_NOT_READY) {
 		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
-		WRH_OPER()->enable_timing_output(ppi, 0);
 		/* TODO check
 		 * DSPOR(ppi)->doRestart = TRUE; */
 	}
@@ -441,7 +426,7 @@ int wr_servo_update(struct pp_instance *ppi)
 		SRV(ppi)->flags |= PP_SERVO_FLAG_WAIT_HW;
 		SRV(ppi)->state = WR_WAIT_OFFSET_STABLE;
 
-		if (ARCH_IS_WRS) {
+		if (CONFIG_ARCH_IS_WRS) {
 			/*
 			 * Now, let's fix system time. We pass here
 			 * once only, so that's the best place to do
@@ -459,7 +444,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		remaining_offset_ps = abs(offset_ps);
 		if(remaining_offset_ps < WRH_SERVO_OFFSET_STABILITY_THRESHOLD) {
-			WRH_OPER()->enable_timing_output(ppi, 1);
+			WRH_OPER()->enable_timing_output(GLBS(ppi),1);
 			s->prev_delayMS_ps = s->delayMS_ps;
 			SRV(ppi)->state = WR_TRACK_PHASE;
 		} else {

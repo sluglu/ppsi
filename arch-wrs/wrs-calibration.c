@@ -35,13 +35,13 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 	 * way as the HAL itself was doing to fill the RPC structure.
 	 * Formulas copied from libwr/hal_shmem.c (get_exported_state).
 	 */
-#if CONFIG_PROFILE_WR == 1
-	port_fix_alpha =  FIX_ALPHA_TWO_POW_FRACBITS *
-		((p->calib.sfp.alpha + 1.0) / (p->calib.sfp.alpha + 2.0)
-		 - 0.5);
-#else
-	port_fix_alpha =0;
-#endif
+     if ( CONFIG_HAS_PROFILE_WR  ) {
+		port_fix_alpha =  FIX_ALPHA_TWO_POW_FRACBITS *
+			((p->calib.sfp.alpha + 1.0) / (p->calib.sfp.alpha + 2.0)
+			 - 0.5);
+     } else {
+    	 port_fix_alpha =0;
+     }
 
 	if ( delta_tx || delta_rx) {
 		port_delta_tx = p->calib.delta_tx_phy
@@ -73,13 +73,13 @@ int wrs_read_correction_data(struct pp_instance *ppi, int64_t *fiber_fix_alpha,
 	wrs_read_calibration_data(ppi, NULL, NULL,NULL, &port_cP, bit_slide_ps);
 
 	if(fiber_fix_alpha) {
-#if CONFIG_PROFILE_WR == 1
-		double alpha;
-		alpha  = ((double) ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient)/REL_DIFF_TWO_POW_FRACBITS;
-		*fiber_fix_alpha = FIX_ALPHA_TWO_POW_FRACBITS * ((alpha + 1.0) / (alpha + 2.0) - 0.5);
-#else
-		*fiber_fix_alpha=0;
-#endif
+		if ( CONFIG_HAS_PROFILE_WR ) {
+			double alpha;
+			alpha  = ((double) ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient)/REL_DIFF_TWO_POW_FRACBITS;
+			*fiber_fix_alpha = FIX_ALPHA_TWO_POW_FRACBITS * ((alpha + 1.0) / (alpha + 2.0) - 0.5);
+		} else {
+			*fiber_fix_alpha=0;
+		}
 	}
 
 	if(clock_period_ps)

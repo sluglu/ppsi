@@ -20,10 +20,10 @@ int wr_m_lock(struct pp_instance *ppi, void *buf, int len)
 
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
-		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_M_LOCK_TIMEOUT_MS*(WR_STATE_RETRY+1));
+		pp_timeout_set_rename(ppi, wrTmoIdx, WR_M_LOCK_TIMEOUT_MS*(WR_STATE_RETRY+1),"WR_MLOCK");
 		sendmsg = 1;
 	} else {
-		int rms=pp_next_delay_1(ppi, PP_TO_EXT_0);
+		int rms=pp_next_delay_1(ppi, wrTmoIdx);
 		if ( rms==0 || rms<(wrp->wrStateRetry*WR_M_LOCK_TIMEOUT_MS)) {
 			if (wr_handshake_retry(ppi))
 				sendmsg = 1;
@@ -45,7 +45,7 @@ int wr_m_lock(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	
-	ppi->next_delay = pp_next_delay_1(ppi,PP_TO_EXT_0)-wrp->wrStateRetry*WR_M_LOCK_TIMEOUT_MS;
+	ppi->next_delay = pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*WR_M_LOCK_TIMEOUT_MS;
 
 	return e;
 }

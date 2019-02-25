@@ -35,10 +35,10 @@ void pp_prepare_pointers(struct pp_instance *ppi)
 	case PPSI_PROTO_RAW:
 		ppi->tx_offset = ETH_HLEN; /* 14, I know! */
 		ppi->rx_offset = ETH_HLEN;
-	#ifdef CONFIG_ARCH_WRPC
-		ppi->tx_offset = 0; /* Currently, wrpc has a separate header */
-		ppi->rx_offset = 0;
-	#endif
+	    if ( CONFIG_ARCH_IS_WRPC ) {
+			ppi->tx_offset = 0; /* Currently, wrpc has a separate header */
+			ppi->rx_offset = 0;
+	    }
 		break;
 	case PPSI_PROTO_VLAN:
 		ppi->tx_offset = sizeof(struct pp_vlanhdr);
@@ -67,13 +67,9 @@ void pp_prepare_pointers(struct pp_instance *ppi)
 static int is_grand_master(struct pp_instance *ppi) {
 	int has_slave= 0;
 	int has_master=0;
-	int i=0;
+	int i;
 
-#if CODEOPT_ONE_PORT()
-	{
-#else
-	for (; i < DSDEF(ppi)->numberPorts; i++) {
-#endif
+	for (i=0; i < get_numberPorts(DSDEF(ppi)); i++) {
 		switch (INST(GLBS(ppi), i)->state) {
 		case PPS_UNCALIBRATED:
 		case PPS_SLAVE:
@@ -92,15 +88,15 @@ int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 {
 	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
 		/* 9.2.6.11 b) reset timeout when an announce timeout happened */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 
-		if ( !DSDEF(ppi)->slaveOnly ) {
+		if ( !is_slaveOnly(DSDEF(ppi)) ) {
 			if ( is_grand_master(ppi) ) {
 				bmc_m1(ppi);
 			} else {
 				bmc_m3(ppi);
 			}
-			if ( DSDEF(ppi)->externalPortConfigurationEnabled ) {
+			if ( is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
 				/* Clause 17.6.5.3 : The announce receipt timeout mechanism shall not be active */
 				return 0;
 			}
@@ -115,13 +111,6 @@ int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 
 int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
-	/* Clause 9.2.2.2 MasterOnly PTP ports :
-	 * Announce messages received on a masterOnly PTP Port shall not be considered
-	 * in the operation of the best master clock algorithm or in the update of data sets.
-	 */
-	if ( ! DSPOR(ppi)->masterOnly ) {
-		bmc_add_frgn_master(ppi, buf, len);
-	}
 	if (is_ext_hook_available(ppi,handle_announce))
 		return ppi->ext_hooks->handle_announce(ppi);
 	return 0;

@@ -35,13 +35,24 @@ static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	if (ret)
 		return ret;
 	
+	/* Clause 9.2.2.2 MasterOnly PTP ports :
+	 * Announce messages received on a masterOnly PTP Port shall not be considered
+	 * in the operation of the best master clock algorithm or in the update of data sets.
+	 */
+	if ( ! DSPOR(ppi)->masterOnly) {
+		struct pp_frgn_master frgn_master;
+
+		bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+		bmc_add_frgn_master(ppi, &frgn_master);
+	}
+
 	if (erbest!=NULL && !bmc_pidcmp(&hdr->sourcePortIdentity,
 		&erbest->sourcePortIdentity)) {
 		/* 
 		 * 9.2.6.11 d) reset timeout when an announce
 		 * is received from the clock putting it into passive (erbest)
 		 */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 	}
 	
 	return 0;
@@ -52,7 +63,7 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
+	pp_timeout_reset(ppi, PP_TO_FAULT); /* no fault as long as we are
 					   * passive */
 
 	/* when the clock is using peer-delay, passive must send it too */

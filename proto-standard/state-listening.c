@@ -9,6 +9,9 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+
+static int listening_handle_announce(struct pp_instance *ppi, void *buf, int len);
+
 static pp_action *actions[] = {
 	[PPM_SYNC]			= 0,
 	[PPM_DELAY_REQ]		= 0,
@@ -19,16 +22,36 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
-	[PPM_ANNOUNCE]		= st_com_handle_announce,
+	[PPM_ANNOUNCE]		= listening_handle_announce,
 	[PPM_SIGNALING]	    = st_com_handle_signaling,
 };
+
+static int listening_handle_announce(struct pp_instance *ppi, void *buf, int len) {
+
+	int ret;
+
+	if ((ret = st_com_handle_announce(ppi, buf, len))!=0)
+		return ret;
+
+	/* Clause 9.2.2.2 MasterOnly PTP ports :
+	 * Announce messages received on a masterOnly PTP Port shall not be considered
+	 * in the operation of the best master clock algorithm or in the update of data sets.
+	 */
+	if ( ! DSPOR(ppi)->masterOnly) {
+		struct pp_frgn_master frgn_master;
+
+		bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+		bmc_add_frgn_master(ppi, &frgn_master);
+	}
+	return 0;
+}
 
 int pp_listening(struct pp_instance *ppi, void *buf, int len)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we listen */
+	pp_timeout_reset(ppi, PP_TO_FAULT); /* no fault as long as we listen */
 	if (is_ext_hook_available(ppi,listening))
 		e = ppi->ext_hooks->listening(ppi, buf, len);
 	if (e)

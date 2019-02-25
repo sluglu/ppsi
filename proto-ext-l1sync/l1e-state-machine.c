@@ -54,17 +54,16 @@ static l1e_state_machine_t le1_state_actions[] ={
  */
 int l1e_run_state_machine(struct pp_instance *ppi) {
 	L1SyncBasicPortDS_t * basicDS=L1E_DSPOR_BS(ppi);
-	static Boolean execute_state_machine=TRUE;
 	Enumeration8 nextState=basicDS->next_state;
 	Boolean newState=nextState!=basicDS->L1SyncState;
+	int *execute_state_machine=&L1E_DSPOR(ppi)->execute_state_machine;
 	int delay;
 
-	if ( !ppi->ext_enabled )
+	if ( !ppi->ext_enabled || ppi->state==PPS_INITIALIZING)
 		return INT_MAX; /* Return a big delay. fsm will then not use it */
 
 	if ( nextState>=MAX_STATE_ACTIONS)
 		return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC);
-
 
 	/*
 	 *  Update the L1SYNC dynamic data independent of the state machine
@@ -76,14 +75,14 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 	/* Check L1SYNC reception Time-out */
 	if ( pp_timeout(ppi, L1E_TIMEOUT_RX_SYNC) ) {
 		/* Time-out detected */
-		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basicDS));
+		pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basicDS));
 		basicDS->L1SyncLinkAlive = FALSE;
-		execute_state_machine=TRUE;
+		*execute_state_machine=TRUE;
 	}
 
 	/* Check L1SYNC transmission Time-out */
 	if ( pp_timeout(ppi, L1E_TIMEOUT_TX_SYNC) ) {
-		execute_state_machine=TRUE;
+		*execute_state_machine=TRUE;
 	}
 
 	/*
@@ -92,10 +91,10 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 	if ( newState ) {
 		basicDS->L1SyncState=nextState;
 		pp_diag(ppi, ext, 2, "L1SYNC state: Enter %s\n", l1e_state_name[nextState]);
-		execute_state_machine=TRUE;
+		*execute_state_machine=TRUE;
 	}
 
-	if ( execute_state_machine ) {
+	if ( *execute_state_machine ) {
 		/* The state machine is executed only when really needed because
 		 * fsm can call this function too often.
 		 */
@@ -104,7 +103,7 @@ int l1e_run_state_machine(struct pp_instance *ppi) {
 		delay=pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 
 	/* If return delay is 0, it means that the state machine should be executed at last call */
-	execute_state_machine= (delay==0);
+	*execute_state_machine= (delay==0);
 
 	if ( basicDS->L1SyncState != basicDS->next_state )
 		pp_diag(ppi, ext, 2, "L1SYNC state: Exit %s\n", l1e_state_name[basicDS->L1SyncState]);
@@ -117,7 +116,7 @@ static int l1e_empty_action(struct pp_instance *ppi, Boolean new_state){
 
 /* L1_SYNC_RESET event */
 static inline Boolean le1_evt_L1_SYNC_RESET(struct pp_instance *ppi) {
-	return ppi->link_up == 0;
+	return ppi->link_up == 0 || ppi->state==PPS_INITIALIZING;
 }
 
 /* L1_SYNC_ENABLED event */
@@ -144,7 +143,7 @@ static Boolean le1_evt_STATE_OK(struct pp_instance *ppi) {
 	switch (ppi->state) {
 	case PPS_SLAVE :
 	case PPS_UNCALIBRATED :
-		pll_state= WRH_OPER()->locking_poll(ppi, 0); /* Get the PPL state */
+		pll_state= WRH_OPER()->locking_poll(ppi); /* Get the PPL state */
 		basicDS->isCongruent =
 				basicDS->isRxCoherent= pll_state == WRH_SPLL_READY ? 1 : 0;
 		break;
@@ -206,7 +205,7 @@ static __inline__ int measure_last_time(struct pp_instance *ppi, int fmeas) {
 
 static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 
-	if (pp_timeout(ppi, L1E_TIMEOUT_TX_SYNC) || immediatSend) {
+	if (immediatSend || pp_timeout(ppi, L1E_TIMEOUT_TX_SYNC) ) {
 		int len;
 		int fmeas, lmeas;
 		int diff;
@@ -226,7 +225,7 @@ static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 		tmo_ms=pp_timeout_log_to_ms(L1E_DSPOR_BS(ppi)->logL1SyncInterval);
 		if ( tmo_ms >= diff ) /* to be sure to have a positive value */
 			tmo_ms-=diff;
-		__pp_timeout_set(ppi, L1E_TIMEOUT_TX_SYNC,tmo_ms); /* loop ever since */
+		pp_timeout_set(ppi, L1E_TIMEOUT_TX_SYNC,tmo_ms); /* loop ever since */
 	}
 }
 
@@ -301,7 +300,7 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 	/* State initialization */
 	if ( new_state ) {
 		/* Initialize time-out peer L1SYNC reception */
-		__pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basic));
+		pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basic));
 
 	}
 	/* Check if state transition needed */
@@ -329,13 +328,14 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 		switch ( ppi->state ) {
 			case PPS_SLAVE :
 			case PPS_UNCALIBRATED :
-				if ( basic->congruentIsRequired==1 &&	basic->isRxCoherent==0) {
+				if ( basic->congruentIsRequired ) {
+					basic->isRxCoherent=0;
 					pp_diag(ppi, ext, 1, "Locking PLL\n");
 					WRH_OPER()->locking_enable(ppi);
 				}
 				break;
 			case PPS_MASTER :
-				if (  basic->congruentIsRequired == 1) {
+				if (  basic->congruentIsRequired ) {
 					WRH_OPER()->locking_disable(ppi);
 				}
 				break;
@@ -371,9 +371,6 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 
 	/* State initialization */
 	if ( new_state ) {
-		// JCB - test one servo
-		// l1e_servo_init(ppi); /* The servo can be initialized because the PPL is locked */
-
 		WRH_OPER()->enable_ptracker(ppi);
 	}
 

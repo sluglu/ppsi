@@ -16,10 +16,10 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len)
 
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
-		__pp_timeout_set(ppi, PP_TO_EXT_0, WR_S_LOCK_TIMEOUT_MS*(WR_STATE_RETRY+1));
+		pp_timeout_set_rename(ppi, wrTmoIdx, WR_S_LOCK_TIMEOUT_MS*(WR_STATE_RETRY+1),"WR_SLOCK");
 		enable = 1;
 	} else {
-		int rms=pp_next_delay_1(ppi, PP_TO_EXT_0);
+		int rms=pp_next_delay_1(ppi, wrTmoIdx);
 		if ( rms==0 || rms<(wrp->wrStateRetry*WR_S_LOCK_TIMEOUT_MS)) {
 			WRH_OPER()->locking_disable(ppi);
 			if (wr_handshake_retry(ppi))
@@ -33,9 +33,9 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len)
 		WRH_OPER()->locking_enable(ppi);
 	}
 
-	ppi->next_delay = pp_next_delay_1(ppi,PP_TO_EXT_0)-wrp->wrStateRetry*WR_S_LOCK_TIMEOUT_MS;
+	ppi->next_delay = pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*WR_S_LOCK_TIMEOUT_MS;
 
-	poll_ret = WRH_OPER()->locking_poll(ppi, 0);
+	poll_ret = WRH_OPER()->locking_poll(ppi);
 	if (poll_ret == WRH_SPLL_READY) {
 		ppi->next_state = WRS_LOCKED;
 		WRH_OPER()->locking_disable(ppi);
@@ -46,7 +46,7 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	/* Calibration can take time so we restart the BMC timer to avoid aged foreign master removed. */
-	pp_timeout_set(ppi, PP_TO_BMC);
+	pp_gtimeout_reset(GLBS(ppi), PP_TO_BMC);
 
 	return 0;
 }

@@ -10,7 +10,6 @@
 #include "../proto-standard/common-fun.h"
 
 #ifdef CONFIG_ARCH_WRS
-
 #include <libwr/shmem.h>
 #define shmem_lock() wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 #define shmem_unlock() wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
@@ -26,14 +25,6 @@ static int pp_servo_offset_master(struct pp_instance *, struct pp_time *);
 static int64_t pp_servo_pi_controller(struct pp_instance *, struct pp_time *);
 static void _pp_servo_init(struct pp_instance *ppi);
 static void __pp_servo_update(struct pp_instance *ppi);
-
-void pp_servo_apply_faulty_stamp(struct pp_servo *s, struct pp_time *faulty_stamps, int index)
-{
-	if (PROTO_EXT_HAS_FAULTS) {
-		assert(index >= 1 && index <= 6, "Wrong T index %i\n", index);
-		pp_time_add(&s->t1 + index - 1, faulty_stamps + index - 1);
-	}
-}
 
 void pp_servo_init(struct pp_instance *ppi)
 {
@@ -66,7 +57,7 @@ static void _pp_servo_init(struct pp_instance *ppi)
 
 	servo->flags |= PP_SERVO_FLAG_VALID;
 
-	pp_timeout_set(ppi, PP_TO_FAULT);
+	pp_timeout_reset(ppi, PP_TO_FAULT);
 	pp_diag(ppi, servo, 1, "Initialized: obs_drift %lli\n",
 			servo->obs_drift);
 }
@@ -228,9 +219,30 @@ int pp_servo_calculate_delays(struct pp_instance *ppi) {
 	return 1;
 }
 
+static void control_timing_output(struct pp_instance *ppi) {
+	int offsetFromMasterUs=(int)(pp_time_to_picos(&SRV(ppi)->offsetFromMaster)/(int64_t)1000000);
+	int ptpPpsThresholdUs=OPTS(ppi)->ptpPpsThresholdMs*1000;
+
+	/* activate timing output if abs(offsetFromMasterMs)<ptpPpsThreshold */
+	if ( offsetFromMasterUs<0)
+		offsetFromMasterUs=-offsetFromMasterUs;
+
+	if ( offsetFromMasterUs<=ptpPpsThresholdUs ) {
+		WRH_OPER()->enable_timing_output(GLBS(ppi),1);
+	} else {
+		if ( !OPTS(ppi)->forcePpsGen ) { /* if timing output forced, never stop it */
+			/* disable only if abs(offsetFromMasterMs)>ptpPpsThresholdMs+20% */
+			ptpPpsThresholdUs+=ptpPpsThresholdUs/5;
+			if ( offsetFromMasterUs>ptpPpsThresholdUs ) {
+				WRH_OPER()->enable_timing_output(GLBS(ppi),0);
+			}
+		}
+	}
+}
+
 /* Called by slave and uncalib when we have t1 and t2 */
 /* t1 & t2  are already checked and they are correct */
-void pp_servo_got_sync(struct pp_instance *ppi)
+void pp_servo_got_sync(struct pp_instance *ppi, int allowTimingOutput)
 {
 	struct pp_servo *servo=SRV(ppi);
 
@@ -242,6 +254,9 @@ void pp_servo_got_sync(struct pp_instance *ppi)
 		/* P2P mechanism */
 		servo->got_sync=0;
 		__pp_servo_update(ppi);
+		if (allowTimingOutput ) {
+			control_timing_output(ppi);
+		}
 	} else
 		servo->got_sync=1;
 
@@ -249,7 +264,7 @@ void pp_servo_got_sync(struct pp_instance *ppi)
 }
 
 /* called by slave states when delay_resp is received (all t1..t4 are valid) */
-int pp_servo_got_resp(struct pp_instance *ppi)
+int pp_servo_got_resp(struct pp_instance *ppi, int allowTimingOutput)
 {
 	struct pp_servo *servo=SRV(ppi);
 	static int errcount=0;
@@ -272,6 +287,10 @@ int pp_servo_got_resp(struct pp_instance *ppi)
 	__pp_servo_update(ppi);
 
 	shmem_unlock(); /* Share memory locked */
+
+	if (allowTimingOutput)
+		control_timing_output(ppi);
+
 	return 1;
 }
 
@@ -418,11 +437,6 @@ static int pp_servo_offset_master(struct pp_instance *ppi, struct pp_time *ofm)
 	ppi->t_ops->set(ppi, &time_tmp);
 
 	_pp_servo_init(ppi);
-
-	if (ARCH_IS_WRS) {
-		/* Enable PPS output */
-		WRH_OPER()->enable_timing_output(ppi, 1);
-	}
 
 	return 1; /* done */
 }

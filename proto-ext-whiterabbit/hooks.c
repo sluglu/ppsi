@@ -2,11 +2,16 @@
 
 /* ext-whiterabbit must offer its own hooks */
 
+int wrTmoIdx=0; /* TimeOut Index */
+
 static int wr_init(struct pp_instance *ppi, void *buf, int len)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+
+	if ( wrTmoIdx==0)
+		wrTmoIdx=pp_timeout_get_timer(ppi,"WR_EXT_0",TO_RAND_NONE, TMO_CF_INSTANCE_DEPENDENT);
 
 	wrp->wrStateTimeout = WR_DEFAULT_STATE_TIMEOUT_MS;
 	wrp->calPeriod = WR_DEFAULT_CAL_PERIOD;
@@ -22,14 +27,6 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
                 ppi->next_state = WRS_WR_LINK_ON;
 #endif
 
-	if ((wrp->wrConfig & WR_M_AND_S) == WR_M_ONLY
-#ifdef CONFIG_ABSCAL
-	    && ptp_mode != 4 /* WRC_MODE_ABSCAL -- not defined in wrs build */
-#endif
-	   )
-	   WRH_OPER()->enable_timing_output(ppi, 1);	
-	else
-		WRH_OPER()->enable_timing_output(ppi, 0);
 	return 0;
 }
 
@@ -39,7 +36,7 @@ static int wr_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 
 	if (ppi->protocol_extension == PPSI_EXT_WR) {
-		if ( DSDEF(ppi)->slaveOnly ) {
+		if ( is_slaveOnly(DSDEF(ppi)) ) {
 			WR_DSPOR(ppi)->wrConfig = WR_S_ONLY;
 		} else {
 			if ( ppi->portDS->masterOnly ) {
@@ -99,33 +96,16 @@ static int wr_new_slave(struct pp_instance *ppi, void *buf, int len)
 
 static int wr_handle_resp(struct pp_instance *ppi)
 {
-	struct pp_time *ofm = &SRV(ppi)->offsetFromMaster;
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	/* This correction_field we received is already part of t4 */
 
-	/*
-	 * If no WR mode is on, run normal code, if T2/T3 are valid.
-	 * After we adjusted the pps counter, stamps are invalid, so
-	 * we'll have the Unix time instead, marked by "correct"
-	 */
-	if (!wrp->wrModeOn) {
-		if ( is_timestamps_incorrect(ppi, NULL, 0x6 /* mask=t2&t3 */) ) {
-			pp_diag(ppi, servo, 1,
-				"T2 or T3 incorrect, discarding tuple\n");
-			return 0;
-		}
-		pp_servo_got_resp(ppi);
-		/*
-		 * pps always on if offset less than 1 second,
-		 * until ve have a configurable threshold */
-		WRH_OPER()->enable_timing_output(ppi, ofm->secs==0);
-
+	if ( ppi->ext_enabled ) {
+		wr_servo_got_delay(ppi);
+		wr_servo_update(ppi);
+	} else {
+		pp_servo_got_resp(ppi,OPTS(ppi)->ptpFallbackPpsGen);
 	}
-	wr_servo_got_delay(ppi);
-	wr_servo_update(ppi);
 	return 0;
 }
 
@@ -180,7 +160,7 @@ static int wr_handle_announce(struct pp_instance *ppi)
 		case WRS_RESP_CALIB_REQ :
 		case WRS_WR_LINK_ON :
 			/* reset announce timeout when in the WR slave states */
-			pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+			pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 	}
 
 	/* handshake is started in slave mode */
@@ -189,13 +169,14 @@ static int wr_handle_announce(struct pp_instance *ppi)
 
 static int  wr_sync_followup(struct pp_instance *ppi) {
 
-	if (!WR_DSPOR(ppi)->wrModeOn)
-		return 0;
-
-	wr_servo_got_sync(ppi);
-
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
-		wr_servo_update(ppi);
+	if ( ppi->ext_enabled ) {
+		wr_servo_got_sync(ppi);
+		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
+			wr_servo_update(ppi);
+	}
+	else {
+		pp_servo_got_sync(ppi,OPTS(ppi)->ptpFallbackPpsGen);
+	}
 
 	return 1; /* the caller returns too */
 }
@@ -214,34 +195,14 @@ static int wr_handle_followup(struct pp_instance *ppi)
 	return wr_sync_followup(ppi);
 }
 
-static __attribute__((used)) int wr_handle_presp(struct pp_instance *ppi)
+static int wr_handle_presp(struct pp_instance *ppi)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	struct pp_time *ofm = &SRV(ppi)->offsetFromMaster;
-
-	/*
-	 * If no WR mode is on, run normal code, if T2/T3 are valid.
-	 * After we adjusted the pps counter, stamps are invalid, so
-	 * we'll have the Unix time instead, marked by "correct"
-	 */
-
-	if (!wrp->wrModeOn) {
-		if ( is_timestamps_incorrect(ppi, NULL, 0x24 /* mask=t3&t6 */) ) {
-			pp_diag(ppi, servo, 1,
-				"T3 or T6 incorrect, discarding tuple\n");
-			return 0;
-		}
-		pp_servo_got_presp(ppi);
-		/*
-		 * pps always on if offset less than 1 second,
-		 * until ve have a configurable threshold */
-		WRH_OPER()->enable_timing_output(ppi, ofm->secs==0);
-
-		return 0;
-	}
-
 	/* FIXME: verify that last-received cField is already accounted for */
-	wr_servo_got_delay(ppi);
+	if ( ppi->ext_enabled )
+		wr_servo_got_delay(ppi);
+	else
+		pp_servo_got_presp(ppi);
+
 	return 0;
 }
 
@@ -326,6 +287,11 @@ static void wr_state_change(struct pp_instance *ppi)
 		if (ppi->state == PPS_SLAVE)
 			WRH_OPER()->locking_reset(ppi);
 	}		 
+
+	if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED ) {
+		/* Leave SLAVE state : We must stop the PPS generation */
+		WRH_OPER()->enable_timing_output(GLBS(ppi),0);
+	}
 }
 
 static int wr_require_precise_timestamp(struct pp_instance *ppi) {

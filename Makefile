@@ -47,14 +47,17 @@ all: $(TARGET).o
 # CFLAGS to use. Both this Makefile (later) and app-makefile may grow CFLAGS
 CFLAGS = $(USER_CFLAGS)
 CFLAGS += -Wall -Wstrict-prototypes -Wmissing-prototypes
+CFLAGS += -ffunction-sections -fdata-sections
 
-CFLAGS += -O$(CONFIG_OPTIMIZATION)
+export CFLAGS_OPTIMIZATION:= ${shell echo $(CONFIG_OPTIMIZATION)}
 
-CFLAGS += -ggdb -Iinclude -fno-common
+CFLAGS += $(CFLAGS_OPTIMIZATION)
+
+CFLAGS += -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
 
 # to avoid ifdef as much as possible, I use the kernel trick for OBJ variables
-OBJ-y := fsm.o diag.o timeout.o msgtype.o
+OBJ-y := fsm.o diag.o timeout.o msgtype.o port_controller.o
 
 # Include arch code. Each arch chooses its own time directory..
 include arch-$(ARCH)/Makefile
@@ -67,7 +70,7 @@ OBJ-y += pp_printf/pp-printf.o
 pp_printf/pp-printf.o: $(wildcard pp_printf/*.[ch])
 	CFLAGS="$(ARCH_PP_PRINTF_CFLAGS)" \
 	$(MAKE) -C pp_printf pp-printf.o CC="$(CC)" LD="$(LD)" \
-		CONFIG_PRINTF_64BIT=y
+		CONFIG_PRINTF_64BIT=y CFLAGS_OPTIMIZATION="$(CFLAGS_OPTIMIZATION)"
 endif
 
 # We need this -I so <arch/arch.h> can be found
@@ -75,10 +78,10 @@ CFLAGS += -Iarch-$(ARCH)/include
 
 # proto-standard is always included, as it provides default function
 # so the extension can avoid duplication of code.
-ifeq ($(CONFIG_EXT_WR),y)
+ifeq ($(CONFIG_HAS_EXT_WR),1)
   include proto-ext-whiterabbit/Makefile
 endif
-ifeq ($(CONFIG_EXT_L1SYNC),y)
+ifeq ($(CONFIG_HAS_EXT_L1SYNC),1)
   include proto-ext-l1sync/Makefile
 endif
 include proto-standard/Makefile
@@ -99,7 +102,7 @@ export CFLAGS
 # libraries: see proto-standard/Makefile as an example.
 
 $(TARGET).o: $(OBJ-y)
-	$(LD) -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
+	$(LD) --gc-sections --entry=main -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
 		--start-group $(OBJ-y) --end-group
 
 $(OBJ-y): .config $(wildcard include/ppsi/*.h)

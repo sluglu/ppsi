@@ -14,17 +14,6 @@
 #define CALIBRATED_MASK 0x4
 #define WR_CONFIG_MASK 0x3
 
-#if CONFIG_PROFILE_WR == 1
-static char *wr_message_name[] = {
-    "SLAVE_PRESENT",
-    "LOCK",
-    "LOCKED",
-    "CALIBRATE",
-    "CALIBRATED",
-    "WR_MODE_ON",
-};
-#endif
-
 static int dump_vlan(char *prefix, int vlan);
 
 static int dumpstruct(char *p1, char *p2, char *name, void *ptr, int size)
@@ -167,146 +156,156 @@ static void dump_msg_resp_etc(char *prefix, char *s, struct ptp_sync_etc *p)
 	dump_1port(prefix, s, p->port);
 }
 
-#if CONFIG_PROFILE_WR == 1
-
 /* TLV dumper, now white-rabbit aware */
 static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 {
 	/* the field includes 6 bytes of the header, ecludes 4 of them. Bah! */
 	int explen = ntohs(tlv->len) + 4;
-	uint16_t messageId;
-	char *messageId_str = NULL;
 
-	printf("%sTLV: type %04x len %i oui %02x:%02x:%02x "
-	       "sub %02x:%02x:%02x\n", prefix, ntohs(tlv->type), explen,
-	       tlv->oui[0], tlv->oui[1], tlv->oui[2],
-	       tlv->subtype[0], tlv->subtype[1], tlv->subtype[2]);
-	if (explen > totallen) {
-		printf("%sTLV: too short (expected %i, total %i)\n", prefix,
-		       explen, totallen);
-		return totallen;
-	}
-	
-	if (memcmp(tlv->oui, "\x08\x00\x30", 3) /* WR_TLV_ORGANIZATION_ID */
-	    /* WR_TLV_MAGIC_NUMBER, WR_TLV_WR_VERSION_NUMBER */
-	    || memcmp(tlv->subtype, "\xDE\xAD\x01", 3) 
-	    ) {
-		/* Now dump non-wr tlv in binary, count only payload */
-		dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
-			   explen - sizeof(*tlv));
-		return explen;
-	}
-	
-	messageId = (tlv->data[0] << 8) + tlv->data[1];
-	if (SLAVE_PRESENT <= messageId && messageId <= WR_MODE_ON)
-		messageId_str = wr_message_name[messageId - SLAVE_PRESENT];
-	if (messageId == ANN_SUFIX)
-		messageId_str = "ANN_SUFIX";
+	if ( CONFIG_HAS_PROFILE_WR ) {
+		static char *wr_message_name[] = {
+		    "SLAVE_PRESENT",
+		    "LOCK",
+		    "LOCKED",
+		    "CALIBRATE",
+		    "CALIBRATED",
+		    "WR_MODE_ON",
+		};
+		uint16_t messageId;
+		char *messageId_str = NULL;
 
-	if (messageId_str) {
-		printf("%sTLV: messageId %s(0x%x)\n", prefix, messageId_str,
-		       messageId);
-		switch(messageId){
-		case SLAVE_PRESENT:
-		case LOCK:
-		case LOCKED:
-		case WR_MODE_ON:
-			/* no more to be printed */
-			break;
-		case CALIBRATE:
-			if (totallen < 8 || explen < 8) { /* 2+1+1+4 */
-				printf("%sTLV: too short (expected %i, total "
-				       "%i)\n", prefix, explen, totallen);
-				return totallen;
-			}
-			printf("%sTLV: calSendPattern %s, calRetry %u, "
-			       "calPeriod %d\n",
-			       prefix,
-			       tlv->data[2] ? "True":"False",
-			       tlv->data[3],
-			       (tlv->data[4] << 24) + (tlv->data[5] << 16)
-			       + (tlv->data[6] << 8) + tlv->data[7]
-			       );
-			break;
-		case CALIBRATED:
-			/* TODO: print as ints */
-			if (totallen < 18 || explen < 18) { /* 2+8+8 */
-				printf("%sTLV: too short (expected %i, total "
-				       "%i)\n", prefix, explen, totallen);
-				return totallen;
-			}
-			dumpstruct(prefix, "TLV: ", "deltaTx", &tlv->data[2],
-				   8);
-			dumpstruct(prefix, "TLV: ", "deltaRx", &tlv->data[10],
-				   8);
-			break;
-		case ANN_SUFIX:
-			{
-			int flags = tlv->data[3]; /* data[2] is unused */
-			char *wr_config_str;
-			if (totallen < 4 || explen < 4) { /* 2+2 */
-				printf("%sTLV: too short (expected %i, total "
-				       "%i)\n", prefix, explen, totallen);
-				return totallen;
-			}
-			switch (flags & WR_CONFIG_MASK) {
-			case NON_WR:
-				wr_config_str = "NON_WR";
+	
+		printf("%sTLV: type %04x len %i oui %02x:%02x:%02x "
+			   "sub %02x:%02x:%02x\n", prefix, ntohs(tlv->type), explen,
+			   tlv->oui[0], tlv->oui[1], tlv->oui[2],
+			   tlv->subtype[0], tlv->subtype[1], tlv->subtype[2]);
+		if (explen > totallen) {
+			printf("%sTLV: too short (expected %i, total %i)\n", prefix,
+				   explen, totallen);
+			return totallen;
+		}
+
+		if (memcmp(tlv->oui, "\x08\x00\x30", 3) /* WR_TLV_ORGANIZATION_ID */
+			/* WR_TLV_MAGIC_NUMBER, WR_TLV_WR_VERSION_NUMBER */
+			|| memcmp(tlv->subtype, "\xDE\xAD\x01", 3)
+			) {
+			/* Now dump non-wr tlv in binary, count only payload */
+			dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
+				   explen - sizeof(*tlv));
+			return explen;
+		}
+
+		messageId = (tlv->data[0] << 8) + tlv->data[1];
+		if (SLAVE_PRESENT <= messageId && messageId <= WR_MODE_ON)
+			messageId_str = wr_message_name[messageId - SLAVE_PRESENT];
+		if (messageId == ANN_SUFIX)
+			messageId_str = "ANN_SUFIX";
+	
+		if (messageId_str) {
+			printf("%sTLV: messageId %s(0x%x)\n", prefix, messageId_str,
+				   messageId);
+			switch(messageId){
+			case SLAVE_PRESENT:
+			case LOCK:
+			case LOCKED:
+			case WR_MODE_ON:
+				/* no more to be printed */
 				break;
-			case WR_S_ONLY:
-				wr_config_str = "WR_S_ONLY";
+			case CALIBRATE:
+				if (totallen < 8 || explen < 8) { /* 2+1+1+4 */
+					printf("%sTLV: too short (expected %i, total "
+						   "%i)\n", prefix, explen, totallen);
+					return totallen;
+				}
+				printf("%sTLV: calSendPattern %s, calRetry %u, "
+					   "calPeriod %d\n",
+					   prefix,
+					   tlv->data[2] ? "True":"False",
+					   tlv->data[3],
+					   (tlv->data[4] << 24) + (tlv->data[5] << 16)
+					   + (tlv->data[6] << 8) + tlv->data[7]
+					   );
 				break;
-			case WR_M_ONLY:
-				wr_config_str = "WR_M_ONLY";
+			case CALIBRATED:
+				/* TODO: print as ints */
+				if (totallen < 18 || explen < 18) { /* 2+8+8 */
+					printf("%sTLV: too short (expected %i, total "
+						   "%i)\n", prefix, explen, totallen);
+					return totallen;
+				}
+				dumpstruct(prefix, "TLV: ", "deltaTx", &tlv->data[2],
+					   8);
+				dumpstruct(prefix, "TLV: ", "deltaRx", &tlv->data[10],
+					   8);
 				break;
-			case WR_M_AND_S:
-				wr_config_str = "WR_M_AND_S";
+			case ANN_SUFIX:
+				{
+				int flags = tlv->data[3]; /* data[2] is unused */
+				char *wr_config_str;
+				if (totallen < 4 || explen < 4) { /* 2+2 */
+					printf("%sTLV: too short (expected %i, total "
+						   "%i)\n", prefix, explen, totallen);
+					return totallen;
+				}
+				switch (flags & WR_CONFIG_MASK) {
+				case NON_WR:
+					wr_config_str = "NON_WR";
+					break;
+				case WR_S_ONLY:
+					wr_config_str = "WR_S_ONLY";
+					break;
+				case WR_M_ONLY:
+					wr_config_str = "WR_M_ONLY";
+					break;
+				case WR_M_AND_S:
+					wr_config_str = "WR_M_AND_S";
+					break;
+				default:
+					wr_config_str="";
+					break;
+				}
+				printf("%sTLV: wrFlags: wrConfig %s, calibrated %s, "
+					   "wrModeOn %s\n",
+					   prefix,
+					   wr_config_str,
+					   flags & CALIBRATED_MASK ? "True":"False",
+					   flags & WR_MODE_ON_MASK ? "True":"False"
+					   );
 				break;
-			default:
-				break;
-			}
-			printf("%sTLV: wrFlags: wrConfig %s, calibrated %s, "
-			       "wrModeOn %s\n",
-			       prefix,
-			       wr_config_str,
-			       flags & CALIBRATED_MASK ? "True":"False",
-			       flags & WR_MODE_ON_MASK ? "True":"False"
-			       );
-			break;
+				}
 			}
 		}
-	}
-
-	return explen;
+		return explen;
+	} else
+		return explen > totallen ? totallen : explen;
 }
-#endif
-
-#if CONFIG_EXT_L1SYNC == 1
 
 static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 {
 	/* the field includes 6 bytes of the header, excludes 4 of them. Bah! */
 	int explen = ntohs(tlv->len) + 4;
 
-	printf("%sTLV: type %04x len %i conf %02x act %02x\n",
-			prefix,
-			ntohs(tlv->type), explen,
-			(int) tlv->config,
-			(int) tlv->active);
-	if (explen > totallen) {
-		printf("%sTLV: too short (expected %i, total %i)\n", prefix,
-		       explen, totallen);
-		return totallen;
-	}
+	if ( CONFIG_HAS_EXT_L1SYNC ) {
+		printf("%sTLV: type %04x len %i conf %02x act %02x\n",
+				prefix,
+				ntohs(tlv->type), explen,
+				(int) tlv->config,
+				(int) tlv->active);
+		if (explen > totallen) {
+			printf("%sTLV: too short (expected %i, total %i)\n", prefix,
+				   explen, totallen);
+			return totallen;
+		}
 
-	/* later:  if (memcmp(tlv->oui, "\x08\x00\x30", 3)) ... */
+		/* later:  if (memcmp(tlv->oui, "\x08\x00\x30", 3)) ... */
 
-	/* Now dump non-l1sync tlv in binary, count only payload */
-	dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
-		   explen - sizeof(*tlv));
-	return explen;
+		/* Now dump non-l1sync tlv in binary, count only payload */
+		dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
+			   explen - sizeof(*tlv));
+		return explen;
+	} else
+		return explen > totallen ? totallen : explen;
 }
-#endif
 
 /* A big function to dump the ptp information */
 static void dump_payload(char *prefix, void *pl, int len)
@@ -404,16 +403,12 @@ static void dump_payload(char *prefix, void *pl, int len)
 			break;
 		}
 		switch ( messageType) {
-#if CONFIG_PROFILE_WR == 1
 		case PPM_ANNOUNCE :
 			donelen += wr_dump_tlv(prefix, pl + donelen, n);
 			break;
-#endif
-#if CONFIG_EXT_L1SYNC == 1
 		case PPM_SIGNALING :
 			donelen += l1sync_dump_tlv(prefix, pl + donelen, n);
 			break;
-#endif
 		default :
 			goto out;
 		}

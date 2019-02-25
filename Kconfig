@@ -70,6 +70,32 @@ config ARCH
        default "wrs" if ARCH_WRS
        default "sim" if ARCH_SIMULATOR
 
+	
+config CROSS_COMPILE
+       string "Cross compiler prefix"
+       default "/opt/gcc-lm32/bin/lm32-elf-" if ARCH_WRPC
+       default "/opt/arm-wrswitch/bin/arm-linux-" if ARCH_WRS
+       default ""
+
+config ARCH_CFLAGS
+       string
+       default "-m32" if ARCH_BARE_I386
+       default "-m64" if ARCH_BARE_X86_64
+       default ""
+
+config ARCH_LDFLAGS
+       string
+       default "-m elf_i386" if ARCH_BARE_I386
+       default "-m elf_x86_64" if ARCH_BARE_X86_64
+       default ""
+
+config WRPCSW_ROOT
+       string "Source location of wrpc-sw"
+       depends on ARCH_WRPC
+       default "../wrpc-sw"
+
+menu "Options" 
+
 menu "PTP Protocol Options"
         choice
                 prompt "PTP Synchronization Mechanism"
@@ -101,7 +127,7 @@ menu "PTP Protocol Options"
 
 endmenu
 
-menu "Profiles"
+menu "Enabled profiles"
 
 	config PROFILE_WR
 		bool "WhiteRabbit"
@@ -117,53 +143,53 @@ menu "Profiles"
 
 endmenu
 
-config ASSERT
-	bool "Build assertion checks in the code"
-	default n
-	  help
-	    Build assertions in the code, to catch unexpected situations.
-	    When an assertion fails the code loops over repeating the
-	    error message every second. OTOH, panic() is always built,
-	    with no Kconfig -- and it does the same, unconditionally.
-
 config PROFILE_PTP
 	bool
 	default y
 
-config EXT_WR
-	bool
-	default y if PROFILE_WR
+config HAS_EXT_WR
+	int 
+	range 0 1
+	default 1 if PROFILE_WR
+	default 0
 	
-config EXT_L1SYNC
-	bool
-	default y if PROFILE_HA
+config HAS_EXT_L1SYNC
+	int 
+	range 0 1 
+	default 1 if PROFILE_HA
+	default 0
 
-config EXT_NONE
-	bool 
-	default y if !(PROFILE_WR || PROFILE_HA || PROFILE_CUSTOM)
+config HAS_EXT_NONE
+	int 
+	range 0 1
+	default 1 if !(PROFILE_WR || PROFILE_HA || PROFILE_CUSTOM)
+	default 0
 	
-config CROSS_COMPILE
-       string "Cross compiler prefix"
-       default "/opt/gcc-lm32/bin/lm32-elf-" if ARCH_WRPC
-       default "/opt/arm-wrswitch/bin/arm-linux-" if ARCH_WRS
-       default ""
+config HAS_PROFILE_PTP
+	int 
+	range 0 1
+	default 1 if PROFILE_PTP 
+	default 0 
 
-config ARCH_CFLAGS
-       string
-       default "-m32" if ARCH_BARE_I386
-       default "-m64" if ARCH_BARE_X86_64
-       default ""
+config HAS_PROFILE_HA
+	int 
+	range 0 1
+	default 1 if PROFILE_HA
+	default 0 
 
-config ARCH_LDFLAGS
-       string
-       default "-m elf_i386" if ARCH_BARE_I386
-       default "-m elf_x86_64" if ARCH_BARE_X86_64
-       default ""
+config HAS_PROFILE_WR
+	int 
+	range 0 1
+	default 1 if PROFILE_WR 
+	default 0 
 
-config WRPCSW_ROOT
-       string "Source location of wrpc-sw"
-       depends on ARCH_WRPC
-       default "../wrpc-sw"
+config HAS_PROFILE_CUSTOM
+	int 
+	range 0 1
+	default 1 if PROFILE_CUSTOM 
+	default 0 
+
+menu VLAN
 
 # Vlan support: not all architectures have it, so this is set by them
 config HAS_VLAN
@@ -199,8 +225,7 @@ config MAX_VLANS_PER_PORT
 	  the special case of 1 VLAN per port, useful for
 	  microcontroller-class architectures.  Hosted builds
 	  feature a bigger default, because they have no size constraints.
-
-
+	  
 # I want a number, to be used without ifdef
 config VLAN_ARRAY_SIZE
        int
@@ -208,18 +233,234 @@ config VLAN_ARRAY_SIZE
        default 1 if !HAS_MULTIPLE_VLAN
        default MAX_VLANS_PER_PORT
 
-config DISABLE_OPTIMIZATION
-	bool "Disable -O2, to ease running a debugger"
+
+endmenu
+
+config ASSERT
+	bool "Build assertion checks in the code"
+	default n
+	  help
+	    Build assertions in the code, to catch unexpected situations.
+	    When an assertion fails the code loops over repeating the
+	    error message every second. OTOH, panic() is always built,
+	    with no Kconfig -- and it does the same, unconditionally.
+
+
+config NR_FOREIGN_RECORDS 
+	int "Size of foreignMasterDS data set"
+	range 1 20
+	default 1 if ARCH_WRPC
+	default 5 
+	help 
+		Size of foreignMasterDS data set (Clause 9.3.2.4.5)
+
+config SINGLE_FMASTER
+	boolean 
+	default y if NR_FOREIGN_RECORDS=1
+	default n
+	
+config NR_PORTS 
+	int "Number of ports"
+	range 1 64
+	default 1 if ARCH_WRPC
+	default 18 if ARCH_WRS
+	default 64
+	help 
+		number of physical ports
+
+config NR_INSTANCES_PER_PORT 
+	int "Max instances per port"
+	range 1 64
+	default 1 if ARCH_WRPC
+	default 2 if ARCH_WRS
+	default 1
+	help 
+		Number of PPSi instances per physical port
+
+menu "Code optimization" 
+
+config CODEOPT_ENABLED 
+	boolean "Enable code optimization"
+	default y
+	help 
+		Enable code optimization
+
+config SINGLE_INSTANCE_PER_PORT
+	boolean 
+	default y if NR_INSTANCES_PER_PORT=1
+	default n
+
+config SINGLE_INSTANCE
+	boolean 
+	default y if NR_INSTANCES_PER_PORT=1 && NR_PORTS=1
+	default n
+
+config SINGLE_PORT
+	boolean 
+	default y if NR_PORTS=1
+	default n
+
+config CODEOPT_SINGLE_PORT  
+	boolean "Single port"
+	depends on CODEOPT_ENABLED && SINGLE_PORT 
+	default n
+	help 
+		Code optimization when only one port is used (e.g:WRPC).
+
+config 	CODEOPT_SINGLE_FMASTER
+	boolean "One foreign master"
+	depends on CODEOPT_ENABLED && SINGLE_FMASTER
+	default n
+	help 
+		Only one foreign master per port instance.
+
+config 	CODEOPT_SINGLE_INSTANCE_PER_PORT
+	boolean "One instance per port"
+	depends on CODEOPT_ENABLED && SINGLE_INSTANCE_PER_PORT
+	default n
+	help 
+		Only one foreign master per port instance.
+		
+choice 
+	prompt "Exclusive options"
+	
+	config CODEOPT_EPC_SO_DISABLED 
+		boolean "No optimization"
+		depends on CODEOPT_ENABLED
+		help 
+			No optimization		
+	
+	config CODEOPT_EPC_ENABLED 
+		boolean "Force externalPortConfiguration.enable to true"
+		depends on CODEOPT_ENABLED
+		help 
+			externalPortConfiguration.enable is set to true and cannot be changed
+	
+	config CODEOPT_SO_ENABLED
+		boolean "Force slaveOnly mode to true"
+		depends on CODEOPT_ENABLED && SINGLE_PORT
+		help 
+			slaveOnly is set to true and cannot be changed. 
+			It implies that the number of port instances must be set to 1. 
+			
+endchoice
+
+endmenu
+
+endmenu
+
+
+choice
+	prompt "Compilation optimization"
+    
+    config OPTIMIZATION_SPEED
+        boolean "Execution time (-O2)"
+        help
+           GCC performs nearly all supported optimizations that do not involve a space-speed tradeoff.
+           
+     config OPTIMIZATION_SIZE_SPEED
+        boolean "Size and execution time (-Os)"
+        help
+           Optimize for size. Enables all -O2 optimizations except those that often increase code size.
+           
+     config OPTIMIZATION_DEBUGGING
+        boolean "Debugging (-Og -ggdb)"
+        help
+           Should be the optimization level of choice for the standard edit-compile-debug cycle
+
+     config OPTIMIZATION_NONE_DEBUGGING
+        boolean "Debugging without optimization(-ggdb)"
+        help
+           Compile without optimization and with debug informations 
+endchoice
 
 config OPTIMIZATION
-	int
-	default 0 if DISABLE_OPTIMIZATION
-	default 2
+	string
+	default "-Os" if OPTIMIZATION_SIZE_SPEED
+	default "-O2" if OPTIMIZATION_SPEED
+	default "-Og -ggdb" if OPTIMIZATION_DEBUGGING
+	default "-ggdb" if OPTIMIZATION_NONE_DEBUGGING
+	default ""
 
-config WRPC_FAULTS
-	bool "Add the fault injection mechanism and shell command for wrpc"
-	depends on ARCH_WRPC
+
+config FAULT_INJECTION_MECHANISM
+	bool "Add fault injection mechanism"
 	help
-	  This adds a "fault" shell command, with subcommands.
+	  The implementation is architecture specific.
+	  For wrpc it adds a "fault" shell command, with subcommands.
 	  The same mechanisms are available in the wr switch, through
 	  the configuration file.
+
+config HAS_FAULT_INJECTION_MECHANISM
+	int
+	range 0 1
+	default 1 if FAULT_INJECTION_MECHANISM
+	default 0
+
+# We want numbers (0/1) to avoid ifdef
+config HAS_WRPC_FAULTS
+	int
+	range 0 1
+	default 1 if WRPC_FAULTS
+	default 0
+
+config HAS_CODEOPT_SINGLE_FMASTER
+	int 
+	range 0 1
+	default 1 if CODEOPT_SINGLE_FMASTER
+	default 0
+	
+config HAS_CODEOPT_SINGLE_PORT
+	int 
+	range 0 1
+	default 1 if CODEOPT_SINGLE_PORT
+	default 0
+	
+config HAS_CODEOPT_SINGLE_INSTANCE_PER_PORT
+	int 
+	range 0 1
+	default 1 if CODEOPT_SINGLE_INSTANCE_PER_PORT
+	default 0
+
+config HAS_CODEOPT_EPC_ENABLED
+	int 
+	range 0 1
+	default 1 if CODEOPT_EPC_ENABLED
+	default 0
+
+config HAS_CODEOPT_SO_ENABLED
+	int 
+	range 0 1
+	default 1 if CODEOPT_SO_ENABLED
+	default 0
+
+config HAS_EXT_WR 
+	int 
+	range 0 1
+	default 1 if EXT_WR
+	default 0
+	
+config HAS_EXT_L1SYNC 
+	int 
+	range 0 1
+	default 1 if EXT_L1SYNC
+	default 0
+	
+config ARCH_IS_WRS
+	int 
+	range 0 1
+	default 1 if ARCH_WRS
+	default 0
+
+config ARCH_IS_WRPC
+	int 
+	range 0 1
+	default 1 if ARCH_WRPC
+	default 0
+	
+config HAS_ASSERT
+	int 
+	range 0 1
+	default 1 if ASSERT
+	default 0
+  

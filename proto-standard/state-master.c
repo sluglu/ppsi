@@ -11,6 +11,7 @@
 
 static int master_handle_delay_request(struct pp_instance *ppi,
 				       void *buf, int len);
+static int master_handle_announce(struct pp_instance *ppi, void *buf, int len);
 
 static pp_action *actions[] = {
 	[PPM_SYNC]		= 0,
@@ -22,10 +23,31 @@ static pp_action *actions[] = {
 #endif
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
-	[PPM_ANNOUNCE]		= st_com_handle_announce,
+	[PPM_ANNOUNCE]		= master_handle_announce,
 	[PPM_SIGNALING]		= st_com_handle_signaling,
 	/* skip management, for binary size */
 };
+
+static int master_handle_announce(struct pp_instance *ppi, void *buf, int len)
+{
+	int ret = 0;
+
+	ret = st_com_handle_announce(ppi, buf, len);
+	if (ret)
+		return ret;
+
+	/* Clause 9.2.2.2 MasterOnly PTP ports :
+	 * Announce messages received on a masterOnly PTP Port shall not be considered
+	 * in the operation of the best master clock algorithm or in the update of data sets.
+	 */
+	if ( ! DSPOR(ppi)->masterOnly) {
+		struct pp_frgn_master frgn_master;
+
+		bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+		bmc_add_frgn_master(ppi, &frgn_master);
+	}
+	return 0;
+}
 
 static int master_handle_delay_request(struct pp_instance *ppi,
 				       void *buf, int len)
@@ -47,17 +69,17 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	int pre = (ppi->state == PPS_PRE_MASTER);
 	int e = 0; /* error var, to check errors in msg handling */
 
-	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
-					   * master */
+	/* no fault as long as we are  master */
+	pp_timeout_reset(ppi, PP_TO_FAULT);
 
 	/* upgrade from pre-master to master */
 	if (pre &&
 			pp_timeout(ppi, PP_TO_QUALIFICATION) &&
-			!DSDEF(ppi)->externalPortConfigurationEnabled) {
+			!is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 		ppi->next_state = PPS_MASTER;
 		/* start sending immediately and reenter */
-		pp_timeout_clear(ppi, PP_TO_SYNC_SEND);
-		pp_timeout_clear(ppi, PP_TO_ANN_SEND);
+		pp_timeout_reset_N(ppi, PP_TO_SYNC_SEND,0);
+		pp_timeout_reset_N(ppi, PP_TO_ANN_SEND,0);
 		ppi->next_delay = 0;
 		return 0;
 	}
@@ -109,7 +131,7 @@ out:
 	switch(e) {
 	case PP_SEND_OK: /* 0 */
 		/* Why should we switch to slave? Remove this code? */
-		if (DSDEF(ppi)->slaveOnly)
+		if (is_slaveOnly(DSDEF(ppi)))
 			ppi->next_state = PPS_LISTENING;
 		break;
 	case PP_SEND_ERROR:

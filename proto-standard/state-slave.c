@@ -40,15 +40,18 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
 
-	if (!msg_from_current_master(ppi))
+	if (!msg_from_current_master(ppi)) {
+		pp_error("%s: Sync message is not from current parent\n",
+			__func__);
 		return 0;
+	}
 
 	if ( ppi->delayMechanism==E2E &&  ppi->t1.scaled_nsecs==0 && ppi->t1.secs==0 ) {
 		/* First time we receive the SYNC message in uncalib/slave state
 		 * We set the REQUEST time-out to the minDelayReqInterval/2 value (500ms)
 		 * in order to provide quickly a DelayReq message
 		 */
-		__pp_timeout_set(ppi, PP_TO_REQUEST, (1000*(1<<PP_MIN_MIN_DELAY_REQ_INTERVAL))/2);
+		pp_timeout_set(ppi, PP_TO_REQUEST, (1000*(1<<PP_MIN_MIN_DELAY_REQ_INTERVAL))/2);
 	}
 	/* t2 may be overriden by follow-up, save it immediately */
 	ppi->t2 = ppi->last_rcv_time;
@@ -77,7 +80,7 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 			if (ret < 0)
 				return ret;
 		}
-		pp_servo_got_sync(ppi);
+		pp_servo_got_sync(ppi,1);
 	}
 	return 0;
 }
@@ -127,7 +130,7 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 			return ret;
 	}
 	/* default servo action */
-	pp_servo_got_sync(ppi);
+	pp_servo_got_sync(ppi,0);
 
 	return 0;
 }
@@ -156,12 +159,12 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 	pp_time_add(&ppi->t4, &hdr->cField);
 	/* WARNING: should be "sub" (see README-cfield::BUG)  */
 
-	pp_timeout_set(ppi, PP_TO_FAULT);
+	pp_timeout_reset(ppi, PP_TO_FAULT);
 	if (is_ext_hook_available(ppi,handle_resp)) {
 		ret=ppi->ext_hooks->handle_resp(ppi);
 	}
 	else {
-		if ( (ret=pp_servo_got_resp(ppi)) && !ppi->ext_enabled ) {
+		if ( (ret=pp_servo_got_resp(ppi,1)) && !ppi->ext_enabled ) {
 			ppi->link_state=PP_LSTATE_LINKED;
 		}
 	}
@@ -178,23 +181,40 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 
 static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
-	int ret = 0;
+	int ret;
 	struct pp_frgn_master frgn_master;
 					  
-	ret = st_com_handle_announce(ppi, buf, len);
-	if (ret)
+	if ((ret = st_com_handle_announce(ppi, buf, len))!=0)
 		return ret;
 
 	/* If externalPortConfiguration option is set, we consider that all
 	 * announce messages come from the current master.
 	 */
-	if (!DSDEF(ppi)->externalPortConfigurationEnabled && !msg_from_current_master(ppi))
-		return 0;
-	
-	/* 9.2.6.11 a) reset timeout */
-	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-	/* 9.5.3 Figure 29 update data set if announce from current master */
 	bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+
+	if (!is_externalPortConfigurationEnabled(DSDEF(ppi)) )  {
+		if ( !msg_from_current_master(ppi) ) {
+			pp_error("%s: Announce message is not from current parent\n",
+				__func__);
+
+			/* Clause 9.2.2.2 MasterOnly PTP ports :
+			 * Announce messages received on a masterOnly PTP Port shall not be considered
+			 * in the operation of the best master clock algorithm or in the update of data sets.
+			 */
+			if ( ! DSPOR(ppi)->masterOnly) {
+				bmc_add_frgn_master(ppi, &frgn_master);
+			}
+
+			return 0;
+		}
+	}
+
+	/* Add foreign master: Figure 36 & 54 */
+	bmc_add_frgn_master(ppi, &frgn_master);
+
+	/* 9.2.6.11 a) reset timeout */
+	pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+	/* 9.5.3 Figure 29 update data set if announce from current master */
 	bmc_s1(ppi, &frgn_master);
 	
 	return 0;
@@ -239,7 +259,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 				ppi->next_state = PPS_UNCALIBRATED;
 	}
 	/* Force to stay on desired state if externalPortConfiguration option is enabled */
-	if (DSDEF(ppi)->externalPortConfigurationEnabled )
+	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) )
 		ppi->next_state = ppi->externalPortConfigurationPortDS.desiredState;
 
 	/* when entering uncalibrated init servo */

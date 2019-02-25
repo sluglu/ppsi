@@ -5,25 +5,100 @@
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
 #include <ppsi/ppsi.h>
+#include "include/ppsi/timeout_prot.h"
 
-/* time-out counter names */
-static const char *timeOutNames[__PP_TO_ARRAY_SIZE]={
-		"REQUEST",
-		"SYNC_SEND",
-		"BMC",
-		"ANN_RECEIPT",
-		"ANN_SEND",
-		"FAULT",
-		"QUAL",
-		"PROT_STATE",
-		"EXT_0",
-		"EXT_1"
-};
-#define TIMEOUT_FAULTY_STATE_MS (60*1000) /* define the time to stay on faulty state before to go to initializing state */
 #define TIMEOUT_MAX_LOG_VALUE 21 /* 2^21 * 1000 =2097152000ms is the maximum value that can be stored in an integer */
 #define TIMEOUT_MIN_LOG_VALUE -9 /* 2^-9 = 1ms is the minimum value that can be stored in an integer */
 #define TIMEOUT_MAX_VALUE_MS  ((1<< TIMEOUT_MAX_LOG_VALUE)*1000)
 #define TIMEOUT_MIN_VALUE_MS  (1000>>-(TIMEOUT_MIN_LOG_VALUE))
+
+typedef struct  {
+	char *name; /* if name==NULL then the counter is considered as free */
+	int ctrlFlag;
+} timeOutConfig_t;
+
+
+static timeOutConfig_t timeOutConfigs[PP_TO_COUNT]= {
+		{
+				.name="REQUEST",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+		},
+		{
+				.name="SYNC_SEND",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+		},
+		{
+				.name="BMC",
+		},
+		{
+				.name="ANN_RECEIPT",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+		},
+		{
+				.name="ANN_SEND",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+		},
+		{
+				.name="FAULT",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+		},
+		{
+				.name="QUAL",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+		},
+		{
+				.name="PROT_STATE",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT,
+		},
+		{
+				.name="IN_STATE",
+				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT,
+		},
+		{
+				.name="GM_BY_BMCA",
+				.ctrlFlag= 0,
+		},
+};
+
+static inline timeOutInstCnt_t *__pp_get_counter(struct pp_instance *ppi, int index) {
+	if ( !(timeOutConfigs[index].ctrlFlag & TMO_CF_INSTANCE_DEPENDENT) )
+		ppi=INST(GLBS(ppi),0);
+	return &ppi->tmo_cfg[index];
+}
+
+void pp_timeout_disable_all(struct pp_instance *ppi) {
+	int i;
+
+	for ( i=0; i < PP_TO_COUNT; i++) {
+		ppi->tmo_cfg[i].initValueMs=TIMEOUT_DISABLE_VALUE;
+		ppi->tmo_cfg[i].tmo=0;
+	}
+}
+
+/* Return counter index or -1 if not available */
+int pp_timeout_get_timer(struct pp_instance *ppi, char *name, to_rand_t rand, int ctl_flags) {
+	int i;
+	timeOutInstCnt_t *tmoCnt;
+	timeOutConfig_t *cfg=&timeOutConfigs[0];
+	for ( i=0; i < PP_TO_COUNT; i++) {
+		if ( !cfg->name ) {
+			cfg->name=name;
+			cfg->ctrlFlag=ctl_flags;
+			tmoCnt= __pp_get_counter(ppi,i);
+			tmoCnt->which_rand=rand;
+			ppi->tmo_cfg[i].initValueMs=TIMEOUT_DISABLE_VALUE;
+			return i;
+		}
+		cfg++;
+	}
+	pp_diag(ppi, time, 1, "No free timer for %s\n",name);
+	return -1;
+}
+
+void pp_timeout_free_timer(struct pp_instance *ppi, int index){
+	if ( index >= PP_TO_PREDEF_COUNTERS )
+		timeOutConfigs[index].name=NULL;
+}
 
 int pp_timeout_log_to_ms ( Integer8 logValue) {
 	/* logValue can be in range -128 , +127
@@ -47,59 +122,75 @@ int pp_timeout_log_to_ms ( Integer8 logValue) {
 void pp_timeout_init(struct pp_instance *ppi)
 {
 	portDS_t *port = ppi->portDS;
-	t_timeOutConfig *timeouts=ppi->timeouts;
-
+	timeOutInstCnt_t *tmoCnt=ppi->tmo_cfg;
 	Boolean p2p=CONFIG_HAS_P2P && ppi->delayMechanism == P2P;
 	Integer8 logDelayRequest=p2p ?
 			port->logMinPdelayReqInterval : port->logMinDelayReqInterval;
 
-	timeouts[PP_TO_REQUEST].which_rand = p2p ? TO_RAND_NONE : TO_RAND_0_200;
-	timeouts[PP_TO_SYNC_SEND].which_rand=
-			timeouts[PP_TO_ANN_SEND].which_rand=TO_RAND_70_130;
-	timeouts[PP_TO_BMC].which_rand =
-			timeouts[PP_TO_QUALIFICATION].which_rand =
-			timeouts[PP_TO_ANN_RECEIPT].which_rand =
-			timeouts[PP_TO_FAULT].which_rand =
-			timeouts[PP_TO_PROT_STATE].which_rand =
-			timeouts[PP_TO_EXT_0].which_rand =
-			timeouts[PP_TO_EXT_1].which_rand = TO_RAND_NONE;
+	pp_diag(ppi, time, 3, "%s\n",__func__);
 
-	timeouts[PP_TO_REQUEST].initValueMs= pp_timeout_log_to_ms(logDelayRequest);
+	/* TO_RAND_NONE is the default value */
+	tmoCnt[PP_TO_REQUEST].which_rand = p2p ? TO_RAND_NONE : TO_RAND_0_200;
+	tmoCnt[PP_TO_SYNC_SEND].which_rand=
+			tmoCnt[PP_TO_ANN_SEND].which_rand=TO_RAND_70_130;
+
+	tmoCnt[PP_TO_REQUEST].initValueMs= pp_timeout_log_to_ms(logDelayRequest);
 
 	/* fault timeout is 4 avg request intervals, not randomized */
-	timeouts[PP_TO_FAULT].initValueMs = pp_timeout_log_to_ms(logDelayRequest);
-	if ( timeouts[PP_TO_FAULT].initValueMs < (TIMEOUT_MAX_VALUE_MS>>2))
-		timeouts[PP_TO_FAULT].initValueMs<<=2; /* We can multiply by 4. No risk of overload */
+	tmoCnt[PP_TO_FAULT].initValueMs = pp_timeout_log_to_ms(logDelayRequest);
+	if ( tmoCnt[PP_TO_FAULT].initValueMs < (TIMEOUT_MAX_VALUE_MS>>2))
+		tmoCnt[PP_TO_FAULT].initValueMs<<=2; /* We can multiply by 4. No risk of overload */
 
-	timeouts[PP_TO_SYNC_SEND].initValueMs =  pp_timeout_log_to_ms(port->logSyncInterval);
-	timeouts[PP_TO_BMC].initValueMs = pp_timeout_log_to_ms(port->logAnnounceInterval);
-	timeouts[PP_TO_ANN_RECEIPT].initValueMs = 1000 * (
+	tmoCnt[PP_TO_SYNC_SEND].initValueMs =  pp_timeout_log_to_ms(port->logSyncInterval);
+
+	// Initialize BMCA timer (Independent Timer)
+	// Take the lowest value of logAnnounceInterval
+	{
+		timeOutInstCnt_t *gtmoCnt=&INST(GLBS(ppi),0)->tmo_cfg[PP_TO_BMC];
+		int ms=pp_timeout_log_to_ms(port->logAnnounceInterval);
+		if (gtmoCnt->initValueMs==TIMEOUT_DISABLE_VALUE || ms<gtmoCnt->initValueMs)
+			gtmoCnt->initValueMs=ms;
+	}
+	tmoCnt[PP_TO_ANN_RECEIPT].initValueMs = 1000 * (
 		port->announceReceiptTimeout << port->logAnnounceInterval);
-	timeouts[PP_TO_ANN_SEND].initValueMs =  pp_timeout_log_to_ms(port->logAnnounceInterval);
-	timeouts[PP_TO_QUALIFICATION].initValueMs =
+	tmoCnt[PP_TO_ANN_SEND].initValueMs =  pp_timeout_log_to_ms(port->logAnnounceInterval);
+	tmoCnt[PP_TO_QUALIFICATION].initValueMs =
 	    (1000 << port->logAnnounceInterval)*(DSCUR(ppi)->stepsRemoved + 1);
 }
 
-void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec)
-{
-	ppi->timeouts[index].tmo = ppi->t_ops->calc_timeout(ppi, millisec);
-	pp_diag(ppi, time, 3, "Set timeout for %s : %i / %lu\n",
-			timeOutNames[index], millisec, ppi->timeouts[index].tmo);
+int pp_timeout_get(struct pp_instance *ppi, int index) {
+	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
+	return tmoCnt->initValueMs;
 }
 
-void pp_timeout_clear(struct pp_instance *ppi, int index)
-{
-	__pp_timeout_set(ppi, index, 0);
+static inline void __pp_timeout_set(struct pp_instance *ppi,int index , int millisec) {
+	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
+
+	tmoCnt->tmo = ppi->t_ops->calc_timeout(ppi, millisec);
 }
 
-void pp_timeout_set(struct pp_instance *ppi, int index)
+void pp_timeout_set_rename(struct pp_instance *ppi,int index ,  int millisec, char *name)
+{
+	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
+
+	if ( name!=NULL )
+		timeOutConfigs[index].name=name;
+	tmoCnt->initValueMs=millisec;
+	__pp_timeout_set(ppi,index,millisec);
+	pp_diag(ppi, time, 3, "timeout overwr.: %s - %i / %lu\n",
+			timeOutConfigs[index].name, millisec, tmoCnt->tmo);
+}
+
+void __pp_timeout_reset(struct pp_instance *ppi, int index, unsigned int multiplier)
 {
 	static uint32_t seed;
 	int millisec;
-	t_timeOutConfig *timeouts=&ppi->timeouts[index];
+	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
 
-	millisec = timeouts->initValueMs;
-	if (timeouts->which_rand!=TO_RAND_NONE ) {
+	if ( tmoCnt->initValueMs==TIMEOUT_DISABLE_VALUE)
+		return;
+	millisec = tmoCnt->initValueMs*multiplier;
+	if (tmoCnt->which_rand!=TO_RAND_NONE && millisec>0) {
 		uint32_t rval;
 
 		if (!seed) {
@@ -120,25 +211,29 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 		rval ^= (unsigned int) (seed / 65536) % 1024;
 
 		millisec=(millisec<<1)/5; /* keep 40% of the reference value */
-		switch(timeouts->which_rand) {
-		case TO_RAND_70_130:
-			/*
-			 * We are required to fit between 70% and 130%
-			 * of the value for 90% of the time, at least.
-			 * So randomize between 80% and 120%: constant
-			 * part is 80% and variable is 40%.
-			 */
-			millisec = (millisec * 2) + rval % millisec;
-			break;
-		case TO_RAND_0_200:
-			millisec = rval % (millisec * 5);
-			break;
-		default:
-		/* RAND_NONE already treated */
-			break;
+		if ( millisec > 0 ) {
+			switch(tmoCnt->which_rand) {
+			case TO_RAND_70_130:
+				/*
+				 * We are required to fit between 70% and 130%
+				 * of the value for 90% of the time, at least.
+				 * So randomize between 80% and 120%: constant
+				 * part is 80% and variable is 40%.
+				 */
+				millisec = (millisec * 2) + rval % millisec;
+				break;
+			case TO_RAND_0_200:
+				millisec = rval % (millisec * 5);
+				break;
+			default:
+			/* RAND_NONE already treated */
+				break;
+			}
 		}
 	}
 	__pp_timeout_set(ppi, index, millisec);
+	pp_diag(ppi, time, 3, "timeout reseted: %s - %i / %lu\n",
+			timeOutConfigs[index].name, millisec, tmoCnt->tmo);
 }
 
 /*
@@ -148,15 +243,9 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 void pp_timeout_setall(struct pp_instance *ppi)
 {
 	int i;
-	for (i = 0; i < __PP_TO_ARRAY_SIZE; i++) {
-		if ( i==PP_TO_FAULT && ppi->next_state==PPS_FAULTY ){
-			__pp_timeout_set(ppi,PP_TO_FAULT,TIMEOUT_FAULTY_STATE_MS);
-		} else {
-			/* keep BMC timeout */
-			if (i!=PP_TO_BMC) {
-				pp_timeout_set(ppi, i);
-			}
-		}
+	for (i = 0; i < PP_TO_COUNT; i++) {
+		if (timeOutConfigs[i].ctrlFlag&TMO_CF_ALLOW_COMMON_SET )
+			pp_timeout_reset(ppi, i);
 	}
 	/* but announce_send must be send soon */
 	__pp_timeout_set(ppi, PP_TO_ANN_SEND, 20);
@@ -164,12 +253,18 @@ void pp_timeout_setall(struct pp_instance *ppi)
 
 int pp_timeout(struct pp_instance *ppi, int index)
 {
-	unsigned long now=ppi->t_ops->calc_timeout(ppi, 0);
-	int ret = time_after_eq(now,ppi->timeouts[index].tmo);
+	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
+	int ret;
+	unsigned long now;
 
+	if ( tmoCnt->initValueMs==TIMEOUT_DISABLE_VALUE )
+		return 0; /* counter is disabled */
+
+	now=ppi->t_ops->calc_timeout(ppi, 0);
+	ret = time_after_eq(now,tmoCnt->tmo);
 	if (ret)
-		pp_diag(ppi, time, 1, "timeout expired: %s / %lu\n",
-				timeOutNames[index],now);
+		pp_diag(ppi, time, 1, "timeout expired: %s - %lu\n",
+				timeOutConfigs[index].name,now);
 	return ret;
 }
 
@@ -179,20 +274,23 @@ int pp_timeout(struct pp_instance *ppi, int index)
  */
 int pp_next_delay_1(struct pp_instance *ppi, int i1)
 {
+	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,i1);
 	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
 	signed long r1;
 
-	r1 = ppi->timeouts[i1].tmo - now;
+	r1 = tmoCnt->tmo - now;
 	return r1 < 0 ? 0 : r1;
 }
 
 int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2)
 {
+	timeOutInstCnt_t *tmoCnt1= __pp_get_counter(ppi,i1);
+	timeOutInstCnt_t *tmoCnt2= __pp_get_counter(ppi,i2);
 	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
 	signed long r1, r2;
 
-	r1 = ppi->timeouts[i1].tmo - now;
-	r2 = ppi->timeouts[i2].tmo - now;
+	r1 = tmoCnt1->tmo - now;
+	r2 = tmoCnt2->tmo - now;
 	if (r2 < r1)
 		r1 = r2;
 	return r1 < 0 ? 0 : r1;
@@ -200,12 +298,15 @@ int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2)
 
 int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3)
 {
+	timeOutInstCnt_t *tmoCnt1= __pp_get_counter(ppi,i1);
+	timeOutInstCnt_t *tmoCnt2= __pp_get_counter(ppi,i2);
+	timeOutInstCnt_t *tmoCnt3= __pp_get_counter(ppi,i3);
 	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
 	signed long r1, r2, r3;
 
-	r1 = ppi->timeouts[i1].tmo - now;
-	r2 = ppi->timeouts[i2].tmo - now;
-	r3 = ppi->timeouts[i3].tmo - now;
+	r1 =  tmoCnt1->tmo - now;
+	r2 =  tmoCnt2->tmo  - now;
+	r3 =  tmoCnt3->tmo  - now;
 	if (r2 < r1)
 		r1 = r2;
 	if (r3 < r1)

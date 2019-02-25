@@ -20,7 +20,7 @@ static int presp_call_servo(struct pp_instance *ppi)
 	if (is_incorrect(&ppi->t4))
 		return 0; /* not an error, just no data */
 
-	pp_timeout_set(ppi, PP_TO_FAULT);
+	pp_timeout_reset(ppi, PP_TO_FAULT);
 	if (is_ext_hook_available(ppi,handle_presp))
 		ret = ppi->ext_hooks->handle_presp(ppi);
 	else {
@@ -64,7 +64,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 			/* Clause 11.4.3.C.1 When multiple Pdelay_Resp messages are received, PTP Instance-A shall ..
 			 * enter the FAULTY state ...
 			 */
-			if ( !DSDEF(ppi)->externalPortConfigurationEnabled ) {
+			if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
 				ppi->next_state = PPS_FAULTY;
 				return 0;
 			} else {
@@ -124,7 +124,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 			/* Clause 11.4.3.C.1 When multiple Pdelay_Resp messages are received, PTP Instance-A shall ..
 			 * enter the FAULTY state ...
 			 */
-			if ( !DSDEF(ppi)->externalPortConfigurationEnabled ) {
+			if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
 				ppi->next_state = PPS_FAULTY;
 				return 0;
 			} else {

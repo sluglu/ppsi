@@ -103,7 +103,7 @@ struct dump_info servo_state_info [] = {
 	DUMP_FIELD(int,       servo_locked),
 };
 
-#if CONFIG_EXT_L1SYNC == 1
+#if CONFIG_HAS_EXT_L1SYNC
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct l1e_servo_state
 struct dump_info l1e_servo_state_info [] = {
@@ -166,7 +166,7 @@ struct dump_info l1e_local_portDS_info [] = {
 
 #endif
 
-#if CONFIG_EXT_WR == 1
+#if CONFIG_HAS_EXT_WR == 1
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct wr_servo_state
 struct dump_info wr_servo_state_info [] = {
@@ -364,7 +364,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 			dump_many_fields( wrs_shm_follow(head, ppi->servo)
 					, servo_state_info,
 					 ARRAY_SIZE(servo_state_info),prefix);
-#if CONFIG_EXT_WR == 1
+#if CONFIG_HAS_EXT_WR == 1
 			if ( ppi->protocol_extension == PPSI_EXT_WR) {
 				struct wr_data *data;
 				data = wrs_shm_follow(head, ppi->ext_data);
@@ -372,7 +372,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 				dump_many_fields(&data->servo_state, wr_servo_state_info, ARRAY_SIZE(wr_servo_state_info),prefix);
 			}
 #endif
-#if CONFIG_EXT_L1SYNC == 1
+#if CONFIG_HAS_EXT_L1SYNC == 1
 			if ( ppi->protocol_extension == PPSI_EXT_L1S) {
 				struct l1e_data *data;
 				data = wrs_shm_follow(head, ppi->ext_data);
@@ -388,7 +388,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 
 		sprintf(prefix,"ppsi.inst.%d.info",i);
 		dump_many_fields(ppi, ppi_info, ARRAY_SIZE(ppi_info),prefix);
-#if CONFIG_EXT_L1SYNC == 1
+#if CONFIG_HAS_EXT_L1SYNC == 1
 		sprintf(prefix,"ppsi.inst.%d.l1sync_portDS",i);
 		if ( ppi->protocol_extension == PPSI_EXT_L1S) {
 			portDS_t *portDS=wrs_shm_follow(head, ppi->portDS);

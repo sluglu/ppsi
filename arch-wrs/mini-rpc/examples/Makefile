@@ -11,7 +11,7 @@ STRIP           = $(CROSS_COMPILE)strip
 OBJCOPY         = $(CROSS_COMPILE)objcopy
 OBJDUMP         = $(CROSS_COMPILE)objdump
 
-CFLAGS = -Wall -ggdb -I.. -O2
+CFLAGS = -Wall $(CFLAGS_OPTIMIZATION)  -I..
 LDFLAGS = -L.. -lminipc -lm
 
 # we may be hosted or freestanding. For freestanding there is one

@@ -38,6 +38,9 @@
 #define HEXP_PPSG_CMD_ADJUST_NSEC 3
 #define HEXP_PPSG_CMD_POLL 4
 #define HEXP_PPSG_CMD_SET_VALID 5
+#define HEXP_PPSG_CMD_SET_TIMING_MODE 6
+#define HEXP_PPSG_CMD_GET_TIMING_MODE 7
+#define HEXP_PPSG_CMD_GET_TIMING_MODE_STATE 8
 
 #define HEXP_ON 1
 #define HEXP_OFF 0
@@ -56,6 +59,11 @@
 #define HAL_TIMING_MODE_GRAND_MASTER 0
 #define HAL_TIMING_MODE_FREE_MASTER 1
 #define HAL_TIMING_MODE_BC 2
+#define HAL_TIMING_MODE_DISABLED 3
+
+#define HAL_TIMING_MODE_TMDT_UNLOCKED 0
+#define HAL_TIMING_MODE_TMDT_LOCKED 1
+#define HAL_TIMING_MODE_TMDT_HOLDHOVER 2
 
 typedef struct {
 
@@ -72,14 +80,17 @@ typedef struct {
 	uint64_t current_sec;
 	uint32_t current_nsec;
 
+	uint32_t timing_mode;
 } hexp_pps_params_t;
 
 /* Port modes (hal_port_state.mode) */
-#define HEXP_PORT_MODE_WR_M_AND_S 4
 #define HEXP_PORT_MODE_WR_MASTER 1
 #define HEXP_PORT_MODE_WR_SLAVE 2
 #define HEXP_PORT_MODE_NON_WR 3
+#define HEXP_PORT_MODE_WR_M_AND_S 4
+#define HEXP_PORT_MODE_NONE 5
 
+#define FIX_ALPHA_FRACBITS 40
 /*
 #define HEXP_PORT_TSC_RISING 1
 #define HEXP_PORT_TSC_FALLING 2
@@ -98,72 +109,5 @@ extern int halexp_calibration_cmd(const char *port_name, int command, int on_off
 extern int halexp_lock_cmd(const char *port_name, int command, int priority);
 extern int halexp_pps_cmd(int cmd, hexp_pps_params_t *params);
 extern int halexp_get_timing_state(hexp_timing_state_t *state);
-
-/* Export structures, shared by server and client for argument matching */
-#ifdef HAL_EXPORT_STRUCTURES
-
-//int halexp_check_running();
-struct minipc_pd __rpcdef_check_running = {
-	.name = "check_running",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_END,
-		 },
-};
-
-//int halexp_reset_port(const char *port_name);
-struct minipc_pd __rpcdef_reset_port = {
-	.name = "reset_port",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRING, char *),
-		 MINIPC_ARG_END,
-		 },
-};
-
-//int halexp_calibration_cmd(const char *port_name, int command, int on_off);
-struct minipc_pd __rpcdef_calibration_cmd = {
-	.name = "calibration_cmd",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRING, char *),
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-		 MINIPC_ARG_END,
-		 },
-};
-
-//int halexp_lock_cmd(const char *port_name, int command, int priority);
-struct minipc_pd __rpcdef_lock_cmd = {
-	.name = "lock_cmd",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRING, char *),
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-		 MINIPC_ARG_END,
-		 },
-};
-
-//int halexp_pps_cmd(int cmd, hexp_pps_params_t *params);
-struct minipc_pd __rpcdef_pps_cmd = {
-	.name = "pps_cmd",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRUCT, hexp_pps_params_t),
-		 MINIPC_ARG_END,
-		 },
-};
-
-struct minipc_pd __rpcdef_get_timing_state = {
-	.name = "get_timing_state",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRUCT, hexp_timing_state_t),
-	.args = {
-		 MINIPC_ARG_END,
-		 },
-};
-
-#endif /* HAL_EXPORT_STRUCTURES */
 
 #endif

@@ -25,7 +25,8 @@ OBJ-y += \
 	lib/dump-funcs.o \
 	lib/drop.o \
 	lib/div64.o \
-	lib/time-arith.o
+	lib/time-arith.o \
+	lib/iicomm.o
 
 OBJ-$(CONFIG_WRPC_FAULTS) += $A/faults.o
 

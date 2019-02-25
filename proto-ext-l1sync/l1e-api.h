@@ -8,13 +8,7 @@
 #ifndef __L1SYNC_EXT_API_H__
 #define __L1SYNC_EXT_API_H__
 
-#if CONFIG_EXT_L1SYNC == 1
-#define PROTO_EXT_L1SYNC (1)
-#else
-#define PROTO_EXT_L1SYNC (0)
-#endif
-
-#if CONFIG_EXT_L1SYNC == 1
+#if CONFIG_HAS_EXT_L1SYNC
 
 #include <ppsi/lib.h>
 #include "../include/hw-specific/wrh.h"
@@ -22,10 +16,13 @@
 
 #include <math.h>
 
-/* Rename the timeouts, for readability */
-#define L1E_TIMEOUT_TX_SYNC	PP_TO_EXT_0
-#define L1E_TIMEOUT_RX_SYNC	PP_TO_EXT_1
+#define PROTO_EXT_L1SYNC (1)
 
+/* Rename the timeouts, for readability */
+#define L1E_TIMEOUT_TX_SYNC	l1eTmoTxSync
+#define L1E_TIMEOUT_RX_SYNC	l1eTmoRxSync
+
+/* Time-out */
 #define L1E_DEFAULT_L1SYNC_INTERVAL		   0
 #define L1E_MIN_L1SYNC_INTERVAL		       -4
 #define L1E_MAX_L1SYNC_INTERVAL		       4
@@ -103,6 +100,9 @@ typedef struct { /*draft P1588_v_29: page 101 and 340-341  */
 typedef struct  {
 	L1SyncBasicPortDS_t      basic;
 	L1SyncOptParamsPortDS_t  opt_params;
+
+	/* Non standard variables */
+	int execute_state_machine;
 }l1e_ext_portDS_t;
 
 static inline  l1e_ext_portDS_t *L1E_DSPOR(struct pp_instance *ppi)
@@ -185,5 +185,12 @@ static inline  int l1e_get_rx_tmo_ms(L1SyncBasicPortDS_t * bds) {
 
 extern struct pp_ext_hooks l1e_ext_hooks;
 
+/* Timer indexes */
+extern int l1eTmoTxSync;
+extern int l1eTmoRxSync;
+
+#else
+#define PROTO_EXT_L1SYNC (0)
 #endif /* CONFIG_EXT_L1SYNC == 1 */
+
 #endif /* __L1SYNC_EXT_API_H__ */

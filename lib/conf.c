@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+
 static inline struct pp_instance *CUR_PPI(struct pp_globals *ppg)
 {
 	if (ppg->cfg.cur_ppi_n < 0)
@@ -262,9 +263,23 @@ static struct pp_argname arg_proto[] = {
 	/* PROTO_VLAN is an internal modification of PROTO_RAW */
 	{},
 };
+
+#define STR_BOOL_TRUE  "t true 1 on y yes"
+#define STR_BOOL_FALSE "f false 0 off n no"
+
 static struct pp_argname arg_bool[] = {
-	{"t true 1 on y yes", 1},
-	{"f false 0 off n no", 0},
+	{STR_BOOL_TRUE, 1},
+	{STR_BOOL_FALSE, 0},
+	{},
+};
+
+static struct pp_argname CAN_BE_UNUSED arg_bool_true[] = {
+	{STR_BOOL_TRUE, 1},
+	{},
+};
+
+static struct pp_argname CAN_BE_UNUSED arg_bool_false[] = {
+	{STR_BOOL_FALSE, 0},
 	{},
 };
 
@@ -283,18 +298,20 @@ static struct pp_argname arg_states[] = {
 
 static struct pp_argname arg_profile[] = {
 	{"none ptp", PPSI_PROFILE_PTP}, /* none is equal to ptp for backward compatibility */
-#if CONFIG_PROFILE_WR == 1
+#if CONFIG_HAS_PROFILE_WR
 	{"whiterabbit wr", PPSI_PROFILE_WR},
 #endif
-#if CONFIG_PROFILE_HA == 1
+#if CONFIG_HAS_PROFILE_HA
 	{"highaccuracy ha", PPSI_PROFILE_HA},
 #endif
+#if CONFIG_HAS_PROFILE_CUSTOM
 	{"custom", PPSI_PROFILE_CUSTOM},
+#endif
 	{},
 };
 static struct pp_argname arg_delayMechanism[] = {
 	{"request-response delay e2e", E2E},
-#if CONFIG_HAS_P2P == 1
+#if CONFIG_HAS_P2P
 	{"peer-delay pdelay p2p", P2P},
 #endif
 	{},
@@ -321,7 +338,7 @@ static struct pp_argline pp_global_arglines[] = {
 	INST_OPTION_INT_RANGE("min-pdelay-req-interval logMinPDelayReqInterval", ARG_INT, NULL, cfg.min_pdelay_req_interval,
 			PP_MIN_MIN_PDELAY_REQ_INTERVAL,PP_MAX_MIN_PDELAY_REQ_INTERVAL),
 
-#if CONFIG_EXT_L1SYNC==1
+#if CONFIG_HAS_EXT_L1SYNC
 	INST_OPTION_INT_RANGE("l1sync-interval logL1SyncInterval", ARG_INT, NULL, cfg.l1syncInterval,
 			L1E_MIN_L1SYNC_INTERVAL,L1E_MAX_L1SYNC_INTERVAL),
 	INST_OPTION_INT_RANGE("l1sync-receipt-timeout l1SyncReceiptTimeout", ARG_INT, NULL, cfg.l1syncReceiptTimeout,
@@ -359,8 +376,25 @@ static struct pp_argline pp_global_arglines[] = {
 			PP_MIN_PRIORITY1, PP_MAX_PRIORITY1),
 	RT_OPTION_INT_RANGE("priority2", ARG_INT, NULL, priority2,
 			PP_MIN_PRIORITY2, PP_MAX_PRIORITY2),
+	RT_OPTION_INT_RANGE("ptpPpsThresholdMs", ARG_INT, NULL, ptpPpsThresholdMs,
+			PP_MIN_PTP_PPSGEN_THRESHOLD_MS, PP_MAX_PTP_PPSGEN_THRESHOLD_MS),
+	RT_OPTION_INT_RANGE("gmDelayToGenPpsSec", ARG_INT, NULL, gmDelayToGenPpsSec,
+			PP_MIN_GM_DELAY_TO_GEN_PPS_SEC, PP_MAX_GM_DELAY_TO_GEN_PPS_SEC),
+#if !CONFIG_HAS_CODEOPT_EPC_ENABLED && !CONFIG_HAS_CODEOPT_SO_ENABLED
 	RT_OPTION_BOOL("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
 	RT_OPTION_BOOL("slaveOnly",slaveOnly),
+#else
+#if CONFIG_HAS_CODEOPT_EPC_ENABLED
+	RT_OPTION_BOOL_TRUE("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
+	RT_OPTION_BOOL_FALSE("slaveOnly",slaveOnly),
+#endif
+#if CONFIG_HAS_CODEOPT_SO_ENABLED
+	RT_OPTION_BOOL_FALSE("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
+	RT_OPTION_BOOL_TRUE("slaveOnly",slaveOnly),
+#endif
+#endif
+	RT_OPTION_BOOL("forcePpsGen",forcePpsGen),
+	RT_OPTION_BOOL("ptpFallbackPpsGen",ptpFallbackPpsGen),
 	{}
 };
 

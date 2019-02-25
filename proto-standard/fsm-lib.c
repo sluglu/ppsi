@@ -70,7 +70,7 @@ int pp_lib_may_issue_sync(struct pp_instance *ppi)
 	if (!pp_timeout(ppi, PP_TO_SYNC_SEND))
 		return 0;
 
-	pp_timeout_set(ppi, PP_TO_SYNC_SEND);
+	pp_timeout_reset(ppi, PP_TO_SYNC_SEND);
 	e = pp_vlan_issue_sync_followup(ppi);
 	if (e)
 		pp_diag(ppi, frames, 1, "could not send sync\n");
@@ -87,7 +87,7 @@ int pp_lib_may_issue_announce(struct pp_instance *ppi)
 	
 	if (!pp_timeout(ppi, PP_TO_ANN_SEND))
 		return 0;
-	pp_timeout_set(ppi, PP_TO_ANN_SEND);
+	pp_timeout_reset(ppi, PP_TO_ANN_SEND);
 	
 	/* this check has to be done here since the 
 	 * update of the properties might have not 
@@ -130,7 +130,7 @@ int pp_lib_may_issue_request(struct pp_instance *ppi)
 	if (!pp_timeout(ppi, PP_TO_REQUEST))
 		return 0;
 
-	pp_timeout_set(ppi, PP_TO_REQUEST);
+	pp_timeout_reset(ppi, PP_TO_REQUEST);
 	e = msg_issue_request(ppi); /* FIXME: what about multiple vlans? */
 	ppi->t3 = ppi->last_snt_time;
 	if (e == PP_SEND_ERROR) {

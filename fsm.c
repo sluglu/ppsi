@@ -162,7 +162,7 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 	if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
 		&DSPOR(ppi)->portIdentity.clockIdentity,
 		sizeof(ClockIdentity))) {
-		if (DSDEF(ppi)->numberPorts > 1) {
+		if ( get_numberPorts(DSDEF(ppi)) > 1) {
 			/* Announces are handled by the BMC, since otherwise the state 
 			 * also the PASSIVE states in this case is overwritten */
 			if (hdr->messageType != PPM_ANNOUNCE) {
@@ -286,8 +286,8 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 					if ( ppi->ext_hooks->get_tmo_lstate_detection!=NULL)
 						tmo=(*ppi->ext_hooks->get_tmo_lstate_detection)(ppi);
 					else
-						tmo= ppi->timeouts[PP_TO_ANN_RECEIPT].initValueMs;
-					__pp_timeout_set(ppi,PP_TO_PROT_STATE, tmo);
+						tmo= pp_timeout_get(ppi,PP_TO_ANN_RECEIPT);
+					pp_timeout_set(ppi,PP_TO_PROT_STATE, tmo);
 				}
 			}
 			if ( !ppi->ext_enabled && ppi->link_state==PP_LSTATE_PROTOCOL_DETECTION) {
@@ -321,17 +321,15 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 
 	/* run bmc independent of state, and since not message driven do this
 	 * here 9.2.6.8 */
-	if (pp_timeout(ppi, PP_TO_BMC)) {
-		ppi->next_state = bmc(ppi);
+	if ( ppi->bmca_execute) {
+
+		ppi->bmca_execute=0; /* Clear the trigger */
+		ppi->next_state = bmc_apply_state_descision(ppi);
 
 		/* done: if new state mark it, and enter it now (0 ms) */
 		if (ppi->state != ppi->next_state)
 			return pp_leave_current_state(ppi);
 	}
-
-	/* check if the BMC timeout is the next to run */
-	if (pp_next_delay_1(ppi, PP_TO_BMC) < ppi->next_delay)
-		ppi->next_delay = pp_next_delay_1(ppi, PP_TO_BMC);
 
 	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
 

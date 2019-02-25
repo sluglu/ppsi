@@ -9,14 +9,7 @@
 #ifndef __WREXT_WR_API_H__
 #define __WREXT_WR_API_H__
 
-#if CONFIG_EXT_WR == 1
-#define PROTO_EXT_WR (1)
-#else
-#define PROTO_EXT_WR (0)
-#endif
-
-
-#if CONFIG_EXT_WR == 1
+#if CONFIG_HAS_EXT_WR
 
 /* Don't include the Following when this file is included in assembler. */
 #ifndef __ASSEMBLY__
@@ -151,7 +144,9 @@ struct wr_data {
 };
 
 extern struct pp_ext_hooks wr_ext_hooks;
+extern int wrTmoIdx;
 
 #endif /* __ASSEMBLY__ */
 #endif  /* CONFIG_EXT_WR == 1*/
+
 #endif /* __WREXT_WR_API_H__ */

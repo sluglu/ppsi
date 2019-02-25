@@ -59,7 +59,7 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				      pp_diag(ppi, fsm, 1, "Cannot read bit_slide value values\n");
 				      bit_slide_ps=0;
 				}
-		        pp_diag(ppi, fsm, 1, "semistaticLatency(bit-slide)=%u [ps]\n",bit_slide_ps);
+		        pp_diag(ppi, fsm, 1, "semistaticLatency(bit-slide)=%u [ps]\n",(unsigned int)bit_slide_ps);
 				ppi->timestampCorrectionPortDS.semistaticLatency= picos_to_interval(bit_slide_ps);
 			}
 			else {
@@ -85,6 +85,18 @@ static int run_all_state_machines(struct pp_globals *ppg)
 			delay_ms = delay_ms_j;
 		if (delay_ms_j < delay_ms)
 			delay_ms = delay_ms_j;
+	}
+
+	/* BMCA must run at least once per announce interval 9.2.6.8 */
+	if (pp_gtimeout(ppg, PP_TO_BMC)) {
+		bmc_calculate_ebest(ppg); /* Calculation of erbest, ebest ,... */
+		pp_gtimeout_set(ppg, PP_TO_BMC,TMO_DEFAULT_BMCA_MS);
+		delay_ms=0;
+	} else {
+		/* check if the BMC timeout is the next to run */
+		int delay_bmca;
+		if ( (delay_bmca=pp_gnext_delay_1(ppg,PP_TO_BMC))<delay_ms )
+			delay_ms=delay_bmca;
 	}
 
 	return delay_ms;
@@ -147,7 +159,7 @@ static int stop_alarm(timer_t *timerid) {
 		fprintf(stderr, "ppsi: Cannot stop timer\n");
 		return 0;
 	}
-    return ito.it_value.tv_sec*1000+ito.it_value.tv_nsec/1000000;
+    return (int) (ito.it_value.tv_sec*1000+ito.it_value.tv_nsec/1000000);
 }
 
 

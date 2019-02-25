@@ -28,16 +28,16 @@ static struct minipc_pd __rpcdef_cmd = {
 static int wrsipc_cmd(int cmd, int value)
 {
 	if(cmd == PTPDEXP_COMMAND_WR_TRACKING) {
-#if CONFIG_EXT_WR == 1
-		wr_servo_enable_tracking(value);
-		return 0;
-#endif
+		if ( CONFIG_HAS_EXT_WR ) {
+			wr_servo_enable_tracking(value);
+			return 0;
+		}
 	}
 	if(cmd == PTPDEXP_COMMAND_L1SYNC_TRACKING) {
-#if CONFIG_EXT_L1SYNC == 1
-		l1e_servo_enable_tracking(value);
-		return 0;
-#endif
+		if ( CONFIG_HAS_EXT_L1SYNC ) {
+			l1e_servo_enable_tracking(value);
+			return 0;
+		}
 	}
 	return -1;
 

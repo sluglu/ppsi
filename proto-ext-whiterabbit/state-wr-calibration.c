@@ -20,10 +20,10 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len)
 
 	if (ppi->is_new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
-		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->calPeriod*(WR_STATE_RETRY+1));
+		pp_timeout_set_rename(ppi, wrTmoIdx, wrp->calPeriod*(WR_STATE_RETRY+1),"WR_CALIBRATED");
 		sendmsg = 1;
 	} else {
-		int rms=pp_next_delay_1(ppi, PP_TO_EXT_0);
+		int rms=pp_next_delay_1(ppi, wrTmoIdx);
 		if ( rms==0 || rms<(wrp->wrStateRetry*wrp->calPeriod)) {
 			if (wr_handshake_retry(ppi))
 				sendmsg = 1;
@@ -137,7 +137,7 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len)
 		break;
 	}
 
-	ppi->next_delay = pp_next_delay_1(ppi,PP_TO_EXT_0)-wrp->wrStateRetry*wrp->calPeriod;
+	ppi->next_delay = pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*wrp->calPeriod;
 
 	return 0; /* ignore error */
 }

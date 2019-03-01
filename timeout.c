@@ -123,7 +123,7 @@ void pp_timeout_init(struct pp_instance *ppi)
 {
 	portDS_t *port = ppi->portDS;
 	timeOutInstCnt_t *tmoCnt=ppi->tmo_cfg;
-	Boolean p2p=CONFIG_HAS_P2P && ppi->delayMechanism == P2P;
+	Boolean p2p=is_delayMechanismP2P(ppi);
 	Integer8 logDelayRequest=p2p ?
 			port->logMinPdelayReqInterval : port->logMinDelayReqInterval;
 
@@ -135,12 +135,6 @@ void pp_timeout_init(struct pp_instance *ppi)
 			tmoCnt[PP_TO_ANN_SEND].which_rand=TO_RAND_70_130;
 
 	tmoCnt[PP_TO_REQUEST].initValueMs= pp_timeout_log_to_ms(logDelayRequest);
-
-	/* fault timeout is 4 avg request intervals, not randomized */
-	tmoCnt[PP_TO_FAULT].initValueMs = pp_timeout_log_to_ms(logDelayRequest);
-	if ( tmoCnt[PP_TO_FAULT].initValueMs < (TIMEOUT_MAX_VALUE_MS>>2))
-		tmoCnt[PP_TO_FAULT].initValueMs<<=2; /* We can multiply by 4. No risk of overload */
-
 	tmoCnt[PP_TO_SYNC_SEND].initValueMs =  pp_timeout_log_to_ms(port->logSyncInterval);
 
 	// Initialize BMCA timer (Independent Timer)
@@ -151,11 +145,23 @@ void pp_timeout_init(struct pp_instance *ppi)
 		if (gtmoCnt->initValueMs==TIMEOUT_DISABLE_VALUE || ms<gtmoCnt->initValueMs)
 			gtmoCnt->initValueMs=ms;
 	}
-	tmoCnt[PP_TO_ANN_RECEIPT].initValueMs = 1000 * (
-		port->announceReceiptTimeout << port->logAnnounceInterval);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+		tmoCnt[PP_TO_ANN_RECEIPT].initValueMs =
+				tmoCnt[PP_TO_FAULT].initValueMs=
+						tmoCnt[PP_TO_QUALIFICATION].initValueMs =TIMEOUT_DISABLE_VALUE;
+	} else {
+		tmoCnt[PP_TO_ANN_RECEIPT].initValueMs=1000 * (port->announceReceiptTimeout << port->logAnnounceInterval);
+		/* fault timeout is 4 avg request intervals, not randomized */
+		tmoCnt[PP_TO_FAULT].initValueMs = pp_timeout_log_to_ms(logDelayRequest);
+		if ( tmoCnt[PP_TO_FAULT].initValueMs < (TIMEOUT_MAX_VALUE_MS>>2))
+			tmoCnt[PP_TO_FAULT].initValueMs<<=2; /* We can multiply by 4. No risk of overload */
+		tmoCnt[PP_TO_QUALIFICATION].initValueMs =
+		    (1000 << port->logAnnounceInterval)*(DSCUR(ppi)->stepsRemoved + 1);
+	}
 	tmoCnt[PP_TO_ANN_SEND].initValueMs =  pp_timeout_log_to_ms(port->logAnnounceInterval);
-	tmoCnt[PP_TO_QUALIFICATION].initValueMs =
-	    (1000 << port->logAnnounceInterval)*(DSCUR(ppi)->stepsRemoved + 1);
 }
 
 int pp_timeout_get(struct pp_instance *ppi, int index) {

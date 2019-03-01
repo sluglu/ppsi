@@ -106,7 +106,7 @@ int l1e_servo_got_sync(struct pp_instance *ppi)
 	gs->t2=ppi->t2;apply_faulty_stamp(ppi,2);
 
 
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P && gs->got_sync) {
+	if ( is_delayMechanismP2P(ppi) && gs->got_sync) {
 		gs->got_sync=0;
 		__l1e_servo_update(ppi);
 	}else {

@@ -69,13 +69,16 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	int pre = (ppi->state == PPS_PRE_MASTER);
 	int e = 0; /* error var, to check errors in msg handling */
 
-	/* no fault as long as we are  master */
-	pp_timeout_reset(ppi, PP_TO_FAULT);
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		/* no fault as long as we are  master */
+		pp_timeout_reset(ppi, PP_TO_FAULT);
+	}
 
 	/* upgrade from pre-master to master */
-	if (pre &&
-			pp_timeout(ppi, PP_TO_QUALIFICATION) &&
-			!is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+	if (!is_externalPortConfigurationEnabled(DSDEF(ppi)) &&
+			pre &&
+			pp_timeout(ppi, PP_TO_QUALIFICATION)
+			) {
 		ppi->next_state = PPS_MASTER;
 		/* start sending immediately and reenter */
 		pp_timeout_reset_N(ppi, PP_TO_SYNC_SEND,0);
@@ -94,7 +97,7 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	/* when the clock is using peer-delay, the master must send it too */
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
+	if ( is_delayMechanismP2P(ppi) )
 		pp_lib_may_issue_request(ppi);
 
 	/*
@@ -124,42 +127,49 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 				msgtype);
 	}
 
-	if (pp_timeout(ppi, PP_TO_FAULT))
-		ppi->next_state = PPS_FAULTY;
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		if (pp_timeout(ppi, PP_TO_FAULT))
+			ppi->next_state = PPS_FAULTY;
+	}
 
 out:
-	switch(e) {
-	case PP_SEND_OK: /* 0 */
-		/* Why should we switch to slave? Remove this code? */
-		if (is_slaveOnly(DSDEF(ppi)))
-			ppi->next_state = PPS_LISTENING;
-		break;
-	case PP_SEND_ERROR:
-		/* fall through: a lost frame is not the end of the world */
-	case PP_SEND_NO_STAMP:
-		/* nothing, just keep the ball rolling */
-		e = 0;
-		break;
-	}
-
-	if (pre) {
-		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
-			ppi->next_delay = pp_next_delay_2(ppi,
-				PP_TO_QUALIFICATION, PP_TO_REQUEST);
+	if ( is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		if ( e==PP_SEND_ERROR || e==PP_SEND_NO_STAMP )
+			e=0;
+		if (pre) {
+			ppi->next_delay = is_delayMechanismP2P(ppi) ?
+					pp_next_delay_1(ppi,PP_TO_REQUEST) :
+					INT_MAX;
 		} else {
-			ppi->next_delay = pp_next_delay_1(ppi,
-				PP_TO_QUALIFICATION);			
-		}		
+			ppi->next_delay = is_delayMechanismP2P(ppi) ?
+					pp_next_delay_3(ppi,PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST) :
+					pp_next_delay_2(ppi,PP_TO_ANN_SEND, PP_TO_SYNC_SEND);
+		}
 	} else {
-		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
-			ppi->next_delay = pp_next_delay_3(ppi,
-				PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
-		} else {
-			ppi->next_delay = pp_next_delay_2(ppi,
-				PP_TO_ANN_SEND, PP_TO_SYNC_SEND);
-		}		
-	}
+		switch(e) {
+		case PP_SEND_OK: /* 0 */
+			/* Why should we switch to slave? Remove this code? */
+			if ( is_slaveOnly(DSDEF(ppi)) )
+				ppi->next_state = PPS_LISTENING;
+			break;
+		case PP_SEND_ERROR:
+			/* fall through: a lost frame is not the end of the world */
+		case PP_SEND_NO_STAMP:
+			/* nothing, just keep the ball rolling */
+			e = 0;
+			break;
+		}
 	
+		if (pre) {
+			ppi->next_delay = is_delayMechanismP2P(ppi) ?
+					pp_next_delay_2(ppi,PP_TO_QUALIFICATION, PP_TO_REQUEST) :
+					pp_next_delay_1(ppi,PP_TO_QUALIFICATION);
+		} else {
+			ppi->next_delay = is_delayMechanismP2P(ppi) ?
+					pp_next_delay_3(ppi,PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST) :
+					pp_next_delay_2(ppi,PP_TO_ANN_SEND, PP_TO_SYNC_SEND);
+		}
+	}
 	return e;
 }
 

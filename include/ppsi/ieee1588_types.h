@@ -355,7 +355,7 @@ typedef struct {/*draft P1588_v_29: Clause 17.6.3 */
 
 /** ************************************************************************/
 /* Enumeration States (table 8, page 73) */
-enum pp_std_states {
+typedef enum  {
 	PPS_END_OF_TABLE	= 0,
 	PPS_INITIALIZING,
 	PPS_FAULTY,
@@ -367,9 +367,9 @@ enum pp_std_states {
 	PPS_UNCALIBRATED,
 	PPS_SLAVE,
 	PPS_LAST_STATE=PPS_SLAVE
-};
+}pp_std_states;
 
-enum pp_std_messages {
+typedef enum  {
 	PPM_SYNC		= 0x0,
 	PPM_DELAY_REQ,
 	PPM_PDELAY_REQ,
@@ -385,7 +385,7 @@ enum pp_std_messages {
 	PPM_NO_MESSAGE,
 
 	PPM_NOTHING_TO_DO	= 0x100, /* for hooks.master_msg() */
-};
+}pp_std_messages;
 
 /* Enumeration Domain Number (table 2, page 41) */
 enum ENDomainNumber {

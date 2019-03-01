@@ -128,8 +128,10 @@ int wr_execute_slave(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	if (pp_timeout(ppi, PP_TO_FAULT))
-		wr_servo_reset(ppi); /* the caller handles ptp state machine */
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+		if (pp_timeout(ppi, PP_TO_FAULT))
+			wr_servo_reset(ppi); /* the caller handles ptp state machine */
+	}
 
 	if ((ppi->state == PPS_SLAVE) &&
 		(WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
@@ -151,18 +153,22 @@ static int wr_handle_announce(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	switch (ppi->state) {
-		case WRS_PRESENT:
-		case WRS_S_LOCK :
-		case WRS_LOCKED :
-		case WRS_CALIBRATION :
-		case WRS_CALIBRATED :
-		case WRS_RESP_CALIB_REQ :
-		case WRS_WR_LINK_ON :
-			/* reset announce timeout when in the WR slave states */
-			pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+		switch (ppi->state) {
+			case WRS_PRESENT:
+			case WRS_S_LOCK :
+			case WRS_LOCKED :
+			case WRS_CALIBRATION :
+			case WRS_CALIBRATED :
+			case WRS_RESP_CALIB_REQ :
+			case WRS_WR_LINK_ON :
+				/* reset announce timeout when in the WR slave states */
+				pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+		}
 	}
-
 	/* handshake is started in slave mode */
 	return 0;
 }
@@ -171,7 +177,7 @@ static int  wr_sync_followup(struct pp_instance *ppi) {
 
 	if ( ppi->ext_enabled ) {
 		wr_servo_got_sync(ppi);
-		if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
+		if (is_delayMechanismP2P(ppi))
 			wr_servo_update(ppi);
 	}
 	else {

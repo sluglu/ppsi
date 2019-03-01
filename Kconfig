@@ -252,7 +252,9 @@ config NR_FOREIGN_RECORDS
 	default 1 if ARCH_WRPC
 	default 5 
 	help 
-		Size of foreignMasterDS data set (Clause 9.3.2.4.5)
+		Size of foreignMasterDS data set (Clause 9.3.2.4.5).
+		If the code is optimized with externalPortConfiguration.enable forced to true,
+		the NR_FOREIGN_RECORDS should be set to 1
 
 config SINGLE_FMASTER
 	boolean 

@@ -402,10 +402,8 @@ static int msg_issue_delay_req(struct pp_instance *ppi)
 
 int msg_issue_request(struct pp_instance *ppi)
 {
-#if CONFIG_HAS_P2P
-	if (ppi->delayMechanism == P2P)
+	if ( is_delayMechanismP2P(ppi) )
 		return msg_issue_pdelay_req(ppi);
-#endif
 	return msg_issue_delay_req(ppi);
 }
 

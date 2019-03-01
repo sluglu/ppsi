@@ -54,7 +54,7 @@ struct pp_vlanhdr {
 
 /* Factorize some random information in this table */
 struct pp_msgtype_info {
-	enum pp_std_messages msg_type;
+	pp_std_messages msg_type;
 	uint16_t msglen;
 	unsigned char chtype;
 	unsigned char is_pdelay;
@@ -159,6 +159,14 @@ static inline struct pp_servo *SRV(struct pp_instance *ppi)
 
 static inline int is_externalPortConfigurationEnabled (defaultDS_t *def) {
 	return CONFIG_HAS_CODEOPT_EPC_ENABLED || def->externalPortConfigurationEnabled;
+}
+
+static inline int is_delayMechanismP2P(struct pp_instance *ppi) {
+	return CONFIG_HAS_P2P && ppi->delayMechanism == P2P;
+}
+
+static inline int is_delayMechanismE2E(struct pp_instance *ppi) {
+	return CONFIG_HAS_P2P==0 || ppi->delayMechanism == E2E;
 }
 
 static inline int is_slaveOnly(defaultDS_t *def) {

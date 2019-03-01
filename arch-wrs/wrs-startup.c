@@ -120,6 +120,21 @@ static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable )
 	ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
 }
 
+static char *strCodeOpt="CODEOPT=("
+#if CONFIG_HAS_CODEOPT_EPC_ENABLED
+		" EPC"
+#endif
+#if CONFIG_HAS_CODEOPT_SO_ENABLED
+		" SO"
+#endif
+#if CONFIG_HAS_CODEOPT_SINGLE_FMASTER
+		" SFM"
+#endif
+#if CONFIG_HAS_CODEOPT_SINGLE_PORT
+		" SP"
+#endif
+		")";
+
 int main(int argc, char **argv)
 {
 	struct pp_globals *ppg;
@@ -132,9 +147,9 @@ int main(int argc, char **argv)
 
 	setbuf(stdout, NULL);
 
-	pp_printf("PPSi. Commit %s, built on " __DATE__ "\n",
-		PPSI_VERSION);
-
+	pp_printf("PPSi. Commit %s, built on " __DATE__ ", %s\n",
+		PPSI_VERSION,
+		strCodeOpt);
 	/* check if there is another instance of PPSi already running */
 	ppsi_head = wrs_shm_get(wrs_shm_ptp, "", WRS_SHM_READ);
 	if (!ppsi_head) {

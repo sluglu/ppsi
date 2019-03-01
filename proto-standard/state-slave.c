@@ -46,7 +46,7 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 		return 0;
 	}
 
-	if ( ppi->delayMechanism==E2E &&  ppi->t1.scaled_nsecs==0 && ppi->t1.secs==0 ) {
+	if ( is_delayMechanismE2E(ppi) &&  ppi->t1.scaled_nsecs==0 && ppi->t1.secs==0 ) {
 		/* First time we receive the SYNC message in uncalib/slave state
 		 * We set the REQUEST time-out to the minDelayReqInterval/2 value (500ms)
 		 * in order to provide quickly a DelayReq message
@@ -159,7 +159,9 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 	pp_time_add(&ppi->t4, &hdr->cField);
 	/* WARNING: should be "sub" (see README-cfield::BUG)  */
 
-	pp_timeout_reset(ppi, PP_TO_FAULT);
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) )
+		pp_timeout_reset(ppi, PP_TO_FAULT);
+
 	if (is_ext_hook_available(ppi,handle_resp)) {
 		ret=ppi->ext_hooks->handle_resp(ppi);
 	}
@@ -192,6 +194,10 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	 */
 	bmc_store_frgn_master(ppi, &frgn_master, buf, len);
 
+	/*  Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 *  - The specifications of 9.5.3 shall be replaced by the specifications of 17.6.5.5
+	 */
 	if (!is_externalPortConfigurationEnabled(DSDEF(ppi)) )  {
 		if ( !msg_from_current_master(ppi) ) {
 			pp_error("%s: Announce message is not from current parent\n",
@@ -207,13 +213,13 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 
 			return 0;
 		}
+		/* 9.2.6.11 a) reset timeout */
+		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 	}
 
 	/* Add foreign master: Figure 36 & 54 */
 	bmc_add_frgn_master(ppi, &frgn_master);
 
-	/* 9.2.6.11 a) reset timeout */
-	pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 	/* 9.5.3 Figure 29 update data set if announce from current master */
 	bmc_s1(ppi, &frgn_master);
 	
@@ -254,9 +260,11 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	           ppi->next_state = PPS_SLAVE;
 		}
 	} else {
-		/* TODO add implementation specific SYNCHRONIZATION event */
+		if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+			/* TODO add implementation specific SYNCHRONIZATION event */
 			if (pp_timeout(ppi, PP_TO_FAULT))
 				ppi->next_state = PPS_UNCALIBRATED;
+		}
 	}
 	/* Force to stay on desired state if externalPortConfiguration option is enabled */
 	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) )
@@ -295,15 +303,20 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	 */
 	ret = slave_execute(ppi);
 
-	st_com_check_announce_receive_timeout(ppi);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)))
+		st_com_check_announce_receive_timeout(ppi);
 
 out:
 	if ( ret==PP_SEND_NO_STAMP ) {
 		ret = PP_SEND_OK;/* nothing, just keep the ball rolling */
 	}
 
-	ppi->next_delay = pp_next_delay_2(ppi,
-		PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+	ppi->next_delay = is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
+			pp_next_delay_1(ppi,PP_TO_REQUEST) :
+			pp_next_delay_2(ppi,PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
 	return ret;
 }
 

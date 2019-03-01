@@ -57,7 +57,8 @@ static void _pp_servo_init(struct pp_instance *ppi)
 
 	servo->flags |= PP_SERVO_FLAG_VALID;
 
-	pp_timeout_reset(ppi, PP_TO_FAULT);
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) )
+		pp_timeout_reset(ppi, PP_TO_FAULT);
 	pp_diag(ppi, servo, 1, "Initialized: obs_drift %lli\n",
 			servo->obs_drift);
 }
@@ -167,10 +168,9 @@ int pp_servo_calculate_delays(struct pp_instance *ppi) {
 	if ( is_timestamps_incorrect(ppi,&errcount, 0x3 /* mask=t1&t2 */))
 		return 0; /* Error. Invalid timestamps */
 
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
-		ret=calculate_p2p_delayMM(ppi);
-	else
-		ret=calculate_e2e_delayMM(ppi);
+	ret= is_delayMechanismP2P(ppi) ?
+			calculate_p2p_delayMM(ppi)
+			: calculate_e2e_delayMM(ppi);
 	if ( !ret)
 		return 0; /* delays cannot be calculated */
 
@@ -250,7 +250,7 @@ void pp_servo_got_sync(struct pp_instance *ppi, int allowTimingOutput)
 
 	servo->t1=ppi->t1;
 	servo->t2=ppi->t2;
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P && servo->got_sync) {
+	if ( is_delayMechanismP2P(ppi) && servo->got_sync) {
 		/* P2P mechanism */
 		servo->got_sync=0;
 		__pp_servo_update(ppi);

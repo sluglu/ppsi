@@ -84,27 +84,29 @@ static int is_grand_master(struct pp_instance *ppi) {
 	return has_master && !has_slave;
 }
 
+/* This function should not be called when externalPortConfiguration is enabled */
 int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 {
-	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
-		/* 9.2.6.11 b) reset timeout when an announce timeout happened */
-		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+			/* 9.2.6.11 b) reset timeout when an announce timeout happened */
+			pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 
-		if ( !is_slaveOnly(DSDEF(ppi)) ) {
-			if ( is_grand_master(ppi) ) {
-				bmc_m1(ppi);
+			if ( !is_slaveOnly(DSDEF(ppi)) ) {
+				if ( is_grand_master(ppi) ) {
+					bmc_m1(ppi);
+				} else {
+					bmc_m3(ppi);
+				}
+				ppi->next_state = PPS_MASTER;
 			} else {
-				bmc_m3(ppi);
+				ppi->next_state = PPS_LISTENING;
 			}
-			if ( is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
-				/* Clause 17.6.5.3 : The announce receipt timeout mechanism shall not be active */
-				return 0;
-			}
-			ppi->next_state = PPS_MASTER;
-		} else {
-			ppi->next_state = PPS_LISTENING;
+			bmc_flush_erbest(ppi); /* ErBest is removed from the foreign master list and ErBest need to be re-computed */
 		}
-		bmc_flush_erbest(ppi); /* ErBest is removed from the foreign master list and ErBest need to be re-computed */
 	}
 	return 0;
 }

@@ -286,7 +286,9 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 					if ( ppi->ext_hooks->get_tmo_lstate_detection!=NULL)
 						tmo=(*ppi->ext_hooks->get_tmo_lstate_detection)(ppi);
 					else
-						tmo= pp_timeout_get(ppi,PP_TO_ANN_RECEIPT);
+						tmo= is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
+								6000 /* JCB: Default value. Is it correct ? */
+								: pp_timeout_get(ppi,PP_TO_ANN_RECEIPT);
 					pp_timeout_set(ppi,PP_TO_PROT_STATE, tmo);
 				}
 			}

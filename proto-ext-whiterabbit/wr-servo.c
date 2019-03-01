@@ -157,7 +157,7 @@ int wr_servo_got_delay(struct pp_instance *ppi)
 	s->t3 = ppi->t3; apply_faulty_stamp(ppi, 3);
 	s->t4 = ppi->t4; apply_faulty_stamp(ppi, 4);
 
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
+	if ( is_delayMechanismP2P(ppi) ) {
 		s->t5 = ppi->t5; apply_faulty_stamp(ppi, 5);
 		s->t6 = ppi->t6; apply_faulty_stamp(ppi, 6);
 
@@ -349,7 +349,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
 	prev_delayMM_ps = s->delayMM_ps;
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
+	if ( is_delayMechanismP2P(ppi) ) {
 		if (!wr_p2p_offset(ppi, s, &offset))
 			goto out;
 	} else {

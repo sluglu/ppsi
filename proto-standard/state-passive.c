@@ -46,13 +46,18 @@ static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len)
 		bmc_add_frgn_master(ppi, &frgn_master);
 	}
 
-	if (erbest!=NULL && !bmc_pidcmp(&hdr->sourcePortIdentity,
-		&erbest->sourcePortIdentity)) {
-		/* 
-		 * 9.2.6.11 d) reset timeout when an announce
-		 * is received from the clock putting it into passive (erbest)
-		 */
-		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if (! is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		if (erbest!=NULL && !bmc_pidcmp(&hdr->sourcePortIdentity,
+			&erbest->sourcePortIdentity)) {
+			/*
+			 * 9.2.6.11 d) reset timeout when an announce
+			 * is received from the clock putting it into passive (erbest)
+			 */
+			pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+		}
 	}
 	
 	return 0;
@@ -63,11 +68,13 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	pp_timeout_reset(ppi, PP_TO_FAULT); /* no fault as long as we are
-					   * passive */
+	if ( ! is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+		/* no fault as long as we are passive */
+		pp_timeout_reset(ppi, PP_TO_FAULT);
+	}
 
 	/* when the clock is using peer-delay, passive must send it too */
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
+	if ( is_delayMechanismP2P(ppi) )
 		e  = pp_lib_may_issue_request(ppi);
 
 	/*
@@ -82,21 +89,22 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 				hdr->messageType);
 	}
 
-	st_com_check_announce_receive_timeout(ppi);
-
-	if (pp_timeout(ppi, PP_TO_FAULT))
-		ppi->next_state = PPS_FAULTY;
-
-	if (e != 0)
-		ppi->next_state = PPS_FAULTY;
-
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P) {
-		ppi->next_delay = pp_next_delay_2(ppi, 
-			PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		ppi->next_delay = is_delayMechanismP2P(ppi) ?
+				pp_next_delay_1(ppi,PP_TO_REQUEST) :
+				INT_MAX;
 	} else {
-		ppi->next_delay = pp_next_delay_1(ppi, 
-			PP_TO_ANN_RECEIPT);
+		st_com_check_announce_receive_timeout(ppi);
+		ppi->next_delay = is_delayMechanismP2P(ppi) ?
+				pp_next_delay_2(ppi,PP_TO_ANN_RECEIPT, PP_TO_REQUEST) :
+				pp_next_delay_1(ppi,PP_TO_ANN_RECEIPT);
+
+		if (pp_timeout(ppi, PP_TO_FAULT) || e !=0 )
+			ppi->next_state = PPS_FAULTY;
 	}
-	
+
 	return e;
 }

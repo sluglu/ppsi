@@ -51,14 +51,21 @@ int pp_listening(struct pp_instance *ppi, void *buf, int len)
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	pp_timeout_reset(ppi, PP_TO_FAULT); /* no fault as long as we listen */
-	if (is_ext_hook_available(ppi,listening))
-		e = ppi->ext_hooks->listening(ppi, buf, len);
-	if (e)
-		goto out;
+	if ( is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+		if (is_ext_hook_available(ppi,listening))
+			e=ppi->ext_hooks->listening(ppi, buf, len);
+			if ( e )
+				goto epc_out;
+	} else {
+		pp_timeout_reset(ppi, PP_TO_FAULT); /* no fault as long as we listen */
+		if (is_ext_hook_available(ppi,listening))
+			e = ppi->ext_hooks->listening(ppi, buf, len);
+		if ( e )
+			goto out;
+	}
 
 	/* when the clock is using peer-delay, listening must send it too */
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
+	if ( is_delayMechanismP2P(ppi) )
 		e  = pp_lib_may_issue_request(ppi);
 	/*
 	 * The management of messages is now table-driven
@@ -72,22 +79,29 @@ int pp_listening(struct pp_instance *ppi, void *buf, int len)
 				hdr->messageType);
 	}
 
-	st_com_check_announce_receive_timeout(ppi);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( ! is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 
-	if (pp_timeout(ppi, PP_TO_FAULT))
-		ppi->next_state = PPS_FAULTY;
+		st_com_check_announce_receive_timeout(ppi);
 
-out:
-	if (e != 0)
-		ppi->next_state = PPS_FAULTY;
+		if (pp_timeout(ppi, PP_TO_FAULT))
+			ppi->next_state = PPS_FAULTY;
 
-	if (CONFIG_HAS_P2P && ppi->delayMechanism ==P2P) {
-		ppi->next_delay = pp_next_delay_2(ppi, 
-			PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
-	} else {
-		ppi->next_delay = pp_next_delay_1(ppi, 
-			PP_TO_ANN_RECEIPT);
+		out:;
+		if (e != 0)
+			ppi->next_state = PPS_FAULTY;
+
+		ppi->next_delay = is_delayMechanismP2P(ppi) ?
+			pp_next_delay_2(ppi,PP_TO_ANN_RECEIPT, PP_TO_REQUEST) :
+			pp_next_delay_1(ppi, PP_TO_ANN_RECEIPT);
+		return e;
 	}
-	
+
+	epc_out:;
+	ppi->next_delay = is_delayMechanismP2P(ppi) ?
+			pp_next_delay_1(ppi, PP_TO_REQUEST) :
+			INT_MAX;
 	return e;
 }

@@ -330,12 +330,13 @@ void bmc_p2(struct pp_instance *ppi)
 static void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 			   struct pp_frgn_master *frgn_master)
 {
-	int i;
 
-	/* this shall be always qualified */
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master->foreignMasterAnnounceMessages[i] = 1;
-
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+		/* this shall be always qualified */
+		int i;
+		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
+			frgn_master->foreignMasterAnnounceMessages[i] = 1;
+	}
 	memcpy(&frgn_master->receivePortIdentity,
 	       &DSPOR(ppi)->portIdentity, sizeof(PortIdentity));
 	frgn_master->sequenceId = 0;
@@ -605,6 +606,8 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 
 
 /* State decision algorithm 9.3.3 Fig 26 */
+/* Never called if externalPortConfigurationEnabled==TRUE */
+
 static int bmc_state_decision(struct pp_instance *ppi)
 {
 	static struct pp_frgn_master empty_frn_master;
@@ -621,43 +624,6 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	 * level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
-	/* Clause 17.6.5.3: The state machines of Figure 30 or Figure 31 shall not be used */
-	if ( is_externalPortConfigurationEnabled(DSDEF(ppi))) {
-		/* Qualification of the foreign master is not checked */
-		int dstate=ppi->externalPortConfigurationPortDS.desiredState;
-
-		/* Update the data set: Table 137 */
-		switch (ppi->state){
-		case PPS_SLAVE:
-		case PPS_UNCALIBRATED:
-			if ( (ppi->port_idx == ppg->ebest_idx) && erbestValid) {
-				/* if this configured port is ebest it will be taken as parent */
-				bmc_s1(ppi, erbest);
-			}
-			break;
-		case PPS_MASTER:
-		case PPS_PRE_MASTER:
-		case PPS_PASSIVE:
-			{
-				int i=0;
-				int exec_m2=1;
-				for (i=(get_numberPorts(DSDEF(ppi))-1); i>=0;i--) {
-					if ( INST(ppg,i)->state==PPS_SLAVE || INST(ppg,i)->state==PPS_UNCALIBRATED ) {
-						/* Clause 17.6.5.4 a)  if none of the PTP Instance’s PTP Ports are in the
-						 * SLAVE or UNCALIBRATED state and at least one PTP Port is in the MASTER, PRE_MASTER,
-						 * or PASSIVE state, ...
-						 */
-						exec_m2=0;
-						break;
-					}
-				}
-				if ( exec_m2)
-					bmc_m2(ppi);
-			}
-			break;
-		}
-		return dstate;
-	}
 
 	if (is_slaveOnly(DSDEF(ppi))) {
 		if ( !erbestValid )
@@ -928,10 +894,7 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 
 void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_master)
 {
-	int cmpres;
-	int i, j, worst, sel;
-	struct pp_frgn_master worst_frgn_master;
-	struct pp_frgn_master temp_frgn_master;
+	int sel;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	struct PortIdentity *pid = &hdr->sourcePortIdentity;
 
@@ -949,155 +912,163 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 		pid->clockIdentity.id[6], pid->clockIdentity.id[7],
 		pid->portNumber);
 
-	if (get_numberPorts(DSDEF(ppi)) > 1) {
-		
-		/* Check if announce from the same port from this clock 9.3.2.5 a)
-		 * from another port of this clock we still handle even though it
-		 * states something different in IEEE1588 because in 9.5.2.3
-		 * there is a special handling described for boundary clocks
-		 * which is done in the BMC
+	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+		/* Clause 17.6.5.3 : 9.5 shall continue to be in effect
+		 * with the exception of the specifications of 9.5.2.3 and 9.5.3
+		 * - per 9.5.2.2, PTP implementation ignores any message received from the same port
+		 *   that transmitted this message
+		 * - because 9.5.2.3 is ignored, PTP implementation accepts any message received
+		 *   from another "PTP Port" (ppsi instance) on the same "PTP Instance" (wr switch)
 		 */
-		if (!bmc_idcmp(&pid->clockIdentity,
-				&DSDEF(ppi)->clockIdentity)) {
-			cmpres = bmc_pidcmp(pid, &DSPOR(ppi)->portIdentity);
-
-			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
-
-			if (cmpres < 0) {
-				pp_diag(ppi, bmc, 2, "Announce frame from a better port on this clock\n");
-				bmc_p1(ppi);
-				ppi->next_state = PPS_PASSIVE;
-				/* as long as we receive that reset the announce timeout */
-				pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
-			} else if (cmpres > 0) {
-				pp_diag(ppi, bmc, 2, "Announce frame from a worse port on this clock\n");
-				return;
-			} else {
-				pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
-				return;
-			}
-		}
-	} else {
-		/* Check if announce from a port from this clock 9.3.2.5 a) */
-		if (!bmc_idcmp(&pid->clockIdentity,
-				&DSDEF(ppi)->clockIdentity)) {
-			pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+		if (!bmc_idcmp(&pid->clockIdentity, &DSDEF(ppi)->clockIdentity) &&
+				pid->portNumber==ppi->port_idx) {
+			pp_diag(ppi, bmc, 2, "Announce frame from same port\n");
 			return;
 		}
-	}
-
-	/* Check if announce has steps removed larger than 255 9.3.2.5 d) */
-	if (frgn_master->stepsRemoved >= 255) {
-		pp_diag(ppi, bmc, 2, "Announce frame steps removed"
-			"larger or equal 255: %i\n",
-			frgn_master->stepsRemoved);
-		return;
-	}
-
-	/* External Port Configuration */
-	if ( is_externalPortConfigurationEnabled(DSDEF(ppi))) {
-		/* Clear all other foreign masters. The last foreign master is always the one to be used */
-		/* If externalPortConfigurationEnabled is set, foreign master qualification will be not checked */
-		ppi->frgn_rec_num=0;
-	}
-
-	/* Check if foreign master is already known */
-    i=0;
-#if !CONFIG_HAS_CODEOPT_SINGLE_FMASTER
-    /* If only one foreign master is declared, the loop become useless and can be optimized */
-	for (;i < ppi->frgn_rec_num; i++)
-#else
-	if ( i < ppi->frgn_rec_num )
-#endif	
-    {
-		if (!bmc_pidcmp(pid,
-			    &ppi->frgn_master[i].sourcePortIdentity)) {
-
-			pp_diag(ppi, bmc, 2, "Foreign Master %i updated\n", i);
-
-			/* fill in number of announce received */
-			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
-				frgn_master->foreignMasterAnnounceMessages[j] =
-					ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
-			}
-			/* update the number of announce received if correct
-			 * sequence number 9.3.2.5 b) */
-			if (hdr->sequenceId
-				  == (ppi->frgn_master[i].sequenceId + 1))
-				frgn_master->foreignMasterAnnounceMessages[0]++;
-
-			/* already in Foreign master data set, update info */
-			memcpy(&ppi->frgn_master[i], &frgn_master,
-				   sizeof(frgn_master));
-			return;
-		}
-	}
-
-	/* set qualification timeouts as valid to compare against worst*/
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master->foreignMasterAnnounceMessages[i] = 1;
-
-	/* New foreign master */
-	if ( !CONFIG_HAS_CODEOPT_SINGLE_FMASTER ) {
-	    /* Code optimization if only one foreign master */
-		if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS) {
-			/* there is space for a new one */
-			sel = ppi->frgn_rec_num;
-			ppi->frgn_rec_num++;
-
-		} else {
-			/* find the worst to replace */
-			for (i = 1, worst = 0; i < ppi->frgn_rec_num; i++) {
-				/* qualify them for this check */
-				memcpy(&temp_frgn_master, &ppi->frgn_master[i],
-					   sizeof(temp_frgn_master));
-				memcpy(&worst_frgn_master, &ppi->frgn_master[worst],
-					   sizeof(worst_frgn_master));
-				for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
-					temp_frgn_master.foreignMasterAnnounceMessages[j] = 1;
-					worst_frgn_master.foreignMasterAnnounceMessages[j] = 1;
-				}
-
-				if (bmc_dataset_cmp(ppi, &temp_frgn_master,
-							&worst_frgn_master) > 0)
-					worst = i;
-			}
-
-			/* copy the worst again and qualify it */
-			memcpy(&worst_frgn_master, &ppi->frgn_master[worst], 
-				   sizeof(worst_frgn_master));
-			for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
-				worst_frgn_master.foreignMasterAnnounceMessages[i] = 1;
-			}
-			
-			/* check if worst is better than the new one, and skip the new
-			 * one if so */
-			if (bmc_dataset_cmp(ppi, &worst_frgn_master, frgn_master)
-				< 0) {
-					pp_diag(ppi, bmc, 1, "%s:%i: New foreign "
-						"master worse than worst in the full "
-						"table, skipping\n",
-				__func__, __LINE__);
-				return;
-			}
-
-			sel = worst;
-		}
-	} else {
 		sel = 0;
 		ppi->frgn_rec_num=1;
+
+	} else {
+		int cmpres;
+		int i, j, worst;
+		struct pp_frgn_master worst_frgn_master;
+		struct pp_frgn_master temp_frgn_master;
+		if (get_numberPorts(DSDEF(ppi)) > 1) {
+
+			/* Check if announce from the same port from this clock 9.3.2.5 a)
+			 * from another port of this clock we still handle even though it
+			 * states something different in IEEE1588 because in 9.5.2.3
+			 * there is a special handling described for boundary clocks
+			 * which is done in the BMC
+			 */
+			if (!bmc_idcmp(&pid->clockIdentity,
+					&DSDEF(ppi)->clockIdentity)) {
+				cmpres = bmc_pidcmp(pid, &DSPOR(ppi)->portIdentity);
+
+				pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+
+				if (cmpres < 0) {
+					pp_diag(ppi, bmc, 2, "Announce frame from a better port on this clock\n");
+					bmc_p1(ppi);
+					ppi->next_state = PPS_PASSIVE;
+					/* as long as we receive that reset the announce timeout */
+					pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+				} else if (cmpres > 0) {
+					pp_diag(ppi, bmc, 2, "Announce frame from a worse port on this clock\n");
+					return;
+				} else {
+					pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
+					return;
+				}
+			}
+		} else {
+			/* Check if announce from a port from this clock 9.3.2.5 a) */
+			if (!bmc_idcmp(&pid->clockIdentity,
+					&DSDEF(ppi)->clockIdentity)) {
+				pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+				return;
+			}
+		}
+
+		/* Check if announce has steps removed larger than 255 9.3.2.5 d) */
+		if (frgn_master->stepsRemoved >= 255) {
+			pp_diag(ppi, bmc, 2, "Announce frame steps removed"
+				"larger or equal 255: %i\n",
+				frgn_master->stepsRemoved);
+			return;
+		}
+
+		/* Check if foreign master is already known */
+		for (i=0;i < ppi->frgn_rec_num; i++)
+		{
+			if (!bmc_pidcmp(pid,
+					&ppi->frgn_master[i].sourcePortIdentity)) {
+
+				pp_diag(ppi, bmc, 2, "Foreign Master %i updated\n", i);
+
+				/* fill in number of announce received */
+				for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
+					frgn_master->foreignMasterAnnounceMessages[j] =
+						ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
+				}
+				/* update the number of announce received if correct
+				 * sequence number 9.3.2.5 b) */
+				if (hdr->sequenceId
+					  == (ppi->frgn_master[i].sequenceId + 1))
+					frgn_master->foreignMasterAnnounceMessages[0]++;
+
+				/* already in Foreign master data set, update info */
+				memcpy(&ppi->frgn_master[i], frgn_master,
+					   sizeof(struct pp_frgn_master));
+				return;
+			}
+		}
+
+		/* set qualification timeouts as valid to compare against worst*/
+		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
+			frgn_master->foreignMasterAnnounceMessages[i] = 1;
+
+		/* New foreign master */
+		if ( !CONFIG_HAS_CODEOPT_SINGLE_FMASTER ) {
+			/* Code optimization if only one foreign master */
+			if (ppi->frgn_rec_num < PP_NR_FOREIGN_RECORDS) {
+				/* there is space for a new one */
+				sel = ppi->frgn_rec_num;
+				ppi->frgn_rec_num++;
+
+			} else {
+				/* find the worst to replace */
+				for (i = 1, worst = 0; i < ppi->frgn_rec_num; i++) {
+					/* qualify them for this check */
+					memcpy(&temp_frgn_master, &ppi->frgn_master[i],
+						   sizeof(struct pp_frgn_master));
+					memcpy(&worst_frgn_master, &ppi->frgn_master[worst],
+						   sizeof(struct pp_frgn_master));
+					for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
+						temp_frgn_master.foreignMasterAnnounceMessages[j] = 1;
+						worst_frgn_master.foreignMasterAnnounceMessages[j] = 1;
+					}
+
+					if (bmc_dataset_cmp(ppi, &temp_frgn_master,
+								&worst_frgn_master) > 0)
+						worst = i;
+				}
+
+				/* copy the worst again and qualify it */
+				memcpy(&worst_frgn_master, &ppi->frgn_master[worst],
+					   sizeof(struct pp_frgn_master));
+				for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
+					worst_frgn_master.foreignMasterAnnounceMessages[i] = 1;
+				}
+
+				/* check if worst is better than the new one, and skip the new
+				 * one if so */
+				if (bmc_dataset_cmp(ppi, &worst_frgn_master, frgn_master)
+					< 0) {
+						pp_diag(ppi, bmc, 1, "%s:%i: New foreign "
+							"master worse than worst in the full "
+							"table, skipping\n",
+					__func__, __LINE__);
+					return;
+				}
+
+				sel = worst;
+			}
+		} else {
+			sel = 0;
+			ppi->frgn_rec_num=1;
+		}
+
+		/* clear qualification timeouts */
+		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
+			frgn_master->foreignMasterAnnounceMessages[i] = 0;
+
+		/* This is the first one qualified 9.3.2.5 e)*/
+		frgn_master->foreignMasterAnnounceMessages[0] = 1;
 	}
-
-	/* clear qualification timeouts */
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master->foreignMasterAnnounceMessages[i] = 0;
-
-	/* This is the first one qualified 9.3.2.5 e)*/
-	frgn_master->foreignMasterAnnounceMessages[0] = 1;
-
 	/* Copy the temporary foreign master entry */
-	memcpy(&ppi->frgn_master[sel], &frgn_master,
-		   sizeof(frgn_master));
+	memcpy(&ppi->frgn_master[sel], frgn_master,
+		   sizeof(struct pp_frgn_master));
 
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", sel);
 }
@@ -1147,13 +1118,8 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 	int i, j;
 	int qualified;
 
-    i=0;
-#if !CONFIG_HAS_CODEOPT_SINGLE_FMASTER
-    /* If only one foreign master is declared, the loop become useless and can be optimized */
-	for (;i < ppi->frgn_rec_num; i++)
-#else
-	if ( i < ppi->frgn_rec_num )
-#endif
+
+	for (i=0;i < ppi->frgn_rec_num; i++)
 	{
 		/* get qualification */
 		if ( !(qualified=is_ebest(GLBS(ppi),&ppi->frgn_master[i])) ) {
@@ -1259,38 +1225,39 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 		frgn_master = ppi->frgn_master;
 		if ((ppi->state != PPS_FAULTY) && (ppi->state != PPS_DISABLED)) {
 			best=0;
-			if ( !CONFIG_HAS_CODEOPT_SINGLE_FMASTER ) {
-			    /* Code optimization if only one foreign master. The loop becomes obsolete */
-				for (j = 1; j < ppi->frgn_rec_num;
-					 j++)
-					if (bmc_dataset_cmp(ppi,
-						  &frgn_master[j],
-						  &frgn_master[best]
-						) < 0)
-						best = j;
+			if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+				if ( !CONFIG_HAS_CODEOPT_SINGLE_FMASTER ) {
+				/* Code optimization if only one foreign master. The loop becomes obsolete */
+					for (j = 1; j < ppi->frgn_rec_num;
+						 j++)
+						if (bmc_dataset_cmp(ppi,
+							  &frgn_master[j],
+							  &frgn_master[best]
+							) < 0)
+							best = j;
+				}
+				pp_diag(ppi, bmc, 1, "Best foreign master is "
+					"at index %i/%i\n", best,
+					ppi->frgn_rec_num);
+
+				frgn_master_pid = &frgn_master[best].sourcePortIdentity;
+				pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+					"SourcePortId",
+					frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
+					frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
+					frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
+					frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
+					frgn_master_pid->portNumber);
+
 			}
-
-			pp_diag(ppi, bmc, 1, "Best foreign master is "
-				"at index %i/%i\n", best,
-				ppi->frgn_rec_num);
-
-			frgn_master_pid = &frgn_master[best].sourcePortIdentity;
-			pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
-				"SourcePortId",
-				frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
-				frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
-				frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
-				frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
-				frgn_master_pid->portNumber);
-
 			ppi->frgn_rec_best = best;
-		} else {
+		} else { //if ((ppi->state != ...
 			ppi->frgn_rec_num = 0;
 			ppi->frgn_rec_best = -1;
 			memset(&ppi->frgn_master, 0,
 				   sizeof(ppi->frgn_master));
 		}
-	} else {
+	} else { // if (ppi->frgn_rec_num > 0)
 		ppi->frgn_rec_best = -1;
 	}
 
@@ -1507,8 +1474,9 @@ void bmc_calculate_ebest(struct pp_globals *ppg)
 	/* check if we shall update the clock qualities */
 	bmc_update_clock_quality(ppg);
 
-	/* Age foreign masters */
-	bmc_age_frgn_masters(ppg);
+	if ( !is_externalPortConfigurationEnabled(GDSDEF(ppg)) )
+		/* Age foreign masters */
+		bmc_age_frgn_masters(ppg);
 
 	/* Only if port is not any port is in the INITIALIZING state 9.2.6.8 */
 	{
@@ -1523,12 +1491,13 @@ void bmc_calculate_ebest(struct pp_globals *ppg)
 	/* Calculate Erbest of all ports Figure 25 */
 	bmc_update_erbest(ppg);
 
-	/* Calulate Ebest Figure 25 */
-	/* ebest shall be calculated only once after the calculation of the erbest on all ports
-	 *       See Figure 25 STATE_DECISION_EVENT logic
-	 */
-	bmc_update_ebest(ppg);
-
+	if ( !is_externalPortConfigurationEnabled(GDSDEF(ppg)) ) {
+		/* Calculate Ebest Figure 25 */
+		/* ebest shall be calculated only once after the calculation of the erbest on all ports
+		 *       See Figure 25 STATE_DECISION_EVENT logic
+		 */
+		bmc_update_ebest(ppg);
+	}
 	/* Set triggers for PPSi instances to execute
 	 * bmc_apply_state_descision()
 	 */
@@ -1536,14 +1505,55 @@ void bmc_calculate_ebest(struct pp_globals *ppg)
 		INST(ppg,i)->bmca_execute=1;
 }
 
+/*
+ * Clause 17.6.5.4: Updating data sets when external port configuration is enabled
+ */
+static int bmc_state_descision_epc(struct pp_instance *ppi) {
+
+	switch (ppi->state){
+	case PPS_SLAVE:
+	case PPS_UNCALIBRATED:
+		/* Update the data set: Table 137 */
+		if ( ppi->frgn_rec_num>0 ) {
+			bmc_s1(ppi,&ppi->frgn_master[0]);
+		}
+		break;
+	case PPS_MASTER:
+	case PPS_PRE_MASTER:
+	case PPS_PASSIVE:
+		{
+			/* Update the data set: Table 136 */
+			int i;
+			int exec_m2=1;
+			for (i=get_numberPorts(DSDEF(ppi)-1); i>=0;i--) {
+				pp_std_states state=INST(GLBS(ppi),i)->state;
+				if ( state==PPS_SLAVE || state==PPS_UNCALIBRATED ) {
+					/* Clause 17.6.5.4 a)  if none of the PTP Instance’s PTP Ports are in the
+					 * SLAVE or UNCALIBRATED state and at least one PTP Port is in the MASTER, PRE_MASTER,
+					 * or PASSIVE state, ...
+					 */
+					exec_m2=0;
+					break;
+				}
+			}
+			if ( exec_m2)
+				bmc_m2(ppi);
+		}
+		break;
+	}
+	return ppi->externalPortConfigurationPortDS.desiredState;
+}
+
 int bmc_apply_state_descision(struct pp_instance *ppi) {
 	int next_state=-1;
 
-	/* Clause 17.6.5.3: The state machines of Figure 30 or Figure 31 shall not be used */
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
-		if (!ppi->link_up) {
-			/* Set it back to initializing */
-			next_state=PPS_INITIALIZING;
+	if (!ppi->link_up) {
+		/* Set it back to initializing */
+		next_state=PPS_INITIALIZING;
+	} else {
+		if ( is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
+			/* Clause 17.6.5.3: The state machines of Figure 30 or Figure 31 shall not be used */
+			next_state=bmc_state_descision_epc(ppi);
 		} else {
 			if ( get_numberPorts(DSDEF(ppi)) > 1 ) {
 				if ( bmc_check_frgn_master(ppi) ) {
@@ -1554,7 +1564,7 @@ int bmc_apply_state_descision(struct pp_instance *ppi) {
 		}
 	}
 
-	if ( next_state == -1 ) {
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) && next_state == -1 ) {
 		/* Make state decision */
 		next_state= bmc_state_decision(ppi);
 	}
@@ -1562,5 +1572,5 @@ int bmc_apply_state_descision(struct pp_instance *ppi) {
 	/* Extra states handled here */
 	if (is_ext_hook_available(ppi,state_decision))
 		next_state = ppi->ext_hooks->state_decision(ppi, ppi->next_state);
-	return next_state;
+	return is_externalPortConfigurationEnabled(DSDEF(ppi)) ? ppi->state : next_state;
 }

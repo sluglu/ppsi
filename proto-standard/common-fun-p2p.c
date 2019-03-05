@@ -20,9 +20,6 @@ static int presp_call_servo(struct pp_instance *ppi)
 	if (is_incorrect(&ppi->t4))
 		return 0; /* not an error, just no data */
 
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) )
-		pp_timeout_reset(ppi, PP_TO_FAULT);
-
 	if (is_ext_hook_available(ppi,handle_presp))
 		ret = ppi->ext_hooks->handle_presp(ppi);
 	else {

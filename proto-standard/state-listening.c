@@ -51,17 +51,14 @@ int pp_listening(struct pp_instance *ppi, void *buf, int len)
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	if ( is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
-		if (is_ext_hook_available(ppi,listening))
-			e=ppi->ext_hooks->listening(ppi, buf, len);
-			if ( e )
+	if (is_ext_hook_available(ppi,listening)) {
+		e=ppi->ext_hooks->listening(ppi, buf, len);
+		if ( e ) {
+			if (is_externalPortConfigurationEnabled(DSDEF(ppi)) )
 				goto epc_out;
-	} else {
-		pp_timeout_reset(ppi, PP_TO_FAULT); /* no fault as long as we listen */
-		if (is_ext_hook_available(ppi,listening))
-			e = ppi->ext_hooks->listening(ppi, buf, len);
-		if ( e )
-			goto out;
+			else
+				goto out;
+		}
 	}
 
 	/* when the clock is using peer-delay, listening must send it too */
@@ -85,9 +82,6 @@ int pp_listening(struct pp_instance *ppi, void *buf, int len)
 	if ( ! is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 
 		st_com_check_announce_receive_timeout(ppi);
-
-		if (pp_timeout(ppi, PP_TO_FAULT))
-			ppi->next_state = PPS_FAULTY;
 
 		out:;
 		if (e != 0)

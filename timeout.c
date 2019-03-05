@@ -150,14 +150,9 @@ void pp_timeout_init(struct pp_instance *ppi)
 	 */
 	if ( is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
 		tmoCnt[PP_TO_ANN_RECEIPT].initValueMs =
-				tmoCnt[PP_TO_FAULT].initValueMs=
-						tmoCnt[PP_TO_QUALIFICATION].initValueMs =TIMEOUT_DISABLE_VALUE;
+				tmoCnt[PP_TO_QUALIFICATION].initValueMs =TIMEOUT_DISABLE_VALUE;
 	} else {
 		tmoCnt[PP_TO_ANN_RECEIPT].initValueMs=1000 * (port->announceReceiptTimeout << port->logAnnounceInterval);
-		/* fault timeout is 4 avg request intervals, not randomized */
-		tmoCnt[PP_TO_FAULT].initValueMs = pp_timeout_log_to_ms(logDelayRequest);
-		if ( tmoCnt[PP_TO_FAULT].initValueMs < (TIMEOUT_MAX_VALUE_MS>>2))
-			tmoCnt[PP_TO_FAULT].initValueMs<<=2; /* We can multiply by 4. No risk of overload */
 		tmoCnt[PP_TO_QUALIFICATION].initValueMs =
 		    (1000 << port->logAnnounceInterval)*(DSCUR(ppi)->stepsRemoved + 1);
 	}

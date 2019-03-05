@@ -159,9 +159,6 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 	pp_time_add(&ppi->t4, &hdr->cField);
 	/* WARNING: should be "sub" (see README-cfield::BUG)  */
 
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) )
-		pp_timeout_reset(ppi, PP_TO_FAULT);
-
 	if (is_ext_hook_available(ppi,handle_resp)) {
 		ret=ppi->ext_hooks->handle_resp(ppi);
 	}
@@ -259,13 +256,8 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 		} else {
 	           ppi->next_state = PPS_SLAVE;
 		}
-	} else {
-		if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
-			/* TODO add implementation specific SYNCHRONIZATION event */
-			if (pp_timeout(ppi, PP_TO_FAULT))
-				ppi->next_state = PPS_UNCALIBRATED;
-		}
 	}
+
 	/* Force to stay on desired state if externalPortConfiguration option is enabled */
 	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) )
 		ppi->next_state = ppi->externalPortConfigurationPortDS.desiredState;

@@ -57,8 +57,6 @@ static void _pp_servo_init(struct pp_instance *ppi)
 
 	servo->flags |= PP_SERVO_FLAG_VALID;
 
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) )
-		pp_timeout_reset(ppi, PP_TO_FAULT);
 	pp_diag(ppi, servo, 1, "Initialized: obs_drift %lli\n",
 			servo->obs_drift);
 }

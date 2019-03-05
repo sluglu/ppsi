@@ -68,11 +68,6 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	if ( ! is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
-		/* no fault as long as we are passive */
-		pp_timeout_reset(ppi, PP_TO_FAULT);
-	}
-
 	/* when the clock is using peer-delay, passive must send it too */
 	if ( is_delayMechanismP2P(ppi) )
 		e  = pp_lib_may_issue_request(ppi);
@@ -102,7 +97,7 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 				pp_next_delay_2(ppi,PP_TO_ANN_RECEIPT, PP_TO_REQUEST) :
 				pp_next_delay_1(ppi,PP_TO_ANN_RECEIPT);
 
-		if (pp_timeout(ppi, PP_TO_FAULT) || e !=0 )
+		if ( e !=0 )
 			ppi->next_state = PPS_FAULTY;
 	}
 

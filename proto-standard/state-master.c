@@ -69,11 +69,6 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	int pre = (ppi->state == PPS_PRE_MASTER);
 	int e = 0; /* error var, to check errors in msg handling */
 
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi))) {
-		/* no fault as long as we are  master */
-		pp_timeout_reset(ppi, PP_TO_FAULT);
-	}
-
 	/* upgrade from pre-master to master */
 	if (!is_externalPortConfigurationEnabled(DSDEF(ppi)) &&
 			pre &&
@@ -125,11 +120,6 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 		if (len && msgtype != PPM_NO_MESSAGE)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				msgtype);
-	}
-
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi))) {
-		if (pp_timeout(ppi, PP_TO_FAULT))
-			ppi->next_state = PPS_FAULTY;
 	}
 
 out:

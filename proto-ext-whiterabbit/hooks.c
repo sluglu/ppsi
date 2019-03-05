@@ -128,11 +128,6 @@ int wr_execute_slave(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
-		if (pp_timeout(ppi, PP_TO_FAULT))
-			wr_servo_reset(ppi); /* the caller handles ptp state machine */
-	}
-
 	if ((ppi->state == PPS_SLAVE) &&
 		(WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
 		(WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&

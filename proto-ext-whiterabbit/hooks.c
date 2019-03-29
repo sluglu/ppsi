@@ -299,6 +299,25 @@ static int wr_require_precise_timestamp(struct pp_instance *ppi) {
 	return WR_DSPOR(ppi)->wrModeOn;
 }
 
+static int wr_get_tmo_lstate_detection(struct pp_instance *ppi) {
+	/* The WR protocol detection comes :
+	 * - for a SLAVE: from the announce message (WR TLV)
+	 * - for a MASTER: from the reception of the WR_PRESENT message
+	 * To cover this 2 cases we will use 2 times the announce receipt time-out
+	 */
+	return is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
+			10000 : /* 10s: externalPortConfiguration enable means no ANN_RECEIPT timeout */
+			pp_timeout_get(ppi,PP_TO_ANN_RECEIPT)<<1;
+}
+
+static TimeInterval wr_get_latency (struct pp_instance *ppi) {
+	return 0;
+}
+
+/* WR extension is not compliant with the standard concerning the contents of the correction fields */
+static int wr_is_correction_field_compliant (struct pp_instance *ppi) {
+	return 0;
+}
 struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
@@ -320,4 +339,8 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.state_change = wr_state_change,
 	.servo_reset= wr_servo_reset,
 	.require_precise_timestamp=wr_require_precise_timestamp,
+	.get_tmo_lstate_detection=wr_get_tmo_lstate_detection,
+	.get_ingress_latency=wr_get_latency,
+	.get_egress_latency=wr_get_latency,
+	.is_correction_field_compliant=wr_is_correction_field_compliant,
 };

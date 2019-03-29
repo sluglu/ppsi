@@ -306,9 +306,17 @@ static int msg_pack_delay_req(struct pp_instance *ppi,
 	void *buf = ppi->tx_ptp;
 	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_REQ_FMT;
 	int len= __msg_pack_header(ppi, mf);
+	Integer64 correction_field;
 
 	/* Header */
 	__msg_set_seq_id(ppi,mf);
+
+	correction_field=
+			is_ext_hook_available(ppi,is_correction_field_compliant) &&
+			!ppi->ext_hooks->is_correction_field_compliant(ppi) ?
+					0 :
+					-ppi->portDS->delayAsymmetry; /* Set -delayAsymmetry in CF */
+	*(Integer64 *) (buf + 8) =  htonll(correction_field);
 
 	/* Delay_req message - we may send zero instead */
 	memset((buf + 34), 0, 10);
@@ -325,13 +333,15 @@ static int msg_pack_delay_resp(struct pp_instance *ppi,
 	void *buf = ppi->tx_ptp;
 	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_RESP_FMT;
 	int len= __msg_pack_header(ppi, mf);
+	Integer64 correction_field, sub_ns;
 
 	/* Header */
-	/*
-	 * We should copy the cField of the request, and then subract
-	 * our fractional part. However, we add it (see README-cfield::BUG)
-	 */
-	*(Integer64 *) (buf + 8) =  htonll(rcv_tstamp->scaled_nsecs & 0xffff);
+	sub_ns=rcv_tstamp->scaled_nsecs & 0xffff;
+	correction_field=is_ext_hook_available(ppi,is_correction_field_compliant) &&
+			!ppi->ext_hooks->is_correction_field_compliant(ppi) ?
+					sub_ns : /* None compliant CF */
+					pp_time_to_interval(&hdr->cField)-sub_ns; /* Set rxCF-sub_ns */
+	*(Integer64 *) (buf + 8) =  htonll(correction_field);
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
 	/* Delay_resp message */

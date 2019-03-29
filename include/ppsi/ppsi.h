@@ -211,6 +211,9 @@ struct pp_ext_hooks {
 	void (*state_change)(struct pp_instance *ppi);
 	int (*run_ext_state_machine) (struct pp_instance *ppi);
 	void (*servo_reset)(struct pp_instance *ppi);
+	TimeInterval (*get_ingress_latency)(struct pp_instance *ppi);
+	TimeInterval (*get_egress_latency)(struct pp_instance *ppi);
+	int (*is_correction_field_compliant)(struct pp_instance *ppi); /* If not defined, it is assumed to be compliant */
 	/* If the extension requires hardware support for precise time stamp, returns 1 */
 	int (*require_precise_timestamp)(struct pp_instance *ppi);
 	int (*get_tmo_lstate_detection) (struct pp_instance *ppi);

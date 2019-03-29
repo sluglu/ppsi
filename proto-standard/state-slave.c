@@ -156,8 +156,20 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 	}
 
 	ppi->t4 = resp.receiveTimestamp;
-	pp_time_add(&ppi->t4, &hdr->cField);
-	/* WARNING: should be "sub" (see README-cfield::BUG)  */
+	if ( is_ext_hook_available(ppi,is_correction_field_compliant) &&
+			!ppi->ext_hooks->is_correction_field_compliant(ppi) ) {
+		/* Not compliant with CF */
+		pp_time_add(&ppi->t4, &hdr->cField);
+	} else{
+		/* We subtract the received CF and the current delayAsymmetry */
+		struct pp_time delayAsym={
+				.secs=0,
+				.scaled_nsecs=ppi->portDS->delayAsymmetry
+		};
+
+		pp_time_sub(&ppi->t4, &hdr->cField);
+		pp_time_sub(&ppi->t4, &delayAsym);
+	}
 
 	if (is_ext_hook_available(ppi,handle_resp)) {
 		ret=ppi->ext_hooks->handle_resp(ppi);

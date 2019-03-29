@@ -74,7 +74,20 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 		}
 		ppi->received_dresp=1;
 		ppi->t4 = resp.requestReceiptTimestamp;
-		pp_time_add(&ppi->t4, &hdr->cField);
+		if ( is_ext_hook_available(ppi,is_correction_field_compliant) &&
+				!ppi->ext_hooks->is_correction_field_compliant(ppi) ) {
+			/* Not compliant with CF */
+			pp_time_add(&ppi->t4, &hdr->cField);
+		} else{
+			/* We subtract the received CF and the current delayAsymmetry */
+			struct pp_time delayAsym={
+					.secs=0,
+					.scaled_nsecs=ppi->portDS->delayAsymmetry
+			};
+
+			pp_time_sub(&ppi->t4, &hdr->cField);
+			pp_time_sub(&ppi->t4, &delayAsym);
+		}
 		/* WARNING: should be "sub" (see README-cfield::BUG)  */
 		ppi->t6 = ppi->last_rcv_time;
 		if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0)

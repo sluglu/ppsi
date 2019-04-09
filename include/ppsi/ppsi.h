@@ -377,6 +377,7 @@ extern TimeInterval picos_to_interval(int64_t picos);
 extern void pp_time_add_interval(struct pp_time *t1, TimeInterval t2);
 extern void pp_time_sub_interval(struct pp_time *t1, TimeInterval t2);
 extern int pp_timeout_log_to_ms ( Integer8 logValue);
+extern void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t);
 
 /* Function for time conversion */
 extern int64_t pp_time_to_picos(struct pp_time *ts);

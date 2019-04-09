@@ -30,8 +30,13 @@ static inline int __recv_and_count(struct pp_instance *ppi, void *buf, int len,
 	ret = ppi->n_ops->recv(ppi, buf, len, t);
 	if (ret > 0) {
 		/* Adjust reception timestamp: ts'= ts - ingressLatency - semistaticLatency*/
-		TimeInterval adjust=ppi->timestampCorrectionPortDS.ingressLatency;
-		adjust+=ppi->timestampCorrectionPortDS.semistaticLatency;
+		TimeInterval adjust;
+		if (is_ext_hook_available(ppi,get_ingress_latency) ){
+			adjust= ppi->ext_hooks->get_ingress_latency(ppi);
+		} else  {
+			adjust=ppi->timestampCorrectionPortDS.ingressLatency;
+			adjust+=ppi->timestampCorrectionPortDS.semistaticLatency;
+		}
 		pp_time_sub_interval(t,adjust);
 		ppi->ptp_rx_count++;
 	}

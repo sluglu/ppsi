@@ -130,6 +130,7 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_f
 {
 	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	struct pp_time *t = &ppi->last_snt_time;
+	TimeInterval adjust;
 	int ret;
 
 	ret = ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,msg_fmt);
@@ -142,7 +143,12 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_f
 	}
 	/* The send method updates ppi->last_snt_time with the Tx timestamp. */
 	/* This timestamp must be corrected with the egressLatency */
-	pp_time_add_interval(t,ppi->timestampCorrectionPortDS.egressLatency);
+	if (is_ext_hook_available(ppi,get_egress_latency) ){
+		adjust= ppi->ext_hooks->get_egress_latency(ppi);
+	} else  {
+		adjust=ppi->timestampCorrectionPortDS.egressLatency;
+	}
+	pp_time_add_interval(t,adjust);
 
 	/* FIXME: diagnostics should be looped back in the send method */
 	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d.%03d (%s)\n",

@@ -93,12 +93,18 @@ static TimeInterval calculateDelayAsymmetry(RelativeDifference scaledDelayAsymCo
 	if ( lostBits<0 )
 		lostBits=0;
 	fracBitsUsed=DELAY_ASYM_BASE_FRACTION-(lostBits>>1)-1;
-	rescaledMeanDelay = scaledMeanDelay<<(fracBitsUsed-TIME_INTERVAL_FRACBITS);
-	rescaledAsymDelayCoeff=scaledDelayAsymCoeff>>(REL_DIFF_FRACBITS-fracBitsUsed);
+	rescaledMeanDelay = (fracBitsUsed>=TIME_INTERVAL_FRACBITS) ?
+			scaledMeanDelay<<(fracBitsUsed-TIME_INTERVAL_FRACBITS) :
+			scaledMeanDelay>>(TIME_INTERVAL_FRACBITS-fracBitsUsed);
+	rescaledAsymDelayCoeff= (fracBitsUsed>=REL_DIFF_FRACBITS) ?
+			scaledDelayAsymCoeff<<(fracBitsUsed-REL_DIFF_FRACBITS) :
+			scaledDelayAsymCoeff>>(REL_DIFF_FRACBITS-fracBitsUsed);
 	delayAsym= rescaledAsymDelayCoeff*rescaledMeanDelay;
 	delayAsym+=((TimeInterval)1<<(fracBitsUsed-1));
 	delayAsym>>=fracBitsUsed;
-	delayAsym>>=(fracBitsUsed-TIME_INTERVAL_FRACBITS);
+	delayAsym= (fracBitsUsed>=TIME_INTERVAL_FRACBITS) ?
+			delayAsym>>(fracBitsUsed-TIME_INTERVAL_FRACBITS):
+			delayAsym<<(TIME_INTERVAL_FRACBITS-fracBitsUsed);
 	delayAsym+=constantAsymmetry;
 	return delayAsym;
 }

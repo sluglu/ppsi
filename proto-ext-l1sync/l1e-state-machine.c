@@ -52,7 +52,7 @@ static l1e_state_machine_t le1_state_actions[] ={
  * It is used to send signaling messages.
  * It returns the ext-specific timeout value
  */
-int l1e_run_state_machine(struct pp_instance *ppi) {
+int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 	L1SyncBasicPortDS_t * basicDS=L1E_DSPOR_BS(ppi);
 	Enumeration8 nextState=basicDS->next_state;
 	Boolean newState=nextState!=basicDS->L1SyncState;
@@ -281,7 +281,7 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 	if ( !le1_evt_L1_SYNC_ENABLED(ppi) || le1_evt_L1_SYNC_RESET(ppi) ) {
 		/* Go to DISABLE state */
 		l1e_portDS->basic.next_state=L1SYNC_DISABLED;
-		ppi->link_state=PP_LSTATE_FAILURE;
+		lstate_set_link_failure(ppi);
 		return 0; /* Treatment required asap */
 	}
 	if ( le1_evt_LINK_OK(ppi) ) {
@@ -372,13 +372,14 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	/* State initialization */
 	if ( new_state ) {
 		WRH_OPER()->enable_ptracker(ppi);
+		WRH_SRV(ppi)->readyForSync=TRUE;
 	}
 
 	/* Check if state transition needed */
 	if ( !le1_evt_LINK_OK(ppi) ) {
 		/* Go to IDLE state */
 		next_state=L1SYNC_IDLE;
-		ppi->link_state=PP_LSTATE_FAILURE;
+		lstate_set_link_failure(ppi);
 	}
 	if ( !le1_evt_CONFIG_OK(ppi) ) {
 		/* Return to LINK_ALIVE state */
@@ -396,8 +397,8 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	}
 
 	/* Iterative treatment */
-	ppi->link_state=PP_LSTATE_LINKED;
-	l1e_update_correction_values(ppi);
+	lstate_set_link_established(ppi);
+	wrh_update_correction_values(ppi);
 	l1e_send_sync_msg(ppi,0);
 	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
 }

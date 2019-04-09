@@ -38,33 +38,6 @@ void l1e_print_L1Sync_basic_bitmaps(struct pp_instance *ppi, uint8_t configed,
 		  ((active & L1E_CONGRUENT)     == L1E_CONGRUENT));
 }
 
-/* update DS values of latencies and delay coefficient
- * - these values are provided by HW (i.e. HAL) depending on SFPs, wavelenghts, etc
- * - these values are stored in configurable data sets
- * - the values from data sets are used in calculations
- */
-int l1e_update_correction_values(struct pp_instance *ppi)
-{
-
-	struct l1e_servo_state *s = L1E_SRV(ppi);
-	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__, ppi->protocol_extension);
-
-
-	/* read the interesting values from HW (i.e. HAL)*/
-	if ( WRH_OPER()->read_corr_data(ppi,
-		NULL,
-		&s->clock_period_ps,
-		NULL) != WRH_HW_CALIB_OK){
-		      pp_diag(ppi, ext, 2, "hook: %s -- cannot read calib values\n",
-			__func__);
-		return -1;
-	}
-	pp_diag(ppi, ext, 2, "ML- Updated correction values: Clock period=%d [ps]\n",
-		s->clock_period_ps);
-
-	return 0;
-}
-
 /* open is global; called from "pp_init_globals" */
 static int l1e_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 {
@@ -131,11 +104,7 @@ static int l1e_handle_signaling(struct pp_instance * ppi, void *buf, int len)
 		pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(bds));
 
 		bds->L1SyncLinkAlive = TRUE;
-		if ( ppi->link_state==PP_LSTATE_PROTOCOL_DETECTION ||
-				ppi->link_state==PP_LSTATE_FAILURE) {
-			ppi->link_state=PP_LSTATE_IN_PROGRESS;
-			ppi->ext_enabled=TRUE; // Force L1SYNC extension as L1SYNC messages are received
-		}
+		lstate_enable_extension(ppi);
 	}
 	return 0;
 }
@@ -216,7 +185,7 @@ static 	void l1e_state_change(struct pp_instance *ppi) {
 			/* In PPSI we go to DISABLE state when the link is down */
 			/* For the time being, it should be done like this because fsm is not called when the link is down */
 			L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */
-			l1e_run_state_machine(ppi);
+			l1e_run_state_machine(ppi,NULL,0);
 			break;
 		case PPS_INITIALIZING :
 			L1E_DSPOR(ppi)->basic.L1SyncState=L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED;
@@ -240,7 +209,9 @@ static int l1e_require_precise_timestamp(struct pp_instance *ppi) {
 }
 
 static int l1e_get_tmo_lstate_detection(struct pp_instance *ppi) {
-	return l1e_get_rx_tmo_ms(L1E_DSPOR_BS(ppi));
+	return is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
+			10000 : /* 10s: externalPortConfiguration enable means no ANN_RECEIPT timeout */
+			l1e_get_rx_tmo_ms(L1E_DSPOR_BS(ppi));
 }
 
 /* The global structure used by ppsi */

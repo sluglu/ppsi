@@ -118,61 +118,14 @@ void picos_to_pp_time(int64_t picos, struct pp_time *ts)
 	sec=picos/PP_PSEC_PER_SEC;
 	picos-=sec*PP_PSEC_PER_SEC;
 	nsec = picos/1000;
-	picos-=nsec*1000;
+	picos%=1000;
 
 	ts->scaled_nsecs = nsec << TIME_FRACBITS;
-	ts->scaled_nsecs += (picos << TIME_FRACBITS) / 1000;
+	ts->scaled_nsecs += ((picos << TIME_FRACBITS)+TIME_ROUNDING_VALUE) / 1000;
 	ts->scaled_nsecs *= sign;
 	ts->secs = sec * sign;
 }
 
-#if 0
-/* "Hardwarizes" the timestamp - e.g. makes the nanosecond field a multiple
- * of 8/16ns cycles and puts the extra nanoseconds in the picos result */
-void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
-			  int32_t *ticks, int32_t *picos)
-{
-	int32_t s, ns, ps, clock_ns;
-
-	if ( clock_period_ps <= 0 ) {
-		pp_error("%s : Invalid clock period %d\n",__func__, clock_period_ps);
-		exit(-1);
-	}
-	/* clock_period_ps *must* be a multiple of 1000 -- assert()? */
-	clock_ns = clock_period_ps / 1000;
-
-	/*
-	 * In pp_time, both sec/nsec are positive, or both negative.
-	 * Only 0 secs can have positive or negative nsecs.
-	 *
-	 * Here we need a positive count for both tick and picos. Or not.
-	 * The code here replicates what found in original WR code.
-	 */
-	s = time->secs; /* a difference: known to fit 32 bits (really?) */
-	ps = time->scaled_nsecs & 0xffff; /* fractional nano */
-	ps = (ps * 1000) >> TIME_INTERVAL_FRACBITS; /* now picoseconds 0..999 -- positive*/
-	ns = time->scaled_nsecs >> TIME_INTERVAL_FRACBITS;
-	if (ns > 0 && clock_ns) {
-		ps += (ns % clock_ns) * 1000;
-		ns -= (ns % clock_ns);
-	}
-	if (ns < 0) {
-		s--;
-		ns += PP_NSEC_PER_SEC;
-	}
-	if (s == -1 && ns > 0) {
-		s++;
-		ns -= PP_NSEC_PER_SEC;
-	}
-	if (ns < 0 && s == 0 && ns >= -clock_ns) {
-		/* originally, ns was a multiple of clock_ns, code differs */
-		ps += ns * 1000;
-		ns = 0;
-	}
-	*ticks = ns;
-	*picos = ps;
-}
-#else
 /* "Hardwarizes" the timestamp - e.g. makes the nanosecond field a multiple
  * of 8/16ns cycles and puts the extra nanoseconds in the picos result */
 void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
@@ -191,7 +144,7 @@ void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
 	*picos=(int32_t)(ps-adj_ps)*sign;
 	*ticks = (int32_t)(adj_ps/1000)*sign;
 }
-#endif
+
 
 TimeInterval pp_time_to_interval(struct pp_time *ts)
 {
@@ -217,7 +170,7 @@ TimeInterval picos_to_interval(int64_t picos)
 		int sign = (picos < 0 ? -1 : 1);
 		picos *= sign;
 		scaled_ns=(picos/1000) << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
-		scaled_ns+=((picos%1000) << TIME_INTERVAL_FRACBITS)/1000; /* Add picos */
+		scaled_ns+=(((picos%1000) << TIME_INTERVAL_FRACBITS) + TIME_INTERVAL_ROUNDING_VALUE)/1000; /* Add picos */
 
 		return scaled_ns*sign;
 	}

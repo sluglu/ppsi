@@ -30,7 +30,7 @@
 #define WR_S_LOCK_TIMEOUT_MS		15000
 #define WR_LOCKED_TIMEOUT_MS          300
 #define WR_CALIBRATION_TIMEOUT_MS    3000
-#define WR_RESP_CALIB_REQ_TIMEOUT_MS  100 //  3
+#define WR_RESP_CALIB_REQ_TIMEOUT_MS  300 //  3
 #define WR_CALIBRATED_TIMEOUT_MS      300
 
 
@@ -61,29 +61,20 @@
 
 /* Indicates if a port is configured as White Rabbit, and what kind
  * (master/slave) */
-enum {
-	NON_WR		= 0x0,
-	WR_S_ONLY	= 0x2,
+typedef enum {
+	NON_WR = 0,
 	WR_M_ONLY	= 0x1,
+	WR_S_ONLY	= 0x2,
 	WR_M_AND_S	= 0x3,
-	WR_MODE_AUTO	= 0x4, /* only for ptpx - not in the spec */
-};
+	WR_MODE_AUTO= 0x4, /* only for ptpx - not in the spec */
+}wr_config_t;
 
 /* White Rabbit node */
-enum {
-	WR_SLAVE  = 2,
+typedef enum {
+	WR_ROLE_NONE=0,
 	WR_MASTER = 1,
-};
-
-/* White Rabbit Servo */
-enum {
-	WR_UNINITIALIZED = 0,
-	WR_SYNC_NSEC,
-	WR_SYNC_TAI,
-	WR_SYNC_PHASE,
-	WR_TRACK_PHASE,
-	WR_WAIT_OFFSET_STABLE,
-};
+	WR_SLAVE  = 2
+}wr_role_t;
 
 /* Values of Management Actions (extended for WR), see table 38
  */
@@ -96,13 +87,10 @@ enum {
 	WR_CMD, /* White Rabbit */
 };
 
-/* brief WR PTP states (new, single FSM) */
-enum {
-	/*
-	 * Extension-specific states start from 100 according to some docs
-	 * so not to conflict with normal states
-	 */
-	WRS_PRESENT = 100,
+/* brief WR PTP states */
+typedef enum {
+	WRS_IDLE=0,
+	WRS_PRESENT,
 	WRS_S_LOCK,
 	WRS_M_LOCK,
 	WRS_LOCKED,
@@ -110,19 +98,10 @@ enum {
 	WRS_CALIBRATED,
 	WRS_RESP_CALIB_REQ,
 	WRS_WR_LINK_ON,
-	/* substates: used within WRS_CALIBRATED as wrPortState field */
-	WR_PORT_CALIBRATION_0,
-	WR_PORT_CALIBRATION_1,
-	WR_PORT_CALIBRATION_2,
-	WR_PORT_CALIBRATION_3,
-	WR_PORT_CALIBRATION_4,
-	WR_PORT_CALIBRATION_5,
-	WR_PORT_CALIBRATION_6,
-	WR_PORT_CALIBRATION_7,
-	WR_PORT_CALIBRATION_8,
-	/* A special send-sync-only state for absolute calibration */
 	WRS_ABSCAL,
-};
+	WRS_MAX_STATES,
+	wr_state_t_ForceToIntSize = INT_MAX
+}wr_state_t;
 
 /* White Rabbit commands (for new implementation, single FSM), see table 38 */
 enum {

@@ -12,132 +12,39 @@
  * We enter this state from  WRS_M_LOCK or WRS_RESP_CALIB_REQ.
  * We send CALIBRATE and do the hardware steps; finally we send CALIBRATED.
  */
-int wr_calibration(struct pp_instance *ppi, void *buf, int len)
+#define WR_TMO_NAME "WR_CALIBRATION"
+#define WR_TMO_MS wrp->calPeriod
+
+int wr_calibration(struct pp_instance *ppi, void *buf, int len, int new_state)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	int sendmsg = 0;
-	uint32_t delta;
+	wr_servo_ext_t *se =WRE_SRV(ppi);
+	UInteger64 *delta;
 
-	if (ppi->is_new_state) {
-		wrp->wrStateRetry = WR_STATE_RETRY;
-		pp_timeout_set_rename(ppi, wrTmoIdx, wrp->calPeriod*(WR_STATE_RETRY+1),"WR_CALIBRATED");
-		sendmsg = 1;
-	} else {
-		int rms=pp_next_delay_1(ppi, wrTmoIdx);
-		if ( rms==0 || rms<(wrp->wrStateRetry*wrp->calPeriod)) {
-			if (wr_handshake_retry(ppi))
-				sendmsg = 1;
-			else
-				return 0; /* non-wr already */
-		}
-	}
+	/* Calculate deltaTx and update servo*/
+	delta=(UInteger64 *)&wrp->deltaTx;
+	*delta= (UInteger64)(ppi->timestampCorrectionPortDS.egressLatency*1000);
+	pp_diag(ppi, ext, 1, "deltaTx: msb=0x%x lsb=0x%x\n",
+		wrp->deltaTx.scaledPicoseconds.msb,
+		wrp->deltaTx.scaledPicoseconds.lsb);
+	fixedDelta_to_pp_time(*(struct FixedDelta *)delta,&se->delta_txs);/* Update servo specific data */
 
-	if (sendmsg) {
-		msg_issue_wrsig(ppi, CALIBRATE);
-		wrp->wrPortState = WR_PORT_CALIBRATION_0;
-		if (wrp->calibrated)
-			wrp->wrPortState = WR_PORT_CALIBRATION_2;
-	}
+	/* Calculate deltaRx and update servo*/
+	delta=(UInteger64 *)&wrp->deltaRx;
+	*delta=(UInteger64)((ppi->timestampCorrectionPortDS.ingressLatency +
+				ppi->timestampCorrectionPortDS.semistaticLatency) * 1000);
+	pp_diag(ppi, ext, 1, "deltaRx: msb=0x%x lsb=0x%x\n",
+		wrp->deltaRx.scaledPicoseconds.msb,
+		wrp->deltaRx.scaledPicoseconds.lsb);
+	fixedDelta_to_pp_time(*(struct FixedDelta *)delta, &se->delta_rxs);/* Update servo specific data */
 
-	pp_diag(ppi, ext, 1, "%s: substate %i\n", __func__,
-		wrp->wrPortState - WR_PORT_CALIBRATION_0);
+	/* Go to the next state */
+	wrp->next_state = WRS_CALIBRATED;
+	wrp->calibrated = TRUE;
 
-	switch (wrp->wrPortState) {
-	case WR_PORT_CALIBRATION_0:
-		/* enable pattern sending */
-		if (WRH_OPER()->calib_pattern_enable(ppi, 0, 0, 0) ==
-			WRH_HW_CALIB_OK)
-			wrp->wrPortState = WR_PORT_CALIBRATION_1;
-		else
-			break;
+	/* Send CLALIBRATE message */
+	msg_issue_wrsig(ppi, CALIBRATE);
+	wrp->wrPortState = 0; /* No longer used */
 
-	case WR_PORT_CALIBRATION_1:
-		/* enable Tx calibration */
-		if (WRH_OPER()->calib_enable(ppi, WRH_HW_CALIB_TX)
-				== WRH_HW_CALIB_OK)
-			wrp->wrPortState = WR_PORT_CALIBRATION_2;
-		else
-			break;
-
-	case WR_PORT_CALIBRATION_2:
-		/* wait until Tx calibration is finished */
-		if (WRH_OPER()->calib_poll(ppi, WRH_HW_CALIB_TX, &delta) ==
-			WRH_HW_CALIB_READY) {
-			wrp->deltaTx.scaledPicoseconds.msb =
-				0xFFFFFFFF & (((uint64_t)delta) >> 16);
-			wrp->deltaTx.scaledPicoseconds.lsb =
-				0xFFFFFFFF & (((uint64_t)delta) << 16);
-			pp_diag(ppi, ext, 1, "Tx=>>scaledPicoseconds.msb = 0x%x\n",
-				wrp->deltaTx.scaledPicoseconds.msb);
-			pp_diag(ppi, ext, 1, "Tx=>>scaledPicoseconds.lsb = 0x%x\n",
-				wrp->deltaTx.scaledPicoseconds.lsb);
-
-			wrp->wrPortState = WR_PORT_CALIBRATION_3;
-		} else {
-			break; /* again */
-		}
-
-	case WR_PORT_CALIBRATION_3:
-		/* disable Tx calibration */
-		if (WRH_OPER()->calib_disable(ppi, WRH_HW_CALIB_TX)
-				== WRH_HW_CALIB_OK)
-			wrp->wrPortState = WR_PORT_CALIBRATION_4;
-		else
-			break;
-
-	case WR_PORT_CALIBRATION_4:
-		/* disable pattern sending */
-		if (WRH_OPER()->calib_pattern_disable(ppi) == WRH_HW_CALIB_OK)
-			wrp->wrPortState = WR_PORT_CALIBRATION_5;
-		else
-			break;
-
-	case WR_PORT_CALIBRATION_5:
-		/* enable Rx calibration using the pattern sent by other port */
-		if (WRH_OPER()->calib_enable(ppi, WRH_HW_CALIB_RX) ==
-				WRH_HW_CALIB_OK)
-			wrp->wrPortState = WR_PORT_CALIBRATION_6;
-		else
-			break;
-
-	case WR_PORT_CALIBRATION_6:
-		/* wait until Rx calibration is finished */
-		if (WRH_OPER()->calib_poll(ppi, WRH_HW_CALIB_RX, &delta) ==
-			WRH_HW_CALIB_READY) {
-			pp_diag(ppi, ext, 1, "Rx fixed delay = %d\n", (int)delta);
-			wrp->deltaRx.scaledPicoseconds.msb =
-				0xFFFFFFFF & (delta >> 16);
-			wrp->deltaRx.scaledPicoseconds.lsb =
-				0xFFFFFFFF & (delta << 16);
-			pp_diag(ppi, ext, 1, "Rx=>>scaledPicoseconds.msb = 0x%x\n",
-				wrp->deltaRx.scaledPicoseconds.msb);
-			pp_diag(ppi, ext, 1, "Rx=>>scaledPicoseconds.lsb = 0x%x\n",
-				wrp->deltaRx.scaledPicoseconds.lsb);
-
-			wrp->wrPortState = WR_PORT_CALIBRATION_7;
-		} else {
-			break; /* again */
-		}
-
-	case WR_PORT_CALIBRATION_7:
-		/* disable Rx calibration */
-		if (WRH_OPER()->calib_disable(ppi, WRH_HW_CALIB_RX)
-				== WRH_HW_CALIB_OK)
-			wrp->wrPortState = WR_PORT_CALIBRATION_8;
-		else
-			break;
-	case WR_PORT_CALIBRATION_8:
-		/* send deltas to the other port and go to the next state */
-// 		msg_issue_wrsig(ppi, CALIBRATED);
-
-		ppi->next_state = WRS_CALIBRATED;
-		wrp->calibrated = TRUE;
-
-	default:
-		break;
-	}
-
-	ppi->next_delay = pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*wrp->calPeriod;
-
-	return 0; /* ignore error */
+	return 0;
 }

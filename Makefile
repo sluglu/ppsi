@@ -84,6 +84,7 @@ endif
 ifeq ($(CONFIG_HAS_EXT_L1SYNC),1)
   include proto-ext-l1sync/Makefile
 endif
+include proto-ext-common/Makefile
 include proto-standard/Makefile
 
 # ...and the TIME choice sets the default operations

@@ -55,7 +55,8 @@ static inline UInteger16 get_be16(void *ptr)
 void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 {
 	void *buf;
-	UInteger16 wr_flags = 0;
+	UInteger16 wr_flags;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	buf = ppi->tx_ptp;
 
@@ -72,17 +73,17 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 		| WR_TLV_WR_VERSION_NUMBER)));
 	/* wrMessageId */
 	*(UInteger16 *)(buf + 74) = htons(ANN_SUFIX);
-	wr_flags = wr_flags | WR_DSPOR(ppi)->wrConfig;
 
-	if (WR_DSPOR(ppi)->calibrated)
-		wr_flags = WR_IS_CALIBRATED | wr_flags;
+	wr_flags = wrp->wrConfig;
+	if (wrp->calibrated)
+		wr_flags |= WR_IS_CALIBRATED;
 
-	if (WR_DSPOR(ppi)->wrModeOn)
-		wr_flags = WR_IS_WR_MODE | wr_flags;
+	if (wrp->wrModeOn)
+		wr_flags |= WR_IS_WR_MODE;
 	*(UInteger16 *)(buf + 76) = htons(wr_flags);
 }
 
-void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
+void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann, UInteger16 *wrFlags)
 {
 	UInteger16 tlv_type;
 	UInteger32 tlv_organizationID;
@@ -105,16 +106,9 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 		tlv_magicNumber == WR_TLV_MAGIC_NUMBER &&
 		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
 		tlv_wrMessageID == ANN_SUFIX) {
-		ann->ext_specific = (UInteger16)get_be16(buf+76);
+		*wrFlags= (UInteger16)get_be16(buf+76);
 	} else
-		ann->ext_specific = 0; 		
-}
-
-static inline int32_t delta_to_ps(struct FixedDelta d)
-{
-	_UInteger64 *sps = &d.scaledPicoseconds; /* ieee type :( */
-
-	return (sps->lsb >> 16) | (sps->msb << 16);
+		*wrFlags = 0;
 }
 
 /* White Rabbit: packing WR Signaling messages*/
@@ -123,14 +117,6 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	void *buf;
 	UInteger16 len = 0;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	struct wr_servo_state *s =&((struct wr_data *)ppi->ext_data)->servo_state;
-
-	if ( (wrp->wrMode == NON_WR) || (wr_msg_id == ANN_SUFIX)) {
-		pp_diag(ppi, frames, 1,
-			  "BUG: Trying to send invalid wr_msg mode=%x id=%x",
-			  wrp->wrMode, wr_msg_id);
-		return 0;
-	}
 
 	buf = ppi->tx_ptp;
 
@@ -171,7 +157,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 		len = 14;
 		break;
 
-	case CALIBRATED: /* new fsm */
+	case CALIBRATED:
 		/* delta TX */
 		put_be32(buf+56, wrp->deltaTx.scaledPicoseconds.msb);
 		put_be32(buf+60, wrp->deltaTx.scaledPicoseconds.lsb);
@@ -180,13 +166,6 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 		put_be32(buf+64, wrp->deltaRx.scaledPicoseconds.msb);
 		put_be32(buf+68, wrp->deltaRx.scaledPicoseconds.lsb);
 		len = 24;
-
-		/*JCB: Hack. servo_init() called too early. PTP state machine must be modify. */
-		/* We should stay in UNCALIBRATED state during WR protocol */
-		s->delta_txm_ps = delta_to_ps(wrp->otherNodeDeltaTx);
-		s->delta_rxm_ps = delta_to_ps(wrp->otherNodeDeltaRx);
-		s->delta_txs_ps = delta_to_ps(wrp->deltaTx);
-		s->delta_rxs_ps = delta_to_ps(wrp->deltaRx);
 		break;
 
 	default:
@@ -213,7 +192,6 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	UInteger16 tlv_versionNumber;
 	Enumeration16 wr_msg_id;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	struct wr_servo_state *s =&((struct wr_data *)ppi->ext_data)->servo_state;
 
 	memcpy(&wrsig_msg->targetPortIdentity.clockIdentity, (buf + 34),
 	       PP_CLOCK_IDENTITY_LENGTH);
@@ -284,10 +262,6 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 			get_be32(buf+64);
 		wrp->otherNodeDeltaRx.scaledPicoseconds.lsb =
 			get_be32(buf+68);
-		/*JCB: Hack. serrvo_init() called too early. PTP state machine must be modify. */
-		/* We should stay in UNCALIBRATED state during WR protocol */
-		s->delta_txm_ps = delta_to_ps(wrp->otherNodeDeltaTx);
-		s->delta_rxm_ps = delta_to_ps(wrp->otherNodeDeltaRx);
 		break;
 
 	default:

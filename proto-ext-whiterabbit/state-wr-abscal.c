@@ -22,15 +22,17 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
  * This is using a software loop during the last 10ms in order to get
  * right after the pps event
  */
-int wr_abscal(struct pp_instance *ppi, void *buf, int plen)
+#define WR_TMO_NAME "WR_ABSCAL"
+
+int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 {
 	struct pp_time t;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int len, i;
 
-	if (ppi->is_new_state) {
+	if (new_state) {
 		/* add 1s to be enough in the future, the first time */
-		pp_timeout_set_rename(ppi, wrTmoIdx, 990 + next_pps_ms(ppi, &t),"WR_ABSCAL");
+		pp_timeout_set_rename(ppi, wrTmoIdx, 990 + next_pps_ms(ppi, &t),WR_TMO_NAME);
 		return 0;
 	}
 
@@ -51,10 +53,8 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen)
 
 		/* And again next second */
 		pp_timeout_set(ppi, wrTmoIdx, next_pps_ms(ppi, &t) - 10);
-		ppi->next_delay = next_pps_ms(ppi, &t) - 10;
-		return 0;
+		return  next_pps_ms(ppi, &t) - 10;
 	}
 	/* no timeout: wait according to next_pps_ms calculated earlier */
-	ppi->next_delay = i > 0 ? i : 0;
-	return 0;
+	return  i > 0 ? i : 0;
 }

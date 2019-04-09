@@ -11,6 +11,7 @@
  * This is the WR state machine table.
  */
 
+#if 0
 struct pp_state_table_item pp_state_table[] = {
 	{ PPS_INITIALIZING,	"initializing",	pp_initializing,},
 	{ PPS_FAULTY,		"faulty",	pp_faulty,},
@@ -34,3 +35,4 @@ struct pp_state_table_item pp_state_table[] = {
 #endif
 	{ PPS_END_OF_TABLE,}
 };
+#endif

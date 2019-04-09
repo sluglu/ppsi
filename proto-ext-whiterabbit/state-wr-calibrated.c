@@ -12,47 +12,53 @@
  * We enter here from WRS_CALIBRATION.  If master we wait for
  * a CALIBRATE message, if slave we wait for LINK_ON.
  */
-int wr_calibrated(struct pp_instance *ppi, void *buf, int len)
+#define WR_TMO_NAME "WR_CALIBRATED"
+#define WR_TMO_MS WR_CALIBRATED_TIMEOUT_MS
+
+int wr_calibrated(struct pp_instance *ppi, void *buf, int len, int new_state)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	MsgSignaling wrsig_msg;
-	int enable = 0;
+	int sendmsg = 0;
 
-	if (ppi->is_new_state) {
+	if (new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
-		pp_timeout_set_rename(ppi, wrTmoIdx, WR_CALIBRATED_TIMEOUT_MS*(WR_STATE_RETRY+1),"WR_CLAIBRATED");
-		enable = 1;
+		pp_timeout_set_rename(ppi, wrTmoIdx, WR_TMO_MS*(WR_STATE_RETRY+1),WR_TMO_NAME);
+		sendmsg = 1;
 	} else {
-		int rms=pp_next_delay_1(ppi, wrTmoIdx);
-		if ( rms==0 || rms<(wrp->wrStateRetry*WR_CALIBRATED_TIMEOUT_MS)) {
-		/*
-		 * FIXME: We should implement a retry by re-sending
-		 * the "calibrated" message, moving it here from the
-		 * previous state (sub-state 8 of "state-wr-calibration"
-		 */
-			if (wr_handshake_retry(ppi))
-				enable = 1;
-			else
-				return 0; /* non-wr already */
+
+		if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
+			msg_unpack_wrsig(ppi, buf, &wrsig_msg,
+				 &(wrp->msgTmpWrMessageID));
+
+			if ((wrp->msgTmpWrMessageID == CALIBRATE) &&
+				(wrp->wrMode == WR_MASTER)) {
+				wrp->next_state = WRS_RESP_CALIB_REQ;
+				return 0;
+			}
+			else if ((wrp->msgTmpWrMessageID == WR_MODE_ON) &&
+				(wrp->wrMode == WR_SLAVE)) {
+				wrp->next_state = WRS_WR_LINK_ON;
+				return 0;
+			}
+		}
+		{
+			/* Check if tmo expired */
+			int rms=pp_next_delay_1(ppi, wrTmoIdx);
+			if ( rms==0 || rms<(wrp->wrStateRetry*WR_TMO_MS)) {
+				if (wr_handshake_retry(ppi))
+					sendmsg = 1;
+				else {
+					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					return 0; /* non-wr already */
+				}
+			}
 		}
 	}
 
-	if (enable){
+	if (sendmsg){
 		msg_issue_wrsig(ppi, CALIBRATED);
     }
 
-	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
-			 &(wrp->msgTmpWrMessageID));
-
-		if ((wrp->msgTmpWrMessageID == CALIBRATE) &&
-			(wrp->wrMode == WR_MASTER))
-			ppi->next_state = WRS_RESP_CALIB_REQ;
-		else if ((wrp->msgTmpWrMessageID == WR_MODE_ON) &&
-			(wrp->wrMode == WR_SLAVE))
-			ppi->next_state = WRS_WR_LINK_ON;
-	}
-
-	ppi->next_delay = pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*WR_CALIBRATED_TIMEOUT_MS;
-	return 0;
+	return pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*WR_TMO_MS;
 }

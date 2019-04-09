@@ -24,7 +24,7 @@
 
 /* Call pp_state_machine for each instance. To be called periodically,
  * when no packets are incoming */
-static int run_all_state_machines(struct pp_globals *ppg)
+static unsigned int run_all_state_machines(struct pp_globals *ppg)
 {
 	int j;
 	int delay_ms = 0, delay_ms_j;
@@ -132,7 +132,7 @@ static void init_alarm(timer_t *timerid) {
 		}
 }
 
-static void start_alarm(timer_t *timerid, int delay_ms) {
+static void start_alarm(timer_t *timerid, unsigned int delay_ms) {
 	struct itimerspec its;
 
     its.it_value.tv_sec = delay_ms/1000;
@@ -141,7 +141,7 @@ static void start_alarm(timer_t *timerid, int delay_ms) {
     its.it_interval.tv_nsec = 0;
 
     if (timer_settime(*timerid, 0, &its, NULL) == -1){
-		fprintf(stderr, "ppsi: Cannot start timer\n");
+		fprintf(stderr, "ppsi: Cannot start timer. DelayMs=%u. Errno=%d\n",delay_ms, errno);
 	}
 
 }
@@ -167,7 +167,7 @@ void wrs_main_loop(struct pp_globals *ppg)
 {
 	struct pp_instance *ppi;
 	int skipped_checks=0;
-	int delay_ms;
+	unsigned int delay_ms;
     timer_t timerid;
 	int j;
 
@@ -204,25 +204,6 @@ void wrs_main_loop(struct pp_globals *ppg)
 			skipped_checks++;
 			packet_available=0;
 		}
-#if 0
-		/*
-		 * If Ebest was changed in previous loop, run best
-		 * master clock before checking for new packets, which
-		 * would affect port state again
-		 */
-		if (ppg->ebest_updated) {
-			for (j = 0; j < ppg->nlinks; j++) {
-				int new_state;
-				struct pp_instance *ppi = INST(ppg, j);
-				new_state = bmc(ppi);
-				if (new_state != ppi->state) {
-					ppi->state = new_state;
-					ppi->is_new_state = 1;
-				}
-			}
-			ppg->ebest_updated = 0;
-		}
-#endif
 
 		if ((packet_available<=0) && (alarmDetected || (delay_ms==0))) {
 			/* Time to run the state machine */
@@ -237,11 +218,11 @@ void wrs_main_loop(struct pp_globals *ppg)
 		}
 
 		if (packet_available > 0 ) {
-			/* If delay_ms is -1, the above ops.check_packet will continue
+			/* If delay_ms is UINT_MAX, the above ops.check_packet will continue
 			 * consuming the previous timeout (see its implementation).
 			 * This ensures that every state machine is called at least once
 			 * every delay_ms */
-			delay_ms = -1;
+			delay_ms = UINT_MAX;
 			for (j = 0; j < ppg->nlinks; j++) {
 				int tmp_d,i;
 				ppi = INST(ppg, j);
@@ -264,11 +245,11 @@ void wrs_main_loop(struct pp_globals *ppg)
 					tmp_d = pp_state_machine(ppi, ppi->rx_ptp,
 						i - ppi->rx_offset);
 
-					if ((delay_ms == -1) || (tmp_d < delay_ms))
+					if ( tmp_d < delay_ms )
 						delay_ms = tmp_d;
 				}
 			}
-			if ((delay_ms>0) &&  !alarmDetected ) {
+			if ((delay_ms!=UINT_MAX) &&  !alarmDetected ) {
 				int rem_delay_ms=stop_alarm(&timerid); /* Stop alarm and get remaining delay */
 
 				if ( rem_delay_ms < delay_ms) {

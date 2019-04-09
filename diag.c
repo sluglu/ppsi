@@ -26,10 +26,12 @@ void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
 		      int level, char *fmt, ...)
 {
 	va_list args;
-	char *name = ppi ? ppi->port_name : "ppsi";
+	char *name;
 
 	if (!__PP_DIAG_ALLOW(ppi, th, level))
 		return;
+
+	name = ppi ? ppi->port_name : "ppsi";
 
 	/* Use the normal output channel for diagnostics */
 	if (PP_DIAG_EXTRA_PRINT_TIME) {

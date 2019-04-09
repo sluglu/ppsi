@@ -201,11 +201,11 @@ struct pp_ext_hooks {
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*handle_signaling) (struct pp_instance * ppi, void *buf, int len);
 	int (*pack_announce)(struct pp_instance *ppi);
-	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
+	void (*unpack_announce)(struct pp_instance *ppi,void *buf, MsgAnnounce *ann);
 	int (*ready_for_slave)(struct pp_instance *ppi); /* returns: 0=Not ready 1=ready */
 	int (*state_decision)(struct pp_instance *ppi, int next_state);
 	void (*state_change)(struct pp_instance *ppi);
-	int (*run_ext_state_machine) (struct pp_instance *ppi);
+	int (*run_ext_state_machine) (struct pp_instance *ppi, void *buf, int len);
 	void (*servo_reset)(struct pp_instance *ppi);
 	TimeInterval (*get_ingress_latency)(struct pp_instance *ppi);
 	TimeInterval (*get_egress_latency)(struct pp_instance *ppi);

@@ -52,10 +52,11 @@ static int master_handle_announce(struct pp_instance *ppi, void *buf, int len)
 static int master_handle_delay_request(struct pp_instance *ppi,
 				       void *buf, int len)
 {
-	if (ppi->state == PPS_MASTER) /* not pre-master */
+	if (ppi->state == PPS_MASTER) { /* not pre-master */
 		if ( msg_issue_delay_resp(ppi, &ppi->last_rcv_time)==0  && !ppi->ext_enabled ) {
 			ppi->link_state=PP_LSTATE_LINKED;
 		}
+	}
 	return 0;
 }
 
@@ -101,14 +102,6 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 	 * PPM_NO_MESSAGE
 	 */
 	msgtype = ppi->received_ptp_header.messageType;
-	if (is_ext_hook_available(ppi,master_msg))
-		msgtype = ppi->ext_hooks->master_msg(ppi, buf, len, msgtype);
-	if (msgtype < 0) {
-		e = msgtype;
-		len = 0;
-		e = PP_SEND_ERROR; /* well, "error" in general */
-		goto out;
-	}
 
 	/*
 	 * The management of messages is now table-driven
@@ -122,7 +115,6 @@ int pp_master(struct pp_instance *ppi, void *buf, int len)
 				msgtype);
 	}
 
-out:
 	if ( is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 		if ( e==PP_SEND_ERROR || e==PP_SEND_NO_STAMP )
 			e=0;

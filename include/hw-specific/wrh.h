@@ -71,5 +71,69 @@ static inline struct wrh_operations *WRH_OPER(void)
 }
 
 
+/****************************************************************************************/
+/* wrh_servo interface */
+
+/* Servo state */
+typedef enum {
+	WRH_UNINITIALIZED = 0,
+	WRH_SYNC_TAI,
+	WRH_SYNC_NSEC,
+	WRH_SYNC_PHASE,
+	WRH_TRACK_PHASE,
+	WRH_WAIT_OFFSET_STABLE,
+}wrh_servo_state_t;
+
+
+#define WRH_SERVO_RESET_DATA_SIZE        (sizeof(wrh_servo_t)-offsetof(wrh_servo_t,reset_address))
+#define WRH_SERVO_RESET_DATA(servo)      memset(&servo->reset_address,0,WRH_SERVO_RESET_DATA_SIZE);
+
+
+typedef struct wrh_servo_t {
+	/* Values used by snmp. Values are increased at servo update when
+	 * erroneous condition occurs. */
+	uint32_t n_err_state;
+	uint32_t n_err_offset;
+	uint32_t n_err_delta_rtt;
+
+	int32_t cur_setpoint_ps;
+
+	/* ----- All data after this line will cleared during a servo reset */
+	int reset_address;
+
+	/* These fields are used by servo code, after setting at init time */
+	int32_t clock_period_ps;
+
+	/* Following fields are for monitoring/diagnostics (use w/ shmem) */
+	int64_t delayMM_ps;
+	int64_t delayMS_ps;
+	int tracking_enabled;
+	int64_t skew_ps;
+	int64_t offsetMS_ps;
+
+	/* These fields are used by servo code, across iterations */
+	int64_t prev_delayMS_ps;
+	int missed_iters;
+
+	Boolean readyForSync; /* Ready for synchronization */
+} wrh_servo_t;
+
+
+static inline  wrh_servo_t *WRH_SRV(struct pp_instance *ppi)
+{
+	return (wrh_servo_t *)ppi->ext_data;
+}
+
+
+/* Prototypes */
+extern void    wrh_servo_enable_tracking(int enable);
+extern int     wrh_servo_init(struct pp_instance *ppi);
+extern void    wrh_servo_reset(struct pp_instance *ppi);
+extern void    wrh_servo_enable_tracking(int enable);
+extern int     wrh_servo_got_sync(struct pp_instance *ppi);
+extern int     wrh_servo_got_resp(struct pp_instance *ppi);
+extern int     wrh_servo_got_presp(struct pp_instance *ppi);
+extern int     wrh_update_correction_values(struct pp_instance *ppi);
+
 #endif /* __WRH_H__ */
 

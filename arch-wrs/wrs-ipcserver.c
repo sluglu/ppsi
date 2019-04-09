@@ -29,13 +29,13 @@ static int wrsipc_cmd(int cmd, int value)
 {
 	if(cmd == PTPDEXP_COMMAND_WR_TRACKING) {
 		if ( CONFIG_HAS_EXT_WR ) {
-			wr_servo_enable_tracking(value);
+			wrh_servo_enable_tracking(value);
 			return 0;
 		}
 	}
 	if(cmd == PTPDEXP_COMMAND_L1SYNC_TRACKING) {
 		if ( CONFIG_HAS_EXT_L1SYNC ) {
-			l1e_servo_enable_tracking(value);
+			wrh_servo_enable_tracking(value);
 			return 0;
 		}
 	}

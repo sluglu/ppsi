@@ -12,8 +12,6 @@
 #include <endpoint.h> /* wrpc-sw */
 #include <ptpd_netif.h> /* wrpc-sw */
 
-int frame_rx_delay_us; /* set by faults.c */
-
 #ifdef CONFIG_ABSCAL
 #define HAS_ABSCAL 1
 #else
@@ -39,7 +37,7 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	struct wr_sockaddr addr;
 	char *macaddr = PP_MCAST_MACADDRESS;
 
-	if (CONFIG_HAS_P2P && ppi->delayMechanism == P2P)
+	if ( is_delayMechanismP2P(ppi) )
 		macaddr = PP_PDELAY_MACADDRESS;
 	addr.ethertype = htons(ETH_P_1588);
 	memcpy(addr.mac, macaddr, sizeof(mac_addr_t));

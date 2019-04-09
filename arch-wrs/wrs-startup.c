@@ -320,7 +320,7 @@ int main(int argc, char **argv)
 					}
 					/* Set WR extension hooks */
 					ppi->ext_hooks=&wr_ext_hooks;
-					ppi->cfg.egressLatency_ps=ppi->cfg.ingressLatency_ps=0; /* Forced to 0: Already taken into account in WR calculation */
+					enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
 				} else {
 					fprintf(stderr, "ppsi: Profile WR not supported");
 					exit(1);

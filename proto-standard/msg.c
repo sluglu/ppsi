@@ -264,9 +264,7 @@ void msg_unpack_announce(struct pp_instance *ppi, void *buf, MsgAnnounce *ann)
 
 	/* this can fill in extention specific flags otherwise just zero them*/
 	if (is_ext_hook_available(ppi,unpack_announce))
-		ppi->ext_hooks->unpack_announce(buf, ann);
-	else
-		ann->ext_specific = 0;
+		ppi->ext_hooks->unpack_announce(ppi,buf, ann);
 }
 
 /* Pack Follow Up message into out buffer of ppi*/

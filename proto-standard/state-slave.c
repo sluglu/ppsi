@@ -242,7 +242,7 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 int pp_slave(struct pp_instance *ppi, void *buf, int len)
 {
 	int ret = PP_SEND_OK; /* error var, to check errors in msg handling */
-	int uncalibrated = (ppi->state == PPS_UNCALIBRATED);
+	Boolean uncalibrated = (ppi->state == PPS_UNCALIBRATED);
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
 	/* upgrade from uncalibrated to slave or back*/
@@ -257,8 +257,10 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	/* Force to stay on desired state if externalPortConfiguration option is enabled */
-	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) )
-		ppi->next_state = ppi->externalPortConfigurationPortDS.desiredState;
+	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) &&
+			ppi->next_state == PPS_SLAVE &&
+			ppi->externalPortConfigurationPortDS.desiredState==PPS_UNCALIBRATED)
+		ppi->next_state = PPS_UNCALIBRATED; //Force to stay in uncalibrated state
 
 	/* when entering uncalibrated init servo */
 	if (uncalibrated && (ppi->is_new_state)) {

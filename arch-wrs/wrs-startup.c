@@ -42,13 +42,7 @@ struct wrh_operations wrh_oper = {
 	.adjust_in_progress = wrs_adjust_in_progress,
 	.adjust_counters = wrs_adjust_counters,
 	.adjust_phase = wrs_adjust_phase,
-	.read_corr_data = wrs_read_correction_data,
 	.read_calib_data = wrs_read_calibration_data,
-	.calib_disable = wrs_calibrating_disable,
-	.calib_enable = wrs_calibrating_enable,
-	.calib_poll = wrs_calibrating_poll,
-	.calib_pattern_enable = wrs_calibration_pattern_enable,
-	.calib_pattern_disable = wrs_calibration_pattern_disable,
 
 	.enable_timing_output = wrs_enable_timing_output,
 

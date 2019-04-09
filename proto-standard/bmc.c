@@ -304,9 +304,6 @@ void bmc_s1(struct pp_instance *ppi,
 	prop->ptpTimescale = ((frgn_master->flagField[1] & FFB_PTP) != 0);
 	prop->timeSource = frgn_master->timeSource;
 
-	if (is_ext_hook_available(ppi,s1))
-		ppi->ext_hooks->s1(ppi, frgn_master);
-
 	/* Disable timer (if needed) used to go to GM by BMCA */
 	pp_gtimeout_disable(GLBS(ppi),PP_TO_GM_BY_BMCA);
 
@@ -886,10 +883,6 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 		   &ann.grandmasterIdentity, sizeof(ClockIdentity));
 	frgn_master->stepsRemoved = ann.stepsRemoved;
 	frgn_master->timeSource = ann.timeSource;
-
-	//TODO do we need a hook for this?
-	frgn_master->ext_specific = ann.ext_specific;
-
 }
 
 void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_master)

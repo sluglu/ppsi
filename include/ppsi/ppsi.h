@@ -192,12 +192,8 @@ struct pp_ext_hooks {
 	int (*open)(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts);
 	int (*close)(struct pp_instance *ppi);
 	int (*listening)(struct pp_instance *ppi, void *buf, int len);
-	int (*master_msg)(struct pp_instance *ppi, void *buf,
-			  int len, int msgtype);
 	int (*new_slave)(struct pp_instance *ppi, void *buf, int len);
 	int (*handle_resp)(struct pp_instance *ppi);
-	void (*s1)(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
-	int (*execute_slave)(struct pp_instance *ppi);
 	int (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_sync)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi);

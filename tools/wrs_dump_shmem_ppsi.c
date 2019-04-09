@@ -103,10 +103,10 @@ struct dump_info servo_state_info [] = {
 	DUMP_FIELD(int,       servo_locked),
 };
 
-#if CONFIG_HAS_EXT_L1SYNC
+#if CONFIG_HAS_EXT_L1SYNC || CONFIG_HAS_EXT_WR
 #undef DUMP_STRUCT
-#define DUMP_STRUCT struct l1e_servo_state
-struct dump_info l1e_servo_state_info [] = {
+#define DUMP_STRUCT wrh_servo_t
+struct dump_info wrh_servo_info [] = {
 	DUMP_FIELD(Integer32, clock_period_ps),
 	DUMP_FIELD(Integer64, delayMM_ps),
 	DUMP_FIELD(Integer32, cur_setpoint_ps),
@@ -121,6 +121,9 @@ struct dump_info l1e_servo_state_info [] = {
 	DUMP_FIELD(int, missed_iters),
 };
 
+#endif
+
+#if CONFIG_HAS_EXT_L1SYNC
 #undef DUMP_STRUCT
 #define DUMP_STRUCT l1e_ext_portDS_t
 struct dump_info l1e_ext_portDS_info [] = {
@@ -168,32 +171,12 @@ struct dump_info l1e_local_portDS_info [] = {
 
 #if CONFIG_HAS_EXT_WR == 1
 #undef DUMP_STRUCT
-#define DUMP_STRUCT struct wr_servo_state
-struct dump_info wr_servo_state_info [] = {
-	DUMP_FIELD(Integer32, delta_txm_ps),
-	DUMP_FIELD(Integer32, delta_rxm_ps),
-	DUMP_FIELD(Integer32, delta_txs_ps),
-	DUMP_FIELD(Integer32, delta_rxs_ps),
-	DUMP_FIELD(Integer32, fiber_fix_alpha),
-	DUMP_FIELD(Integer32, clock_period_ps),
-	DUMP_FIELD(time,      delayMM),
-	DUMP_FIELD(Integer64, delayMM_ps),
-	DUMP_FIELD(Integer32, cur_setpoint),
-	DUMP_FIELD(Integer64, delayMS_ps),
-	DUMP_FIELD(int,       tracking_enabled),
-	DUMP_FIELD(Integer64, skew),
-	DUMP_FIELD(UInteger32, n_err_state),
-	DUMP_FIELD(UInteger32, n_err_offset),
-	DUMP_FIELD(UInteger32, n_err_delta_rtt),
-	DUMP_FIELD(time, update_time),
-	DUMP_FIELD(time, t1),
-	DUMP_FIELD(time, t2),
-	DUMP_FIELD(time, t3),
-	DUMP_FIELD(time, t4),
-	DUMP_FIELD(time, t5),
-	DUMP_FIELD(time, t6),
-	DUMP_FIELD(Integer64, prev_delayMS_ps),
-	DUMP_FIELD(int, missed_iters),
+#define DUMP_STRUCT wr_servo_ext_t
+struct dump_info wr_servo_ext_info [] = {
+	DUMP_FIELD(time, delta_txm),
+	DUMP_FIELD(time, delta_rxm),
+	DUMP_FIELD(time, delta_txs),
+	DUMP_FIELD(time, delta_rxs),
 };
 #endif
 
@@ -307,16 +290,22 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(unsigned_long, ptp_rx_count),
 };
 
+#if CONFIG_HAS_EXT_WR == 1
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct wr_dsport
-struct dump_info wr_dsport_info [] = {
+struct dump_info wr_ext_portDS_info [] = {
+	DUMP_FIELD(int,state),
+	DUMP_FIELD(Boolean,wrModeOn),
+	DUMP_FIELD(Boolean,parentWrModeOn),
+	DUMP_FIELD(scaledPicoseconds, deltaTx),
+	DUMP_FIELD(scaledPicoseconds, deltaRx),
 	DUMP_FIELD(UInteger16, otherNodeCalSendPattern),
 	DUMP_FIELD(UInteger8, otherNodeCalRetry),
 	DUMP_FIELD(UInteger32, otherNodeCalPeriod),
 	DUMP_FIELD(scaledPicoseconds, otherNodeDeltaTx),
 	DUMP_FIELD(scaledPicoseconds, otherNodeDeltaRx),
 };
-
+#endif
 
 int dump_ppsi_mem(struct wrs_shm_head *head)
 {
@@ -369,7 +358,8 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 				struct wr_data *data;
 				data = wrs_shm_follow(head, ppi->ext_data);
 				sprintf(prefix,"ppsi.inst.%d.servo.wr",i);
-				dump_many_fields(&data->servo_state, wr_servo_state_info, ARRAY_SIZE(wr_servo_state_info),prefix);
+				dump_many_fields(&data->servo, wrh_servo_info, ARRAY_SIZE(wrh_servo_info),prefix);
+				dump_many_fields(&data->servo, wr_servo_ext_info, ARRAY_SIZE(wr_servo_ext_info),prefix);
 			}
 #endif
 #if CONFIG_HAS_EXT_L1SYNC == 1
@@ -377,7 +367,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 				struct l1e_data *data;
 				data = wrs_shm_follow(head, ppi->ext_data);
 				sprintf(prefix,"ppsi.inst.%d.servo.l1sync",i);
-				dump_many_fields(&data->servo_state, l1e_servo_state_info, ARRAY_SIZE(l1e_servo_state_info),prefix);
+				dump_many_fields(&data->servo, wrh_servo_info, ARRAY_SIZE(wrh_servo_info),prefix);
 			}
 #endif
 		}
@@ -396,6 +386,14 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 			dump_many_fields(data, l1e_ext_portDS_info, ARRAY_SIZE(l1e_ext_portDS_info),prefix);
 		} else  {
 			dump_many_fields(&l1eLocalPortDS, l1e_local_portDS_info, ARRAY_SIZE(l1e_local_portDS_info),prefix);
+		}
+#endif
+#if CONFIG_HAS_EXT_WR
+		if ( ppi->protocol_extension == PPSI_EXT_WR) {
+			sprintf(prefix,"ppsi.inst.%d.wr",i);
+			portDS_t *portDS=wrs_shm_follow(head, ppi->portDS);
+			struct wr_dsport *data=wrs_shm_follow(head, portDS->ext_dsport);
+			dump_many_fields(data, wr_ext_portDS_info, ARRAY_SIZE(wr_ext_portDS_info),prefix);
 		}
 #endif
 	}

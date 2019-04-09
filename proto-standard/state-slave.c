@@ -235,20 +235,6 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	return 0;
 }
 
-static int slave_execute(struct pp_instance *ppi)
-{
-	int ret = 0;
-
-	if (is_ext_hook_available(ppi,execute_slave))
-		ret = ppi->ext_hooks->execute_slave(ppi);
-	if (ret == 1) /* done: just return */
-		return 0;
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
 /*
  * SLAVE and UNCALIBRATED have many things in common. This function implements
  * both states. We set "uncalibrated" internally to 0 or 1.
@@ -300,12 +286,6 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				hdr->messageType);
 	}
-
-	/*
-	 * This function, common to uncalibrated and slave,
-	 * is the core of the slave: hook
-	 */
-	ret = slave_execute(ppi);
 
 	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
 	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.

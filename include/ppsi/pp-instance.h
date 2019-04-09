@@ -190,10 +190,12 @@ struct pp_instance_cfg {
  * It is used to decide which instance must be active on a given port.
  */
 typedef enum  {
+	PP_LSTATE_NONE, /* Link state not applied : No extension */
 	PP_LSTATE_PROTOCOL_DETECTION, /* Checking if the peer instance is using the same protocol */
 	PP_LSTATE_IN_PROGRESS, /* Right protocol detected. Try to establish the link with peer instance */
 	PP_LSTATE_LINKED, /* Link with peer well established */
-	PP_LSTATE_FAILURE /* Impossible to connect correctly to a peer instance */
+	PP_LSTATE_PROTOCOL_ERROR, /* The extension has detected a problem.  */
+	PP_LSTATE_FAILURE, /* Impossible to connect correctly to a peer instance - extension disabled */
 } pp_link_state;
 
 /*

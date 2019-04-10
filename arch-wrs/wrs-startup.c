@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 		if (ppi->portDS) {
 			switch (ppi->cfg.profile) {
 			case PPSI_PROFILE_WR :
-				if ( CONFIG_HAS_PROFILE_WR ) {
+#if CONFIG_HAS_PROFILE_WR
 					ppi->protocol_extension=PPSI_EXT_WR;
 					/* Add WR extension portDS */
 					if ( !(ppi->portDS->ext_dsport =
@@ -321,13 +321,13 @@ int main(int argc, char **argv)
 					/* Set WR extension hooks */
 					ppi->ext_hooks=&wr_ext_hooks;
 					enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
-				} else {
+#else
 					fprintf(stderr, "ppsi: Profile WR not supported");
 					exit(1);
-				}
+#endif
 				break;
 			case PPSI_PROFILE_HA :
-				if ( CONFIG_HAS_PROFILE_HA ) {
+#if CONFIG_HAS_PROFILE_HA
 					if ( !enable_l1Sync(ppi,TRUE) )
 						goto exit_out_of_memory;
 					/* Force mandatory attributes - Do not take care of the configuration */
@@ -338,10 +338,10 @@ int main(int argc, char **argv)
 					L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
 					enable_asymmetryCorrection(ppi,TRUE);
 				}
-				else {
+#else
 					fprintf(stderr, "ppsi: Profile HA not supported");
 					exit(1);
-				}
+#endif
 				break;
 			case PPSI_PROFILE_PTP :
 				/* Do not take care of L1SYNC */
@@ -349,9 +349,9 @@ int main(int argc, char **argv)
 				ppi->protocol_extension=PPSI_EXT_NONE;
 				break;
 			case PPSI_PROFILE_CUSTOM :
-				if ( CONFIG_HAS_PROFILE_CUSTOM ) {
+#if CONFIG_HAS_PROFILE_CUSTOM
 				ppi->protocol_extension=PPSI_EXT_NONE; /* can be changed ...*/
-				if ( CONFIG_HAS_EXT_L1SYNC ) {
+#if CONFIG_HAS_EXT_L1SYNC
 					if (ppi->cfg.l1SyncEnabled ) {
 						if ( !enable_l1Sync(ppi,TRUE) )
 							goto exit_out_of_memory;
@@ -366,10 +366,11 @@ int main(int argc, char **argv)
 					}
 				}
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
-				} else {
+#endif
+#else
 					fprintf(stderr, "ppsi: Profile CUSTOM not supported");
 					exit(1);
-				}
+#endif
 				break;
 			}
 			/* Parameters profile independent */

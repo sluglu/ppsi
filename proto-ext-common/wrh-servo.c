@@ -11,6 +11,10 @@
 #include <libwr/shmem.h>
 #include "../proto-standard/common-fun.h"
 
+/* Define threshold values for SNMP */
+#define SNMP_MAX_OFFSET_PS 500
+#define SNMP_MAX_DELTA_RTT_PS 1000
+
 static const char *wrh_servo_state_name[] = {
 	[WRH_UNINITIALIZED] = "Uninitialized",
 	[WRH_SYNC_NSEC] = "SYNC_NSEC",

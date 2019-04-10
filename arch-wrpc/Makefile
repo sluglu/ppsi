@@ -24,7 +24,9 @@ OBJ-y += \
 	$A/wrc_ptp_ppsi.o \
 	lib/dump-funcs.o \
 	lib/drop.o \
-	lib/div64.o
+	lib/div64.o \
+	lib/time-arith.o \
+	lib/iicomm.o
 
 OBJ-$(CONFIG_WRPC_FAULTS) += $A/faults.o
 

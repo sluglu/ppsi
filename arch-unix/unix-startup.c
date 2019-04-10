@@ -25,11 +25,13 @@
 
 /* ppg and fields */
 static struct pp_globals ppg_static;
-static DSDefault defaultDS;
-static DSCurrent currentDS;
-static DSParent parentDS;
-static DSTimeProperties timePropertiesDS;
+static defaultDS_t defaultDS;
+static currentDS_t currentDS;
+static [parentDS_t parentDS;
+static timePropertiesDS_t timePropertiesDS;
 static struct pp_servo servo;
+
+extern struct pp_ext_hooks pp_hooks;
 
 int main(int argc, char **argv)
 {
@@ -66,7 +68,7 @@ int main(int argc, char **argv)
 		ppi = INST(ppg, i);
 		ppi->proto = PP_DEFAULT_PROTO;
 		ppi->role = PP_DEFAULT_ROLE;
-		ppi->mech = PP_E2E_MECH;
+		ppi->delayMechanism = E2E;
 	}
 
 	/* Set offset here, so config parsing can override it */
@@ -92,7 +94,8 @@ int main(int argc, char **argv)
 		ppi->vlans_array_len = CONFIG_VLAN_ARRAY_SIZE,
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
-		ppi->mech = ppi->cfg.mech;
+		ppi->delayMechanism = ppi->cfg.delayMechanism;
+		ppi->ext_hooks= &pp_hooks;
 
 		/* The following default names depend on TIME= at build time */
 		ppi->n_ops = &DEFAULT_NET_OPS;

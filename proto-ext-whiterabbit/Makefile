@@ -13,7 +13,9 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-wr-calibrated.o \
 	$D/state-wr-resp-calib-req.o \
 	$D/state-wr-link-on.o \
+	$D/state-wr-idle.o \
 	$D/wr-msg.o \
-	$D/wr-servo.o
-
+	$D/wr-servo.o \
+	$D/wr-state-machine.o
+ 
 OBJ-$(CONFIG_ABSCAL) += $D/state-wr-abscal.o

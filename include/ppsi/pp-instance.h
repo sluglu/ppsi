@@ -15,16 +15,21 @@
  * Runtime options. Default values can be overridden by command line.
  */
 struct pp_runtime_opts {
+    uint32_t updated_fields_mask;
 	ClockQuality clock_quality;
 	Integer32 ttl;
 	int flags;		/* see below */
 	Integer16 ap, ai;
 	Integer16 s;
-	Integer8 announce_intvl;
-	int sync_intvl;
-	int prio1;
-	int prio2;
-	int domain_number;
+	int priority1;
+	int priority2;
+	int domainNumber;
+	int ptpPpsThresholdMs;
+	int gmDelayToGenPpsSec;
+	Boolean externalPortConfigurationEnabled;
+	Boolean slaveOnly;
+	Boolean forcePpsGen;
+	Boolean ptpFallbackPpsGen;
 	void *arch_opts;
 };
 
@@ -41,20 +46,22 @@ struct pp_runtime_opts {
 
 
 
-/* We need a globally-accessible structure with preset defaults */
+/* We need globally-accessible structures with preset defaults */
 extern struct pp_runtime_opts __pp_default_rt_opts;
-
+extern struct pp_instance_cfg __pp_default_instance_cfg;
 /*
  * Communication channel. Is the abstraction of a unix socket, so that
  * this struct is platform independent
  */
+#define PP_MAC_ADRESS_SIZE 6
+
 struct pp_channel {
 	union {
 		int fd;		/* Posix wants fid descriptor */
 		void *custom;	/* Other archs want other stuff */
 	};
 	void *arch_data;	/* Other arch-private info, if any */
-	unsigned char addr[6];	/* Our own MAC address */
+	unsigned char addr[PP_MAC_ADRESS_SIZE];	/* Our own MAC address */
 	int pkt_present;
 };
 
@@ -89,7 +96,7 @@ struct pp_frgn_master {
  * machine are implemented.
  *
  * pp_avg_fltr: It is a variable cutoff/delay low-pass, infinite impulse
- * response (IIR) filter. The meanPathDelay filter has the difference equation:
+ * response (IIR) filter. The meanDelay filter has the difference equation:
  * s*y[n] - (s-1)*y[n-1] = x[n]/2 + x[n-1]/2,
  * where increasing the stiffness (s) lowers the cutoff and increases the delay.
  */
@@ -99,11 +106,43 @@ struct pp_avg_fltr {
 	int64_t s_exp;
 };
 
+/* Servo flags for communication diagnostic tool */
+
+#define PP_SERVO_FLAG_VALID	    (1<<0)
+#define PP_SERVO_FLAG_WAIT_HW	(1<<1)
+
+#define PP_SERVO_RESET_DATA_SIZE        (sizeof(struct pp_servo)-offsetof(struct pp_servo,reset_address))
+#define PP_SERVO_RESET_DATA(servo)      memset(&servo->reset_address,0,PP_SERVO_RESET_DATA_SIZE);
+
 struct pp_servo {
-	struct pp_time m_to_s_dly;
-	struct pp_time s_to_m_dly;
+	/* ptp servo specific data */
 	long long obs_drift;
 	struct pp_avg_fltr mpd_fltr;
+
+	/* Data shared with extension servo */
+	struct pp_time delayMM; /* Shared with extension servo */
+	struct pp_time delayMS; /* Shared with extension servo */
+	struct pp_time meanDelay; /* Shared with extension servo */
+	struct pp_time offsetFromMaster; /* Shared with extension servo */
+	unsigned long flags; /* PP_SERVO_FLAG_INVALID, PP_SERVO_FLAG_VALID, ...*/
+
+	/* Data used only by extensions */
+	int state;
+	char servo_state_name[32]; /* Updated by the servo itself */
+
+	/*
+	 * ----- All data after this line will be cleared during by a servo initialization
+	 */
+	int reset_address;
+
+	/* Data shared with extension servo */
+	uint32_t update_count; /* incremented each time the servo is running */
+	struct pp_time update_time; /* Last updated time of the servo */
+	struct pp_time t1, t2, t3, t4, t5, t6;
+
+	/* ptp servo specific data */
+	int servo_locked; /* TRUE when servo is locked. This info can be used by HAL */
+	int got_sync; /* True when T1/T2 are available */
 };
 
 enum { /* The two sockets. They are called "net path" for historical reasons */
@@ -114,14 +153,50 @@ enum { /* The two sockets. They are called "net path" for historical reasons */
 
 /*
  * Struct containg the result of ppsi.conf parsing: one for each link
- * (see lib/conf.c). Actually, protocol and role are in the main ppi.
+ * (see lib/conf.c). Actually, protocol are in the main ppi.
  */
 struct pp_instance_cfg {
-	char port_name[16];
+ 	char port_name[16];
 	char iface_name[16];
-	int ext;   /* 0: none, 1: whiterabbit. 2: HA */
-	int mech;   /* 0: E2E, 1: P2P */
+	int  profile;   /* PPSI_PROFILE_PTP, PPSI_PROFILE_WR, PPSI_PROFILE_HA */
+	int delayMechanism;   /* Should be enum ENDelayMechanism but forced to int for configuration parsing */
+	int announce_interval; /* Announce messages interval */
+	int announce_receipt_timeout; /* Announce interval receipt timeout*/
+	int sync_interval; /* Sync messages interval */
+	int min_delay_req_interval; /* delay request messages interval */
+	int min_pdelay_req_interval;/* pdelay request messages interval */
+#if	CONFIG_HAS_EXT_L1SYNC
+	Boolean l1SyncEnabled; /* L1SYNC: protocol enabled */
+	Boolean l1SyncRxCoherencyIsRequired; /* L1SYNC: Rx coherency is required */
+	Boolean l1SyncTxCoherencyIsRequired; /* L1SYNC: Tx coherency is required */
+	Boolean l1SyncCongruencyIsRequired; /* L1SYNC: Congruency isrRequired */
+	Boolean l1SyncOptParamsEnabled; /* L1SYNC: Optional parameters enabled */
+	int l1syncInterval; /* L1SYNC: l1sync messages interval */
+	int l1syncReceiptTimeout; /* L1SYNC: l1sync messages receipt timeout */
+	Boolean  l1SyncOptParamsTimestampsCorrectedTx; /* L1SYNC: correction of the transmitted egress timestamps */
+#endif
+	int64_t egressLatency_ps; /* egressLatency in picos */
+	int64_t ingressLatency_ps; /* ingressLatency in picos */
+	int64_t constantAsymmetry_ps; /* constantAsymmetry in picos */
+	double delayCoefficient; /* fiber delay coefficient as a double */
+	int64_t scaledDelayCoefficient; /* fiber delay coefficient as RelativeDifference type */
+	int desiredState; /* externalPortConfigurationPortDS.desiredState */
+	Boolean masterOnly; /* masterOnly */
+	Boolean asymmetryCorrectionEnable; /* asymmetryCorrectionPortDS.enable */
 };
+
+/*
+ * This enumeration correspond to the protocol state of a pp_instance.
+ * It is used to decide which instance must be active on a given port.
+ */
+typedef enum  {
+	PP_LSTATE_NONE, /* Link state not applied : No extension */
+	PP_LSTATE_PROTOCOL_DETECTION, /* Checking if the peer instance is using the same protocol */
+	PP_LSTATE_IN_PROGRESS, /* Right protocol detected. Try to establish the link with peer instance */
+	PP_LSTATE_LINKED, /* Link with peer well established */
+	PP_LSTATE_PROTOCOL_ERROR, /* The extension has detected a problem.  */
+	PP_LSTATE_FAILURE, /* Impossible to connect correctly to a peer instance - extension disabled */
+} pp_link_state;
 
 /*
  * Structure for the individual ppsi link
@@ -132,11 +207,12 @@ struct pp_instance {
 	struct pp_state_table_item *current_state_item;
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
+	int protocol_extension; /* PPSI_EXT_NONE, PPSI_EXT_WR, PPSI_EXT_L1S */
+	struct pp_ext_hooks *ext_hooks; /* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
-	int	role,			/* same as in config file */
-		proto,			/* same as in config file */
-		mech;			/* same as in config file */
+	int	proto;			/* same as in config file */
+	int delayMechanism;			/* same as in config file */
 
 	/* Pointer to global instance owning this pp_instance*/
 	struct pp_globals *glbs;
@@ -162,6 +238,7 @@ struct pp_instance {
 
 	/* Times, for the various offset computations */
 	struct pp_time t1, t2, t3, t4, t5, t6;		/* *the* stamps */
+	Integer32 t4_cf, t6_cf;	
 	uint64_t syncCF;				/* transp. clocks */
 	struct pp_time last_rcv_time, last_snt_time;	/* two temporaries */
 
@@ -172,9 +249,16 @@ struct pp_instance {
 	Integer16  frgn_rec_best;
 	struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS];
 
-	DSPort *portDS;				/* page 72 */
+	portDS_t *portDS;		 /* page 72 */
+	struct pp_servo *servo;  /* Servo moved from globals because we may have more than one servo : redundancy */
 
-	unsigned long timeouts[__PP_TO_ARRAY_SIZE];
+	/** (IEEE1588-2019) */
+	asymmetryCorrectionPortDS_t asymmetryCorrectionPortDS; /*draft P1588_v_29: page 99*/
+	timestampCorrectionPortDS_t timestampCorrectionPortDS; /*draft P1588_v_29: page 99*/
+	externalPortConfigurationPortDS_t  externalPortConfigurationPortDS; /*draft P1588: Clause 17.6.3*/
+	/************************* */
+
+	timeOutInstCnt_t tmo_cfg[PP_TO_COUNT];
 	UInteger16 recv_sync_sequence_id;
 
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
@@ -191,7 +275,15 @@ struct pp_instance {
 
 	unsigned long ptp_tx_count;
 	unsigned long ptp_rx_count;
+	Boolean received_dresp; /* Count the number of delay response messages received for a given delay request */
+	Boolean received_dresp_fup; /* Count the number of delay response follow up messages received for a given delay request */
+	Boolean ptp_msg_received; /* Use to detect reception of a ptp message after an ppsi instance initialization */
+	Boolean ptp_support; /* True if allow pure PTP support */
+	Boolean ext_enabled; /* True if the extension is enabled */
+	pp_link_state link_state;
+	Boolean bmca_execute; /* True: Ask fsm to run bmca state decision */
 };
+
 /* The following things used to be bit fields. Other flags are now enums */
 #define PPI_FLAG_WAITING_FOR_F_UP	0x02
 #define PPI_FLAG_WAITING_FOR_RF_UP	0x04
@@ -208,16 +300,14 @@ struct pp_globals_cfg {
 struct pp_globals {
 	struct pp_instance *pp_instances;
 
-	struct pp_servo *servo;
-
 	/* Real time options */
 	struct pp_runtime_opts *rt_opts;
 
 	/* Data sets */
-	DSDefault *defaultDS;			/* page 65 */
-	DSCurrent *currentDS;			/* page 67 */
-	DSParent *parentDS;			/* page 68 */
-	DSTimeProperties *timePropertiesDS;	/* page 70 */
+	defaultDS_t *defaultDS;			/* page 65 */
+	currentDS_t *currentDS;			/* page 67 */
+	parentDS_t *parentDS;			/* page 68 */
+	timePropertiesDS_t *timePropertiesDS;	/* page 70 */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;
@@ -231,6 +321,9 @@ struct pp_globals {
 
 	void *arch_data;		/* if arch needs it */
 	void *global_ext_data;		/* if protocol ext needs it */
+
+	Boolean waitGmLocking; /* If set, instances must stay in initializing state until the GM PLL is locked */
+
 	/* FIXME Here include all is common to many interfaces */
 };
 

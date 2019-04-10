@@ -24,10 +24,4 @@ extern void __assert(const char *func, int line, int forever,
 		     const char *fmt, ...)
 	__attribute__((format(printf, 4, 5)));
 
-#ifdef CONFIG_ASSERT
-#  define CONFIG_HAS_ASSERT 1
-#else
-#  define CONFIG_HAS_ASSERT 0
-#endif
-
 #endif /* __ASSERT_H__ */

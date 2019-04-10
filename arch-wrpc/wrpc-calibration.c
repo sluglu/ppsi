@@ -73,7 +73,7 @@ int wrpc_calibrating_poll(struct pp_instance *ppi, int txrx, uint32_t *delta)
 	/* FIXME: why delta was 64bit whereas ep_get_deltas accepts 32bit? */
 	wrpc_read_calibration_data(ppi, &delta_tx, &delta_rx, NULL, NULL);
 
-	if (txrx == WR_HW_CALIB_TX)
+	if (txrx == WRH_HW_CALIB_TX)
 		*delta = delta_tx;
 	else
 		*delta = delta_rx;

@@ -6,33 +6,50 @@
  * the numeric 0..5 is the "controlField" (magic ptpV1 numbers in byte 32).
  * PP_LOG is the kind of logInterval to put in byte 33.
  */
-
-struct pp_msgtype_info pp_msgtype_info[16] = {
-	[PPM_SYNC] = {
-		"sync", PP_SYNC_LENGTH,
+struct pp_msgtype_info pp_msgtype_info[] = {
+	[PPM_SYNC_FMT] = {
+		PPM_SYNC, PP_SYNC_LENGTH,
 		PP_NP_EVT, PP_E2E_MECH,  0, PP_LOG_SYNC },
-	[PPM_DELAY_REQ] = {
-		"delay_req", PP_DELAY_REQ_LENGTH,
+	[PPM_DELAY_REQ_FMT] = {
+			PPM_DELAY_REQ, PP_DELAY_REQ_LENGTH,
 		PP_NP_EVT, PP_E2E_MECH, 1, 0x7f },
-	[PPM_PDELAY_REQ] = {
-		"pdelay_req", PP_PDELAY_REQ_LENGTH,
+	[PPM_PDELAY_REQ_FMT] = {
+			PPM_PDELAY_REQ,PP_PDELAY_REQ_LENGTH,
 		PP_NP_EVT, PP_P2P_MECH, 5, 0x7f },
-	[PPM_PDELAY_RESP] = {
-		"pdelay_resp", PP_PDELAY_RESP_LENGTH,
+	[PPM_PDELAY_RESP_FMT] = {
+			PPM_PDELAY_RESP, PP_PDELAY_RESP_LENGTH,
 		PP_NP_EVT, PP_P2P_MECH, 5, 0x7f },
-	[PPM_FOLLOW_UP] = {
-		"follow_up", PP_FOLLOW_UP_LENGTH,
+	[PPM_FOLLOW_UP_FMT] = {
+			PPM_FOLLOW_UP, PP_FOLLOW_UP_LENGTH,
 		PP_NP_GEN, PP_E2E_MECH, 2, PP_LOG_SYNC },
-	[PPM_DELAY_RESP] = {
-		"delay_resp", PP_DELAY_RESP_LENGTH,
+	[PPM_DELAY_RESP_FMT] = {
+			PPM_DELAY_RESP, PP_DELAY_RESP_LENGTH,
 		PP_NP_GEN, PP_E2E_MECH, 3, PP_LOG_REQUEST },
-	[PPM_PDELAY_R_FUP] = {
-		"pdelay_resp_follow_up",  PP_PDELAY_RESP_FOLLOW_UP_LENGTH,
+	[PPM_PDELAY_R_FUP_FMT] = {
+			PPM_PDELAY_R_FUP, PP_PDELAY_RESP_FOLLOW_UP_LENGTH,
 		PP_NP_GEN, PP_P2P_MECH, 5, 0x7f },
-	[PPM_ANNOUNCE] = {
-		"announce", PP_ANNOUNCE_LENGTH,
+	[PPM_ANNOUNCE_FMT] = {
+			PPM_ANNOUNCE, PP_ANNOUNCE_LENGTH,
 		PP_NP_GEN, PP_E2E_MECH, 5, PP_LOG_ANNOUNCE},
-/* We don't use signaling and management, or not in the table-driven code */
-	[PPM_SIGNALING] = { "signaling", -1,  PP_NP_GEN, PP_E2E_MECH, 5, 0x7f},
-	[PPM_MANAGEMENT] = { "management", -1, PP_NP_GEN, PP_E2E_MECH, 4, 0x7f},
+	[PPM_SIGNALING_FMT] = {
+			PPM_SIGNALING, -1,
+		PP_NP_GEN, PP_E2E_MECH, 5, 0x7f},
+	[PPM_SIGNALING_NO_FWD_FMT] = {
+			PPM_SIGNALING, -1,
+			PP_NP_GEN, PP_P2P_MECH, 5, 0x7f},
+/* We don't use management, or not in the table-driven code */
+	[PPM_MANAGEMENT_FMT] = { PPM_MANAGEMENT, -1, PP_NP_GEN, PP_E2E_MECH, 4, 0x7f},
+};
+
+char  *pp_msgtype_name[] = {
+	[PPM_SYNC] = "sync",
+	[PPM_DELAY_REQ] = "delay_req",
+	[PPM_PDELAY_REQ] = "pdelay_req",
+	[PPM_PDELAY_RESP] ="pdelay_resp",
+	[PPM_FOLLOW_UP] = "follow_up",
+	[PPM_DELAY_RESP] ="delay_resp",
+	[PPM_PDELAY_R_FUP] ="pdelay_resp_follow_up",
+	[PPM_ANNOUNCE] ="announce",
+	[PPM_SIGNALING] ="signaling",
+	[PPM_MANAGEMENT] ="management"
 };

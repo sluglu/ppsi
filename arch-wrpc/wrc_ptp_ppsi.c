@@ -11,8 +11,6 @@
 #include <ppsi/ppsi.h>
 #include "wrpc.h"
 #include <common-fun.h>
-#include "../proto-ext-whiterabbit/wr-api.h"
-#include "../proto-ext-whiterabbit/wr-constants.h"
 
 /* All of these live in wrpc-sw/include */
 #include "minic.h"
@@ -28,7 +26,7 @@ extern int32_t cal_phase_transition;
 int ptp_mode = WRC_MODE_UNKNOWN;
 static int ptp_enabled = 0;
 
-static struct wr_operations wrpc_wr_operations = {
+struct wrh_operations wrh_oper = {
 	.locking_enable = wrpc_spll_locking_enable,
 	.locking_poll = wrpc_spll_locking_poll,
 	.locking_disable = wrpc_spll_locking_disable,
@@ -50,20 +48,24 @@ static struct wr_operations wrpc_wr_operations = {
 };
 
 /*ppi fields*/
-static DSDefault  defaultDS;
-static DSCurrent  currentDS;
-static DSParent   parentDS;
-static DSTimeProperties timePropertiesDS;
+static defaultDS_t  defaultDS;
+static currentDS_t  currentDS;
+static [parentDS_t   parentDS;
+static timePropertiesDS_t timePropertiesDS;
 static struct pp_servo servo;
-static struct wr_servo_state servo_state;
 
-static struct wr_dsport wr_dsport = {
-	.ops = &wrpc_wr_operations,
-};
-static DSPort     portDS = {
-	.ext_dsport = &wr_dsport
-};
 
+#if CONFIG_EXT_WR == 1
+/* WR extension declaration */
+#include "../proto-ext-whiterabbit/wr-api.h"
+#include "../proto-ext-whiterabbit/wr-constants.h"
+
+static struct wr_data wr_ext_data; /* WR extension data */
+
+static struct wr_dsport wr_dsport;
+#endif
+
+static portDS_t     portDS ;
 
 static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
 static int start_tics = 0;
@@ -80,11 +82,11 @@ struct pp_instance ppi_static = {
 	.t_ops			= &wrpc_time_ops,
 	.vlans_array_len	= CONFIG_VLAN_ARRAY_SIZE,
 	.proto			= PP_DEFAULT_PROTO,
-	.mech			= PP_E2E_MECH, /* until changed by cfg */
+	.delayMechanism			= E2E, /* until changed by cfg */
 	.iface_name		= "wr1",
 	.port_name		= "wr1",
-	.__tx_buffer		= __tx_buffer,
-	.__rx_buffer		= __rx_buffer,
+	.__tx_buffer	= __tx_buffer,
+	.__rx_buffer	= __rx_buffer,
 };
 
 /* We now have a structure with all globals, and multiple ppi inside */
@@ -95,17 +97,29 @@ static struct pp_globals ppg_static = {
 	.currentDS		= &currentDS,
 	.parentDS		= &parentDS,
 	.timePropertiesDS	= &timePropertiesDS,
-	.global_ext_data	= &servo_state,
 };
+
+extern struct pp_ext_hooks  pp_hooks;
 
 int wrc_ptp_init()
 {
+	struct pp_instance *ppi = &ppi_static;
+
 	sdb_find_devices();
 	uart_init_hw();
 
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);
 
+	ppi->ext_hooks =&pp_hooks; /* default value */
+	if ( CONFIG_EXT_WR == 1 ) {
+
+		ppi->ext_hooks = &wr_ext_hooks;
+		ppi->ext_data = &wr_ext_data;
+		wr_ext_data->servo_state.servo_head.extension=PPSI_EXT_WR;
+
+		portDS.ext_dsport = &wr_dsport;
+	}
 	return 0;
 }
 
@@ -210,18 +224,18 @@ int wrc_ptp_sync_mech(int e2e_p2p_qry)
 	int running;
 
 	if (!CONFIG_HAS_P2P)
-		return ppi->mech;
+		return ppi->delayMechanism;
 
 	switch(e2e_p2p_qry) {
-	case PP_E2E_MECH:
-	case PP_P2P_MECH:
+	case E2E:
+	case P2P:
 		running = wrc_ptp_run(-1);
 		wrc_ptp_run(0);
-		ppi->mech = e2e_p2p_qry;
+		ppi->delayMechanism = e2e_p2p_qry;
 		wrc_ptp_run(running);
 		return 0;
 	default:
-		return ppi->mech;
+		return ppi->delayMechanism;
 	}
 }
 

@@ -1,6 +1,5 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
-#include "wr-api.h"
 
 /*
  * This is similar to master state, but it only sends sync, that
@@ -23,23 +22,25 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
  * This is using a software loop during the last 10ms in order to get
  * right after the pps event
  */
-int wr_abscal(struct pp_instance *ppi, void *buf, int plen)
+#define WR_TMO_NAME "WR_ABSCAL"
+
+int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 {
 	struct pp_time t;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int len, i;
 
-	if (ppi->is_new_state) {
+	if (new_state) {
 		/* add 1s to be enough in the future, the first time */
-		__pp_timeout_set(ppi, PP_TO_EXT_0, 990 + next_pps_ms(ppi, &t));
+		pp_timeout_set_rename(ppi, wrTmoIdx, 990 + next_pps_ms(ppi, &t),WR_TMO_NAME);
 		return 0;
 	}
 
 	i = next_pps_ms(ppi, &t) - 10;
-	if (pp_timeout(ppi, PP_TO_EXT_0)) {
+	if (pp_timeout(ppi, wrTmoIdx)) {
 		uint64_t secs = t.secs;
 
-		wrp->ops->enable_timing_output(ppi, 1);
+		WRH_OPER()->enable_timing_output(GLBS(ppi), 1);
 
 		/* Wait for the second to tick */
 		while( ppi->t_ops->get(ppi, &t), t.secs == secs)
@@ -51,11 +52,9 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen)
 		__send_and_log(ppi, len, PP_NP_EVT);
 
 		/* And again next second */
-		__pp_timeout_set(ppi, PP_TO_EXT_0, next_pps_ms(ppi, &t) - 10);
-		ppi->next_delay = next_pps_ms(ppi, &t) - 10;
-		return 0;
+		pp_timeout_set(ppi, wrTmoIdx, next_pps_ms(ppi, &t) - 10);
+		return  next_pps_ms(ppi, &t) - 10;
 	}
 	/* no timeout: wait according to next_pps_ms calculated earlier */
-	ppi->next_delay = i > 0 ? i : 0;
-	return 0;
+	return  i > 0 ? i : 0;
 }

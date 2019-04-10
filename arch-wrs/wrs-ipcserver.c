@@ -8,11 +8,11 @@
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>
 #include <hal_exports.h>
-#include <wr-api.h>
 
 /* minipc Encoding  of the supported commands */
 
-#define PTPDEXP_COMMAND_TRACKING 1
+#define PTPDEXP_COMMAND_WR_TRACKING 1
+#define PTPDEXP_COMMAND_L1SYNC_TRACKING 2
 
 static struct minipc_pd __rpcdef_cmd = {
 	.name = "cmd",
@@ -27,9 +27,17 @@ static struct minipc_pd __rpcdef_cmd = {
 /* Execute command coming ipc */
 static int wrsipc_cmd(int cmd, int value)
 {
-	if(cmd == PTPDEXP_COMMAND_TRACKING) {
-		wr_servo_enable_tracking(value);
-		return 0;
+	if(cmd == PTPDEXP_COMMAND_WR_TRACKING) {
+		if ( CONFIG_HAS_EXT_WR ) {
+			wrh_servo_enable_tracking(value);
+			return 0;
+		}
+	}
+	if(cmd == PTPDEXP_COMMAND_L1SYNC_TRACKING) {
+		if ( CONFIG_HAS_EXT_L1SYNC ) {
+			wrh_servo_enable_tracking(value);
+			return 0;
+		}
 	}
 	return -1;
 

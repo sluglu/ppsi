@@ -65,7 +65,7 @@ static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
 static struct pp_state_table_item *
 get_current_state_table_item(struct pp_instance *ppi)
 {
-	struct pp_state_table_item *ip = ppi->current_state_item;;
+	struct pp_state_table_item *ip = ppi->current_state_item;
 
 	/* Avoid searching if we already know where we are */
 	ppi->is_new_state = 0;
@@ -82,14 +82,25 @@ get_current_state_table_item(struct pp_instance *ppi)
 	return NULL;
 }
 
+char *get_state_as_string(struct pp_instance *ppi, int state) {
+	static char *def="INVALID";
+	struct pp_state_table_item *ip = ppi->current_state_item;
+
+	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE; ip++)
+		if (ip->state == state) {
+			return ip->name;
+		}
+	return def;
+}
+
 /*
  * Returns delay to next state, which is always zero.
  */
 int pp_leave_current_state(struct pp_instance *ppi)
 {
 	/* If something has to be done in an extension */
-	if (pp_hooks.state_change)
-		pp_hooks.state_change(ppi);
+	if ( ppi->ext_hooks->state_change)
+		ppi->ext_hooks->state_change(ppi);
 	
 	/* if the next or old state is non standard PTP reset all timeouts */
 	if ((ppi->state > PPS_LAST_STATE) || (ppi->next_state > PPS_LAST_STATE))
@@ -151,9 +162,9 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 	if (!memcmp(&hdr->sourcePortIdentity.clockIdentity,
 		&DSPOR(ppi)->portIdentity.clockIdentity,
 		sizeof(ClockIdentity))) {
-		if (DSDEF(ppi)->numberPorts > 1) {
+		if ( get_numberPorts(DSDEF(ppi)) > 1) {
 			/* Announces are handled by the BMC, since otherwise the state 
-			 * also the PASSIVE states in this case is overwritten */
+			 * also the PASSIVE states in this case is overwritten */
 			if (hdr->messageType != PPM_ANNOUNCE) {
 				/* ignore messages, except announce coming from its own clock */
 				return -1;	
@@ -214,7 +225,7 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 			"RECV %02d bytes at %9d.%09d.%03d (type %x, %s)\n",
 			len, (int)t->secs, (int)(t->scaled_nsecs >> 16),
 			((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
-			msgtype, pp_msgtype_info[msgtype].name);
+			msgtype, pp_msgtype_name[msgtype]);
 	}
 
 	/*
@@ -265,7 +276,22 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	if (ppi->state != ppi->next_state)
 		return pp_leave_current_state(ppi);
 
-	if (!len)
+	if (len) {
+		if ( ppi->ext_enabled &&  !ppi->ptp_msg_received ) {
+			/* First frame received since instance initialization */
+			int tmo;
+
+			ppi->ptp_msg_received=TRUE;
+			if (is_ext_hook_available(ppi,get_tmo_lstate_detection) )
+				tmo=(*ppi->ext_hooks->get_tmo_lstate_detection)(ppi);
+			else
+				tmo= is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
+						6000 /* JCB: Default value. Is it correct ? */
+						: pp_timeout_get(ppi,PP_TO_ANN_RECEIPT);
+			pp_timeout_set(ppi,PP_TO_PROT_STATE, tmo);
+			lstate_set_link_pdetection(ppi);
+		}
+	} else
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
 
 	err = ip->f1(ppi, buf, len);
@@ -277,10 +303,29 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	if (ppi->state != ppi->next_state)
 		return pp_leave_current_state(ppi);
 
+	/* Check protocol state */
+	if (  ppi->protocol_extension == PPSI_EXT_NONE ) {
+		lstate_set_link_none(ppi);
+	} else {
+		if ( ppi->ext_enabled ) {
+			if ( ppi->link_state==PP_LSTATE_PROTOCOL_ERROR ||
+					( ppi->link_state!=PP_LSTATE_LINKED && ppi->ptp_msg_received  && pp_timeout(ppi, PP_TO_PROT_STATE)) ) {
+				if ( ppi->ptp_support )
+					lstate_disable_extension(ppi);
+				else
+					lstate_set_link_failure(ppi);
+			}
+		} else  {
+			lstate_set_link_failure(ppi);
+		}
+	}
+
 	/* run bmc independent of state, and since not message driven do this
 	 * here 9.2.6.8 */
-	if (pp_timeout(ppi, PP_TO_BMC)) {
-		ppi->next_state = bmc(ppi);
+	if ( ppi->bmca_execute) {
+
+		ppi->bmca_execute=0; /* Clear the trigger */
+		ppi->next_state = bmc_apply_state_descision(ppi);
 
 		/* done: if new state mark it, and enter it now (0 ms) */
 		if (ppi->state != ppi->next_state)
@@ -289,9 +334,24 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 
 	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
 
-	/* check if the BMC timeout is the next to run */
-	if (pp_next_delay_1(ppi, PP_TO_BMC) < ppi->next_delay)
-		ppi->next_delay = pp_next_delay_1(ppi, PP_TO_BMC);
+	/* Run the extension state machine. The extension can provide its own time-out */
+	if ( is_ext_hook_available(ppi,run_ext_state_machine) ) {
+		int delay = ppi->ext_hooks->run_ext_state_machine(ppi,buf,len);
+
+		if ( ppi->ext_enabled  && ppi->link_state==PP_LSTATE_PROTOCOL_ERROR) {
+			if (ppi->ptp_support ) {
+				lstate_disable_extension(ppi);
+			}
+			else
+				lstate_set_link_failure(ppi);
+		}
+		/* if new state mark it, and enter it now (0 ms) */
+		if (ppi->state != ppi->next_state)
+			return pp_leave_current_state(ppi);
+
+		if (delay < ppi->next_delay)
+			ppi->next_delay=delay;
+	}
 
 	return ppi->next_delay;
 }

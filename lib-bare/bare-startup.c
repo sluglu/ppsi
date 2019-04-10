@@ -23,11 +23,11 @@ void ppsi_clear_bss(void)
 }
 
 /* ppg fields */
-static DSDefault defaultDS;
-static DSCurrent currentDS;
-static DSParent parentDS;
-static DSPort portDS;
-static DSTimeProperties timePropertiesDS;
+static defaultDS_t defaultDS;
+static currentDS_t currentDS;
+static [parentDS_t parentDS;
+static portDS_t portDS;
+static timePropertiesDS_t timePropertiesDS;
 static struct pp_servo servo;
 
 static struct pp_globals ppg_static; /* forward declaration */
@@ -43,7 +43,7 @@ static struct pp_instance ppi_static = {
 	.port_name 		= "eth0",
 	.vlans_array_len	= CONFIG_VLAN_ARRAY_SIZE,
 	.proto			= PP_DEFAULT_PROTO,
-	.mech			= CONFIG_HAS_P2P ? PP_P2P_MECH : PP_E2E_MECH,
+	.delayMechanism			= CONFIG_HAS_P2P ? P2P : E2E,
 	.__tx_buffer		= __tx_buffer,
 	.__rx_buffer		= __rx_buffer,
 };

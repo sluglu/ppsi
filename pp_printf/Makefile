@@ -10,7 +10,7 @@ STRIP           = $(CROSS_COMPILE)strip
 OBJCOPY         = $(CROSS_COMPILE)objcopy
 OBJDUMP         = $(CROSS_COMPILE)objdump
 
-CFLAGS += -I. -Os -ggdb -Wall
+CFLAGS += -I. $(CFLAGS_OPTIMIZATION) -Wall
 
 obj-$(CONFIG_PRINTF_FULL) += vsprintf-full.o
 obj-$(CONFIG_PRINTF_MINI) += vsprintf-mini.o

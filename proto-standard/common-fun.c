@@ -35,10 +35,10 @@ void pp_prepare_pointers(struct pp_instance *ppi)
 	case PPSI_PROTO_RAW:
 		ppi->tx_offset = ETH_HLEN; /* 14, I know! */
 		ppi->rx_offset = ETH_HLEN;
-	#ifdef CONFIG_ARCH_WRPC
-		ppi->tx_offset = 0; /* Currently, wrpc has a separate header */
-		ppi->rx_offset = 0;
-	#endif
+	    if ( CONFIG_ARCH_IS_WRPC ) {
+			ppi->tx_offset = 0; /* Currently, wrpc has a separate header */
+			ppi->rx_offset = 0;
+	    }
 		break;
 	case PPSI_PROTO_VLAN:
 		ppi->tx_offset = sizeof(struct pp_vlanhdr);
@@ -64,182 +64,97 @@ void pp_prepare_pointers(struct pp_instance *ppi)
 	}
 }
 
-static int presp_call_servo(struct pp_instance *ppi)
-{
-	int ret = 0;
+static int is_grand_master(struct pp_instance *ppi) {
+	int has_slave= 0;
+	int has_master=0;
+	int i;
 
-	if (is_incorrect(&ppi->t4))
-		return 0; /* not an error, just no data */
-
-	pp_timeout_set(ppi, PP_TO_FAULT);
-	if (pp_hooks.handle_presp)
-		ret = pp_hooks.handle_presp(ppi);
-	else
-		pp_servo_got_presp(ppi);
-
-	return ret;
+	for (i=0; i < get_numberPorts(DSDEF(ppi)); i++) {
+		switch (INST(GLBS(ppi), i)->state) {
+		case PPS_UNCALIBRATED:
+		case PPS_SLAVE:
+			has_slave=1;
+			break;
+		case PPS_MASTER:
+		case PPS_PRE_MASTER:
+		case PPS_PASSIVE:
+			has_master=1;
+		}
+	}
+	return has_master && !has_slave;
 }
 
+/* This function should not be called when externalPortConfiguration is enabled */
 int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 {
-	struct pp_globals *ppg = GLBS(ppi);
-	int is_gm = 1;
-	int i;
-	
-	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
-		/* 9.2.6.11 b) reset timeout when an announce timeout happended */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
-		    && (ppi->role != PPSI_ROLE_SLAVE)) {
-			if (!CODEOPT_ONE_PORT() &&  DSDEF(ppi)->numberPorts > 1) {
-				for (i = 0; i < ppg->defaultDS->numberPorts; i++) {
-					if ((INST(ppg, i)->state == PPS_UNCALIBRATED) ||
-						(INST(ppg, i)->state == PPS_SLAVE))
-						is_gm = 0;
-				}				
-				if (is_gm)
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+			/* 9.2.6.11 b) reset timeout when an announce timeout happened */
+			pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+
+			if ( !is_slaveOnly(DSDEF(ppi)) ) {
+				if ( is_grand_master(ppi) ) {
 					bmc_m1(ppi);
-				else
-					bmc_m3(ppi);				
-			} else
-				bmc_m1(ppi);	
-			
-			ppi->next_state = PPS_MASTER;
-		} else {
-			ppi->next_state = PPS_LISTENING;
+				} else {
+					bmc_m3(ppi);
+				}
+				ppi->next_state = PPS_MASTER;
+			} else {
+				ppi->next_state = PPS_LISTENING;
+			}
+			bmc_flush_erbest(ppi); /* ErBest is removed from the foreign master list and ErBest need to be re-computed */
 		}
 	}
-	return 0;
-}
-
-
-int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
-			    int len)
-{
-	MsgPDelayResp resp;
-	MsgHeader *hdr = &ppi->received_ptp_header;
-	int e = 0;
-
-	/* if not in P2P mode, just return */
-	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
-		return 0;
-	
-	msg_unpack_pdelay_resp(buf, &resp);
-
-	if ((bmc_idcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-		    &resp.requestingPortIdentity.clockIdentity) == 0) &&
-	    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
-	     hdr->sequenceId) &&
-	    (DSPOR(ppi)->portIdentity.portNumber ==
-	     resp.requestingPortIdentity.portNumber) &&
-	    (msg_from_current_master(ppi))) {
-
-		ppi->t4 = resp.requestReceiptTimestamp;
-		pp_time_add(&ppi->t4, &hdr->cField);
-		/* WARNING: should be "sub" (see README-cfield::BUG)  */
-		ppi->t6 = ppi->last_rcv_time;
-		if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0)
-			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
-		else {
-			ppi->flags &= ~PPI_FLAG_WAITING_FOR_RF_UP;
-			/*
-			 * Make sure responseOriginTimestamp is forced to 0
-			 * for one-step responders
-			 */
-			memset(&ppi->t5, 0, sizeof(ppi->t5));
-		}
-
-		if (!(hdr->flagField[0] & PP_TWO_STEP_FLAG))
-			e = presp_call_servo(ppi);
-	} else {
-		pp_diag(ppi, frames, 2, "pp_pclock : "
-			"PDelay Resp doesn't match PDelay Req\n");
-	}
-	return e;
-}
-
-int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
-				     void *buf, int len)
-{
-	MsgHeader *hdr = &ppi->received_ptp_header;
-	MsgPDelayRespFollowUp respFllw;
-	int e = 0;
-
-	/* if not in P2P mode, just return */
-	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
-		return 0;
-	
-	msg_unpack_pdelay_resp_follow_up(buf, &respFllw);
-
-	if ((bmc_idcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-		    &respFllw.requestingPortIdentity.clockIdentity) == 0) &&
-	    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
-	     hdr->sequenceId) &&
-	    (DSPOR(ppi)->portIdentity.portNumber ==
-	     respFllw.requestingPortIdentity.portNumber) &&
-	    (msg_from_current_master(ppi))) {
-
-		ppi->t5 = respFllw.responseOriginTimestamp;
-		pp_time_add(&ppi->t5, &hdr->cField);
-
-		e = presp_call_servo(ppi);
-	} else {
-		pp_diag(ppi, frames, 2, "%s: "
-			"PDelay Resp F-up doesn't match PDelay Req\n",
-			__func__);
-	}
-	return e;
-}
-
-int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
-			    int len)
-{
-	int e = 0;
-
-	/* if not in P2P mode, just return */
-	if (!CONFIG_HAS_P2P || ppi->mech != PP_P2P_MECH)
-		return 0;
-	
-	if (pp_hooks.handle_preq)
-		e = pp_hooks.handle_preq(ppi);
-	if (e)
-		return e;
-
-	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
-	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
-
 	return 0;
 }
 
 int st_com_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
-	bmc_add_frgn_master(ppi, buf, len);
-
-	if (pp_hooks.handle_announce)
-		return pp_hooks.handle_announce(ppi);
+	if (is_ext_hook_available(ppi,handle_announce))
+		return ppi->ext_hooks->handle_announce(ppi);
 	return 0;
 }
 
-int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
+int st_com_handle_signaling(struct pp_instance *ppi, void *buf, int len)
 {
-	int msgtype = ((char *)ppi->tx_ptp)[0] & 0xf;
+	if (is_ext_hook_available(ppi,handle_signaling))
+		return ppi->ext_hooks->handle_signaling(ppi,buf,len);
+	return 0;
+}
+
+
+int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_format msg_fmt)
+{
+	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	struct pp_time *t = &ppi->last_snt_time;
+	TimeInterval adjust;
 	int ret;
 
-	ret = ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,
-			       msgtype);
+	ret = ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,msg_fmt);
 	if (ret == PP_SEND_DROP)
 		return 0; /* don't report as error, nor count nor log as sent */
 	if (ret < msglen) {
 		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
-			pp_msgtype_info[msgtype].name, msgtype);
+				pp_msgtype_name[mf->msg_type], mf->msg_type);
 		return PP_SEND_ERROR;
 	}
-	/* FIXME: diagnosticst should be looped back in the send method */
+	/* The send method updates ppi->last_snt_time with the Tx timestamp. */
+	/* This timestamp must be corrected with the egressLatency */
+	if (is_ext_hook_available(ppi,get_egress_latency) ){
+		adjust= ppi->ext_hooks->get_egress_latency(ppi);
+	} else  {
+		adjust=ppi->timestampCorrectionPortDS.egressLatency;
+	}
+	pp_time_add_interval(t,adjust);
+
+	/* FIXME: diagnostics should be looped back in the send method */
 	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d.%03d (%s)\n",
 		msglen, (int)t->secs, (int)(t->scaled_nsecs >> 16),
 		((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16,
-		pp_msgtype_info[msgtype].name);
+		pp_msgtype_name[mf->msg_type]);
 	if (chtype == PP_NP_EVT && is_incorrect(&ppi->last_snt_time))
 		return PP_SEND_NO_STAMP;
 
@@ -247,4 +162,12 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 	ppi->ptp_tx_count++;
 
 	return 0;
+}
+
+/* Update currentDS.meanDelay
+ * This function can be redeclared if P2P mechanism is compiled
+ */
+void __attribute__((weak)) update_meanDelay(struct pp_instance *ppi, TimeInterval meanDelay) {
+	if (ppi->state == PPS_SLAVE )
+		DSCUR(ppi)->meanDelay=meanDelay;
 }

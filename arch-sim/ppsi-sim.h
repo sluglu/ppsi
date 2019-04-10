@@ -88,10 +88,10 @@ struct sim_ppi_arch_data {
 	/* Runtime options */
 	struct pp_runtime_opts *rt_opts;
 	/* Data sets */
-	DSDefault *defaultDS;
-	DSCurrent *currentDS;
-	DSParent *parentDS;
-	DSTimeProperties *timePropertiesDS;
+	defaultDS_t *defaultDS;
+	currentDS_t *currentDS;
+	[parentDS_t *parentDS;
+	timePropertiesDS_t *timePropertiesDS;
 	/* other pp_instance, used in net ops */
 	struct pp_instance *other_ppi;
 };

@@ -12,7 +12,7 @@ OBJDUMP         = $(CROSS_COMPILE)objdump
 include ../.config
 CFLAGS = -Wall -ggdb -I../include -I../arch-$(CONFIG_ARCH)/include
 
-PROGS = ptpdump adjtime jmptime chktime adjrate
+PROGS = ptpdump adjtime jmptime chktime adjrate monotonicClock
 LDFLAGS += -lrt
 
 all: $(PROGS)

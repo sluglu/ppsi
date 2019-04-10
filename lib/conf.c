@@ -9,10 +9,12 @@
 /* This file is built in hosted environments, so following headers are Ok */
 #include <stdio.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
 
 static inline struct pp_instance *CUR_PPI(struct pp_globals *ppg)
 {
@@ -66,12 +68,16 @@ static int f_port(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 
 static inline void ASSIGN_INT_FIELD(struct pp_argline *l,
 				    struct pp_globals *ppg,
-				    int v)
+					int v)
 {
-	if (l->needs_port)
-		*(int *)(((void *)CUR_PPI(ppg)) + l->field_offset) = v;
-	else
-		*(int *)(((void *)GOPTS(ppg)) + l->field_offset) = v;
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	/* Check min/max */
+	if ( v<l->min_max.min.min_int || v>l->min_max.max.max_int) {
+		pp_printf("Parameter %s(%ld) out of range\n", l->keyword, (long)v);\
+		return;
+	}
+	*(int *)( dest + l->field_offset) = v;
 }
 
 int f_simple_int(struct pp_argline *l, int lineno,
@@ -82,11 +88,82 @@ int f_simple_int(struct pp_argline *l, int lineno,
 	return 0;
 }
 
-static int f_if(struct pp_argline *l, int lineno, struct pp_globals *ppg,
+static inline void ASSIGN_INT64_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    int64_t v)
+{
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	/* Check min/max */
+	if ( v<l->min_max.min.min_int64 || v>l->min_max.max.max_int64 ) {
+		pp_printf("Parameter %s(%" PRId64 ") out of range\n", l->keyword, v);\
+		return;
+	}
+	*(int64_t *)( dest + l->field_offset) = v;
+}
+
+static int f_simple_int64(struct pp_argline *l, int lineno,
+		 struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(l->needs_port);
+	ASSIGN_INT64_FIELD(l, ppg, arg->i64);
+	return 0;
+}
+
+static inline void ASSIGN_DOUBLE_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    double v)
+{
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	/* Check min/max */
+	if ( v<l->min_max.min.min_double || v>l->min_max.max.max_double ) {
+		pp_printf("Parameter %s out of range\n", l->keyword);\
+		return;
+	}
+	*(double *)( dest + l->field_offset) = v;
+}
+
+static int f_simple_double( struct pp_argline *l, int lineno,
+		 struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(l->needs_port);
+	ASSIGN_DOUBLE_FIELD(l, ppg, arg->d);
+	return 0;
+}
+
+static inline void ASSIGN_BOOL_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    Boolean v)
+{
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	*(Boolean *)( dest + l->field_offset) = v;
+}
+
+static int f_simple_bool( struct pp_argline *l, int lineno,
+		 struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(l->needs_port);
+	ASSIGN_BOOL_FIELD(l, ppg, arg->b);
+	return 0;
+}
+
+
+static inline void ASSIGN_STRING_FIELD(struct pp_argline *l,
+				    struct pp_globals *ppg,
+				    char *src)
+{
+	void *dest=(l->needs_port) ? (void *)CUR_PPI(ppg) : (void *) GOPTS(ppg);
+
+	strcpy((char *)dest+l->field_offset, src);
+}
+
+static int f_string(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		union pp_cfg_arg *arg)
 {
-	CHECK_PPI(1);
-	strcpy(CUR_PPI(ppg)->cfg.iface_name, arg->s);
+	CHECK_PPI(l->needs_port);
+	ASSIGN_STRING_FIELD(l, ppg, arg->s);
 	return 0;
 }
 
@@ -103,7 +180,7 @@ static int f_diag(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
-/* VLAN support is per-port, and it depends on configuration itmes */
+/* VLAN support is per-port, and it depends on configuration items */
 static int f_vlan(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 		  union pp_cfg_arg *arg)
 {
@@ -159,12 +236,7 @@ static int f_vlan(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 	for (i = 0; i < ppi->nvlans; i++)
 		pp_diag(NULL, config, 2, "  parsed vlan %4i for %s (%s)\n",
 			ppi->vlans[i], ppi->cfg.port_name, ppi->cfg.iface_name);
-	pp_diag(NULL, config, 2, "role %i\n", ppi->role);
-	if (ppi->role != PPSI_ROLE_MASTER && ppi->nvlans > 1) {
-		pp_printf("config line %i: too many vlans (%i) for slave "
-			  "or auto role\n", lineno, ppi->nvlans);
-		return -1;
-	}
+
 	ppi->proto = PPSI_PROTO_VLAN;
 	return 0;
 }
@@ -184,21 +256,6 @@ static int f_servo_pi(struct pp_argline *l, int lineno,
 	return 0;
 }
 
-static int f_announce_intvl(struct pp_argline *l, int lineno,
-			    struct pp_globals *ppg, union pp_cfg_arg *arg)
-{
-	int i = arg->i;
-
-	CHECK_PPI(0);
-	if (i < 0 || i > 4) {
-		i = i < 0 ? 0 : 4;
-		pp_printf("config line %i: announce interval out of range: %i, "
-			  "forced to %i\n", lineno, arg->i, i);
-	}
-	GOPTS(ppg)->announce_intvl = i;
-	return 0;
-}
-
 /* These are the tables for the parser */
 static struct pp_argname arg_proto[] = {
 	{"raw", PPSI_PROTO_RAW},
@@ -206,50 +263,138 @@ static struct pp_argname arg_proto[] = {
 	/* PROTO_VLAN is an internal modification of PROTO_RAW */
 	{},
 };
-static struct pp_argname arg_role[] = {
-	{"auto", PPSI_ROLE_AUTO},
-	{"master",PPSI_ROLE_MASTER},
-	{"slave", PPSI_ROLE_SLAVE},
+
+#define STR_BOOL_TRUE  "t true 1 on y yes"
+#define STR_BOOL_FALSE "f false 0 off n no"
+
+static struct pp_argname arg_bool[] = {
+	{STR_BOOL_TRUE, 1},
+	{STR_BOOL_FALSE, 0},
 	{},
 };
-static struct pp_argname arg_ext[] = {
-	{"none", PPSI_EXT_NONE},
-	{"whiterabbit", PPSI_EXT_WR},
+
+static struct pp_argname CAN_BE_UNUSED arg_bool_true[] = {
+	{STR_BOOL_TRUE, 1},
 	{},
 };
-static struct pp_argname arg_mech[] = {
-	{"request-response", PP_E2E_MECH},
-	{"delay", PP_E2E_MECH},
-	{"e2e", PP_E2E_MECH},
-#if CONFIG_HAS_P2P == 1
-	{"peer-delay", PP_P2P_MECH},
-	{"pdelay", PP_P2P_MECH},
-	{"p2p", PP_P2P_MECH},
+
+static struct pp_argname CAN_BE_UNUSED arg_bool_false[] = {
+	{STR_BOOL_FALSE, 0},
+	{},
+};
+
+static struct pp_argname arg_states[] = {
+	{ "initializing", PPS_INITIALIZING},
+	{ "faulty", PPS_FAULTY},
+	{ "disabled", PPS_DISABLED},
+	{ "listening", PPS_LISTENING},
+	{ "pre_master", PPS_PRE_MASTER},
+	{ "master", PPS_MASTER},
+	{ "passive", PPS_PASSIVE},
+	{ "uncalibrated", PPS_UNCALIBRATED},
+	{ "slave", PPS_SLAVE},
+	{},
+};
+
+static struct pp_argname arg_profile[] = {
+	{"none ptp", PPSI_PROFILE_PTP}, /* none is equal to ptp for backward compatibility */
+#if CONFIG_HAS_PROFILE_WR
+	{"whiterabbit wr", PPSI_PROFILE_WR},
+#endif
+#if CONFIG_HAS_PROFILE_HA
+	{"highaccuracy ha", PPSI_PROFILE_HA},
+#endif
+#if CONFIG_HAS_PROFILE_CUSTOM
+	{"custom", PPSI_PROFILE_CUSTOM},
+#endif
+	{},
+};
+static struct pp_argname arg_delayMechanism[] = {
+	{"request-response delay e2e", E2E},
+#if CONFIG_HAS_P2P
+	{"peer-delay pdelay p2p", P2P},
 #endif
 	{},
 };
 
 static struct pp_argline pp_global_arglines[] = {
-	LEGACY_OPTION(f_port, "port", ARG_STR),
-	LEGACY_OPTION(f_port, "link", ARG_STR), /* Old name for port */
-	LEGACY_OPTION(f_if, "iface", ARG_STR),
+	INST_OPTION_FCT(f_port, "link port", ARG_STR),
+	INST_OPTION_FCT(f_servo_pi, "servo-pi", ARG_INT2),
+	INST_OPTION_FCT(f_vlan, "vlan", ARG_STR),
+	INST_OPTION_FCT(f_diag, "diagnostic", ARG_STR),
+	INST_OPTION_STR("iface",cfg.iface_name),
+	INST_OPTION_BOOL("masterOnly", cfg.masterOnly),
 	INST_OPTION_INT("proto", ARG_NAMES, arg_proto, proto),
-	INST_OPTION_INT("role", ARG_NAMES, arg_role, role),
-	INST_OPTION_INT("extension", ARG_NAMES, arg_ext, cfg.ext),
-	INST_OPTION_INT("mechanism", ARG_NAMES, arg_mech, cfg.mech),
-	LEGACY_OPTION(f_vlan, "vlan", ARG_STR),
-	LEGACY_OPTION(f_diag, "diagnostic", ARG_STR),
-	RT_OPTION_INT("clock-class", ARG_INT, NULL, clock_quality.clockClass),
-	RT_OPTION_INT("clock-accuracy", ARG_INT, NULL,
-		      clock_quality.clockAccuracy),
-	RT_OPTION_INT("clock-allan-variance", ARG_INT, NULL,
-		      clock_quality.offsetScaledLogVariance),
-	LEGACY_OPTION(f_servo_pi, "servo-pi", ARG_INT2),
-	RT_OPTION_INT("domain-number", ARG_INT, NULL, domain_number),
-	LEGACY_OPTION(f_announce_intvl, "announce-interval", ARG_INT),
-	RT_OPTION_INT("sync-interval", ARG_INT, NULL, sync_intvl),
-	RT_OPTION_INT("priority1", ARG_INT, NULL, prio1),
-	RT_OPTION_INT("priority2", ARG_INT, NULL, prio2),
+	INST_OPTION_INT("extension profile", ARG_NAMES, arg_profile, cfg.profile),
+	INST_OPTION_INT("mechanism dm", ARG_NAMES, arg_delayMechanism, cfg.delayMechanism),
+	INST_OPTION_INT_RANGE("sync-interval logSyncInterval", ARG_INT, NULL, cfg.sync_interval,
+			PP_MIN_SYNC_INTERVAL,PP_MAX_SYNC_INTERVAL),
+	INST_OPTION_INT_RANGE("announce-interval logAnnounceInterval", ARG_INT, NULL, cfg.announce_interval,
+			PP_MIN_ANNOUNCE_INTERVAL,PP_MAX_ANNOUNCE_INTERVAL),
+	INST_OPTION_INT_RANGE("announce-receipt-timeout announceReceiptTimeout", ARG_INT, NULL, cfg.announce_receipt_timeout,
+			PP_MIN_ANNOUNCE_RECEIPT_TIMEOUT,PP_MAX_ANNOUNCE_RECEIPT_TIMEOUT),
+	INST_OPTION_INT_RANGE("min-delay-req-interval logMinDelayReqInterval", ARG_INT, NULL, cfg.min_delay_req_interval,
+			PP_MIN_MIN_DELAY_REQ_INTERVAL,PP_MAX_MIN_DELAY_REQ_INTERVAL),
+	INST_OPTION_INT_RANGE("min-pdelay-req-interval logMinPDelayReqInterval", ARG_INT, NULL, cfg.min_pdelay_req_interval,
+			PP_MIN_MIN_PDELAY_REQ_INTERVAL,PP_MAX_MIN_PDELAY_REQ_INTERVAL),
+
+#if CONFIG_HAS_EXT_L1SYNC
+	INST_OPTION_INT_RANGE("l1sync-interval logL1SyncInterval", ARG_INT, NULL, cfg.l1syncInterval,
+			L1E_MIN_L1SYNC_INTERVAL,L1E_MAX_L1SYNC_INTERVAL),
+	INST_OPTION_INT_RANGE("l1sync-receipt-timeout l1SyncReceiptTimeout", ARG_INT, NULL, cfg.l1syncReceiptTimeout,
+			L1E_MIN_L1SYNC_RECEIPT_TIMEOUT,L1E_MAX_L1SYNC_RECEIPT_TIMEOUT),
+    INST_OPTION_BOOL("l1SyncEnabled", cfg.l1SyncEnabled),
+    INST_OPTION_BOOL("l1SyncRxCoherencyIsRequired", cfg.l1SyncRxCoherencyIsRequired),
+    INST_OPTION_BOOL("l1SyncTxCoherencyIsRequired", cfg.l1SyncTxCoherencyIsRequired),
+    INST_OPTION_BOOL("l1SyncCongruencyIsRequired", cfg.l1SyncCongruencyIsRequired),
+    INST_OPTION_BOOL("l1SyncOptParamsEnabled", cfg.l1SyncOptParamsEnabled),
+    INST_OPTION_BOOL("l1SyncTimestampsCorrectedTxEnabled", cfg.l1SyncOptParamsTimestampsCorrectedTx),
+#endif
+
+	INST_OPTION_BOOL("asymmetryCorrectionEnable", cfg.asymmetryCorrectionEnable),
+	INST_OPTION_INT64_RANGE("constantAsymmetry", ARG_INT64, NULL,cfg.constantAsymmetry_ps,
+			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
+
+	INST_OPTION_INT("desiredState", ARG_NAMES, arg_states, cfg.desiredState),
+	INST_OPTION_INT64_RANGE("egressLatency", ARG_INT64, NULL,cfg.egressLatency_ps,
+			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
+	INST_OPTION_INT64_RANGE("ingressLatency", ARG_INT64, NULL,cfg.ingressLatency_ps,
+			TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64,TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64),
+	INST_OPTION_INT64_RANGE("scaledDelayCoefficient", ARG_INT64, NULL,cfg.scaledDelayCoefficient,
+			RELATIVE_DIFFERENCE_MIN_VALUE,RELATIVE_DIFFERENCE_MAX_VALUE),
+	INST_OPTION_DOUBLE_RANGE("delayCoefficient", ARG_DOUBLE, NULL,cfg.delayCoefficient,
+			RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE,RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE),
+	RT_OPTION_INT_RANGE("clock-class", ARG_INT, NULL, clock_quality.clockClass,
+			PP_MIN_CLOCK_CLASS,PP_MAX_CLOCK_CLASS),
+	RT_OPTION_INT_RANGE("clock-accuracy", ARG_INT, NULL,clock_quality.clockAccuracy,
+			PP_MIN_CLOCK_ACCURACY,PP_MAX_CLOCK_ACCURACY),
+	RT_OPTION_INT_RANGE("clock-allan-variance", ARG_INT, NULL,clock_quality.offsetScaledLogVariance,
+			PP_MIN_CLOCK_VARIANCE,PP_MAX_CLOCK_VARIANCE),
+	RT_OPTION_INT_RANGE("domain-number", ARG_INT, NULL, domainNumber,
+			PP_MIN_DOMAIN_NUMBER,PP_MAX_DOMAIN_NUMBER),
+	RT_OPTION_INT_RANGE("priority1", ARG_INT, NULL, priority1,
+			PP_MIN_PRIORITY1, PP_MAX_PRIORITY1),
+	RT_OPTION_INT_RANGE("priority2", ARG_INT, NULL, priority2,
+			PP_MIN_PRIORITY2, PP_MAX_PRIORITY2),
+	RT_OPTION_INT_RANGE("ptpPpsThresholdMs", ARG_INT, NULL, ptpPpsThresholdMs,
+			PP_MIN_PTP_PPSGEN_THRESHOLD_MS, PP_MAX_PTP_PPSGEN_THRESHOLD_MS),
+	RT_OPTION_INT_RANGE("gmDelayToGenPpsSec", ARG_INT, NULL, gmDelayToGenPpsSec,
+			PP_MIN_GM_DELAY_TO_GEN_PPS_SEC, PP_MAX_GM_DELAY_TO_GEN_PPS_SEC),
+#if !CONFIG_HAS_CODEOPT_EPC_ENABLED && !CONFIG_HAS_CODEOPT_SO_ENABLED
+	RT_OPTION_BOOL("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
+	RT_OPTION_BOOL("slaveOnly",slaveOnly),
+#else
+#if CONFIG_HAS_CODEOPT_EPC_ENABLED
+	RT_OPTION_BOOL_TRUE("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
+	RT_OPTION_BOOL_FALSE("slaveOnly",slaveOnly),
+#endif
+#if CONFIG_HAS_CODEOPT_SO_ENABLED
+	RT_OPTION_BOOL_FALSE("externalPortConfigurationEnabled",externalPortConfigurationEnabled),
+	RT_OPTION_BOOL_TRUE("slaveOnly",slaveOnly),
+#endif
+#endif
+	RT_OPTION_BOOL("forcePpsGen",forcePpsGen),
+	RT_OPTION_BOOL("ptpFallbackPpsGen",ptpFallbackPpsGen),
 	{}
 };
 
@@ -259,6 +404,13 @@ struct pp_argline pp_arch_arglines[] __attribute__((weak)) = {
 };
 struct pp_argline pp_ext_arglines[] __attribute__((weak)) = {
 	{}
+};
+
+static struct pp_argline * pp_arglines[] = {
+		pp_global_arglines,
+		pp_arch_arglines,
+		pp_ext_arglines,
+		NULL
 };
 
 /* local implementation of isblank() and isdigit() for bare-metal users */
@@ -295,6 +447,26 @@ static char *first_word(char *line, char **rest)
 	*rest = line;
 	return ret;
 }
+
+static int word_in_list(char *word, char *list) {
+	char listCopy[64];
+	char *next,*curr;
+
+	if ( strlen(list) > sizeof(listCopy)-1) {
+		pp_error("%s: List string too big (%d)\n", __func__, strlen(list));
+		return 0;
+	}
+	strcpy(listCopy, list);
+	next=listCopy;
+	while ( *next ) {
+		if ( (curr=first_word(next, &next))!=NULL ) {
+			if ( strcmp(curr,word)==0)
+				return 1;
+		}
+	}
+	return 0;
+}
+
 
 static int parse_time(struct pp_cfg_time *ts, char *s)
 {
@@ -349,12 +521,27 @@ static int parse_time(struct pp_cfg_time *ts, char *s)
 	return 0;
 }
 
+/**
+ * Remove leading and trailing unexpected characters in a string
+ * Returns ta pointer to the first non whitespace character in the string
+ * and replace trailing whitespace with '\0'. NULL is returned if the string is empty.
+ */
+static char *trim(char *str) {
+	int len = strlen(str);
+	char *p=str;
+
+	while( len && blank(str[len - 1])) len--; // Remove trailing unexpected characters
+	while( *p && blank(*p)) p++; // remove leading unexpected characters
+	return *p ? p : NULL ;
+}
+
 static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 {
 	union pp_cfg_arg cfg_arg;
 	struct pp_argline *l;
 	struct pp_argname *n;
 	char *word;
+	int i;
 
 	pp_diag(NULL, config, 2, "parsing line %i: \"%s\"\n", lineno, line);
 	word = first_word(line, &line);
@@ -381,24 +568,22 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 	}
 
 	/* Look for the configuration keyword in global, arch, ext */
-	for (l = pp_global_arglines; l->f; l++)
-		if (!strcmp(word, l->keyword))
-			break;
-	if (!l->f)
-		for (l = pp_arch_arglines; l->f; l++)
-			if (!strcmp(word, l->keyword))
-				break;
-	if (!l->f)
-		for (l = pp_ext_arglines; l->f; l++)
-			if (!strcmp(word, l->keyword))
-				break;
 
-	if (!l->f) {
-		pp_error("line %i: no such keyword \"%s\"\n", lineno, word);
-		return -1;
+	for ( i=0; ;) {
+		if ( !(l=pp_arglines[i++] )) {
+			pp_error("line %i: no such keyword \"%s\"\n", lineno, word);
+			return -1;
+		}
+		while (l->f ) {
+			if ( word_in_list(word, l->keyword) )
+					goto keyword_found;
+			l++;
+		}
 	}
+	keyword_found:
 
-	if ((l->t != ARG_NONE) && (!*line)) {
+	line=trim(line);
+	if ((l->t != ARG_NONE) && !line) {
 		pp_error("line %i: no argument for option \"%s\"\n", lineno,
 									word);
 		return -1;
@@ -416,6 +601,13 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		}
 		break;
 
+	case ARG_INT64:
+		if (sscanf(line, "%" SCNd64, &(cfg_arg.i64)) != 1) {
+			pp_error("line %i: \"%s\"[%s]: not int64\n", lineno, word,line);
+			return -1;
+		}
+		break;
+
 	case ARG_INT2:
 		if (sscanf(line, "%i,%i", cfg_arg.i2, &cfg_arg.i2[1]) < 0) {
 			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
@@ -424,17 +616,21 @@ static int pp_config_line(struct pp_globals *ppg, char *line, int lineno)
 		}
 		break;
 
+	case ARG_DOUBLE:
+		if (sscanf(line, "%lf", &cfg_arg.d) < 0) {
+			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
+				 lineno, line, word);
+			return -1;
+		}
+		break;
 	case ARG_STR:
-		while (*line && blank(*line))
-			line++;
-
 		cfg_arg.s = line;
 		break;
 
 	case ARG_NAMES:
 		for (n = l->args; n->name; n++)
-			if (!strcmp(line, n->name))
-				break;
+			 if ( word_in_list(line, n->name) )
+				 break;
 		if (!n->name) {
 			pp_error("line %i: wrong arg \"%s\" for \"%s\"\n",
 				 lineno, line, word);

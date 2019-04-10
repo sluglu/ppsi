@@ -20,13 +20,15 @@ static struct pp_runtime_opts sim_master_rt_opts = {
 	.ap =			PP_DEFAULT_AP,
 	.ai =			PP_DEFAULT_AI,
 	.s =			PP_DEFAULT_DELAY_S,
-	.announce_intvl =	PP_DEFAULT_ANNOUNCE_INTERVAL,
-	.sync_intvl =		PP_DEFAULT_SYNC_INTERVAL,
-	.prio1 =		PP_DEFAULT_PRIORITY1,
-	.prio2 =		PP_DEFAULT_PRIORITY2,
-	.domain_number =	PP_DEFAULT_DOMAIN_NUMBER,
+	.logAnnounceInterval =	PP_DEFAULT_ANNOUNCE_INTERVAL,
+	.logSyncInterval =		PP_DEFAULT_SYNC_INTERVAL,
+	.priority1 =		PP_DEFAULT_PRIORITY1,
+	.priority2 =		PP_DEFAULT_PRIORITY2,
+	.domainNumber =	PP_DEFAULT_DOMAIN_NUMBER,
 	.ttl =			PP_DEFAULT_TTL,
 };
+
+extern struct pp_ext_hooks pp_hooks;
 
 /*
  * In arch-sim we use two pp_instaces in the same pp_globals to represent
@@ -58,6 +60,7 @@ static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 	ppi->__rx_buffer = malloc(PP_MAX_FRAME_LENGTH);
 	ppi->arch_data = calloc(1, sizeof(struct sim_ppi_arch_data));
 	ppi->portDS = calloc(1, sizeof(*ppi->portDS));
+	ppi->ext_hooks=&pp_hooks;
 	if ((!ppi->arch_data) || (!ppi->portDS))
 		return -1;
 	data = SIM_PPI_ARCH(ppi);
@@ -139,7 +142,7 @@ int main(int argc, char **argv)
 		sim_set_global_DS(ppi);
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
-		ppi->mech = ppi->cfg.mech;
+		ppi->delayMechanism = ppi->cfg.delayMechanism;
 		if (ppi->proto == PPSI_PROTO_RAW)
 			pp_printf("Warning: simulator doesn't support raw "
 					"ethernet. Using UDP\n");

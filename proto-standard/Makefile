@@ -13,9 +13,10 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-passive.o \
 	$D/state-slave.o \
 	$D/common-fun.o \
+	$D/common-fun-p2p.o \
 	$D/bmc.o \
 	$D/msg.o \
-	$D/arith.o \
+	$D/msg-p2p.o \
 	$D/servo.o \
 	$D/hooks.o \
 	$D/open-close.o

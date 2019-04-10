@@ -1,4 +1,28 @@
 
+####################################### 
+# J-C Bau,  29 March 2019  
+# - Correction bring to PPSI to make it compliant with the standard 
+
+First, I have added an hook is_correction_field_compliant() to stay 
+compliant with the old version of WR extension. So modifications I made
+impacts only the HA extension.
+
+Improvements for E2E and P2P:
+1. When a [P]DelayReq is issue, the correction field contains 
+   the value of -delayAsymmetry (-ppi->portDs->delayAsymmetry)
+2. When a [P]DelayReq is received, a [P]DelayResp is sent. It contains on 
+   its correction field, the received correction field (from [P]DelayReq msg)
+   minus the sub-ns part of the sent time stamp: 
+   txCF=RxCF-sub_ns(timestamp)
+3. On reception of [P]DelayResp, the calculated timestamp (t4) is calculated by :
+   t4=rxTimeStamp-rxCF-delayAsymmetry where
+   rxTimeStamp=  receiveTimestamp(E2) or  requestReceiptTimestamp (P2P
+   rxCF= Received correction field in the [P]DelayResp message
+   delayAsymmetry= last calculated delayAsymmetry (ppi->portDs->delayAsymmetry)
+
+# End JCB corrections
+####################################### 
+
 The correctionField makes me mad. We used to have ppi->cField, that
 nobody knows which frame it refers to.  I now keep it for reference,
 associated to the sync message, so we know what the overall TC delay is.

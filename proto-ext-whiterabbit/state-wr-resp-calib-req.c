@@ -7,49 +7,53 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 
-int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len)
+#define WR_TMO_NAME "WR_CALIBREQ"
+#define WR_TMO_MS WR_RESP_CALIB_REQ_TIMEOUT_MS
+
+int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	MsgSignaling wrsig_msg;
-	int e = 0, enable = 0;
-	int send_pattern = (wrp->otherNodeCalSendPattern != 0);
 
-	if (ppi->is_new_state) {
+	static unsigned long startTime;
+
+	if (new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
-		enable = 1;
-	} else if (pp_timeout(ppi, PP_TO_EXT_0)) {
-		if (send_pattern)
-			wrp->ops->calib_pattern_disable(ppi);
-		if (wr_handshake_retry(ppi))
-			enable = 1;
-		else
-			return 0; /* non-wr already */
-	}
+		pp_timeout_set_rename(ppi, wrTmoIdx,WR_TMO_MS*(WR_STATE_RETRY+1),WR_TMO_NAME);
+		startTime = ppi->t_ops->calc_timeout(ppi, 0);
+	} else {
 
-	if (enable) { /* first or retry */
-		if (send_pattern)
-			wrp->ops->calib_pattern_enable(ppi, 0, 0, 0);
-		__pp_timeout_set(ppi, PP_TO_EXT_0,
-			       wrp->wrStateTimeout / 1000);
-	}
+		if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
 
-	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
+			msg_unpack_wrsig(ppi, buf, &wrsig_msg,
+				 &(wrp->msgTmpWrMessageID));
 
-		msg_unpack_wrsig(ppi, buf, &wrsig_msg,
-			 &(wrp->msgTmpWrMessageID));
+			if (wrp->msgTmpWrMessageID == CALIBRATED) {
+				/* Update servo */
+				wr_servo_ext_t *se =WRE_SRV(ppi);
 
-		if (wrp->msgTmpWrMessageID == CALIBRATED) {
-			if (send_pattern)
-				wrp->ops->calib_pattern_disable(ppi);
-			if (wrp->wrMode == WR_MASTER)
-				ppi->next_state = WRS_WR_LINK_ON;
-			else
-				ppi->next_state = WRS_CALIBRATION;
+				fixedDelta_to_pp_time(wrp->otherNodeDeltaTx,&se->delta_txm);
+				fixedDelta_to_pp_time(wrp->otherNodeDeltaRx,&se->delta_rxm);
+
+				wrp->next_state = (wrp->wrMode == WR_MASTER) ?
+						WRS_WR_LINK_ON :
+						WRS_CALIBRATION;
+				pp_printf("JCB: CALIBRATED RECEIVED. Started= %ld ms, Now=%ld\n",startTime,ppi->t_ops->calc_timeout(ppi, 0));
+				return 0;
+			}
+		}
+
+		{ /* Check remaining time */
+			int rms=pp_next_delay_1(ppi, wrTmoIdx);
+			if ( rms==0 || rms<(wrp->wrStateRetry*WR_TMO_MS)) {
+				if (!wr_handshake_retry(ppi)) {
+					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					return 0; /* non-wr already */
+				}
+			}
 		}
 	}
 
-	ppi->next_delay = wrp->wrStateTimeout;
-	return e;
+	return pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*WR_TMO_MS;
 }

@@ -32,7 +32,6 @@
 
 #include <ppsi-wrs.h>
 #include <hal_exports.h>
-#include "../proto-ext-whiterabbit/wr-api.h"
 
 #define ETHER_MTU 1518
 #define DMTD_UPDATE_INTERVAL 500
@@ -240,27 +239,28 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 			aux = (struct tpacket_auxdata *)dp;
 	}
 
-	if(sts && t)
-	{
-		int cntr_ahead = sts->hwtimeraw.tv_sec & 0x80000000 ? 1: 0;
-		t->scaled_nsecs = (long long)sts->hwtimeraw.tv_nsec << 16;
-		t->secs = sts->hwtimeraw.tv_sec & 0x7fffffff;
+	if ( t ) {
+		if (sts) {
+			int cntr_ahead = sts->hwtimeraw.tv_sec & 0x80000000 ? 1: 0;
+			t->scaled_nsecs = (long long)sts->hwtimeraw.tv_nsec << 16;
+			t->secs = sts->hwtimeraw.tv_sec & 0x7fffffff;
 
-		update_dmtd(s, ppi);
-		if (!WR_DSPOR(ppi)->wrModeOn) {
-			goto drop;
-		}
-		if (s->dmtd_phase_valid) {
-			wrs_linearize_rx_timestamp(t, s->dmtd_phase,
-				cntr_ahead, s->phase_transition, s->clock_period);
+			update_dmtd(s, ppi);
+			if ( ppi->ext_hooks->require_precise_timestamp!=NULL  &&
+					(*ppi->ext_hooks->require_precise_timestamp)(ppi)) {
+				/* Precise time stamp required */
+				if (s->dmtd_phase_valid) {
+					wrs_linearize_rx_timestamp(t, s->dmtd_phase,
+						cntr_ahead, s->phase_transition, s->clock_period);
+				} else {
+					mark_incorrect(t);
+				}
+			}
 		} else {
 			mark_incorrect(t);
 		}
-	} else {
-		mark_incorrect(t);
 	}
 
-drop:
 	/* For UDP, avoid all of the following, as we don't have vlans */
 	if (ppi->proto == PPSI_PROTO_UDP)
 		goto out;
@@ -304,6 +304,10 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	struct pp_channel *ch1, *ch2;
 	struct ethhdr *hdr = pkt;
 	int ret = -1;
+	char prefix[32];
+
+	if (pp_diag_allow(ppi, frames, 2) || pp_diag_allow(ppi, time, 1) )
+		sprintf(prefix,"recv-%s: ",(ppi ? ppi->port_name: "ppsi"));
 
 	switch(ppi->proto) {
 	case PPSI_PROTO_RAW:
@@ -316,8 +320,8 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		memcpy(ppi->peer, hdr->h_source, ETH_ALEN);
 		if (pp_diag_allow(ppi, frames, 2)) {
 			if (ppi->proto == PPSI_PROTO_VLAN)
-				pp_printf("recv: VLAN %i\n", ppi->peer_vid);
-			dump_1588pkt("recv: ", pkt, ret, t, -1);
+				pp_printf("%sVLAN %i\n",prefix, ppi->peer_vid);
+			dump_1588pkt(prefix, pkt, ret, t, -1);
 		}
 		break;
 
@@ -333,7 +337,7 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		if (ret < 0)
 			break;
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_payloadpkt("recv: ", pkt, ret, t);
+			dump_payloadpkt(prefix, pkt, ret, t);
 		break;
 
 	default:
@@ -342,7 +346,7 @@ static int wrs_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 	if (ret < 0)
 		return ret;
-	pp_diag(ppi, time, 1, "recv stamp: %s\n", fmt_time(t));
+	pp_diag(ppi, time, 1, "%sstamp: %s\n", prefix, fmt_time(t));
 	return ret;
 }
 
@@ -452,16 +456,16 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 	}
 }
 
-static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
-			int msgtype)
+static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_format msg_fmt)
 {
-	int chtype = pp_msgtype_info[msgtype].chtype;
+	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	int chtype = mf->chtype;
 	struct sockaddr_in addr;
 	struct ethhdr *hdr = pkt;
 	struct pp_vlanhdr *vhdr = pkt;
 	struct pp_channel *ch = ppi->ch + chtype;
 	struct pp_time *t = &ppi->last_snt_time;
-	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
+	int is_pdelay = mf->is_pdelay;
 	static uint16_t udpport[] = {
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,
@@ -472,6 +476,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	};
 	struct wrs_socket *s;
 	int ret, fd, drop;
+	char prefix[32];
 
 	s = (struct wrs_socket *)ppi->ch[PP_NP_GEN].arch_data;
 
@@ -481,6 +486,8 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	 * hardware stamp. Thus, remember if we drop, and use this info.
 	 */
 	drop = ppsi_drop_tx();
+	if (pp_diag_allow(ppi, frames, 2))
+		sprintf(prefix,"send-%s: ",(ppi ? ppi->port_name: "ppsi"));
 
 	switch (ppi->proto) {
 	case PPSI_PROTO_RAW:
@@ -508,7 +515,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", pkt, len, t, -1);
+			dump_1588pkt(prefix, pkt, len, t, -1);
 		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 
@@ -541,7 +548,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_1588pkt("send: ", pkt, len, t, ppi->peer_vid);
+			dump_1588pkt(prefix, pkt, len, t, ppi->peer_vid);
 		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 
@@ -565,7 +572,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			break;
 
 		if (pp_diag_allow(ppi, frames, 2))
-			dump_payloadpkt("send: ", pkt, len, t);
+			dump_payloadpkt(prefix, pkt, len, t);
 		pp_diag(ppi, time, 1, "send stamp: %s\n", fmt_time(t));
 		return ret;
 

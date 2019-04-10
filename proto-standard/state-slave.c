@@ -29,18 +29,30 @@ static pp_action *actions[] = {
 	[PPM_FOLLOW_UP]		= slave_handle_followup,
 	[PPM_DELAY_RESP]	= slave_handle_response,
 	[PPM_ANNOUNCE]		= slave_handle_announce,
-	/* skip signaling and management, for binary size */
+	[PPM_SIGNALING]     = st_com_handle_signaling,
+	/* skip management, for binary size */
 };
 
 static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 			     int len)
 {
+	static int errcount=0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
 
-	if (!msg_from_current_master(ppi))
+	if (!msg_from_current_master(ppi)) {
+		pp_error("%s: Sync message is not from current parent\n",
+			__func__);
 		return 0;
+	}
 
+	if ( is_delayMechanismE2E(ppi) &&  ppi->t1.scaled_nsecs==0 && ppi->t1.secs==0 ) {
+		/* First time we receive the SYNC message in uncalib/slave state
+		 * We set the REQUEST time-out to the minDelayReqInterval/2 value (500ms)
+		 * in order to provide quickly a DelayReq message
+		 */
+		pp_timeout_set(ppi, PP_TO_REQUEST, (1000*(1<<PP_MIN_MIN_DELAY_REQ_INTERVAL))/2);
+	}
 	/* t2 may be overriden by follow-up, save it immediately */
 	ppi->t2 = ppi->last_rcv_time;
 	msg_unpack_sync(buf, &sync);
@@ -50,25 +62,34 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 		ppi->recv_sync_sequence_id = hdr->sequenceId;
 		/* for two-step, the stamp comes later */
 		ppi->t1 = hdr->cField; /* most likely 0 */
-		return 0;
+	} else {
+		/* one-step follows */
+		ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
+		ppi->t1 = sync.originTimestamp;
+		pp_time_add(&ppi->t1, &hdr->cField);
+		ppi->syncCF = 0;
+		/* t1 & t2 are saved in the instance. Check if they are correct */
+		if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
+			return 0;
+
+		/* Call the extension; it may do it all and ask to return */
+		if ( is_ext_hook_available(ppi,handle_sync) ) {
+			int ret = ppi->ext_hooks->handle_sync(ppi);
+			if (ret == 1)
+				return 0;
+			if (ret < 0)
+				return ret;
+		}
+		pp_servo_got_sync(ppi,1);
 	}
-	/* one-step folllows */
-	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
-	ppi->t1 = sync.originTimestamp;
-	pp_time_add(&ppi->t1, &hdr->cField);
-	ppi->syncCF = 0;
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
-		pp_servo_got_psync(ppi);
-	else
-		pp_servo_got_sync(ppi);
 	return 0;
 }
 
 static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 				 int len)
 {
+	static int errcount=0;
 	MsgFollowUp follow;
-	int ret = 0;
 
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
@@ -97,19 +118,19 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 	pp_time_add(&ppi->t1, &follow.preciseOriginTimestamp);
 	pp_time_add(&ppi->t1, &hdr->cField);
 	ppi->syncCF = hdr->cField.scaled_nsecs; /* for diag about TC */
-
-	/* Call the extension; it may do it all and ask to return */
-	if (pp_hooks.handle_followup)
-		ret = pp_hooks.handle_followup(ppi, &ppi->t1);
-	if (ret == 1)
+	/* t1 & t2 are saved in the instance. Check if they are correct */
+	if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
 		return 0;
-	if (ret < 0)
-		return ret;
-
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
-		pp_servo_got_psync(ppi);
-	else
-		pp_servo_got_sync(ppi);
+	/* Call the extension; it may do it all and ask to return */
+	if (is_ext_hook_available(ppi,handle_followup) ){
+		int ret = ppi->ext_hooks->handle_followup(ppi);
+		if (ret == 1)
+			return 0;
+		if (ret < 0)
+			return ret;
+	}
+	/* default servo action */
+	pp_servo_got_sync(ppi,0);
 
 	return 0;
 }
@@ -117,39 +138,50 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 static int slave_handle_response(struct pp_instance *ppi, void *buf,
 				 int len)
 {
-	int e = 0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgDelayResp resp;	
+	int ret;
 	
 	msg_unpack_delay_resp(buf, &resp);
 
 	if ((bmc_idcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
 		    &resp.requestingPortIdentity.clockIdentity) != 0) ||
-	    ((ppi->sent_seq[PPM_DELAY_REQ]) !=
-	     hdr->sequenceId) ||
-	    (DSPOR(ppi)->portIdentity.portNumber !=
-	     resp.requestingPortIdentity.portNumber) ||
+	    (ppi->sent_seq[PPM_DELAY_REQ] != hdr->sequenceId)   ||
+	    (DSPOR(ppi)->portIdentity.portNumber != resp.requestingPortIdentity.portNumber) ||
 	    (!msg_from_current_master(ppi))) {
-		pp_diag(ppi, frames, 1, "pp_slave : "
-			"Delay Resp doesn't match Delay Req (f %x)\n",
+		pp_diag(ppi, frames, 1, "%s : "
+			"Delay Resp doesn't match Delay Req (f %x)\n",__func__,
 			ppi->flags);
 		return 0;
 	}
 
 	ppi->t4 = resp.receiveTimestamp;
-	pp_time_add(&ppi->t4, &hdr->cField);
-	/* WARNING: should be "sub" (see README-cfield::BUG)  */
+	if ( is_ext_hook_available(ppi,is_correction_field_compliant) &&
+			!ppi->ext_hooks->is_correction_field_compliant(ppi) ) {
+		/* Not compliant with CF */
+		pp_time_add(&ppi->t4, &hdr->cField);
+	} else{
+		/* We subtract the received CF and the current delayAsymmetry */
+		struct pp_time delayAsym={
+				.secs=0,
+				.scaled_nsecs=ppi->portDS->delayAsymmetry
+		};
 
-	pp_timeout_set(ppi, PP_TO_FAULT);
-	if (pp_hooks.handle_resp)
-		e = pp_hooks.handle_resp(ppi);
-	else
-		pp_servo_got_resp(ppi);
-	if (e)
-		return e;
+		pp_time_sub(&ppi->t4, &hdr->cField);
+		pp_time_sub(&ppi->t4, &delayAsym);
+	}
 
-	if (DSPOR(ppi)->logMinDelayReqInterval !=
-	    hdr->logMessageInterval) {
+	if (is_ext_hook_available(ppi,handle_resp)) {
+		ret=ppi->ext_hooks->handle_resp(ppi);
+	}
+	else {
+		if ( (ret=pp_servo_got_resp(ppi,1)) && !ppi->ext_enabled ) {
+			ppi->link_state=PP_LSTATE_LINKED;
+		}
+	}
+
+	if ( ret &&
+			DSPOR(ppi)->logMinDelayReqInterval !=hdr->logMessageInterval) {
 		DSPOR(ppi)->logMinDelayReqInterval =
 			hdr->logMessageInterval;
 		/* new value for logMin */
@@ -160,36 +192,46 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 
 static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
-	int ret = 0;
+	int ret;
 	struct pp_frgn_master frgn_master;
 					  
-	ret = st_com_handle_announce(ppi, buf, len);
-	if (ret)
+	if ((ret = st_com_handle_announce(ppi, buf, len))!=0)
 		return ret;
-	
-	if (!msg_from_current_master(ppi))
-		return 0;
-	
-	/* 9.2.6.11 a) reset timeout */
-	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
-	/* 9.5.3 Figure 29 update data set if announce from current master */
+
+	/* If externalPortConfiguration option is set, we consider that all
+	 * announce messages come from the current master.
+	 */
 	bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+
+	/*  Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 *  - The specifications of 9.5.3 shall be replaced by the specifications of 17.6.5.5
+	 */
+	if (!is_externalPortConfigurationEnabled(DSDEF(ppi)) )  {
+		if ( !msg_from_current_master(ppi) ) {
+			pp_error("%s: Announce message is not from current parent\n",
+				__func__);
+
+			/* Clause 9.2.2.2 MasterOnly PTP ports :
+			 * Announce messages received on a masterOnly PTP Port shall not be considered
+			 * in the operation of the best master clock algorithm or in the update of data sets.
+			 */
+			if ( ! DSPOR(ppi)->masterOnly) {
+				bmc_add_frgn_master(ppi, &frgn_master);
+			}
+
+			return 0;
+		}
+		/* 9.2.6.11 a) reset timeout */
+		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+	}
+
+	/* Add foreign master: Figure 36 & 54 */
+	bmc_add_frgn_master(ppi, &frgn_master);
+
+	/* 9.5.3 Figure 29 update data set if announce from current master */
 	bmc_s1(ppi, &frgn_master);
 	
-	return 0;
-}
-
-static int slave_execute(struct pp_instance *ppi)
-{
-	int ret = 0;
-
-	if (pp_hooks.execute_slave)
-		ret = pp_hooks.execute_slave(ppi);
-	if (ret == 1) /* done: just return */
-		return 0;
-	if (ret < 0)
-		return ret;
-
 	return 0;
 }
 
@@ -199,35 +241,40 @@ static int slave_execute(struct pp_instance *ppi)
  */
 int pp_slave(struct pp_instance *ppi, void *buf, int len)
 {
-	int e = 0; /* error var, to check errors in msg handling */
-	int uncalibrated = (ppi->state == PPS_UNCALIBRATED);
+	int ret = PP_SEND_OK; /* error var, to check errors in msg handling */
+	Boolean uncalibrated = (ppi->state == PPS_UNCALIBRATED);
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
 	/* upgrade from uncalibrated to slave or back*/
 	if (uncalibrated) {
-		/* TODO add implementation specific MASTER_CLOCK_SELECTED event
-		   for now just change directly to new state on next round */
-		ppi->next_state = PPS_SLAVE;
-	} else {
-		/* TODO add implementation specific SYNCHRONIZATION FAULT
-		 * event */
-		if (pp_timeout(ppi, PP_TO_FAULT))
-			ppi->next_state = PPS_UNCALIBRATED;
+		if ( is_ext_hook_available(ppi,ready_for_slave) )  {
+			if ( (*ppi->ext_hooks->ready_for_slave)(ppi) ) {
+				ppi->next_state = PPS_SLAVE;
+			}
+		} else {
+	           ppi->next_state = PPS_SLAVE;
+		}
 	}
 
+	/* Force to stay on desired state if externalPortConfiguration option is enabled */
+	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) &&
+			ppi->next_state == PPS_SLAVE &&
+			ppi->externalPortConfigurationPortDS.desiredState==PPS_UNCALIBRATED)
+		ppi->next_state = PPS_UNCALIBRATED; //Force to stay in uncalibrated state
+
 	/* when entering uncalibrated init servo */
-	if ((ppi->state == PPS_UNCALIBRATED) && (ppi->is_new_state)) {
+	if (uncalibrated && (ppi->is_new_state)) {
 		memset(&ppi->t1, 0, sizeof(ppi->t1));
 		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");	
 		pp_servo_init(ppi);
 
-		if (pp_hooks.new_slave)
-			e = pp_hooks.new_slave(ppi, buf, len);
-		if (e)
+		if (is_ext_hook_available(ppi,new_slave))
+			ret = ppi->ext_hooks->new_slave(ppi, buf, len);
+		if (ret!=PP_SEND_OK)
 			goto out;
 	}
 
-	/* do a delay mesurement either in p2p or e2e delay mode */
+	/* do a delay measurement either in p2p or e2e delay mode */
 	pp_lib_may_issue_request(ppi);
 	
 	/*
@@ -235,36 +282,27 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	 */
 	if (hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
-		e = actions[hdr->messageType](ppi, buf, len);
+		ret = actions[hdr->messageType](ppi, buf, len);
 	} else {
 		if (len)
 			pp_diag(ppi, frames, 1, "Ignored frame %i\n",
 				hdr->messageType);
 	}
 
-	/*
-	 * This function, common to uncalibrated and slave,
-	 * is the core of the slave: hook
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
 	 */
-	e = slave_execute(ppi);
-
-	st_com_check_announce_receive_timeout(ppi);
+	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)))
+		st_com_check_announce_receive_timeout(ppi);
 
 out:
-	switch(e) {
-	case PP_SEND_OK: /* 0 */
-		break;
-	case PP_SEND_ERROR:
-		/* ignore: a lost frame is not the end of the world */
-		break;
-	case PP_SEND_NO_STAMP:
-		/* nothing, just keep the ball rolling */
-		e = 0;
-		break;
+	if ( ret==PP_SEND_NO_STAMP ) {
+		ret = PP_SEND_OK;/* nothing, just keep the ball rolling */
 	}
 
-	ppi->next_delay = pp_next_delay_2(ppi,
-		PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
-	return e;
+	ppi->next_delay = is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
+			pp_next_delay_1(ppi,PP_TO_REQUEST) :
+			pp_next_delay_2(ppi,PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+	return ret;
 }
 

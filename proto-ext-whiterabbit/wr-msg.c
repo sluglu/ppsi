@@ -8,7 +8,6 @@
  */
 
 #include <ppsi/ppsi.h>
-#include "wr-api.h"
 #include "../proto-standard/common-fun.h"
 
 /*
@@ -56,7 +55,8 @@ static inline UInteger16 get_be16(void *ptr)
 void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 {
 	void *buf;
-	UInteger16 wr_flags = 0;
+	UInteger16 wr_flags;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	buf = ppi->tx_ptp;
 
@@ -73,17 +73,17 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 		| WR_TLV_WR_VERSION_NUMBER)));
 	/* wrMessageId */
 	*(UInteger16 *)(buf + 74) = htons(ANN_SUFIX);
-	wr_flags = wr_flags | WR_DSPOR(ppi)->wrConfig;
 
-	if (WR_DSPOR(ppi)->calibrated)
-		wr_flags = WR_IS_CALIBRATED | wr_flags;
+	wr_flags = wrp->wrConfig;
+	if (wrp->calibrated)
+		wr_flags |= WR_IS_CALIBRATED;
 
-	if (WR_DSPOR(ppi)->wrModeOn)
-		wr_flags = WR_IS_WR_MODE | wr_flags;
+	if (wrp->wrModeOn)
+		wr_flags |= WR_IS_WR_MODE;
 	*(UInteger16 *)(buf + 76) = htons(wr_flags);
 }
 
-void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
+void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann, UInteger16 *wrFlags)
 {
 	UInteger16 tlv_type;
 	UInteger32 tlv_organizationID;
@@ -92,23 +92,23 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 	UInteger16 tlv_wrMessageID;
 
 	tlv_type = (UInteger16)get_be16(buf+64);
-	tlv_organizationID = htons(*(UInteger16 *)(buf+68)) << 8;
-	tlv_organizationID = htons(*(UInteger16 *)(buf+70)) >> 8
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf+68)) << 8;
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf+70)) >> 8
 		| tlv_organizationID;
-	tlv_magicNumber = 0xFF00 & (htons(*(UInteger16 *)(buf+70)) << 8);
-	tlv_magicNumber = htons(*(UInteger16 *)(buf+72)) >> 8
+	tlv_magicNumber = 0xFF00 & (ntohs(*(UInteger16 *)(buf+70)) << 8);
+	tlv_magicNumber = ntohs(*(UInteger16 *)(buf+72)) >> 8
 		| tlv_magicNumber;
-	tlv_versionNumber = 0xFF & htons(*(UInteger16 *)(buf+72));
-	tlv_wrMessageID = htons(*(UInteger16 *)(buf+74));
+	tlv_versionNumber = 0xFF & ntohs(*(UInteger16 *)(buf+72));
+	tlv_wrMessageID = ntohs(*(UInteger16 *)(buf+74));
 
 	if (tlv_type == TLV_TYPE_ORG_EXTENSION &&
 		tlv_organizationID == WR_TLV_ORGANIZATION_ID &&
 		tlv_magicNumber == WR_TLV_MAGIC_NUMBER &&
 		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
 		tlv_wrMessageID == ANN_SUFIX) {
-		ann->ext_specific = (UInteger16)get_be16(buf+76);
+		*wrFlags= (UInteger16)get_be16(buf+76);
 	} else
-		ann->ext_specific = 0; 		
+		*wrFlags = 0;
 }
 
 /* White Rabbit: packing WR Signaling messages*/
@@ -116,13 +116,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 {
 	void *buf;
 	UInteger16 len = 0;
-
-	if ((WR_DSPOR(ppi)->wrMode == NON_WR) || (wr_msg_id == ANN_SUFIX)) {
-		pp_diag(ppi, frames, 1,
-			  "BUG: Trying to send invalid wr_msg mode=%x id=%x",
-			  WR_DSPOR(ppi)->wrMode, wr_msg_id);
-		return 0;
-	}
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	buf = ppi->tx_ptp;
 
@@ -152,7 +146,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 
 	switch (wr_msg_id) {
 	case CALIBRATE:
-		if (WR_DSPOR(ppi)->calibrated) {
+		if (wrp->calibrated) {
 			put_be16(buf+56,
 				 (WR_DSPOR(ppi)->calRetry | 0x0000));
 		} else {
@@ -163,16 +157,15 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 		len = 14;
 		break;
 
-	case CALIBRATED: /* new fsm */
+	case CALIBRATED:
 		/* delta TX */
-		put_be32(buf+56, WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.msb);
-		put_be32(buf+60, WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.lsb);
+		put_be32(buf+56, wrp->deltaTx.scaledPicoseconds.msb);
+		put_be32(buf+60, wrp->deltaTx.scaledPicoseconds.lsb);
 
 		/* delta RX */
-		put_be32(buf+64, WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.msb);
-		put_be32(buf+68, WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.lsb);
+		put_be32(buf+64, wrp->deltaRx.scaledPicoseconds.msb);
+		put_be32(buf+68, wrp->deltaRx.scaledPicoseconds.lsb);
 		len = 24;
-
 		break;
 
 	default:
@@ -198,19 +191,20 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	UInteger16 tlv_magicNumber;
 	UInteger16 tlv_versionNumber;
 	Enumeration16 wr_msg_id;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	memcpy(&wrsig_msg->targetPortIdentity.clockIdentity, (buf + 34),
 	       PP_CLOCK_IDENTITY_LENGTH);
 	wrsig_msg->targetPortIdentity.portNumber = (UInteger16)get_be16(buf+42);
 
 	tlv_type           = (UInteger16)get_be16(buf + 44);
-	tlv_organizationID = htons(*(UInteger16 *)(buf + 48)) << 8;
-	tlv_organizationID = htons(*(UInteger16 *)(buf + 50)) >> 8
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf + 48)) << 8;
+	tlv_organizationID = ntohs(*(UInteger16 *)(buf + 50)) >> 8
 				| tlv_organizationID;
-	tlv_magicNumber = 0xFF00 & (htons(*(UInteger16 *)(buf + 50)) << 8);
-	tlv_magicNumber = htons(*(UInteger16 *)(buf + 52)) >>  8
+	tlv_magicNumber = 0xFF00 & (ntohs(*(UInteger16 *)(buf + 50)) << 8);
+	tlv_magicNumber = ntohs(*(UInteger16 *)(buf + 52)) >>  8
 				| tlv_magicNumber;
-	tlv_versionNumber = 0xFF & htons(*(UInteger16 *)(buf + 52));
+	tlv_versionNumber = 0xFF & ntohs(*(UInteger16 *)(buf + 52));
 
 	if (tlv_type != TLV_TYPE_ORG_EXTENSION) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, This is not "
@@ -236,7 +230,7 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		return;
 	}
 
-	wr_msg_id = htons(*(UInteger16 *)(buf + 54));
+	wr_msg_id = ntohs(*(UInteger16 *)(buf + 54));
 
 	if (pwr_msg_id) {
 		*pwr_msg_id = wr_msg_id;
@@ -244,11 +238,11 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 
 	switch (wr_msg_id) {
 	case CALIBRATE:
-		WR_DSPOR(ppi)->otherNodeCalSendPattern =
+		wrp->otherNodeCalSendPattern =
 			0x00FF & (get_be16(buf+56) >> 8);
-		WR_DSPOR(ppi)->otherNodeCalRetry =
+		wrp->otherNodeCalRetry =
 			0x00FF & get_be16(buf+56);
-		WR_DSPOR(ppi)->otherNodeCalPeriod = get_be32(buf+58);
+		wrp->otherNodeCalPeriod = get_be32(buf+58);
 
 		pp_diag(ppi, frames, 1, "otherNodeCalPeriod "
 			"from frame = 0x%x | stored = 0x%x \n", get_be32(buf+58),
@@ -258,15 +252,15 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 
 	case CALIBRATED:
 		/* delta TX */
-		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds.msb =
+		wrp->otherNodeDeltaTx.scaledPicoseconds.msb =
 			get_be32(buf+56);
-		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds.lsb =
+		wrp->otherNodeDeltaTx.scaledPicoseconds.lsb =
 			get_be32(buf+60);
 
 		/* delta RX */
-		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds.msb =
+		wrp->otherNodeDeltaRx.scaledPicoseconds.msb =
 			get_be32(buf+64);
-		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds.lsb =
+		wrp->otherNodeDeltaRx.scaledPicoseconds.lsb =
 			get_be32(buf+68);
 		break;
 
@@ -282,5 +276,5 @@ int msg_issue_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 {
 	int len = msg_pack_wrsig(ppi, wr_msg_id);
 
-	return __send_and_log(ppi, len, PP_NP_GEN);
+	return __send_and_log(ppi, len, PP_NP_GEN,PPM_SIGNALING_FMT);
 }

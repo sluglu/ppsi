@@ -28,7 +28,7 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-d STRING", "diagnostic level (see diag-macros.h)"},
 	CMD_LINE_SEPARATOR,
 	{"-t", "do not adjust the system clock"},
-	{"-w NUMBER", "specify meanPathDelay filter stiffness"},
+	{"-w NUMBER", "specify meanDelay filter stiffness"},
 	CMD_LINE_SEPARATOR,
 	//{"-u ADDRESS", "also send uni-cast to ADDRESS\n"}, -- FIXME: useful?
 	{"-g", "run as slave only"},
@@ -53,7 +53,6 @@ static void cmd_line_print_help(void)
 int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 {
 	int i, err = 0;
-	int j;
 	char *a; /* cmd line argument */
 
 	for (i = 1; i < argc; i++) {
@@ -89,13 +88,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 		case 'w':
 			a = argv[++i];
 			GOPTS(ppg)->s = atoi(a);
-			break;
-		case 'g':
-			GOPTS(ppg)->clock_quality.clockClass
-				= PP_CLASS_SLAVE_ONLY;
-			/* Apply -g option globally, to each configured link */
-			for (j = 0; j < ppg->nlinks; j++)
-				INST(ppg, j)->role = PPSI_ROLE_SLAVE;
 			break;
 		case 'h':
 			/* ignored: was "GOPTS(ppg)->e2e_mode = 1;" */

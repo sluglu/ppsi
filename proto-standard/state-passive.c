@@ -29,19 +29,35 @@ static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	int ret = 0;
 	MsgHeader *hdr = &ppi->received_ptp_header;
-	struct pp_frgn_master *erbest = &ppi->frgn_master[ppi->frgn_rec_best];
+	struct pp_frgn_master *erbest = ppi->frgn_rec_best!=-1 ? &ppi->frgn_master[ppi->frgn_rec_best] : NULL;
 	
 	ret = st_com_handle_announce(ppi, buf, len);
 	if (ret)
 		return ret;
 	
-	if (!bmc_pidcmp(&hdr->sourcePortIdentity,
-		&erbest->sourcePortIdentity)) {
-		/* 
-		 * 9.2.6.11 d) reset timeout when an announce
-		 * is received from the clock putting it into passive (erbest)
-		 */
-		pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
+	/* Clause 9.2.2.2 MasterOnly PTP ports :
+	 * Announce messages received on a masterOnly PTP Port shall not be considered
+	 * in the operation of the best master clock algorithm or in the update of data sets.
+	 */
+	if ( ! DSPOR(ppi)->masterOnly) {
+		struct pp_frgn_master frgn_master;
+
+		bmc_store_frgn_master(ppi, &frgn_master, buf, len);
+		bmc_add_frgn_master(ppi, &frgn_master);
+	}
+
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if (! is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		if (erbest!=NULL && !bmc_pidcmp(&hdr->sourcePortIdentity,
+			&erbest->sourcePortIdentity)) {
+			/*
+			 * 9.2.6.11 d) reset timeout when an announce
+			 * is received from the clock putting it into passive (erbest)
+			 */
+			pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+		}
 	}
 	
 	return 0;
@@ -52,11 +68,8 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we are
-					   * passive */
-
 	/* when the clock is using peer-delay, passive must send it too */
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
+	if ( is_delayMechanismP2P(ppi) )
 		e  = pp_lib_may_issue_request(ppi);
 
 	/*
@@ -71,21 +84,22 @@ int pp_passive(struct pp_instance *ppi, void *buf, int len)
 				hdr->messageType);
 	}
 
-	st_com_check_announce_receive_timeout(ppi);
-
-	if (pp_timeout(ppi, PP_TO_FAULT))
-		ppi->next_state = PPS_FAULTY;
-
-	if (e != 0)
-		ppi->next_state = PPS_FAULTY;
-
-	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
-		ppi->next_delay = pp_next_delay_2(ppi, 
-			PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 */
+	if ( is_externalPortConfigurationEnabled(DSDEF(ppi))) {
+		ppi->next_delay = is_delayMechanismP2P(ppi) ?
+				pp_next_delay_1(ppi,PP_TO_REQUEST) :
+				INT_MAX;
 	} else {
-		ppi->next_delay = pp_next_delay_1(ppi, 
-			PP_TO_ANN_RECEIPT);
+		st_com_check_announce_receive_timeout(ppi);
+		ppi->next_delay = is_delayMechanismP2P(ppi) ?
+				pp_next_delay_2(ppi,PP_TO_ANN_RECEIPT, PP_TO_REQUEST) :
+				pp_next_delay_1(ppi,PP_TO_ANN_RECEIPT);
+
+		if ( e !=0 )
+			ppi->next_state = PPS_FAULTY;
 	}
-	
+
 	return e;
 }

@@ -9,7 +9,7 @@ STRIP           = $(CROSS_COMPILE)strip
 OBJCOPY         = $(CROSS_COMPILE)objcopy
 OBJDUMP         = $(CROSS_COMPILE)objdump
 
-CFLAGS = -Wall -ggdb -O2 -fno-strict-aliasing
+CFLAGS = -Wall $(CFLAGS_OPTIMIZATION)  -fno-strict-aliasing
 LDFLAGS = -L. -lminipc -lm
 
 # We need to support freestading environments: an embedded CPU that
@@ -36,7 +36,7 @@ export IPC_FREESTANDING IPC_HOSTED
 
 
 all: $(LIB)
-	$(MAKE) -C examples
+	$(MAKE) -C examples CFLAGS_OPTIMIZATION="$(CFLAGS_OPTIMIZATION)"
 
 $(LIB): $(OBJ-y)
 	$(AR) r $@ $^

@@ -21,9 +21,11 @@ typedef uint8_t		Octet;
 typedef int8_t		Integer8;
 typedef int16_t		Integer16;
 typedef int32_t		Integer32;
+typedef int64_t		Integer64;
 typedef uint8_t		UInteger8;
 typedef uint16_t	UInteger16;
 typedef uint32_t	UInteger32;
+typedef uint64_t	UInteger64;
 /* Enumerations are unsigned, see 5.4.2, page 15 */
 typedef uint16_t	Enumeration16;
 typedef uint8_t		Enumeration8;
@@ -38,29 +40,56 @@ typedef struct UInteger48 {
 	uint16_t	msb;
 } UInteger48;
 
-typedef struct Integer64 {
+typedef struct _Integer64 { /* TODO : Should be replaced by Integer64 */
 	uint32_t	lsb;
 	int32_t		msb;
-} Integer64;
+} _Integer64;
 
-typedef struct UInteger64 {
+typedef struct _UInteger64 { /*/* TODO : Should be replaced by UInteger64 */
 	uint32_t	lsb;
 	uint32_t	msb;
-} UInteger64;
+} _UInteger64;
 
-struct TimeInterval { /* page 12 (32) -- never used */
-	Integer64	scaledNanoseconds;
-};
+/* Page 19 :the time interval is expressed in units of nanoseconds and multiplied by 2 +16 */
+#define TIME_INTERVAL_FRACBITS 16
+#define TIME_INTERVAL_FRACMASK 0xFFFF
+#define TIME_INTERVAL_FRACBITS_AS_FLOAT 16.0
+#define TIME_INTERVAL_ROUNDING_VALUE (1<<(TIME_INTERVAL_FRACBITS-1))
+
+/* Min/max value expressed in picos (int64_t) which can be stored in a TimeInterval type */
+#define TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64 ((int64_t) 0xFE0C000000000000)
+#define TIME_INTERVAL_MAX_PICOS_VALUE_AS_INT64 ((int64_t) 0x1F3FFFFFFFFFC18)
+
+typedef Integer64 TimeInterval;
 
 /* White Rabbit extension */
 typedef struct FixedDelta {
-	UInteger64	scaledPicoseconds;
+	_UInteger64	scaledPicoseconds;
 } FixedDelta;
 
 typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 	UInteger48	secondsField;
 	UInteger32	nanosecondsField;
 } Timestamp;
+
+/** ******************* IEEE1588-2018 **************************************/
+#define REL_DIFF_FRACBITS 62
+#define REL_DIFF_FRACBITS_AS_FLOAT 62.0
+#define REL_DIFF_TWO_POW_FRACBITS  ((double)4.611686018427388E18) /* double value returned by pow(2.0,62.0) */
+#define REL_DIFF_FRACMASK 0x3fffffffffffffff
+
+/* Min/max values for  RelativeDifference type */
+#define RELATIVE_DIFFERENCE_MIN_VALUE  (((int64_t)-1)<<REL_DIFF_FRACBITS) /* INT64_MIN */
+#define RELATIVE_DIFFERENCE_MAX_VALUE  (((int64_t) 1)<<REL_DIFF_FRACBITS) /* INT64_MAX */
+#define RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE  -1.0 /*-2.0*/
+#define RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE   1.0 /*1.9999999999999989 */
+
+/*draft P1588_v_29: page 17*/
+/* The scaledRelativeDifference member is the relative difference expressed
+ * as a dimensionless fraction and multiplied by 2+^62, with any remaining
+ * fractional part truncated. */
+typedef Integer64 RelativeDifference;
+
 
 typedef struct ClockIdentity { /* page 13 (33) */
 	Octet id[8];
@@ -122,7 +151,7 @@ typedef struct MsgHeader {
 
 /* Announce Message (table 25, page 129) */
 typedef struct MsgAnnounce {
-	Timestamp	originTimestamp;
+	struct pp_time	originTimestamp;
 	Integer16	currentUtcOffset;
 	UInteger8	grandmasterPriority1;
 	ClockQuality	grandmasterClockQuality;
@@ -130,7 +159,6 @@ typedef struct MsgAnnounce {
 	ClockIdentity	grandmasterIdentity;
 	UInteger16	stepsRemoved;
 	Enumeration8	timeSource;
-	unsigned long	ext_specific;	/* used by extension */
 } MsgAnnounce;
 
 /* Sync Message (table 26, page 129) */
@@ -172,14 +200,14 @@ typedef struct MsgPDelayRespFollowUp {
 	PortIdentity	requestingPortIdentity;
 } MsgPDelayRespFollowUp;
 
-/* Signaling Message (table 33, page 133) */
+/* Signaling Message (Table 51 : Signaling message fields) */
 typedef struct MsgSignaling {
 	PortIdentity	targetPortIdentity;
 	char		*tlv;
 } MsgSignaling;
 
 /* Management Message (table 37, page 137) */
-typedef struct MsgManagement{
+typedef struct {
 	PortIdentity	targetPortIdentity;
 	UInteger8	startingBoundaryHops;
 	UInteger8	boundaryHops;
@@ -188,7 +216,7 @@ typedef struct MsgManagement{
 } MsgManagement;
 
 /* Default Data Set */
-typedef struct DSDefault {		/* page 65 */
+typedef struct {		/* page 65 */
 	/* Static */
 	Boolean		twoStepFlag;
 	ClockIdentity	clockIdentity;
@@ -200,21 +228,29 @@ typedef struct DSDefault {		/* page 65 */
 	UInteger8	priority2;
 	UInteger8	domainNumber;
 	Boolean		slaveOnly;
-} DSDefault;
+	/** Optional (IEEE1588-2018) */
+	Timestamp	currentTime;               /*draft P1588_v_29: page 85*/
+	Boolean		instanceEnable;            /*draft P1588_v_29: page 86*/
+	Boolean	        externalPortConfigurationEnabled; /*draft P1588_v_29: page 86*/
+	Enumeration8	maxStepsRemoved;           /*draft P1588_v_29: page 86 (bug)*/
+	Enumeration8	SdoId;                     /*draft P1588_v_29: page 86 (bug)*/
+	Enumeration8	instanceType;              /*draft P1588_v_29: page 86 */
+	/** *********************** */
+} defaultDS_t;
 
 /* Current Data Set */
-typedef struct DSCurrent {		/* page 67 */
+typedef struct {		/* page 67 */
 	/* Dynamic */
 	UInteger16	stepsRemoved;
-	struct pp_time	offsetFromMaster;
-	struct pp_time	meanPathDelay; /* oneWayDelay */
+	TimeInterval	offsetFromMaster; /* page 112 */
+	TimeInterval	meanDelay; /* page 112 : one Way Delay */
 	/* White Rabbit extension begin */
 	UInteger16	primarySlavePortNumber;
 	/* White Rabbit extension end */
-} DSCurrent;
+} currentDS_t;
 
 /* Parent Data Set */
-typedef struct DSParent {		/* page 68 */
+typedef struct  {		/* page 68 */
 	/* Dynamic */
 	PortIdentity	parentPortIdentity;
 	/* Boolean	parentStats; -- not used */
@@ -224,10 +260,10 @@ typedef struct DSParent {		/* page 68 */
 	ClockQuality	grandmasterClockQuality;
 	UInteger8	grandmasterPriority1;
 	UInteger8	grandmasterPriority2;
-} DSParent;
+} parentDS_t;
 
 /* Port Data set */
-typedef struct DSPort {			/* page 72 */
+typedef struct  {			/* page 72 */
 	/* Static */
 	PortIdentity	portIdentity;
 	/* Dynamic */
@@ -241,10 +277,20 @@ typedef struct DSPort {			/* page 72 */
 	UInteger4	versionNumber;
 
 	void		*ext_dsport;
-} DSPort;
+	/** (IEEE1588-2018) */
+	Integer8	       logMinPdelayReqInterval;      /*draft P1588_v_29: page 124 */
+	UInteger4	       minorVersionNumber;           /*draft P1588_v_29: page 124 */
+	TimeInterval       delayAsymmetry;               /*draft P1588_v_29: page 124 */
+	TimeInterval       meanLinkDelay;                /* P2P: estimation of the current one-way propagation delay */
+	/** Optional: */
+	Boolean		       portEnable;                   /*draft P1588_v_29: page 124 */
+	Boolean		       masterOnly;                   /*draft P1588_v_29: page 124 */
+	/** *********************** */
+	RelativeDifference delayAsymCoeff; /* alpha/(alpha+2). Used to compute delayAsymmetry */
+} portDS_t;
 
 /* Time Properties Data Set */
-typedef struct DSTimeProperties {	/* page 70 */
+typedef struct  {	/* page 70 */
 	/* Dynamic */
 	Integer16	currentUtcOffset;
 	Boolean		currentUtcOffsetValid;
@@ -254,10 +300,61 @@ typedef struct DSTimeProperties {	/* page 70 */
 	Boolean		frequencyTraceable;
 	Boolean		ptpTimescale;
 	Enumeration8	timeSource;
-} DSTimeProperties;
+} timePropertiesDS_t;
 
+/** ******************* IEEE1588-2018 **************************************
+ * Adding new optional data sets (DS) defined in clause, only these relevant
+ * for HA
+ */
+typedef struct { /*draft P1588_v_29: page 118 */
+	Octet		manufacturerIdentity[3];
+	struct PTPText	productDescription;
+	struct PTPText	productRevision;
+	struct PTPText	userDescription;
+} descriptionDS_t;
+/* Optional, not implemented, Instance DS:
+ * faultLogDS:                       draft P1588_v_29: page 93
+ * nonvolatileStorageDS              draft P1588_v_29: page 94
+ * pathTraceDS                       draft P1588_v_29: page 95
+ * alternateTimescaleOffsetsDS       draft P1588_v_29: page 95
+ * holdoverUpgradeDS                 draft P1588_v_29: page 95
+ * grandmasterClusterDS              draft P1588_v_29: page 95
+ * acceptableMasterTableDS           draft P1588_v_29: page 95
+ * clockPerformanceMonitoringDS      draft P1588_v_29: page 95
+ *
+ * Optional, not implemented, port DS
+ * descriptionPortDS                 draft P1588_v_29: page 99
+ * unicastNegotiationDS              draft P1588_v_29: page 100
+ * alternateMasterDS                 draft P1588_v_29: page 100
+ * unicastDiscoveryDS                draft P1588_v_29: page 100
+ * acceptableMasterPortDS            draft P1588_v_29: page 100
+ * performanceMonitoringPortDS       draft P1588_v_29: page 101
+ *
+ * For Transparent Clocks, not implemented
+ * transparentClockDefaultDS		draft P1588_v_29: page 102
+ * transparentClockPortDS		draft P1588_v_29: page 103
+ */
+typedef struct  { /*draft P1588_v_29: page 128*/
+	TimeInterval egressLatency;
+	TimeInterval ingressLatency;
+	TimeInterval messageTimestampPointLatency;
+	/* Not in specification */
+	TimeInterval semistaticLatency;
+} timestampCorrectionPortDS_t;
+
+typedef struct  { /*draft P1588_v_29: page129*/
+	TimeInterval	constantAsymmetry;
+	RelativeDifference	scaledDelayCoefficient;
+	Boolean enable;
+} asymmetryCorrectionPortDS_t;
+
+typedef struct {/*draft P1588_v_29: Clause 17.6.3 */
+	Enumeration8 desiredState; /* draft P1588_v_29: Clause 17.6.3.2 */
+}externalPortConfigurationPortDS_t;
+
+/** ************************************************************************/
 /* Enumeration States (table 8, page 73) */
-enum pp_std_states {
+typedef enum  {
 	PPS_END_OF_TABLE	= 0,
 	PPS_INITIALIZING,
 	PPS_FAULTY,
@@ -269,9 +366,9 @@ enum pp_std_states {
 	PPS_UNCALIBRATED,
 	PPS_SLAVE,
 	PPS_LAST_STATE=PPS_SLAVE
-};
+}pp_std_states;
 
-enum pp_std_messages {
+typedef enum  {
 	PPM_SYNC		= 0x0,
 	PPM_DELAY_REQ,
 	PPM_PDELAY_REQ,
@@ -286,7 +383,8 @@ enum pp_std_messages {
 	/* NO_MESSAGE means "no message received", or "eaten by hook" */
 	PPM_NO_MESSAGE,
 
-};
+	PPM_NOTHING_TO_DO	= 0x100, /* for hooks.master_msg() */
+}pp_std_messages;
 
 /* Enumeration Domain Number (table 2, page 41) */
 enum ENDomainNumber {
@@ -318,11 +416,13 @@ enum ENTimeSource {
 	INTERNAL_OSCILLATOR	= 0xA0
 };
 
-/* Enumeration Delay mechanism (table 9, page 74) */
+/* Enumeration Delay mechanism (table 21, page 126) */
 enum ENDelayMechanism {
-	E2E		= 1,
-	P2P		= 2,
-	DELAY_DISABLED	= 0xFE
+	E2E		      = 1,
+	P2P		      = 2,
+	COMMON_P2P    = 3,
+	SPECIAL       = 4,
+	NO_MECHANISM  = 0xFE
 };
 
 #endif /* __PPSI_IEEE_1588_TYPES_H__ */

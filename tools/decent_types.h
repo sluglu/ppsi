@@ -74,3 +74,11 @@ struct ptp_tlv { /* page 135 (155) */
 	uint8_t		subtype[3];
 	uint8_t		data[0];
 } __attribute__((packed));
+
+struct l1sync_tlv { /* page 135 (155) */
+	uint16_t	type;
+	uint16_t	len;
+	uint8_t		config;
+	uint8_t		active;
+	uint8_t		data[0];
+} __attribute__((packed));

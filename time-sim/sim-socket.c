@@ -161,10 +161,10 @@ static int sim_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	return ret;
 }
 
-static int sim_net_send(struct pp_instance *ppi, void *pkt, int len,
-			int msgtype)
+static int sim_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_format msg_fmt)
 {
-	int chtype = pp_msgtype_info[msgtype].chtype;
+	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	int chtype = mf->chtype;
 	struct pp_time *t = &ppi->last_snt_time;
 	struct sim_ppi_arch_data *data = SIM_PPI_ARCH(ppi);
 	struct sockaddr_in addr;

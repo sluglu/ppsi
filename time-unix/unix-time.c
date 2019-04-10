@@ -168,12 +168,6 @@ static int unix_time_set_utc_offset(struct pp_instance *ppi, int offset, int lea
 	return 0;
 }
 
-static int unix_time_get_servo_state(struct pp_instance *ppi, int *state)
-{
-	*state = PP_SERVO_UNKNOWN;
-	return 0;
-}
-
 static int unix_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
 	struct timespec tp;
@@ -193,24 +187,29 @@ static int unix_time_set(struct pp_instance *ppi, const struct pp_time *t)
 	struct timespec tp;
 
 	if (!t) { /* Change the network notion of the utc/tai offset */
-		struct timex t;
+		struct timex tmx;
 
-		t.modes = MOD_TAI;
-		t.constant = DSPRO(ppi)->currentUtcOffset;
-		if (adjtimex(&t) < 0)
+		tmx.modes = MOD_TAI;
+		tmx.constant = DSPRO(ppi)->currentUtcOffset;
+		if (adjtimex(&tmx) < 0)
 			clock_fatal_error("change TAI offset");
 		pp_diag(ppi, time, 1, "New TAI offset: %i\n",
 			DSPRO(ppi)->currentUtcOffset);
-		return 0;
-	}
+	} else {
 
-	/* UTC = TAI - 35 */
-	tp.tv_sec = t->secs - DSPRO(ppi)->currentUtcOffset;
-	tp.tv_nsec = t->scaled_nsecs >> 16;
-	if (clock_settime(CLOCK_REALTIME, &tp) < 0)
-		clock_fatal_error("clock_settime");
-	pp_diag(ppi, time, 1, "%s: %9li.%09li\n", __func__,
-		tp.tv_sec, tp.tv_nsec);
+		/* UTC = TAI - 35 */
+		tp.tv_sec = t->secs - DSPRO(ppi)->currentUtcOffset;
+		tp.tv_nsec = t->scaled_nsecs >> 16;
+		if ( tp.tv_sec < 0  || tp.tv_nsec<0) {
+			pp_error("%s: Cannot set clock time with negative values: %lisec %lins\n", __func__,(long int) tp.tv_sec,tp.tv_nsec );
+		} else {
+			if (clock_settime(CLOCK_REALTIME, &tp) < 0) {
+				clock_fatal_error("clock_settime");
+			}
+			pp_diag(ppi, time, 1, "%s: %9li.%09li\n", __func__,
+					tp.tv_sec, tp.tv_nsec);
+		}
+	}
 	return 0;
 }
 
@@ -285,7 +284,6 @@ struct pp_time_operations unix_time_ops = {
 	.get_utc_time = unix_time_get_utc_time,
 	.get_utc_offset = unix_time_get_utc_offset,
 	.set_utc_offset = unix_time_set_utc_offset,
-	.get_servo_state = unix_time_get_servo_state,
 	.get = unix_time_get,
 	.set = unix_time_set,
 	.adjust = unix_time_adjust,

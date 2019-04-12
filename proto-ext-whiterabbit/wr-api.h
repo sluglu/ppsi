@@ -111,40 +111,6 @@ void wr_reset_process(struct pp_instance *ppi, wr_role_t role);
 int     wr_servo_init(struct pp_instance *ppi);
 void    wr_servo_enable_tracking(int enable);
 
-#define WR_SERVO_RESET_DATA_SIZE        (sizeof(struct wr_servo_state)-offsetof(struct wr_servo_state,reset_address))
-#define WR_SERVO_RESET_DATA(servo)      memset(&servo->reset_address,0,WR_SERVO_RESET_DATA_SIZE);
-
-struct wr_servo_state {
-	/* Values used by snmp. Values are increased at servo update when
-	 * erroneous condition occurs. */
-	uint32_t n_err_state;
-	uint32_t n_err_offset;
-	uint32_t n_err_delta_rtt;
-
-	/* ----- All data after this line will cleared during a servo reset */
-	int reset_address;
-
-	int64_t delayMM_ps;
-	int32_t cur_setpoint_ps;
-	int64_t delayMS_ps;
-	int tracking_enabled;
-	int64_t skew_ps;
-	int64_t offsetMS_ps;
-
-	/* These fields are used by servo code, across iterations */
-	int64_t prev_delayMS_ps;
-	int missed_iters;
-
-	/* These fields are used by servo code, after asetting at init time */
-	int32_t delta_txm_ps;
-	int32_t delta_rxm_ps;
-	int32_t delta_txs_ps;
-	int32_t delta_rxs_ps;
-	int32_t clock_period_ps;
-
-};
-
-
 typedef struct wr_servo_ext {
 	struct pp_time delta_txm;
 	struct pp_time delta_rxm;

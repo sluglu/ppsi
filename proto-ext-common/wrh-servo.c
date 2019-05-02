@@ -50,7 +50,7 @@ int wrh_update_correction_values(struct pp_instance *ppi)
 
 
 	/* read the interesting values from HW (i.e. HAL)*/
-	if ( WRH_OPER()->read_calib_data(ppi,&s->clock_period_ps,NULL) != WRH_HW_CALIB_OK){
+	if ( WRH_OPER()->read_calib_data(ppi,&s->clock_period_ps,NULL,NULL,NULL,NULL) != WRH_HW_CALIB_OK){
 		      pp_diag(ppi, ext, 2, "hook: %s -- cannot read calib values\n",
 			__func__);
 		return -1;

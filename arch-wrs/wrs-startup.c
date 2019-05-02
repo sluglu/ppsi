@@ -97,7 +97,7 @@ static __inline__ double  calculateDelayAsymCoefficient(double  delayCoefficient
 /**
  * Enable/disable asymmetry correction
  */
-static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable ) {
+void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable ) {
 	if ( (ppi->asymmetryCorrectionPortDS.enable=enable)==TRUE ) {
 		/* Enabled: The delay asymmetry will be calculated */
 		double delayCoefficient;

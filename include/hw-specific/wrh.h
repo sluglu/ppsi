@@ -56,7 +56,9 @@ struct wrh_operations {
 	int (*adjust_counters)(int64_t adjust_sec, int32_t adjust_nsec);
 	int (*adjust_phase)(int32_t phase_ps);
 
-	int (*read_calib_data)(struct pp_instance *ppi,int32_t *clock_period, uint32_t *bit_slide_ps);
+	int (*read_calib_data)(struct pp_instance *ppi,int32_t *clock_period, TimeInterval *scaledBitSlide,
+			RelativeDifference *scaledDelayCoefficient,
+			TimeInterval *scaledSfpDeltaTx, TimeInterval *scaledSfpDeltaRx);
 	int (*enable_timing_output)(struct pp_globals *,int enable);
 	timing_mode_t (*get_timing_mode)(struct pp_globals *);
 	timing_mode_state_t (*get_timing_mode_state)(struct pp_globals *);

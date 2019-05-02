@@ -45,8 +45,12 @@ extern void wrs_main_loop(struct pp_globals *ppg);
 extern void wrs_init_ipcserver(struct minipc_ch *ppsi_ch);
 
 /* wrs-calibration.c */
-int wrs_read_calibration_data(struct pp_instance *ppi, int32_t *clock_period,
-		uint32_t *bit_slide_ps);
+int wrs_read_calibration_data(struct pp_instance *ppi,int32_t *clock_period, TimeInterval *scaledBitSlide,
+		RelativeDifference *scaledDelayCoefficient,
+		TimeInterval *scaledSfpDeltaTx, TimeInterval *scaledSfpDeltaRx);
+
+/* wrs-startup.c */
+void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable );
 
 /* wrs-time.c (some should moce to wrs-spll.c) */
 int wrs_locking_enable(struct pp_instance *ppi);

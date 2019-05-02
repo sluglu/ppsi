@@ -52,15 +52,31 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 				ppi->iface_name, ppi->link_up ? "up":"down");
 
 			if (ppi->link_up) {
-				uint32_t bit_slide_ps;
+				TimeInterval scaledBitSlide;
+				RelativeDifference scaledDelayCoefficient;
+				TimeInterval scaledSfpDeltaTx;
+				TimeInterval scaledSfpDeltaRx;
 
 				ppi->state = PPS_INITIALIZING;
-				if ( wrs_read_calibration_data(ppi,NULL,&bit_slide_ps)!= WRH_HW_CALIB_OK ) {
+				if ( wrs_read_calibration_data(ppi,NULL,
+						&scaledBitSlide,
+						&scaledDelayCoefficient,
+						&scaledSfpDeltaTx,
+						&scaledSfpDeltaRx)!= WRH_HW_CALIB_OK ) {
 				      pp_diag(ppi, fsm, 1, "Cannot read bit_slide value values\n");
-				      bit_slide_ps=0;
+				      scaledBitSlide=0;
 				}
-		        pp_diag(ppi, fsm, 1, "semistaticLatency(bit-slide)=%u [ps]\n",(unsigned int)bit_slide_ps);
-				ppi->timestampCorrectionPortDS.semistaticLatency= picos_to_interval(bit_slide_ps);
+				ppi->timestampCorrectionPortDS.semistaticLatency= scaledBitSlide;
+			    if (scaledDelayCoefficient>=PP_MIN_DCOEFF_AS_RELATIVE_DIFF &&
+					  scaledDelayCoefficient<=PP_MAX_DCOEFF_AS_RELATIVE_DIFF ) {
+			    	/* Scaled delay coefficient is valid then delta tx and rx also */
+			    	if ( ppi->asymmetryCorrectionPortDS.enable ) {
+			    		ppi->cfg.scaledDelayCoefficient=scaledDelayCoefficient;
+			    		enable_asymmetryCorrection(ppi,TRUE);
+			    	}
+			    	ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps)+scaledSfpDeltaTx;
+			    	ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps)+scaledSfpDeltaRx;
+			    }
 			}
 			else {
 				ppi->next_state = PPS_DISABLED;

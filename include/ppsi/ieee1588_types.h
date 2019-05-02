@@ -79,10 +79,10 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 #define REL_DIFF_FRACMASK 0x3fffffffffffffff
 
 /* Min/max values for  RelativeDifference type */
-#define RELATIVE_DIFFERENCE_MIN_VALUE  (((int64_t)-1)<<REL_DIFF_FRACBITS) /* INT64_MIN */
-#define RELATIVE_DIFFERENCE_MAX_VALUE  (((int64_t) 1)<<REL_DIFF_FRACBITS) /* INT64_MAX */
-#define RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE  -1.0 /*-2.0*/
-#define RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE   1.0 /*1.9999999999999989 */
+#define RELATIVE_DIFFERENCE_MIN_VALUE  INT64_MIN
+#define RELATIVE_DIFFERENCE_MAX_VALUE  INT64_MAX
+#define RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE  -2.0
+#define RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE  1.9999999999999989
 
 /*draft P1588_v_29: page 17*/
 /* The scaledRelativeDifference member is the relative difference expressed

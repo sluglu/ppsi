@@ -67,8 +67,8 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 				      scaledBitSlide=0;
 				}
 				ppi->timestampCorrectionPortDS.semistaticLatency= scaledBitSlide;
-			    if (scaledDelayCoefficient>=PP_MIN_DCOEFF_AS_RELATIVE_DIFF &&
-					  scaledDelayCoefficient<=PP_MAX_DCOEFF_AS_RELATIVE_DIFF ) {
+			    if (scaledDelayCoefficient>=PP_MIN_DELAY_COEFFICIENT_AS_RELDIFF &&
+					  scaledDelayCoefficient<=PP_MAX_DELAY_COEFFICIENT_AS_RELDIFF ) {
 			    	/* Scaled delay coefficient is valid then delta tx and rx also */
 			    	if ( ppi->asymmetryCorrectionPortDS.enable ) {
 			    		ppi->cfg.scaledDelayCoefficient=scaledDelayCoefficient;

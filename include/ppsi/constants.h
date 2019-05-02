@@ -47,6 +47,12 @@
 #define PP_MIN_SYNC_INTERVAL		       -1
 #define PP_MAX_SYNC_INTERVAL		        1
 
+/* Min/max values for delay coefficient */
+#define PP_MIN_DELAY_COEFFICIENT_AS_RELDIFF  (((int64_t)-1)<<REL_DIFF_FRACBITS)
+#define PP_MAX_DELAY_COEFFICIENT_AS_RELDIFF  (((int64_t) 1)<<REL_DIFF_FRACBITS)
+#define PP_MIN_DELAY_COEFFICIENT_AS_DOUBLE   (-1.0)
+#define PP_MAX_DELAY_COEFFICIENT_AS_DOUBLE   (1.0)
+
 #define PP_DEFAULT_UTC_OFFSET			37
 #define PP_MIN_PRIORITY1			    0
 #define PP_MAX_PRIORITY1			    255

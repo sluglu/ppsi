@@ -170,7 +170,7 @@ TimeInterval picos_to_interval(int64_t picos)
 		int sign = (picos < 0 ? -1 : 1);
 		picos *= sign;
 		scaled_ns=(picos/1000) << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
-		scaled_ns+=(((picos%1000) << TIME_INTERVAL_FRACBITS) + TIME_INTERVAL_ROUNDING_VALUE)/1000; /* Add picos */
+		scaled_ns+=((picos%1000) << TIME_INTERVAL_FRACBITS)/1000; /* Add picos */
 
 		return scaled_ns*sign;
 	}

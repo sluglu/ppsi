@@ -54,7 +54,7 @@ typedef struct _UInteger64 { /*/* TODO : Should be replaced by UInteger64 */
 #define TIME_INTERVAL_FRACBITS 16
 #define TIME_INTERVAL_FRACMASK 0xFFFF
 #define TIME_INTERVAL_FRACBITS_AS_FLOAT 16.0
-#define TIME_INTERVAL_ROUNDING_VALUE (1<<(TIME_INTERVAL_FRACBITS-1))
+#define TIME_INTERVAL_ROUNDING_VALUE ((uint64_t)1<<(TIME_INTERVAL_FRACBITS-1))
 
 /* Min/max value expressed in picos (int64_t) which can be stored in a TimeInterval type */
 #define TIME_INTERVAL_MIN_PICOS_VALUE_AS_INT64 ((int64_t) 0xFE0C000000000000)

@@ -4,7 +4,7 @@
 #define TIME_FRACBITS 16
 #define TIME_FRACMASK 0xFFFF
 #define TIME_FRACBITS_AS_FLOAT 16.0
-#define TIME_ROUNDING_VALUE (1<<(TIME_FRACBITS-1))
+#define TIME_ROUNDING_VALUE ((uint64_t)1<<(TIME_FRACBITS-1))
 
 /* Everything internally uses this time format, *signed* */
 struct pp_time {

@@ -16,12 +16,9 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	MsgSignaling wrsig_msg;
 
-	static unsigned long startTime;
-
 	if (new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
 		pp_timeout_set_rename(ppi, wrTmoIdx,WR_TMO_MS*(WR_STATE_RETRY+1),WR_TMO_NAME);
-		startTime = ppi->t_ops->calc_timeout(ppi, 0);
 	} else {
 
 		if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
@@ -39,7 +36,6 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 				wrp->next_state = (wrp->wrMode == WR_MASTER) ?
 						WRS_WR_LINK_ON :
 						WRS_CALIBRATION;
-				pp_printf("JCB: CALIBRATED RECEIVED. Started= %ld ms, Now=%ld\n",startTime,ppi->t_ops->calc_timeout(ppi, 0));
 				return 0;
 			}
 		}

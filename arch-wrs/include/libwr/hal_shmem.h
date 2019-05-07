@@ -17,6 +17,10 @@
 #define READ_SFP_DIAG_ENABLE 1
 #define READ_SFP_DIAG_DISABLE 0
 
+/* Monitor port in SNMP */
+#define HAL_PORT_MONITOR_ENABLE 1
+#define HAL_PORT_MONITOR_DISABLE 2
+
 #define DEFAULT_T2_PHASE_TRANS 0
 #define DEFAULT_T4_PHASE_TRANS 0
 
@@ -112,6 +116,11 @@ struct hal_port_state {
 
 	/* whether the port shall be monitored by SNMP */
 	int monitor;
+
+	/* PPSi instance information */
+	int portMode; // Instance state
+	int synchronized; // <>0 if port is synchronized
+	int portInfoUpdated; // Set to 1 when updated
 
 };
 

@@ -22,12 +22,21 @@
 #include <hal_exports.h>
 #include <common-fun.h>
 
+#define UPDATE_PORT_INFO_COUNT 2 // Update the port info every X time of the BMCA trigger
+
 /* Call pp_state_machine for each instance. To be called periodically,
  * when no packets are incoming */
 static unsigned int run_all_state_machines(struct pp_globals *ppg)
 {
+	static int portInfoTmoIdx=-1;
+
 	int j;
 	int delay_ms = 0, delay_ms_j;
+
+	if ( portInfoTmoIdx==-1) {
+		portInfoTmoIdx=pp_gtimeout_get_timer(ppg, "SEND_PORT_INFO", TO_RAND_NONE, 0);
+		pp_gtimeout_set(ppg,portInfoTmoIdx,2000); // Update interface info every 2 seconds
+	}
 
 	for (j = 0; j < ppg->nlinks; j++) {
 		struct pp_instance *ppi = INST(ppg, j);
@@ -91,10 +100,9 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 		}
 
 		/* Do not call state machine if link is down */
-		if (ppi->link_up)
-			delay_ms_j = pp_state_machine(ppi, NULL, 0);
-		else
-			delay_ms_j = PP_DEFAULT_NEXT_DELAY_MS;
+		delay_ms_j =  ppi->link_up ?
+			 pp_state_machine(ppi, NULL, 0) :
+			 PP_DEFAULT_NEXT_DELAY_MS;
 
 		/* delay_ms is the least delay_ms among all instances */
 		if (j == 0)
@@ -113,6 +121,11 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 		int delay_bmca;
 		if ( (delay_bmca=pp_gnext_delay_1(ppg,PP_TO_BMC))<delay_ms )
 			delay_ms=delay_bmca;
+	}
+
+	if ( pp_gtimeout(ppg, portInfoTmoIdx) ) {
+		wrs_update_port_info(ppg);
+		pp_gtimeout_reset(ppg,portInfoTmoIdx);
 	}
 
 	return delay_ms;

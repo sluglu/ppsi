@@ -66,4 +66,5 @@ timing_mode_t wrs_get_timing_mode(struct pp_globals *);
 timing_mode_state_t wrs_get_timing_mode_state(struct pp_globals *);
 int wrs_set_timing_mode(struct pp_globals *,timing_mode_t tm);
 timing_mode_t wrs_get_timing_mode(struct pp_globals *ppg);
+int wrs_update_port_info(struct pp_globals *ppg);
 

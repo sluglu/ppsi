@@ -178,6 +178,9 @@ static int l1e_ready_for_slave(struct pp_instance *ppi)
 }
 
 static 	void l1e_state_change(struct pp_instance *ppi) {
+
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+
 	if ( !ppi->ext_enabled)
 		return;
 	switch (ppi->next_state) {

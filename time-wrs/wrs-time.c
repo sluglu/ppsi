@@ -17,13 +17,6 @@
 #include <hal_exports.h>
 #include "../include/hw-specific/wrh.h"
 
-/* FIXME: these externs are needed here because we can not include
- * hal_exports.h with HAL_EXPORT_STRUCTURES twice (the first is by
- * arch-wrs/wrs-calibration.c): structs are declared and
- * defined in .h file, so this would lead to a multiple definition. */
-extern struct minipc_pd __rpcdef_pps_cmd;
-extern struct minipc_pd __rpcdef_lock_cmd;
-
 int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
 {
 	hexp_pps_params_t p;

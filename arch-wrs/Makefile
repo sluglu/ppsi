@@ -14,6 +14,7 @@ OBJ-y += $A/wrs-startup.o \
 	$A/wrs-io.o \
 	$A/wrs-conf.o \
 	$A/wrs-calibration.o \
+	$A/wrs-port.o \
 	$A/wrs-ipcserver.o \
 	$A/shmem.o \
 	$A/util.o \

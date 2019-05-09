@@ -200,6 +200,7 @@ struct pp_ext_hooks {
 	int (*handle_preq) (struct pp_instance * ppi);
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*handle_signaling) (struct pp_instance * ppi, void *buf, int len);
+	int (*handle_dreq)(struct pp_instance *ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(struct pp_instance *ppi,void *buf, MsgAnnounce *ann);
 	int (*ready_for_slave)(struct pp_instance *ppi); /* returns: 0=Not ready 1=ready */
@@ -424,43 +425,38 @@ extern int ppsi_drop_rx(void);
 extern int ppsi_drop_tx(void);
 
 /* link state functions to manage the extension (Enable/disable) */
-static inline void lstate_enable_extension(struct pp_instance * ppi) {
-	pp_timeout_reset(ppi,PP_TO_PROT_STATE);
-	ppi->link_state=PP_LSTATE_PROTOCOL_DETECTION;
-	ppi->ptp_msg_received=FALSE;
-	ppi->ext_enabled=TRUE;
+static inline void pdstate_disable_extension(struct pp_instance * ppi) {
+	ppi->pdstate=PP_PDSTATE_FAILURE;
+	if ( ppi->ptp_support && ppi->ext_enabled) {
+		ppi->ext_enabled=FALSE;
+		pp_servo_init(ppi); // Reinitialize the servo
+	}
+}
+
+static inline void pdstate_set_state_pdetection(struct pp_instance * ppi) {
+	if (ppi->pdstate != PP_PDSTATE_NONE ) {
+		ppi->pdstate=PP_PDSTATE_PDETECTION;
+		pp_timeout_reset(ppi,PP_TO_PROT_STATE);
+	}
+}
+
+static inline void pdstate_set_state_pdetected(struct pp_instance * ppi) {
+	if (ppi->pdstate != PP_PDSTATE_NONE ) {
+		ppi->pdstate=PP_PDSTATE_PDETECTED;
+		pp_timeout_reset(ppi,PP_TO_PROT_STATE);
+	}
 }
 
 /* link state functions to manage the extension (Enable/disable) */
-static inline void lstate_disable_extension(struct pp_instance * ppi) {
-	ppi->link_state=PP_LSTATE_FAILURE;
-	ppi->ptp_msg_received=FALSE;
-	ppi->ext_enabled=FALSE;
-}
-static inline void lstate_set_link_established(struct pp_instance * ppi) {
-	ppi->link_state=PP_LSTATE_LINKED;
-}
-
-static inline void lstate_set_link_failure(struct pp_instance * ppi) {
-	ppi->link_state=PP_LSTATE_FAILURE;
+static inline void pdstate_enable_extension(struct pp_instance * ppi) {
+	if (ppi->pdstate != PP_PDSTATE_NONE ) {
+		ppi->pdstate=PP_PDSTATE_PDETECTED;
+		pp_timeout_reset(ppi,PP_TO_PROT_STATE);
+		ppi->ext_enabled=TRUE;
+	}
 }
 
-static inline void lstate_set_link_in_progress(struct pp_instance * ppi) {
-	ppi->link_state=PP_LSTATE_IN_PROGRESS;
-}
 
-static inline void lstate_set_link_none(struct pp_instance * ppi) {
-	ppi->link_state=PP_LSTATE_NONE;
-}
-
-static inline void lstate_set_link_perror(struct pp_instance * ppi) {
-	ppi->link_state=PP_LSTATE_PROTOCOL_ERROR;
-}
-
-static inline void lstate_set_link_pdetection(struct pp_instance * ppi) {
-	ppi->link_state=PP_LSTATE_PROTOCOL_DETECTION;
-	pp_timeout_reset(ppi,PP_TO_PROT_STATE);
-}
 
 #include <ppsi/faults.h>
 #include <ppsi/timeout_prot.h>

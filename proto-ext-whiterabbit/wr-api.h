@@ -43,7 +43,6 @@ struct wr_dsport {
 	Enumeration8 parentWrConfig;
 	Boolean parentIsWRnode; /* FIXME Not in the doc */
 	/* FIXME check doc: (parentWrMode?) */
-	Enumeration16 msgTmpWrMessageID; /* FIXME Not in the doc */
 	Boolean parentCalibrated;
 
 	/* FIXME: are they in the doc? */
@@ -81,7 +80,7 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann, UInteger16 *wrFlags
 
 /* Pack/Unkpack/Issue White rabbit message signaling msg */
 int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id);
-void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
+int msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		      MsgSignaling *wrsig_msg, Enumeration16 *wr_msg_id);
 int msg_issue_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id);
 

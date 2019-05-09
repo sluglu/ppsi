@@ -183,7 +183,8 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 }
 
 /* White Rabbit: unpacking wr signaling messages */
-void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
+/* Returns 1 if WR message */
+int msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		      MsgSignaling *wrsig_msg, Enumeration16 *pwr_msg_id)
 {
 	UInteger16 tlv_type;
@@ -209,25 +210,25 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	if (tlv_type != TLV_TYPE_ORG_EXTENSION) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, This is not "
 			"organization extension TLV = 0x%x\n", tlv_type);
-		return;
+		return 1;
 	}
 
 	if (tlv_organizationID != WR_TLV_ORGANIZATION_ID) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, not CERN's "
 			"OUI = 0x%x\n", tlv_organizationID);
-		return;
+		return 0;
 	}
 
 	if (tlv_magicNumber != WR_TLV_MAGIC_NUMBER) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, "
 		"not White Rabbit magic number = 0x%x\n", tlv_magicNumber);
-		return;
+		return 0;
 	}
 
 	if (tlv_versionNumber  != WR_TLV_WR_VERSION_NUMBER ) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, not supported "
 			"version number = 0x%x\n", tlv_versionNumber);
-		return;
+		return 0;
 	}
 
 	wr_msg_id = ntohs(*(UInteger16 *)(buf + 54));
@@ -268,7 +269,9 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		/* no data */
 		break;
 	}
-	/* FIXME diagnostic */
+	if ( ppi->pdstate==PP_PDSTATE_PDETECTION)
+		pdstate_set_state_pdetected(ppi);
+	return 1;
 }
 
 /* Pack and send a White Rabbit signalling message */

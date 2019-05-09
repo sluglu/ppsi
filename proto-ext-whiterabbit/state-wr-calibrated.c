@@ -18,7 +18,6 @@
 int wr_calibrated(struct pp_instance *ppi, void *buf, int len, int new_state)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	MsgSignaling wrsig_msg;
 	int sendmsg = 0;
 
 	if (new_state) {
@@ -28,18 +27,22 @@ int wr_calibrated(struct pp_instance *ppi, void *buf, int len, int new_state)
 	} else {
 
 		if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-			msg_unpack_wrsig(ppi, buf, &wrsig_msg,
-				 &(wrp->msgTmpWrMessageID));
+			Enumeration16 wrMsgId;
+			MsgSignaling wrsig_msg;
 
-			if ((wrp->msgTmpWrMessageID == CALIBRATE) &&
-				(wrp->wrMode == WR_MASTER)) {
-				wrp->next_state = WRS_RESP_CALIB_REQ;
+			if ( msg_unpack_wrsig(ppi, buf, &wrsig_msg, &wrMsgId) ) {
+
+				if ((wrMsgId == CALIBRATE) &&
+					(wrp->wrMode == WR_MASTER)) {
+					wrp->next_state = WRS_RESP_CALIB_REQ;
+				}
+				else if ((wrMsgId == WR_MODE_ON) &&
+					(wrp->wrMode == WR_SLAVE)) {
+					wrp->next_state = WRS_WR_LINK_ON;
+				} else
+					wrp->next_state = WRS_IDLE; // Unexpected msg: abort handshake
 				return 0;
-			}
-			else if ((wrp->msgTmpWrMessageID == WR_MODE_ON) &&
-				(wrp->wrMode == WR_SLAVE)) {
-				wrp->next_state = WRS_WR_LINK_ON;
-				return 0;
+
 			}
 		}
 		{

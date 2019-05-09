@@ -22,8 +22,6 @@ int wr_present(struct pp_instance *ppi, void *buf, int len, int new_state)
 	int sendmsg = 0;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
-	MsgSignaling wrsig_msg;
-	
 	if (new_state) {
 		wr_servo_init(ppi);
 		wrp->wrStateRetry = WR_STATE_RETRY;
@@ -31,12 +29,13 @@ int wr_present(struct pp_instance *ppi, void *buf, int len, int new_state)
 		sendmsg = 1;
 	} else {
 		if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-			msg_unpack_wrsig(ppi, buf, &wrsig_msg,
-				 &(wrp->msgTmpWrMessageID));
+			Enumeration16 wrMsgId;
+			MsgSignaling wrsig_msg;
 
-			if (wrp->msgTmpWrMessageID == LOCK) {
-				wrp->next_state = WRS_S_LOCK;
-				lstate_set_link_in_progress(ppi);
+			if ( msg_unpack_wrsig(ppi, buf, &wrsig_msg,  &wrMsgId) ) {
+				wrp->next_state = wrMsgId == LOCK ?
+						WRS_S_LOCK :
+						WRS_IDLE;
 				return 0;
 			}
 		}

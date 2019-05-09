@@ -126,14 +126,14 @@ struct pp_servo {
 	struct pp_time offsetFromMaster; /* Shared with extension servo */
 	unsigned long flags; /* PP_SERVO_FLAG_INVALID, PP_SERVO_FLAG_VALID, ...*/
 
-	/* Data used only by extensions */
-	int state;
-	char servo_state_name[32]; /* Updated by the servo itself */
-
 	/*
 	 * ----- All data after this line will be cleared during by a servo initialization
 	 */
 	int reset_address;
+
+	/* Data used only by extensions */
+	int state;
+	char servo_state_name[32]; /* Updated by the servo itself */
 
 	/* Data shared with extension servo */
 	uint32_t update_count; /* incremented each time the servo is running */
@@ -186,17 +186,16 @@ struct pp_instance_cfg {
 };
 
 /*
- * This enumeration correspond to the protocol state of a pp_instance.
- * It is used to decide which instance must be active on a given port.
+ * This enumeration correspond to the protocol detection state of a pp_instance.
+ * It is used to decide which instance/protocol must be active on a given port.
  */
 typedef enum  {
-	PP_LSTATE_NONE, /* Link state not applied : No extension */
-	PP_LSTATE_PROTOCOL_DETECTION, /* Checking if the peer instance is using the same protocol */
-	PP_LSTATE_IN_PROGRESS, /* Right protocol detected. Try to establish the link with peer instance */
-	PP_LSTATE_LINKED, /* Link with peer well established */
-	PP_LSTATE_PROTOCOL_ERROR, /* The extension has detected a problem.  */
-	PP_LSTATE_FAILURE, /* Impossible to connect correctly to a peer instance - extension disabled */
-} pp_link_state;
+	PP_PDSTATE_NONE, /* Link state not applied : No extension */
+	PP_PDSTATE_WAIT_MSG, /* Waiting fist message */
+	PP_PDSTATE_PDETECTION, /* Checking if the peer instance is using the same protocol */
+	PP_PDSTATE_PDETECTED,  /* Expected protocol detected*/
+	PP_PDSTATE_FAILURE, /* Impossible to connect correctly to a peer instance - extension disabled */
+} pp_pdstate_t;
 
 /*
  * Structure for the individual ppsi link
@@ -277,10 +276,9 @@ struct pp_instance {
 	unsigned long ptp_rx_count;
 	Boolean received_dresp; /* Count the number of delay response messages received for a given delay request */
 	Boolean received_dresp_fup; /* Count the number of delay response follow up messages received for a given delay request */
-	Boolean ptp_msg_received; /* Use to detect reception of a ptp message after an ppsi instance initialization */
 	Boolean ptp_support; /* True if allow pure PTP support */
 	Boolean ext_enabled; /* True if the extension is enabled */
-	pp_link_state link_state;
+	pp_pdstate_t pdstate;  /* Protocol detection state */
 	Boolean bmca_execute; /* True: Ask fsm to run bmca state decision */
 };
 

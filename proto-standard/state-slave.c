@@ -175,9 +175,7 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 		ret=ppi->ext_hooks->handle_resp(ppi);
 	}
 	else {
-		if ( (ret=pp_servo_got_resp(ppi,1)) && !ppi->ext_enabled ) {
-			ppi->link_state=PP_LSTATE_LINKED;
-		}
+		ret=pp_servo_got_resp(ppi,1);
 	}
 
 	if ( ret &&

@@ -18,7 +18,6 @@
 int wr_m_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 {
 	int sendmsg = 0;
-	MsgSignaling wrsig_msg;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	if (new_state) {
@@ -28,11 +27,13 @@ int wr_m_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 		sendmsg = 1;
 	} else {
 		if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
-			msg_unpack_wrsig(ppi, buf, &wrsig_msg,
-				 &(wrp->msgTmpWrMessageID));
+			Enumeration16 wrMsgId;
+			MsgSignaling wrsig_msg;
 
-			if (wrp->msgTmpWrMessageID == LOCKED) {
-				wrp->next_state = WRS_CALIBRATION;
+			if ( msg_unpack_wrsig(ppi, buf, &wrsig_msg,&wrMsgId) ) {
+				wrp->next_state = wrMsgId == LOCKED ?
+						WRS_CALIBRATION :
+						WRS_IDLE;
 				return 0;
 			}
 		}

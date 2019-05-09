@@ -69,27 +69,22 @@ static wr_state_machine_t wr_state_actions[] ={
  */
 int wr_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 	struct wr_dsport * wrp=WR_DSPOR(ppi);
-	wr_state_t nextState=wrp->next_state;
-	Boolean newState=nextState!=wrp->state;
+	Boolean newState;
 	int delay;
 
-	if ( !ppi->ext_enabled || ppi->state==PPS_INITIALIZING || nextState>=MAX_STATE_ACTIONS) {
-		if ( wrp->state!=WRS_IDLE ) {
-			nextState=wrp->next_state=WRS_IDLE;
-			/* Force to IDLE state when extension is disabled */
-		} else
-			return INT_MAX; /* Return a big delay. fsm will then not use it */
+	if ( wrp->next_state>=MAX_STATE_ACTIONS ||  ppi->state==PPS_INITIALIZING ||  !ppi->ext_enabled ) {
+		wrp->next_state=WRS_IDLE; // Force to IDLE state
 	}
-
 
 	/*
 	 * Evaluation of events common to all states
 	 */
+	newState=wrp->state!=wrp->next_state;
 	if ( newState ) {
 		pp_diag(ppi, ext, 2, "WR state: LEAVE=%s, ENTER=%s\n",
 				wr_state_actions[wrp->state].name,
-				wr_state_actions[nextState].name);
-		wrp->state=nextState;
+				wr_state_actions[wrp->next_state].name);
+		wrp->state=wrp->next_state;
 	}
 
 	delay=(*wr_state_actions[wrp->state].action) (ppi, buf,len, newState);

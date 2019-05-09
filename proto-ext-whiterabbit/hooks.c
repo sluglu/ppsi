@@ -12,6 +12,7 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 		wrTmoIdx=pp_timeout_get_timer(ppi,"WR_EXT_0",TO_RAND_NONE, TMO_CF_INSTANCE_DEPENDENT);
 
 	wr_reset_process(ppi,WR_ROLE_NONE);
+	ppi->pdstate = PP_PDSTATE_WAIT_MSG;
 
 #ifdef CONFIG_ABSCAL
         /* absolute calibration only exists in arch-wrpc, so far */
@@ -50,12 +51,26 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	/* This correction_field we received is already part of t4 */
 	if ( ppi->ext_enabled ) {
 		wr_servo_got_resp(ppi);
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
+			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
 	}
 	else {
 		pp_servo_got_resp(ppi,OPTS(ppi)->ptpFallbackPpsGen);
 	}
 	return 0;
 }
+
+static int wr_handle_dreq(struct pp_instance *ppi)
+{
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	if ( ppi->ext_enabled ) {
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
+			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
+	}
+
+	return 0;
+}
+
 
 
 static int  wr_sync_followup(struct pp_instance *ppi) {
@@ -85,28 +100,13 @@ static int wr_handle_followup(struct pp_instance *ppi)
 
 static int wr_handle_presp(struct pp_instance *ppi)
 {
-	/* FIXME: verify that last-received cField is already accounted for */
-	if ( ppi->ext_enabled )
+	if ( ppi->ext_enabled ) {
 		wr_servo_got_presp(ppi);
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
+			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
+	}
 	else
 		pp_servo_got_presp(ppi);
-	return 0;
-}
-
-/* Used only in MASTER state to re-enable the extension if needed */
-static int wr_handle_signaling(struct pp_instance *ppi, void *buf, int len) {
-	if ( !ppi->ext_enabled && ppi->state==PPS_MASTER ) {
-		/* Check if WR_PRESENT message is received */
-		MsgSignaling wrsig_msg;
-		Enumeration16 msgId;
-
-		msg_unpack_wrsig(ppi, buf, &wrsig_msg, &msgId);
-
-		if (msgId==SLAVE_PRESENT) {
-			/* Re-enable the extension */
-			lstate_enable_extension(ppi);
-		}
-	}
 	return 0;
 }
 
@@ -136,29 +136,31 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 		msg_unpack_announce_wr_tlv(buf, ann, &wr_flags);
 		parentIsWRnode=(wr_flags & WR_NODE_MODE)!=NON_WR;
 
-		// Check if we need to re-enable the extension
-		if ( !ppi->ext_enabled ) {
-			// The extension must be re-enabled only if :
-			// - The parent is a WR node
-			// - ptp state=(slave|uncalibrated|listening)
-			// - Same parent port ID but with a not continuous sequence ID (With a margin of 1)
-			// - The port identity is different
-			if ( parentIsWRnode &&
-					(ppi->state==PPS_SLAVE ||
-					ppi->state==PPS_UNCALIBRATED ||
-					ppi->state==PPS_LISTENING))  {
+		// Check if a new parent is detected
+		// - The parent is a WR node
+		// - ptp state=(slave|uncalibrated|listening)
+		// - Same parent port ID but with a not continuous sequence ID (With a margin of 1)
+		// - The port identity is different
+		if ( parentIsWRnode &&
+				(ppi->state==PPS_SLAVE ||
+				ppi->state==PPS_UNCALIBRATED ||
+				ppi->state==PPS_LISTENING))  {
 
-				Boolean samePid=!bmc_pidcmp(pid, &wrp->parentAnnPortIdentity);
-				if ( !samePid  ||
-						(samePid &&
-								(hdr->sequenceId!=wrp->parentAnnSequenceId+1 &&
-								hdr->sequenceId!=wrp->parentAnnSequenceId+2)
-								)) {
-					lstate_enable_extension(ppi);
+			Boolean samePid=!bmc_pidcmp(pid, &wrp->parentAnnPortIdentity);
+			if ( !samePid  ||
+					(samePid &&
+							(hdr->sequenceId!=wrp->parentAnnSequenceId+1 &&
+							hdr->sequenceId!=wrp->parentAnnSequenceId+2)
+							)) {
+				if ( ppi->state==PPS_UNCALIBRATED && wrp->state==WRS_IDLE) {
+					/* For other states, it is done in the state_change hook */
+					wrp->next_state=WRS_PRESENT;
+					wrp->wrMode=WR_SLAVE;
 				}
-			} else {
-				parentIsWRnode=FALSE;
+				pdstate_enable_extension(ppi);
 			}
+		} else {
+			parentIsWRnode=FALSE;
 		}
 
 		memcpy(&wrp->parentAnnPortIdentity,pid,sizeof(struct PortIdentity));
@@ -186,7 +188,6 @@ static void wr_state_change(struct pp_instance *ppi)
 						(ppi->state == PPS_MASTER))) {
 			/* if we are leaving the MASTER or SLAVE state */
 			wr_reset_process(ppi,WR_ROLE_NONE);
-			lstate_set_link_pdetection(ppi);
 			if (ppi->state == PPS_SLAVE)
 				//* We are leaving SLAVE state
 				WRH_OPER()->locking_reset(ppi);
@@ -199,12 +200,6 @@ static void wr_state_change(struct pp_instance *ppi)
 			case PPS_UNCALIBRATED : /* Enter in UNCALIBRATED state */
 				wrp->next_state=WRS_PRESENT;
 				wrp->wrMode=WR_SLAVE;
-				lstate_set_link_pdetection(ppi);
-				break;
-			case PPS_SLAVE : /* Enter in SLAVE state */
-				if ( wrp->wrModeOn &&  wrp->parentWrModeOn ) {
-					lstate_set_link_established(ppi);
-				}
 				break;
 			case PPS_LISTENING : /* Enter in LISTENING state */
 				wr_reset_process(ppi,WR_ROLE_NONE);
@@ -257,8 +252,9 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
 	.handle_resp = wr_handle_resp,
+	.handle_dreq = wr_handle_dreq,
 	.handle_sync = wr_handle_sync,
-	.handle_signaling=wr_handle_signaling,
+//	.handle_signaling=wr_handle_signaling,
 	.handle_followup = wr_handle_followup,
 	.ready_for_slave = wr_ready_for_slave,
 	.run_ext_state_machine = wr_run_state_machine,

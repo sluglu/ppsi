@@ -23,9 +23,7 @@ static int presp_call_servo(struct pp_instance *ppi)
 	if (is_ext_hook_available(ppi,handle_presp))
 		ret = ppi->ext_hooks->handle_presp(ppi);
 	else {
-		if ( pp_servo_got_presp(ppi) && !ppi->ext_enabled ) {
-			ppi->link_state=PP_LSTATE_LINKED;
-		}
+		pp_servo_got_presp(ppi);
 	}
 	if ( ppi->state==PPS_MASTER) {
 		/* Called to update meanLinkDelay
@@ -174,10 +172,6 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 
 	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
 	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
-	if ( !ppi->ext_enabled ) {
-		ppi->link_state=PP_LSTATE_LINKED;
-	}
-
 
 	return 0;
 }

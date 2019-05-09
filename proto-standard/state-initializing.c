@@ -134,8 +134,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	pp_timeout_init(ppi);
 	pp_timeout_setall(ppi);
 
-	ppi->link_state=PP_LSTATE_PROTOCOL_DETECTION;
-	ppi->ptp_msg_received=FALSE;
+	ppi->pdstate = PP_PDSTATE_NONE; // Default value for PTP. Can be overwritten in specific init
 	ppi->ext_enabled=(ppi->protocol_extension!=PPSI_EXT_NONE);
 
 	if (is_ext_hook_available(ppi,init))

@@ -14,7 +14,6 @@
 int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	MsgSignaling wrsig_msg;
 
 	if (new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
@@ -22,11 +21,11 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 	} else {
 
 		if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
+			Enumeration16 wrMsgId;
+			MsgSignaling wrsig_msg;
 
-			msg_unpack_wrsig(ppi, buf, &wrsig_msg,
-				 &(wrp->msgTmpWrMessageID));
-
-			if (wrp->msgTmpWrMessageID == CALIBRATED) {
+			if ( msg_unpack_wrsig(ppi, buf, &wrsig_msg, &wrMsgId) ) {
+				if ( wrMsgId == CALIBRATED) {
 				/* Update servo */
 				wr_servo_ext_t *se =WRE_SRV(ppi);
 
@@ -36,6 +35,8 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 				wrp->next_state = (wrp->wrMode == WR_MASTER) ?
 						WRS_WR_LINK_ON :
 						WRS_CALIBRATION;
+				} else
+					wrp->next_state = WRS_IDLE;
 				return 0;
 			}
 		}

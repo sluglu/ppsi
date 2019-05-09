@@ -31,7 +31,6 @@ void wr_handshake_fail(struct pp_instance *ppi)
 	wrp->next_state=WRS_IDLE;
 	wr_reset_process(ppi,WR_ROLE_NONE);
 	wr_servo_reset(ppi);
-	lstate_set_link_perror(ppi);
 }
 
 

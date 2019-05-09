@@ -277,19 +277,13 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 		return pp_leave_current_state(ppi);
 
 	if (len) {
-		if ( ppi->ext_enabled &&  !ppi->ptp_msg_received ) {
+		if ( ppi->pdstate == PP_PDSTATE_WAIT_MSG ) {
 			/* First frame received since instance initialization */
-			int tmo;
-
-			ppi->ptp_msg_received=TRUE;
-			if (is_ext_hook_available(ppi,get_tmo_lstate_detection) )
-				tmo=(*ppi->ext_hooks->get_tmo_lstate_detection)(ppi);
-			else
-				tmo= is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
-						6000 /* JCB: Default value. Is it correct ? */
-						: pp_timeout_get(ppi,PP_TO_ANN_RECEIPT);
+			int tmo=is_ext_hook_available(ppi,get_tmo_lstate_detection) ?
+					(*ppi->ext_hooks->get_tmo_lstate_detection)(ppi)
+					: 20000; // 20s per default
 			pp_timeout_set(ppi,PP_TO_PROT_STATE, tmo);
-			lstate_set_link_pdetection(ppi);
+			pdstate_set_state_pdetection(ppi);
 		}
 	} else
 		ppi->received_ptp_header.messageType = PPM_NO_MESSAGE;
@@ -304,20 +298,10 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 		return pp_leave_current_state(ppi);
 
 	/* Check protocol state */
-	if (  ppi->protocol_extension == PPSI_EXT_NONE ) {
-		lstate_set_link_none(ppi);
-	} else {
-		if ( ppi->ext_enabled ) {
-			if ( ppi->link_state==PP_LSTATE_PROTOCOL_ERROR ||
-					( ppi->link_state!=PP_LSTATE_LINKED && ppi->ptp_msg_received  && pp_timeout(ppi, PP_TO_PROT_STATE)) ) {
-				if ( ppi->ptp_support )
-					lstate_disable_extension(ppi);
-				else
-					lstate_set_link_failure(ppi);
-			}
-		} else  {
-			lstate_set_link_failure(ppi);
-		}
+	if ( ppi->ext_enabled &&
+			(ppi->pdstate==PP_PDSTATE_PDETECTION || ppi->pdstate==PP_PDSTATE_PDETECTED) &&
+			pp_timeout(ppi, PP_TO_PROT_STATE) ) {
+		pdstate_disable_extension(ppi);
 	}
 
 	/* run bmc independent of state, and since not message driven do this
@@ -338,13 +322,6 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 	if ( is_ext_hook_available(ppi,run_ext_state_machine) ) {
 		int delay = ppi->ext_hooks->run_ext_state_machine(ppi,buf,len);
 
-		if ( ppi->ext_enabled  && ppi->link_state==PP_LSTATE_PROTOCOL_ERROR) {
-			if (ppi->ptp_support ) {
-				lstate_disable_extension(ppi);
-			}
-			else
-				lstate_set_link_failure(ppi);
-		}
 		/* if new state mark it, and enter it now (0 ms) */
 		if (ppi->state != ppi->next_state)
 			return pp_leave_current_state(ppi);

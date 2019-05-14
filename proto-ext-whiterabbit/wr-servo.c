@@ -24,7 +24,16 @@ int wr_servo_init(struct pp_instance *ppi)
 int wr_servo_got_sync(struct pp_instance *ppi) {
 	/* Re-adjust T1 and T2 */
 	wr_servo_ext_t *se=WRE_SRV(ppi);
+	wrh_servo_t *s=WRH_SRV(ppi);
 
+	if (s->doRestart) {
+		// Error detected by the servo.
+		s->doRestart=FALSE;
+		if ( ppi->state==PPS_SLAVE ) {
+			// Restart calibration
+			ppi->next_state=PPS_UNCALIBRATED;
+		}
+	}
 	pp_time_add(&ppi->t1,&se->delta_txm);
 	pp_time_sub(&ppi->t2,&se->delta_rxs);
 	return wrh_servo_got_sync(ppi);

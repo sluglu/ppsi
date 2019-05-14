@@ -118,6 +118,7 @@ typedef struct wrh_servo_t {
 	int missed_iters;
 
 	Boolean readyForSync; /* Ready for synchronization */
+	Boolean doRestart; /* PLL is unlocked: A restart of the calibration is needed */
 } wrh_servo_t;
 
 

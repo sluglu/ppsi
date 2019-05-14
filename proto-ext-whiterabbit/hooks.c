@@ -183,6 +183,8 @@ static void wr_state_change(struct pp_instance *ppi)
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if ( ppi->ext_enabled ) {
+
+		// Check leaving state
 		if ( wrp->wrModeOn &&
 				((ppi->state == PPS_SLAVE) ||
 						(ppi->state == PPS_MASTER))) {
@@ -191,20 +193,21 @@ static void wr_state_change(struct pp_instance *ppi)
 			if (ppi->state == PPS_SLAVE)
 				//* We are leaving SLAVE state
 				WRH_OPER()->locking_reset(ppi);
-		} else {
-			switch (ppi->next_state) {
-			case PPS_MASTER : /* Enter in MASTER_STATE */
-				wrp->next_state=WRS_IDLE;
-				wrp->wrMode=WR_MASTER;
-				break;
-			case PPS_UNCALIBRATED : /* Enter in UNCALIBRATED state */
-				wrp->next_state=WRS_PRESENT;
-				wrp->wrMode=WR_SLAVE;
-				break;
-			case PPS_LISTENING : /* Enter in LISTENING state */
-				wr_reset_process(ppi,WR_ROLE_NONE);
-				break;
-			}
+		}
+
+		// Check entering state
+		switch (ppi->next_state) {
+		case PPS_MASTER : /* Enter in MASTER_STATE */
+			wrp->next_state=WRS_IDLE;
+			wr_reset_process(ppi,WR_MASTER);
+			break;
+		case PPS_UNCALIBRATED : /* Enter in UNCALIBRATED state */
+			wrp->next_state=WRS_PRESENT;
+			wr_reset_process(ppi,WR_SLAVE);
+			break;
+		case PPS_LISTENING : /* Enter in LISTENING state */
+			wr_reset_process(ppi,WR_ROLE_NONE);
+			break;
 		}
 
 		if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED ) {
@@ -254,7 +257,6 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.handle_resp = wr_handle_resp,
 	.handle_dreq = wr_handle_dreq,
 	.handle_sync = wr_handle_sync,
-//	.handle_signaling=wr_handle_signaling,
 	.handle_followup = wr_handle_followup,
 	.ready_for_slave = wr_ready_for_slave,
 	.run_ext_state_machine = wr_run_state_machine,

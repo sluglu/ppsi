@@ -234,8 +234,9 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 	if (locking_poll_ret != WRH_SPLL_READY
 	    && locking_poll_ret != WRH_SPLL_CALIB_NOT_READY) {
 		pp_diag(ppi, servo, 1, "PLL out of lock\n");
-		/* TODO check
-		 * DSPOR(ppi)->doRestart = TRUE; */
+
+		s->doRestart = TRUE;
+		return 0;
 	}
 
 	/* After each action on the hardware, we must verify if it is over. */

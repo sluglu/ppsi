@@ -87,29 +87,17 @@ static  int enable_l1Sync(struct pp_instance *ppi, Boolean enable) {
 }
 #endif
 
-/* Calculate delay asymmetry coefficient :
- *    delayCoeff/(delayCoeff/2)
- */
-static __inline__ double  calculateDelayAsymCoefficient(double  delayCoefficient) {
-	return delayCoefficient/(delayCoefficient+2.0);
-}
-
 /**
  * Enable/disable asymmetry correction
  */
 void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable ) {
 	if ( (ppi->asymmetryCorrectionPortDS.enable=enable)==TRUE ) {
 		/* Enabled: The delay asymmetry will be calculated */
-		double delayCoefficient;
 
-		if ( ppi->cfg.scaledDelayCoefficient != 0) {
-			ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=ppi->cfg.scaledDelayCoefficient;
-			delayCoefficient=ppi->cfg.scaledDelayCoefficient/REL_DIFF_TWO_POW_FRACBITS;
-		} else {
-			ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient=(RelativeDifference)(ppi->cfg.delayCoefficient * REL_DIFF_TWO_POW_FRACBITS);
-			delayCoefficient=ppi->cfg.delayCoefficient;
-		}
-		ppi->portDS->delayAsymCoeff=(RelativeDifference)(calculateDelayAsymCoefficient(delayCoefficient) * REL_DIFF_TWO_POW_FRACBITS);
+		ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient =( ppi->cfg.scaledDelayCoefficient != 0) ?
+			ppi->cfg.scaledDelayCoefficient :
+			(RelativeDifference)(ppi->cfg.delayCoefficient * REL_DIFF_TWO_POW_FRACBITS);
+		ppi->portDS->delayAsymCoeff=pp_servo_calculateDelayAsymCoefficient(ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient);
 	}
 	ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
 }

@@ -306,6 +306,7 @@ extern int pp_servo_got_resp(struct pp_instance *ppi, int allowTimingOutput); /*
 extern void pp_servo_got_psync(struct pp_instance *ppi); /* got t1 and t2 */
 extern int pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
 extern int pp_servo_calculate_delays(struct pp_instance *ppi);
+extern RelativeDifference pp_servo_calculateDelayAsymCoefficient(RelativeDifference delayCoeff);
 
 /* bmc.c */
 extern void bmc_m1(struct pp_instance *ppi);

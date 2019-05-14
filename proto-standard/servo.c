@@ -61,19 +61,67 @@ static void _pp_servo_init(struct pp_instance *ppi)
 			servo->obs_drift);
 }
 
-
+#define SHIFT64 64
+#define SHIFT32 32
 #define BITS_IN_INT64 (sizeof(int64_t)*8)
+#define LOW_OVERFLOW 1
+#define HI32(x)	((x) >> 32)
+#define LO32(x)	((x) & (uint64_t)0x0ffffffff)
 
-/* Get the position of the first bit set on the left of a 64 bits integer */
-static int getMsbSet(int64_t value) {
+static int __getMsbSet(uint64_t value) {
 	if ( value==0 )
 		return 0; /* value=0 so return bit 0 */
-	if ( value<0 )
-		value=-value; /* Negative value: change it to its positive value for the calculation */
 	return BITS_IN_INT64 - __builtin_clzll(value); /* using gcc built-in function */
 }
 
-#define DELAY_ASYM_BASE_FRACTION 50 /* Maxim value that can be used for the calculation */
+/*
+ * Multiplication of two 64 bits numbers by:
+ * - splitting op1 and op2 into two 32 bit integers
+ * - multiplying every number
+ * - shifting and adding every number to get the most accurate 64 bit integer
+ * Parameters:
+ *  - op1 (first operand): a 2^62 scaled value. op1 must be positive
+ *  - op2 (second operand): a 2^X scaled value. op2 must be positive
+ *  Return :
+ *   (op1 x op2)/2^62. The returned value is a 2^X scaled value
+ *
+ */
+static uint64_t __mulRelativeDifference(RelativeDifference op1, uint64_t op2)
+{
+	int shift;
+	uint64_t mask;
+
+	shift = BITS_IN_INT64 - __getMsbSet((op1 < op2) ? op1 : op2); // Calc value of shift with most significant bit
+
+	if(shift > 32)
+		shift = 32; // Limit shift to 32 bits
+
+	mask= (1 << (32 - shift)) - 1; // Generate the mask
+
+	uint64_t op1_high = HI32(op1);							// splitting into two 32 bit integers
+	uint64_t op1_low = LO32(op1);							//
+	uint64_t op2_high = HI32(op2);							//
+	uint64_t op2_low = LO32(op2);							//
+
+	uint64_t upper = (op1_high * op2_high)<<shift;			// multiplication
+	uint64_t mid1 = op1_high * op2_low;						//
+	uint64_t mid2 = op2_high * op1_low;						//
+	uint64_t lower = (op1_low * op2_low)>>LOW_OVERFLOW;		// potential overflow correction
+	uint64_t middle, tmp;
+
+	middle = mid1 + mid2;
+
+	if ((middle < mid1) || (middle < mid2))					// Overflow + shifting
+	    upper += ((uint64_t)1 << SHIFT32);					//
+	upper += (middle & ~mask) >> (SHIFT32-shift);			//
+	tmp = lower;											//
+	lower += ((middle & mask) << (SHIFT32-LOW_OVERFLOW));	//
+
+	if (lower < tmp)
+		upper += 1;
+
+	return (upper + (lower>>(SHIFT64-shift-LOW_OVERFLOW)))>>(shift-2);	// scale back
+}
 
 /**
  * Calculate the delayAsymmetry : delayAsymCoeff * meanDelay
@@ -82,31 +130,52 @@ static int getMsbSet(int64_t value) {
  * on the value of delayAsymCoeff and meanDelay. The smaller these values will be, bigger
  * the fraction part will be.
  */
-
 static TimeInterval calculateDelayAsymmetry(RelativeDifference scaledDelayAsymCoeff, TimeInterval scaledMeanDelay, TimeInterval constantAsymmetry) {
-	TimeInterval delayAsym;
-	int64_t rescaledAsymDelayCoeff,rescaledMeanDelay;
-	int lostBits,fracBitsUsed;
+	int  negDelayAsymCoeff;
+	int  negMeanDelay;
 
-	lostBits=getMsbSet(scaledDelayAsymCoeff)-(REL_DIFF_FRACBITS-DELAY_ASYM_BASE_FRACTION)+
-			getMsbSet(scaledMeanDelay)+(DELAY_ASYM_BASE_FRACTION-TIME_INTERVAL_FRACBITS)-BITS_IN_INT64;
-	if ( lostBits<0 )
-		lostBits=0;
-	fracBitsUsed=DELAY_ASYM_BASE_FRACTION-(lostBits>>1)-1;
-	rescaledMeanDelay = (fracBitsUsed>=TIME_INTERVAL_FRACBITS) ?
-			scaledMeanDelay<<(fracBitsUsed-TIME_INTERVAL_FRACBITS) :
-			scaledMeanDelay>>(TIME_INTERVAL_FRACBITS-fracBitsUsed);
-	rescaledAsymDelayCoeff= (fracBitsUsed>=REL_DIFF_FRACBITS) ?
-			scaledDelayAsymCoeff<<(fracBitsUsed-REL_DIFF_FRACBITS) :
-			scaledDelayAsymCoeff>>(REL_DIFF_FRACBITS-fracBitsUsed);
-	delayAsym= rescaledAsymDelayCoeff*rescaledMeanDelay;
-	delayAsym+=((TimeInterval)1<<(fracBitsUsed-1));
-	delayAsym>>=fracBitsUsed;
-	delayAsym= (fracBitsUsed>=TIME_INTERVAL_FRACBITS) ?
-			delayAsym>>(fracBitsUsed-TIME_INTERVAL_FRACBITS):
-			delayAsym<<(TIME_INTERVAL_FRACBITS-fracBitsUsed);
-	delayAsym+=constantAsymmetry;
-	return delayAsym;
+	if ( (negMeanDelay=(scaledMeanDelay<0))==TRUE )
+		scaledMeanDelay=-scaledMeanDelay;
+
+	if ( (negDelayAsymCoeff=(scaledDelayAsymCoeff<0))==TRUE )
+		scaledDelayAsymCoeff=-scaledDelayAsymCoeff;
+
+	TimeInterval delayAsym = __mulRelativeDifference(scaledDelayAsymCoeff, scaledMeanDelay);
+
+	return constantAsymmetry +(( negDelayAsymCoeff != negMeanDelay) ? -delayAsym : delayAsym);
+}
+
+/*
+ * Calculation of delay asymmetry with polynomial expansion
+ */
+
+RelativeDifference pp_servo_calculateDelayAsymCoefficient(RelativeDifference delayCoeff){
+
+	uint64_t term;
+	RelativeDifference delayAsymCoeff;
+	int negative;
+	int sub = 1;
+
+	if((negative=(delayCoeff < 0))==TRUE) // checking whether alpha is negative
+		delayCoeff=-delayCoeff;
+
+	delayAsymCoeff = delayCoeff >> 1;  // alpha/2
+
+	term  = __mulRelativeDifference(delayCoeff, delayAsymCoeff) >> 1;	// first term of polynomial expansion
+
+	while(term > 2){									// do polynomial expansion until term = 0
+		if( !negative){									// if alpha is positive
+			delayAsymCoeff = sub ?
+				delayAsymCoeff - term :
+				delayAsymCoeff +term;
+			sub = !sub;									// Invert for next iteration
+		} else {										// if alpha is negative
+			delayAsymCoeff += term+1;							//
+		}
+		term = __mulRelativeDifference(delayCoeff, term) >> 1;
+	}
+
+	return negative ? -delayAsymCoeff : delayAsymCoeff;		// units of delayAsymCoeff = [ns]*2^62
 }
 
 static int calculate_p2p_delayMM(struct pp_instance *ppi) {

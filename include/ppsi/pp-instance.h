@@ -16,7 +16,9 @@
  */
 struct pp_runtime_opts {
     uint32_t updated_fields_mask;
-	ClockQuality clock_quality;
+	int clock_quality_clockClass;                 // ClockQuality.clockClass
+	int clock_quality_clockAccuracy;              // ClockQuality.clockAccuracy
+	int clock_quality_offsetScaledLogVariance;    // ClockQuality.offsetScaledLogVariance
 	Integer32 ttl;
 	int flags;		/* see below */
 	Integer16 ap, ai;

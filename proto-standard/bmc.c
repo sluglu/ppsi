@@ -1320,7 +1320,7 @@ static void bmc_update_clock_quality(struct pp_globals *ppg)
 {
 	char *pp_diag_msg;
 	struct pp_runtime_opts *rt_opts = ppg->rt_opts;
-	int rt_opts_clock_quality_clockClass=rt_opts->clock_quality.clockClass;
+	int rt_opts_clock_quality_clockClass=rt_opts->clock_quality_clockClass;
 	int defaultDS_clock_quality_clockClass=ppg->defaultDS->clockQuality.clockClass;
 	timing_mode_state_t timing_mode_state;
 

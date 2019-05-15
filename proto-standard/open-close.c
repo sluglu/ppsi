@@ -12,11 +12,9 @@
  * need to change some values in there.
  */
 struct pp_runtime_opts __pp_default_rt_opts = {
-	.clock_quality = {
-			.clockClass = PP_CLASS_DEFAULT,
-			.clockAccuracy = PP_ACCURACY_DEFAULT,
-			.offsetScaledLogVariance = PP_VARIANCE_DEFAULT,
-	},
+	.clock_quality_clockClass = PP_CLASS_DEFAULT,
+	.clock_quality_clockAccuracy = PP_ACCURACY_DEFAULT,
+	.clock_quality_offsetScaledLogVariance = PP_VARIANCE_DEFAULT,
 	.flags =		PP_DEFAULT_FLAGS,
 	.ap =			PP_DEFAULT_AP,
 	.ai =			PP_DEFAULT_AI,
@@ -89,8 +87,10 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 
 	rt_opts = ppg->rt_opts;
 
-	memcpy(&def->clockQuality, &rt_opts->clock_quality,
-		   sizeof(ClockQuality));
+	// Copy clock quality
+	def->clockQuality.clockClass=rt_opts->clock_quality_clockClass;
+	def->clockQuality.clockAccuracy=rt_opts->clock_quality_clockAccuracy;
+	def->clockQuality.offsetScaledLogVariance=rt_opts->clock_quality_offsetScaledLogVariance;
 
 	/* Clause 17.6.5.3 : Clause 9.2.2 shall not be in effect. If implemented, defaultDS.slaveOnly should be FALSE, and
 	 * portDS.masterOnly should be FALSE on all PTP Ports of the PTP Instance.
@@ -127,7 +127,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 		}
 		if ( is_slaveOnly(def) ) {
 			/* Configured clockClass must be also changed to avoid to be set by BMCA bmc_update_clock_quality() */
-			rt_opts->clock_quality.clockClass =
+			rt_opts->clock_quality_clockClass =
 					def->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
 			pp_printf("Slave Only, clock class set to %d\n", def->clockQuality.clockClass);
 		}
@@ -167,7 +167,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 		if ( def->clockQuality.clockClass < 128 && isSlavePresent) {
 			/* clockClass cannot be < 128 if a port is configured as slave */
 			/* Configured clockClass must be also changed to avoid to be set by BMCA bmc_update_clock_quality() */
-			rt_opts->clock_quality.clockClass =
+			rt_opts->clock_quality_clockClass =
 					def->clockQuality.clockClass=PP_CLASS_DEFAULT;
 			pp_printf("PPSi: GM clock set but slave present. Clock class set to %d\n", def->clockQuality.clockClass);
 		}

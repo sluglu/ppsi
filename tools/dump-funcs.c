@@ -113,8 +113,8 @@ static void dump_1stamp(char *prefix, char *s, struct stamp *t)
 
 static void dump_1quality(char *prefix, char *s, ClockQuality *q)
 {
-	printf("%s%s%02x-%02x-%04x\n", prefix, s, q->clockClass,
-	       q->clockAccuracy, q->offsetScaledLogVariance);
+	printf("%s%s%02x-%02x-%04x\n", prefix, s, (unsigned int) q->clockClass,
+			(unsigned int) q->clockAccuracy, (unsigned int) q->offsetScaledLogVariance);
 }
 
 static void dump_1clockid(char *prefix, char *s, ClockIdentity i)
@@ -135,10 +135,15 @@ static void dump_1port(char *prefix, char *s, unsigned char *p)
 /* Helpers for each message types */
 static void dump_msg_announce(char *prefix, struct ptp_announce *p)
 {
+	ClockQuality	grandmasterClockQuality;
+
+	memcpy( &grandmasterClockQuality,&p->grandmasterClockQuality, sizeof(ClockQuality));
+	grandmasterClockQuality.offsetScaledLogVariance=ntohs(grandmasterClockQuality.offsetScaledLogVariance);
+
 	dump_1stamp(prefix, "MSG-ANNOUNCE: stamp ",
 		    &p->originTimestamp);
 	dump_1quality(prefix, "MSG-ANNOUNCE: grandmaster-quality ",
-		      &p->grandmasterClockQuality);
+		      &grandmasterClockQuality);
 	printf("%sMSG-ANNOUNCE: grandmaster-prio %i %i\n", prefix,
 	       p->grandmasterPriority1, p->grandmasterPriority2);
 	dump_1clockid(prefix, "MSG-ANNOUNCE: grandmaster-id ",

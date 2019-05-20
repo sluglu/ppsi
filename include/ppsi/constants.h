@@ -117,6 +117,13 @@ typedef enum {
 	PP_TIMING_MODE_STATE_UNKNOWN
 }timing_mode_state_t;
 
+typedef enum {
+	TM_GRAND_MASTER=0,
+	TM_FREE_MASTER,
+	TM_BOUNDARY_CLOCK,
+	TM_DISABLED
+}timing_mode_t;
+
 
 #define PP_ALTERNATE_MASTER_FLAG	1
 #define PP_TWO_STEP_FLAG		2

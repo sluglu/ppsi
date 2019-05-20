@@ -119,6 +119,9 @@ int wrs_set_timing_mode(struct pp_globals * ppg,timing_mode_t tm)
 	if ((ret < 0) || (rval < 0))
 		return -1;
 
+	ppg->timingMode=tm;
+	ppg->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
+
 	return 0;
 }
 
@@ -157,7 +160,10 @@ timing_mode_state_t wrs_get_timing_mode_state(struct pp_globals *ppg)
 				}
 			}
 		}
+		if ( ppg->timingModeLockingState == TM_LOCKING_STATE_LOCKED)
+			ppg->timingModeLockingState = TM_LOCKING_STATE_ERROR;
 	} else {
+		ppg->timingModeLockingState = TM_LOCKING_STATE_LOCKED;
 		if (tmoIndex > 0 ) {
 			/* Free the timer: Next unlock state, we will wait then 60s again
 			 * before to set again the Timing mode.
@@ -181,6 +187,7 @@ timing_mode_t wrs_get_timing_mode(struct pp_globals *ppg)
 	if (ret < 0)
 		return -1;
 
+	ppg->timingMode=rval; // Update timing mode
 	return rval;
 }
 
@@ -198,8 +205,8 @@ int wrs_locking_enable(struct pp_instance *ppi)
 {
 	int ret, rval;
 
+	GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
 	wrs_set_timing_mode(GLBS(ppi),TM_BOUNDARY_CLOCK);
-
 	pp_diag(ppi, time, 1, "Start locking\n");
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_START, 0);
@@ -220,6 +227,7 @@ int wrs_locking_reset(struct pp_instance *ppi)
 		if ( wrs_set_timing_mode(GLBS(ppi),TM_FREE_MASTER)<0 ) {
 			return -1;
 		}
+	GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_RESET, 0);
 
@@ -240,9 +248,13 @@ int wrs_locking_poll(struct pp_instance *ppi)
 		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
 	}
 	if (rval != HEXP_LOCK_STATUS_LOCKED) {
+		if ( GLBS(ppi)->timingModeLockingState==TM_LOCKING_STATE_LOCKED )
+			GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_ERROR;
 		pp_diag(ppi, time, 2, "PLL not locked(%d)\n",rval);
 		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
 	}
+
+	GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_LOCKED;
 	pp_diag(ppi, time, 2, "PLL is locked\n");
 	return WRH_SPLL_READY;
 }

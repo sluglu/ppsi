@@ -35,15 +35,6 @@
 
 #define WRH_SERVO_OFFSET_STABILITY_THRESHOLD 60 /* psec */
 
-/* Parameter of wrs_set_timing_mode */
-typedef enum {
-	TM_GRAND_MASTER=HAL_TIMING_MODE_GRAND_MASTER,
-	TM_FREE_MASTER= HAL_TIMING_MODE_FREE_MASTER,
-	TM_BOUNDARY_CLOCK=HAL_TIMING_MODE_BC,
-	TM_DISABLED=HAL_TIMING_MODE_DISABLED
-}timing_mode_t;
-
-
 /* White Rabbit hw-dependent functions (code in arch-wrpc and arch-wrs) */
 struct wrh_operations {
 	int (*locking_enable)(struct pp_instance *ppi);

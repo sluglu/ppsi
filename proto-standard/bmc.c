@@ -1394,6 +1394,9 @@ static void bmc_update_clock_quality(struct pp_globals *ppg)
 			}
 	};
 
+    // Called here because get_timing_mode_state() updates  timingModeLockingState field in pp_globals
+	timing_mode_state=WRH_OPER()->get_timing_mode_state(ppg);
+
 	if (rt_opts_clock_quality_clockClass >= 128)
 		return;
 
@@ -1413,7 +1416,7 @@ static void bmc_update_clock_quality(struct pp_globals *ppg)
 		return;
 	}
 
-	if ((timing_mode_state=WRH_OPER()->get_timing_mode_state(ppg))==PP_TIMING_MODE_STATE_ERROR) {
+	if (timing_mode_state==PP_TIMING_MODE_STATE_ERROR) {
 		pp_diag(NULL, bmc, 1,
 			"Could not get timing mode locking state, taking old clock class: %i\n",
 			ppg->defaultDS->clockQuality.clockClass);

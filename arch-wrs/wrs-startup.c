@@ -389,6 +389,8 @@ int main(int argc, char **argv)
 		int nbRetry;
 		int enablePPS;
 
+		ppg->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
+
 		if ( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED ) {
 			if (prev_timing_mode==-1) {
 				fprintf(stderr, "ppsi: Cannot get current timing mode\n");
@@ -400,8 +402,8 @@ int main(int argc, char **argv)
 			if ( prev_timing_mode != TM_GRAND_MASTER ){
 				/* Timing mode was not GM before */
 				WRH_OPER()->set_timing_mode(ppg,TM_GRAND_MASTER);
-				ppg->waitGmLocking=1; /* We might wait PPL locking ... see below */
-			}
+			} else
+				ppg->timingMode=TM_GRAND_MASTER; // set here because set_timing_mode() is not called
 		} else {
 			/* Timing mode will be set to BC when a port will become slave */
 			WRH_OPER()->set_timing_mode(ppg,TM_FREE_MASTER);
@@ -416,23 +418,16 @@ int main(int argc, char **argv)
 				break;
 			sleep(1); // wait 1s
 			nbRetry--;
-		} // if nbRetry>0 it means that the PLL is locked
-
-		if ( (ppg->waitGmLocking=ppg->waitGmLocking && nbRetry==0)==1 ) {
-			/* we degrade the clockClass to be sure that all instances will stay in
-			 * initializing state until the clock class goes to PP_PTP_CLASS_GM_LOCKED
-			 */
-			//GDSDEF(ppg)->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
 		}
 
 		/* Enable the PPS generation only if
 		 * - Grand master and PLL is locked
 		 * OR
 		 * - Free running master (no condition required)
-		 * OOR
+		 * OR
 		 * - Timing output is forced (for testing only)
 		 */
-		enablePPS=(nbRetry>0 && ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
+		enablePPS=(ppg->timingModeLockingState== TM_LOCKING_STATE_LOCKED && ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
 				( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_UNLOCKED ||
 						GOPTS(ppg)->forcePpsGen);
 		WRH_OPER()->enable_timing_output(ppg,enablePPS);

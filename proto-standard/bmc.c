@@ -82,7 +82,7 @@ void bmc_m1(struct pp_instance *ppi)
 	prop->ptpTimescale=ptpTimescale;
 	
 	if (ptpTimescale) {
-		ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+		ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 		if (ret) {
 			offset = PP_DEFAULT_UTC_OFFSET;
 			pp_diag(ppi, bmc, 1,
@@ -94,7 +94,7 @@ void bmc_m1(struct pp_instance *ppi)
 		if (prop->currentUtcOffset != offset) {
 			pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",offset);
 			prop->currentUtcOffset = offset;
-			ppi->t_ops->set(ppi, NULL);
+			TOPS(ppi)->set(ppi, NULL);
 		}
 		
 		if (ret)
@@ -181,7 +181,7 @@ void bmc_s1(struct pp_instance *ppi,
 	prop->ptpTimescale = ((frgn_master->flagField[1] & FFB_PTP) != 0);
 	
 	if (prop->ptpTimescale) {
-		ret = ppi->t_ops->get_utc_time(ppi, &hours, &minutes, &seconds);
+		ret = TOPS(ppi)->get_utc_time(ppi, &hours, &minutes, &seconds);
 		if (ret) {
 			pp_diag(ppi, bmc, 1, 
 				"Could not get UTC time from system, taking received flags\n");
@@ -195,7 +195,7 @@ void bmc_s1(struct pp_instance *ppi,
 				    (seconds >= (60 - (2 * (1 << ppi->portDS->logAnnounceInterval))))) {
 					pp_diag(ppi, bmc, 2, 
 						"Approaching midnight, not updating leap flags\n");			
-					ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+					ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 					if (ret) {
 						pp_diag(ppi, bmc, 1, 
 							"Could not get UTC offset from system\n");
@@ -208,7 +208,7 @@ void bmc_s1(struct pp_instance *ppi,
 							offset, leap59, leap61);		
 					}
 				} else {
-					ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+					ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 					if (ret) {
 						pp_diag(ppi, bmc, 1, 
 							"Could not get UTC flags from system, taking received flags\n");
@@ -250,7 +250,7 @@ void bmc_s1(struct pp_instance *ppi,
 								"leap61: %i\n",
 							        offset, leap59, leap61);		
 							
-							ret = ppi->t_ops->set_utc_offset(ppi, offset, leap59, leap61);
+							ret = TOPS(ppi)->set_utc_offset(ppi, offset, leap59, leap61);
 							if (ret) {
 								pp_diag(ppi, bmc, 1, 
 									"Could not set UTC offset on system\n");
@@ -265,7 +265,7 @@ void bmc_s1(struct pp_instance *ppi,
 				    (seconds <= (0 + (2 * (1 << ppi->portDS->logAnnounceInterval))))) {
 					pp_diag(ppi, bmc, 2, 
 						"short after midnight, taking local offset\n");			
-					ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+					ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 					if (ret) {
 						pp_diag(ppi, bmc, 1, 
 							"Could not get UTC offset from system\n");
@@ -285,7 +285,7 @@ void bmc_s1(struct pp_instance *ppi,
 						pp_diag(ppi, bmc, 1, "New UTC offset in the middle of the day: %i\n",
 							frgn_master->currentUtcOffset);
 						prop->currentUtcOffset = frgn_master->currentUtcOffset;
-						ppi->t_ops->set(ppi, NULL);
+						TOPS(ppi)->set(ppi, NULL);
 					}
 					prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
 					prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);

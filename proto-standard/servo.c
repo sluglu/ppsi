@@ -40,9 +40,9 @@ static void _pp_servo_init(struct pp_instance *ppi)
 
 	PP_SERVO_RESET_DATA(servo);
 	servo->mpd_fltr.s_exp = 0;	/* clears meanDelay filter */
-	if (ppi->t_ops->init_servo) {
+	if (TOPS(ppi)->init_servo) {
 		/* The system may pre-set us to keep current frequency */
-		d = ppi->t_ops->init_servo(ppi);
+		d = TOPS(ppi)->init_servo(ppi);
 		if (d == -1) {
 			pp_diag(ppi, servo, 1, "error in t_ops->servo_init");
 			d = 0;
@@ -51,7 +51,7 @@ static void _pp_servo_init(struct pp_instance *ppi)
 	} else {
 		/* level clock */
 		if (pp_can_adjust(ppi))
-			ppi->t_ops->adjust(ppi, 0, 0);
+			TOPS(ppi)->adjust(ppi, 0, 0);
 		servo->obs_drift = 0;
 	}
 
@@ -413,17 +413,17 @@ static void __pp_servo_update(struct pp_instance *ppi) {
 		/* apply controller output as a clock tick rate adjustment, if
 		 * provided by arch, or as a raw offset otherwise */
 		if (pp_can_adjust(ppi)) {
-			if (ppi->t_ops->adjust_freq)
-				ppi->t_ops->adjust_freq(ppi, adj32);
+			if (TOPS(ppi)->adjust_freq)
+				TOPS(ppi)->adjust_freq(ppi, adj32);
 			else
-				ppi->t_ops->adjust_offset(ppi, adj32);
+				TOPS(ppi)->adjust_offset(ppi, adj32);
 		}
 
 		pp_diag(ppi, servo, 2, "Observed drift: %9i\n",
 			(int)SRV(ppi)->obs_drift >> 10);
 	}
 	servo->update_count++;
-	ppi->t_ops->get(ppi, &servo->update_time);
+	TOPS(ppi)->get(ppi, &servo->update_time);
 
 }
 
@@ -505,9 +505,9 @@ static int pp_servo_offset_master(struct pp_instance *ppi, struct pp_time *ofm)
 	if (!pp_can_adjust(ppi))
 		return 0; /* e.g., a loopback test run... "-t" on cmdline */
 
-	ppi->t_ops->get(ppi, &time_tmp);
+	TOPS(ppi)->get(ppi, &time_tmp);
 	pp_time_add(&time_tmp, ofm);
-	ppi->t_ops->set(ppi, &time_tmp);
+	TOPS(ppi)->set(ppi, &time_tmp);
 
 	_pp_servo_init(ppi);
 

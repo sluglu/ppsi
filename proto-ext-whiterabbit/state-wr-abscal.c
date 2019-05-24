@@ -13,7 +13,7 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
 {
 	int nsec;
 
-	ppi->t_ops->get(ppi, t);
+	TOPS(ppi)->get(ppi, t);
 	nsec = t->scaled_nsecs >> 16;
 	return  1000 - (nsec / 1000 / 1000);
 }
@@ -43,11 +43,11 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 		WRH_OPER()->enable_timing_output(GLBS(ppi), 1);
 
 		/* Wait for the second to tick */
-		while( ppi->t_ops->get(ppi, &t), t.secs == secs)
+		while( TOPS(ppi)->get(ppi, &t), t.secs == secs)
 			;
 
 		/* Send sync, no f-up -- actually we could send any frame */
-		ppi->t_ops->get(ppi, &t);
+		TOPS(ppi)->get(ppi, &t);
 		len = msg_pack_sync(ppi, &t);
 		__send_and_log(ppi, len, PP_NP_EVT);
 

@@ -94,7 +94,7 @@ int pp_lib_may_issue_announce(struct pp_instance *ppi)
 	 * happened before sending 
 	 */
 	if (prop->ptpTimescale) {
-		ret = ppi->t_ops->get_utc_time(ppi, &hours, &minutes, &seconds);
+		ret = TOPS(ppi)->get_utc_time(ppi, &hours, &minutes, &seconds);
 		if (ret) {
 			pp_diag(ppi, frames, 1, 
 				"Could not get UTC time from system, taking received flags\n");
@@ -104,7 +104,7 @@ int pp_lib_may_issue_announce(struct pp_instance *ppi)
 			    (seconds <= (0 + (2 * (1 << ppi->portDS->logAnnounceInterval))))) {
 				pp_diag(ppi, frames, 2, 
 					"short after midnight, taking local offset\n");			
-				ret = ppi->t_ops->get_utc_offset(ppi, &offset, &leap59, &leap61);
+				ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 				if (ret) {
 					pp_diag(ppi, frames, 1, 
 						"Could not get UTC offset from system\n");

@@ -188,7 +188,7 @@ static __inline__ int measure_first_time(struct pp_instance *ppi) {
 	struct pp_time current_time;
 	int ms;
 
-	ppi->t_ops->get(ppi, &current_time);
+	TOPS(ppi)->get(ppi, &current_time);
 	ms=(current_time.secs&0xFFFF)*1000; /* do not take all second - Not necessary to calculate a difference*/
 	ms+=((current_time.scaled_nsecs + 0x8000) >> TIME_INTERVAL_FRACBITS)/1000000;
 	return ms;

@@ -167,7 +167,7 @@ int pp_timeout_get(struct pp_instance *ppi, int index) {
 static inline void __pp_timeout_set(struct pp_instance *ppi,int index , int millisec) {
 	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
 
-	tmoCnt->tmo = ppi->t_ops->calc_timeout(ppi, millisec);
+	tmoCnt->tmo = TOPS(ppi)->calc_timeout(ppi, millisec);
 }
 
 void pp_timeout_set_rename(struct pp_instance *ppi,int index ,  int millisec, char *name)
@@ -261,7 +261,7 @@ int pp_timeout(struct pp_instance *ppi, int index)
 	if ( tmoCnt->initValueMs==TIMEOUT_DISABLE_VALUE )
 		return 0; /* counter is disabled */
 
-	now=ppi->t_ops->calc_timeout(ppi, 0);
+	now=TOPS(ppi)->calc_timeout(ppi, 0);
 	ret = time_after_eq(now,tmoCnt->tmo);
 	if (ret)
 		pp_diag(ppi, time, 1, "timeout expired: %s - %lu\n",
@@ -276,7 +276,7 @@ int pp_timeout(struct pp_instance *ppi, int index)
 int pp_next_delay_1(struct pp_instance *ppi, int i1)
 {
 	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,i1);
-	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
+	unsigned long now = TOPS(ppi)->calc_timeout(ppi, 0);
 	signed long r1;
 
 	r1 = tmoCnt->tmo - now;
@@ -287,7 +287,7 @@ int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2)
 {
 	timeOutInstCnt_t *tmoCnt1= __pp_get_counter(ppi,i1);
 	timeOutInstCnt_t *tmoCnt2= __pp_get_counter(ppi,i2);
-	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
+	unsigned long now = TOPS(ppi)->calc_timeout(ppi, 0);
 	signed long r1, r2;
 
 	r1 = tmoCnt1->tmo - now;
@@ -302,7 +302,7 @@ int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3)
 	timeOutInstCnt_t *tmoCnt1= __pp_get_counter(ppi,i1);
 	timeOutInstCnt_t *tmoCnt2= __pp_get_counter(ppi,i2);
 	timeOutInstCnt_t *tmoCnt3= __pp_get_counter(ppi,i3);
-	unsigned long now = ppi->t_ops->calc_timeout(ppi, 0);
+	unsigned long now = TOPS(ppi)->calc_timeout(ppi, 0);
 	signed long r1, r2, r3;
 
 	r1 =  tmoCnt1->tmo - now;

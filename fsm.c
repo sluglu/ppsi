@@ -24,7 +24,7 @@ static void pp_fsm_printf(struct pp_instance *ppi, char *fmt, ...)
 
 	/* temporarily set NOTIMELOG, as we'll print the time ourselves */
 	pp_global_d_flags |= PP_FLAG_NOTIMELOG;
-	ppi->t_ops->get(ppi, &t);
+	TOPS(ppi)->get(ppi, &t);
 	pp_global_d_flags = oflags;
 
 	pp_printf("diag-fsm-1-%s: %09d.%03d: ", ppi->port_name,

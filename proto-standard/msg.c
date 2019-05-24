@@ -385,7 +385,7 @@ int msg_issue_sync_followup(struct pp_instance *ppi)
 	int e, len;
 
 	/* Send sync on the event channel with the "current" timestamp */
-	ppi->t_ops->get(ppi, &now);
+	TOPS(ppi)->get(ppi, &now);
 	len = msg_pack_sync(ppi, &now);
 	e = __send_and_log(ppi, len, PP_NP_EVT,PPM_SYNC_FMT);
 	if (e) return e;
@@ -402,7 +402,7 @@ static int msg_issue_delay_req(struct pp_instance *ppi)
 	struct pp_time now;
 	int len;
 
-	ppi->t_ops->get(ppi, &now);
+	TOPS(ppi)->get(ppi, &now);
 	len = msg_pack_delay_req(ppi, &now);
 
 	return __send_and_log(ppi, len, PP_NP_EVT,PPM_DELAY_REQ_FMT);

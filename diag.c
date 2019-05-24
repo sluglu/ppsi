@@ -37,8 +37,8 @@ void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
 	if (PP_DIAG_EXTRA_PRINT_TIME) {
 		int hours, minutes, seconds;
 
-		if (ppi && ppi->t_ops && ppi->t_ops->get_utc_time )
-			ppi->t_ops->get_utc_time(ppi, &hours, &minutes, &seconds);
+		if (ppi && TOPS(ppi) && TOPS(ppi)->get_utc_time )
+			TOPS(ppi)->get_utc_time(ppi, &hours, &minutes, &seconds);
 		else
 			hours=minutes=seconds=0;
 		pp_printf("%02d:%02d:%02d %s-%i-%s: ", hours, minutes,seconds,thing_name[th], level, name);

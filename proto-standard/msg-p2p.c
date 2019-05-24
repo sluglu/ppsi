@@ -146,7 +146,7 @@ int msg_issue_pdelay_req(struct pp_instance *ppi)
 	int len;
 
 	mark_incorrect(&ppi->t4); /* see commit message */
-	ppi->t_ops->get(ppi, &now);
+	TOPS(ppi)->get(ppi, &now);
 	ppi->received_dresp=
 			ppi->received_dresp_fup=0;
 	len = msg_pack_pdelay_req(ppi, &now);

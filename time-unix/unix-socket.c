@@ -95,7 +95,7 @@ static int unix_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 		 * get the recording time here, even though it may  put a big
 		 * spike in the offset signal sent to the clock servo
 		 */
-		ppi->t_ops->get(ppi, t);
+		TOPS(ppi)->get(ppi, t);
 	}
 
 	/* aux is only there if we asked for it, thus PROTO_VLAN */
@@ -198,7 +198,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 
 	/* To fake a network frame loss, set the timestamp and do not send */
 	if (ppsi_drop_tx()) {
-		ppi->t_ops->get(ppi, t);
+		TOPS(ppi)->get(ppi, t);
 		pp_diag(ppi, frames, 1, "Drop sent frame\n");
 		return len;
 	}
@@ -212,7 +212,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
 		memcpy(hdr->h_source, ch->addr, ETH_ALEN);
 
-		ppi->t_ops->get(ppi, t);
+		TOPS(ppi)->get(ppi, t);
 
 		ret = send(ch->fd, hdr, len, 0);
 		if (ret < 0) {
@@ -237,7 +237,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
 		memcpy(vhdr->h_source, ch->addr, ETH_ALEN);
 
-		ppi->t_ops->get(ppi, t);
+		TOPS(ppi)->get(ppi, t);
 
 		ret = send(ch->fd, vhdr, len, 0);
 		if (ret < 0) {
@@ -256,7 +256,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 		addr.sin_port = htons(udpport[chtype]);
 		addr.sin_addr.s_addr = ppi->mcast_addr[is_pdelay];
 
-		ppi->t_ops->get(ppi, t);
+		TOPS(ppi)->get(ppi, t);
 
 		ret = sendto(ppi->ch[chtype].fd, pkt, len, 0,
 			     (struct sockaddr *)&addr,

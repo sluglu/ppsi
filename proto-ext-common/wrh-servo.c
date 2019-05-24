@@ -92,7 +92,7 @@ int wrh_servo_init(struct pp_instance *ppi)
 		strcpy(gs->servo_state_name, wrh_servo_state_name[gs->state]);
 
 		gs->flags |= PP_SERVO_FLAG_VALID;
-		ppi->t_ops->get(ppi, &gs->update_time);
+		TOPS(ppi)->get(ppi, &gs->update_time);
 		s->tracking_enabled = wrh_tracking_enabled;
 		gs->state = WRH_SYNC_TAI;
 	}
@@ -225,7 +225,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 
 	// Servo updated
 	gs->update_count++;
-	ppi->t_ops->get(ppi, &gs->update_time);
+	TOPS(ppi)->get(ppi, &gs->update_time);
 
 	if (!s->readyForSync )
 		return 1; /* We have to wait before to start the synchronization */
@@ -307,7 +307,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 			 * it. We use current WR time.
 			 * */
 			struct pp_time t;
-			ppi->t_ops->get(ppi,&t);
+			TOPS(ppi)->get(ppi,&t);
 			unix_time_ops.set(ppi, &t);
 			pp_diag(ppi, time, 1, "system time set to %s TAI\n",
 				time_to_string(&t));

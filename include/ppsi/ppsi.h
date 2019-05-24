@@ -260,6 +260,8 @@ struct pp_time_operations {
 	int (*adjust_freq)(struct pp_instance *ppi, long freq_ppb);
 	int (*init_servo)(struct pp_instance *ppi);
 	unsigned long (*calc_timeout)(struct pp_instance *ppi, int millisec);
+	int (*get_GM_locked_state)(struct pp_globals *ppg, pp_timing_mode_state_t *locked);
+	int (*enable_timing_output)(struct pp_globals *ppg,int enable);
 };
 
 #include "timeout_prot.h"

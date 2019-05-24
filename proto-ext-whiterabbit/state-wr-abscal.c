@@ -40,7 +40,7 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 	if (pp_timeout(ppi, wrTmoIdx)) {
 		uint64_t secs = t.secs;
 
-		WRH_OPER()->enable_timing_output(GLBS(ppi), 1);
+		TOPS()->enable_timing_output(GLBS(ppi), 1);
 
 		/* Wait for the second to tick */
 		while( TOPS(ppi)->get(ppi, &t), t.secs == secs)

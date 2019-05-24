@@ -139,7 +139,7 @@ void bmc_m2(struct pp_instance *ppi)
 				/* Grand master by BMCA validated: The timing output can be enabled */
 				pp_gtimeout_disable(ppg,PP_TO_GM_BY_BMCA);
 				pp_diag(ppi, time, 1, "Enable timing output (Grand master by BMCA)\n");
-				WRH_OPER()->enable_timing_output(ppg,1);
+				TOPS(ppi)->enable_timing_output(ppg,1);
 			}
 		}
 	}
@@ -1435,7 +1435,7 @@ static void bmc_update_clock_quality(struct pp_globals *ppg)
 				ppg->defaultDS->clockQuality=p->clockQuality;
 				pp_diag_set_msg(pp_diag_msg,p->msg);
 				if ( p->enable_timing_output)
-					WRH_OPER()->enable_timing_output(ppg,1); /* Enable PPS generation */
+					TOPS(INST(ppg,0))->enable_timing_output(ppg,1); /* Enable PPS generation */
 				break;
 			}
 			p++;

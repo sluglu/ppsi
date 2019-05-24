@@ -44,8 +44,6 @@ struct wrh_operations wrh_oper = {
 	.adjust_phase = wrs_adjust_phase,
 	.read_calib_data = wrs_read_calibration_data,
 
-	.enable_timing_output = wrs_enable_timing_output,
-
 	.set_timing_mode= wrs_set_timing_mode,
 	.get_timing_mode= wrs_get_timing_mode,
 	.get_timing_mode_state= wrs_get_timing_mode_state,
@@ -430,7 +428,7 @@ int main(int argc, char **argv)
 		enablePPS=(ppg->timingModeLockingState== TM_LOCKING_STATE_LOCKED && ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
 				( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_UNLOCKED ||
 						GOPTS(ppg)->forcePpsGen);
-		WRH_OPER()->enable_timing_output(ppg,enablePPS);
+		TOPS(ppi)->enable_timing_output(ppg,enablePPS);
 	}
 
 	seed = (unsigned long) time(NULL);

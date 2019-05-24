@@ -196,7 +196,7 @@ static 	void l1e_state_change(struct pp_instance *ppi) {
 	}
 	if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED ) {
 		/* Leave SLAVE state : We must stop the PPS generation */
-		WRH_OPER()->enable_timing_output(GLBS(ppi),0);
+		TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
 		WRH_OPER()->locking_reset(ppi);
 	}
 }

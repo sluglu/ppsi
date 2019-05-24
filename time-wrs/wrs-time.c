@@ -486,5 +486,7 @@ struct pp_time_operations wrs_time_ops = {
 	.adjust = wrs_time_adjust,
 	.adjust_offset = wrs_time_adjust_offset,
 	.adjust_freq = wrs_time_adjust_freq,
-	.calc_timeout = wrs_calc_timeout
+	.calc_timeout = wrs_calc_timeout,
+	.get_GM_locked_state= wrs_get_GM_locked_state,
+	.enable_timing_output=wrs_enable_timing_output
 };

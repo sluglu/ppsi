@@ -301,13 +301,13 @@ static void control_timing_output(struct pp_instance *ppi) {
 		offsetFromMasterUs=-offsetFromMasterUs;
 
 	if ( offsetFromMasterUs<=ptpPpsThresholdUs ) {
-		WRH_OPER()->enable_timing_output(GLBS(ppi),1);
+		TOPS(ppi)->enable_timing_output(GLBS(ppi),1);
 	} else {
 		if ( !OPTS(ppi)->forcePpsGen ) { /* if timing output forced, never stop it */
 			/* disable only if abs(offsetFromMasterMs)>ptpPpsThresholdMs+20% */
 			ptpPpsThresholdUs+=ptpPpsThresholdUs/5;
 			if ( offsetFromMasterUs>ptpPpsThresholdUs ) {
-				WRH_OPER()->enable_timing_output(GLBS(ppi),0);
+				TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
 			}
 		}
 	}

@@ -43,11 +43,13 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 
 		{ /* Check remaining time */
 			int rms=pp_next_delay_1(ppi, wrTmoIdx);
-			if ( rms==0 || rms<(wrp->wrStateRetry*WR_TMO_MS)) {
-				if (!wr_handshake_retry(ppi)) {
+			if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
+				if ( !rms ) {
+					wr_handshake_fail(ppi);
 					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
 					return 0; /* non-wr already */
 				}
+				wr_handshake_retry(ppi);
 			}
 		}
 	}

@@ -44,6 +44,5 @@ int wr_handshake_retry(struct pp_instance *ppi)
 		pp_diag(ppi, ext, 1, "Retry on timeout\n");
 		return 1; /* yes, retry */
 	}
-	wr_handshake_fail(ppi);
 	return 0; /* don't retry, we are over already */
 }

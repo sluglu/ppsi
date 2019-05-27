@@ -294,14 +294,6 @@ struct pp_globals_cfg {
 	int cur_ppi_n;	/* Remember which instance we are configuring */
 };
 
-typedef enum {
-	TM_LOCKING_STATE_NONE=0,
-	TM_LOCKING_STATE_LOCKING,
-	TM_LOCKING_STATE_LOCKED,
-	TM_LOCKING_STATE_HOLDOVER,
-	TM_LOCKING_STATE_ERROR
-}timing_mode_locking_state_t;
-
 /*
  * Structure for the multi-port ppsi instance.
  */
@@ -330,8 +322,6 @@ struct pp_globals {
 	void *arch_data;		/* if arch needs it */
 	void *global_ext_data;		/* if protocol ext needs it */
 
-	timing_mode_locking_state_t timingModeLockingState; /* Locking state for PLL */
-	timing_mode_t timingMode; /* Timing mode: Grand master, Free running,...*/
 	/* FIXME Here include all is common to many interfaces */
 };
 

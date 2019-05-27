@@ -307,6 +307,16 @@ struct dump_info wr_ext_portDS_info [] = {
 };
 #endif
 
+#if CONFIG_ARCH_IS_WRS
+#undef DUMP_STRUCT
+#define DUMP_STRUCT struct wrs_arch_data_t
+struct dump_info wrs_arch_data_info [] = {
+	DUMP_FIELD(int,timingMode),
+	DUMP_FIELD(int,timingModeLockingState),
+	DUMP_FIELD(int,gmUnlockErr)
+};
+#endif
+
 int dump_ppsi_mem(struct wrs_shm_head *head)
 {
 	struct pp_globals *ppg;
@@ -337,6 +347,14 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 
 	dstp = wrs_shm_follow(head, ppg->timePropertiesDS);
 	dump_many_fields(dstp, dstp_info, ARRAY_SIZE(dstp_info),"ppsi.timePropertiesDS");
+
+#if CONFIG_ARCH_IS_WRS
+	{
+		wrs_arch_data_t *arch_data=wrs_shm_follow(head, WRS_ARCH_G(ppg));
+		dump_many_fields(arch_data, wrs_arch_data_info, ARRAY_SIZE(wrs_arch_data_info),"ppsi.arch_data");
+	}
+#endif
+
 
 	pp_instances = wrs_shm_follow(head, ppg->pp_instances);
 	/* print extension servo data set */

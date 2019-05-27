@@ -45,33 +45,12 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	int i;
 	int initds = 1;
 
-	Boolean waitGmLocking;
 
-	waitGmLocking= ppg->rt_opts->clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED &&
-			(ppg->timingModeLockingState == TM_LOCKING_STATE_LOCKING ||
-					ppg->timingModeLockingState == TM_LOCKING_STATE_ERROR);
-
-	if (waitGmLocking) {
-		/* Waiting for GM locking */
-		if ( ppi->is_new_state ) {
-			/* Init time-out for next calls : Wait 2 x  the BMCA tmo */
-			pp_timeout_set(ppi,PP_TO_IN_STATE,TMO_DEFAULT_BMCA_MS<<1);
-		}else {
-			if ( pp_timeout(ppi,PP_TO_IN_STATE)) {
-				/* At this point, the BMCA already run. We can check the clockClass */
-				if ( DSDEF(ppi)->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) {
-					waitGmLocking=FALSE;
-					pp_timeout_disable(ppi,PP_TO_IN_STATE);
-				}
-				else {
-					pp_timeout_reset(ppi,PP_TO_IN_STATE);
-					goto failure;
-				}
-			} else
-				goto failure;
-		}
+	if ( ppg->rt_opts->clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED  &&
+			DSDEF(ppi)->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
+		// GM not locked
+		goto failure;
 	}
-
 	if (ppi->n_ops->init(ppi) < 0) /* it must handle being called twice */
 		goto failure;
 
@@ -157,12 +136,6 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 
 	msg_init_header(ppi, ppi->tx_ptp); /* This is used for all tx */
 	
-	if ( waitGmLocking ) {
-		/* must leave the BMC running before to check next time the clockClass */
-		ppi->next_delay = pp_gtimeout_get(ppg,PP_TO_BMC) << 1; /* wait 2 x BMCA tmo */
-		return 0;
-	}
-
 	if (is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 		/* Clause 17.6.5.2 : the member portDS.portState shall be set to
 		 * the value of the member externalPortConfigurationPortDS.desiredState

@@ -36,6 +36,8 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 	if ( portInfoTmoIdx==-1) {
 		portInfoTmoIdx=pp_gtimeout_get_timer(ppg, "SEND_PORT_INFO", TO_RAND_NONE, 0);
 		pp_gtimeout_set(ppg,portInfoTmoIdx,2000); // Update interface info every 2 seconds
+		pp_gtimeout_set(ppg, PP_TO_BMC,TMO_DEFAULT_BMCA_MS);
+		bmc_update_clock_quality(ppg);// Update clock quality before any call to the state machine
 	}
 
 	for (j = 0; j < ppg->nlinks; j++) {
@@ -113,9 +115,34 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 
 	/* BMCA must run at least once per announce interval 9.2.6.8 */
 	if (pp_gtimeout(ppg, PP_TO_BMC)) {
+		wrh_timing_mode_pll_state_t pllState;
+
 		bmc_calculate_ebest(ppg); /* Calculation of erbest, ebest ,... */
-		pp_gtimeout_set(ppg, PP_TO_BMC,TMO_DEFAULT_BMCA_MS);
+		pp_gtimeout_reset(ppg, PP_TO_BMC);
 		delay_ms=0;
+
+		if ( WRH_OPER()->get_timing_mode_state(ppg,&pllState)>=0 ) {
+			// Check the PLL for grand master
+			if ( WRS_ARCH_G(ppg)->timingMode==WRH_TM_GRAND_MASTER && pllState==WRH_TM_PLL_STATE_LOCKED ) {
+				// GM Locked
+				if ( WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_LOCKING ||
+						WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_ERROR) {
+					// Was not locked before
+					TOPS(INST(ppg,0))->set(INST(ppg,0),NULL); // GM locked: set the time
+				}
+			}
+			// Update timingModeLockingState field
+			if (pllState==WRH_TM_PLL_STATE_LOCKED) {
+				WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKED;
+			} else if ( pllState==WRH_TM_PLL_STATE_UNLOCKED ) {
+				if ( WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_LOCKED ) {
+					// Was locked before
+					WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_ERROR;
+					if (WRS_ARCH_G(ppg)->timingMode==WRH_TM_GRAND_MASTER)
+						WRS_ARCH_G(ppg)->gmUnlockErr++;
+				}
+			}
+		}
 	} else {
 		/* check if the BMC timeout is the next to run */
 		int delay_bmca;

@@ -33,6 +33,29 @@
 #define FIX_ALPHA_FRACBITS 40
 #define FIX_ALPHA_FRACBITS_AS_FLOAT 40.0
 
+typedef enum {
+	WRH_TM_LOCKING_STATE_NONE=0,
+	WRH_TM_LOCKING_STATE_LOCKING,
+	WRH_TM_LOCKING_STATE_LOCKED,
+	WRH_TM_LOCKING_STATE_HOLDOVER,
+	WRH_TM_LOCKING_STATE_ERROR
+}wrh_timing_mode_locking_state_t;
+
+
+typedef enum {
+	WRH_TM_PLL_STATE_LOCKED,
+	WRH_TM_PLL_STATE_UNLOCKED,
+	WRH_TM_PLL_STATE_HOLDOVER
+}wrh_timing_mode_pll_state_t;
+
+typedef enum {
+	WRH_TM_GRAND_MASTER=0,
+	WRH_TM_FREE_MASTER,
+	WRH_TM_BOUNDARY_CLOCK,
+	WRH_TM_DISABLED
+}wrh_timing_mode_t;
+
+
 #define WRH_SERVO_OFFSET_STABILITY_THRESHOLD 60 /* psec */
 
 /* White Rabbit hw-dependent functions (code in arch-wrpc and arch-wrs) */
@@ -50,10 +73,9 @@ struct wrh_operations {
 	int (*read_calib_data)(struct pp_instance *ppi,int32_t *clock_period, TimeInterval *scaledBitSlide,
 			RelativeDifference *scaledDelayCoefficient,
 			TimeInterval *scaledSfpDeltaTx, TimeInterval *scaledSfpDeltaRx);
-	int (*enable_timing_output)(struct pp_globals *,int enable);
-	timing_mode_t (*get_timing_mode)(struct pp_globals *);
-	timing_mode_state_t (*get_timing_mode_state)(struct pp_globals *);
-	int (*set_timing_mode)(struct pp_globals *, timing_mode_t tm);
+	int (*get_timing_mode)(struct pp_globals *,wrh_timing_mode_t *state);
+	int (*get_timing_mode_state)(struct pp_globals *, wrh_timing_mode_pll_state_t *state);
+	int (*set_timing_mode)(struct pp_globals *, wrh_timing_mode_t tm);
 };
 
 extern struct wrh_operations wrh_oper;
@@ -111,7 +133,6 @@ typedef struct wrh_servo_t {
 	Boolean readyForSync; /* Ready for synchronization */
 	Boolean doRestart; /* PLL is unlocked: A restart of the calibration is needed */
 } wrh_servo_t;
-
 
 static inline  wrh_servo_t *WRH_SRV(struct pp_instance *ppi)
 {

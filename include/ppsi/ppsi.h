@@ -242,6 +242,12 @@ extern struct pp_network_operations DEFAULT_NET_OPS;
 /* These can be liked and used as fallback by a different timing engine */
 extern struct pp_network_operations unix_net_ops;
 
+typedef enum {
+	PP_TIMING_MODE_STATE_UNLOCKED=0,
+	PP_TIMING_MODE_STATE_HOLDOVER,
+	PP_TIMING_MODE_STATE_LOCKED,
+}pp_timing_mode_state_t;
+
 /*
  * Time operations, like network operations above, are encapsulated.
  * They may live in their own time-<name> subdirectory.
@@ -260,7 +266,7 @@ struct pp_time_operations {
 	int (*adjust_freq)(struct pp_instance *ppi, long freq_ppb);
 	int (*init_servo)(struct pp_instance *ppi);
 	unsigned long (*calc_timeout)(struct pp_instance *ppi, int millisec);
-	int (*get_GM_locked_state)(struct pp_globals *ppg, pp_timing_mode_state_t *locked);
+	int (*get_GM_lock_state)(struct pp_globals *ppg, pp_timing_mode_state_t *state);
 	int (*enable_timing_output)(struct pp_globals *ppg,int enable);
 };
 
@@ -332,6 +338,7 @@ extern void bmc_add_frgn_master(struct pp_instance *ppi, struct pp_frgn_master *
 extern void bmc_flush_erbest(struct pp_instance *ppi);
 extern void bmc_calculate_ebest(struct pp_globals *ppg);
 extern int bmc_apply_state_descision(struct pp_instance *ppi);
+extern void bmc_update_clock_quality(struct pp_globals *ppg);
 
 /* msg.c */
 extern void msg_init_header(struct pp_instance *ppi, void *buf);

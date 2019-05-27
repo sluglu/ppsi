@@ -118,7 +118,6 @@ static char *strCodeOpt="CODEOPT=("
 int main(int argc, char **argv)
 {
 	struct pp_globals *ppg;
-	struct pp_instance *ppi;
 	unsigned long seed;
 	struct timex t;
 	int i, hal_retries;
@@ -227,10 +226,9 @@ int main(int argc, char **argv)
 
 	ppg->max_links = PP_MAX_LINKS;
 
-	/* NOTE: arch_data is not in shmem */
-	ppg->arch_data = malloc( sizeof(struct unix_arch_data));
+	ppg->arch_data = wrs_shm_alloc(ppsi_head, sizeof(wrs_arch_data_t));
 	ppg->pp_instances = wrs_shm_alloc(ppsi_head,
-				     ppg->max_links * sizeof(*ppi));
+				     ppg->max_links * sizeof(struct pp_instance));
 
 	if ((!ppg->arch_data) || (!ppg->pp_instances)) {
 		fprintf(stderr, "ppsi: out of memory\n");
@@ -276,7 +274,8 @@ int main(int argc, char **argv)
 		}
 	}
 	for (i = 0; i < ppg->nlinks; i++) {
-		ppi = INST(ppg, i);
+		struct pp_instance *ppi= INST(ppg, i);
+
 		ppi->ch[PP_NP_EVT].fd = -1;
 		ppi->ch[PP_NP_GEN].fd = -1;
 
@@ -383,28 +382,32 @@ int main(int argc, char **argv)
 	pp_init_globals(ppg, &__pp_default_rt_opts);
 
 	{
-		timing_mode_t prev_timing_mode=WRH_OPER()->get_timing_mode(ppg);
 		int nbRetry;
 		int enablePPS;
+		wrh_timing_mode_pll_state_t timing_mode_pll_state;
+		struct pp_instance *ppi=INST(ppg,0);
+		wrh_timing_mode_t prev_timing_mode;
+		int ret=WRH_OPER()->get_timing_mode(ppg,&prev_timing_mode);
 
-		ppg->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
+		if (ret<0) {
+			fprintf(stderr, "ppsi: Cannot get current timing mode\n");
+			exit(1);
+		}
+
+		WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKING;
 
 		if ( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED ) {
-			if (prev_timing_mode==-1) {
-				fprintf(stderr, "ppsi: Cannot get current timing mode\n");
-				exit(1);
-			}
 			/* If read timing mode was GM, then we do not reprogram the hardware because it
 			 * may unlock the PLL.
 			 */
-			if ( prev_timing_mode != TM_GRAND_MASTER ){
+			if ( prev_timing_mode != WRH_TM_GRAND_MASTER ){
 				/* Timing mode was not GM before */
-				WRH_OPER()->set_timing_mode(ppg,TM_GRAND_MASTER);
+				WRH_OPER()->set_timing_mode(ppg,WRH_TM_GRAND_MASTER);
 			} else
-				ppg->timingMode=TM_GRAND_MASTER; // set here because set_timing_mode() is not called
+				WRS_ARCH_G(ppg)->timingMode=WRH_TM_GRAND_MASTER; // set here because set_timing_mode() is not called
 		} else {
 			/* Timing mode will be set to BC when a port will become slave */
-			WRH_OPER()->set_timing_mode(ppg,TM_FREE_MASTER);
+			WRH_OPER()->set_timing_mode(ppg,WRH_TM_FREE_MASTER);
 		}
 		/* Waiting for PLL locking. We do not need a precise time-out here */
 		/* We are waiting up to 3s for PLL locking.
@@ -412,10 +415,17 @@ int main(int argc, char **argv)
 		 */
 		nbRetry=2;
 		while(nbRetry>0) {
-			if ( WRH_OPER()->get_timing_mode_state(ppg)==PP_TIMING_MODE_STATE_LOCKED )
+			ret=WRH_OPER()->get_timing_mode_state(ppg,&timing_mode_pll_state);
+			if ( ret==0 && timing_mode_pll_state==WRH_TM_PLL_STATE_LOCKED )
 				break;
 			sleep(1); // wait 1s
 			nbRetry--;
+		}
+		if ( timing_mode_pll_state==WRH_TM_PLL_STATE_UNLOCKED) {
+				WRS_ARCH_G(ppg)->timingModeLockingState = WRH_TM_LOCKING_STATE_LOCKING;
+		} else if (timing_mode_pll_state==WRH_TM_PLL_STATE_LOCKED) {
+			TOPS(ppi)->set(ppi,NULL); // GM locked: set the time
+			WRS_ARCH_G(ppg)->timingModeLockingState = WRH_TM_LOCKING_STATE_LOCKED;
 		}
 
 		/* Enable the PPS generation only if
@@ -425,7 +435,8 @@ int main(int argc, char **argv)
 		 * OR
 		 * - Timing output is forced (for testing only)
 		 */
-		enablePPS=(ppg->timingModeLockingState== TM_LOCKING_STATE_LOCKED && ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
+		enablePPS=(WRS_ARCH_G(ppg)->timingModeLockingState== WRH_TM_LOCKING_STATE_LOCKED &&
+				ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
 				( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_UNLOCKED ||
 						GOPTS(ppg)->forcePpsGen);
 		TOPS(ppi)->enable_timing_output(ppg,enablePPS);

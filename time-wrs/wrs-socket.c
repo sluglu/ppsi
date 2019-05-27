@@ -501,7 +501,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 		memcpy(hdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
-			ppi->t_ops->get(ppi, t);
+			TOPS(ppi)->get(ppi, t);
 
 		ret = send(ch->fd, hdr, len, 0);
 		if (ret < 0) {
@@ -532,7 +532,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 		memcpy(vhdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
-			ppi->t_ops->get(ppi, t);
+			TOPS(ppi)->get(ppi, t);
 
 		if (len < 64)
 			len = 64;

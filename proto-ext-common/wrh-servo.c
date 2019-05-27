@@ -319,7 +319,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 		/* ts_to_picos() below returns phase alone */
 		remaining_offset = abs(pp_time_to_picos(&offsetMS));
 		if(remaining_offset < WRH_SERVO_OFFSET_STABILITY_THRESHOLD) {
-			WRH_OPER()->enable_timing_output(GLBS(ppi),1);
+			TOPS(ppi)->enable_timing_output(GLBS(ppi),1);
 			s->prev_delayMS_ps = s->delayMS_ps;
 			gs->state = WRH_TRACK_PHASE;
 		} else {

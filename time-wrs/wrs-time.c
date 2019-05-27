@@ -17,6 +17,23 @@
 #include <hal_exports.h>
 #include "../include/hw-specific/wrh.h"
 
+typedef enum {
+	WRS_TM_PLL_STATE_ERROR=-1,
+	WRS_TM_PLL_STATE_UNLOCKED=0,
+	WRS_TM_PLL_STATE_LOCKED,
+	WRS_TM_PLL_STATE_HOLDOVER,
+	WRS_TM_PLL_STATE_UNKNOWN
+}wrs_timing_mode_pll_state_t;
+
+typedef enum {
+	WRS_TM_GRAND_MASTER=0,
+	WRS_TM_FREE_MASTER,
+	WRS_TM_BOUNDARY_CLOCK,
+	WRS_TM_DISABLED
+}wrs_timing_mode_t;
+
+#define COMM_ERR_MSG(p) pp_diag(p, time, 1, "%s: HAL returned an error\n",__func__);
+
 int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
 {
 	hexp_pps_params_t p;
@@ -57,8 +74,10 @@ int wrs_adjust_phase(int32_t phase_ps)
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 		&rval, HEXP_PPSG_CMD_ADJUST_PHASE, &p);
 
-	if (ret < 0)
+	if (ret < 0) {
+		COMM_ERR_MSG(NULL);
 		return ret;
+	}
 
 	return rval;
 }
@@ -71,8 +90,10 @@ int wrs_adjust_in_progress(void)
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 		&rval, HEXP_PPSG_CMD_POLL, &p);
 
-	if ((ret < 0) || rval)
+	if ((ret < 0) || rval) {
+		COMM_ERR_MSG(NULL);
 		return 0;
+	}
 
 	return 1;
 }
@@ -84,8 +105,10 @@ int wrs_enable_ptracker(struct pp_instance *ppi)
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_ENABLE_TRACKING, 0);
 
-	if ((ret < 0) || (rval < 0))
+	if ((ret < 0) || (rval < 0)) {
+		COMM_ERR_MSG(ppi);
 		return WRH_SPLL_ERROR;
+	}
 
 	return WRH_SPLL_OK;
 }
@@ -99,35 +122,39 @@ int wrs_enable_timing_output(struct pp_globals *ppg,int enable)
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 			&rval, HEXP_PPSG_CMD_SET_VALID, &p);
 
-	if ((ret < 0) || (rval < 0))
+	if ((ret < 0) || (rval < 0)) {
+		COMM_ERR_MSG(NULL);
 		return WRH_SPLL_ERROR;
+	}
 
 	return WRH_SPLL_OK;
 }
 
-int wrs_set_timing_mode(struct pp_globals * ppg,timing_mode_t tm)
+int wrs_set_timing_mode(struct pp_globals * ppg,wrh_timing_mode_t tm)
 {
 	int ret, rval;
 	hexp_pps_params_t p;
 
-	p.timing_mode = tm;
+	p.timing_mode = tm; // shortcut as wrs_timing_mode_t is identical to wrh_timing_mode_t
 
 	pp_diag(NULL, time, 1, "Set timing mode to %d\n",tm);
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 			&rval, HEXP_PPSG_CMD_SET_TIMING_MODE, &p);
 
-	if ((ret < 0) || (rval < 0))
+	if ((ret < 0) || (rval < 0)) {
+		COMM_ERR_MSG(NULL);
 		return -1;
+	}
 
-	ppg->timingMode=tm;
-	ppg->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
+	WRS_ARCH_G(ppg)->timingMode=tm;
+	WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKING;
 
 	return 0;
 }
 
 #define TIMEOUT_REFRESH_GRAND_MASTER_MS 60000 /* 60s */
 
-timing_mode_state_t wrs_get_timing_mode_state(struct pp_globals *ppg)
+int wrs_get_timing_mode_state(struct pp_globals *ppg, wrh_timing_mode_pll_state_t *state)
 {
 	static int tmoIndex=0;
 	int ret, rval;
@@ -136,34 +163,36 @@ timing_mode_state_t wrs_get_timing_mode_state(struct pp_globals *ppg)
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 			&rval, HEXP_PPSG_CMD_GET_TIMING_MODE_STATE, &p);
 
-	if ((ret < 0) || (rval < 0))
+	if ((ret < 0) || (rval < 0)) {
+		COMM_ERR_MSG(NULL);
 		return -1;
+	}
 
-	if ( rval==PP_TIMING_MODE_STATE_UNLOCKED ) {
+	if ( (wrs_timing_mode_pll_state_t)rval==WRS_TM_PLL_STATE_UNLOCKED ) {
 		/*
 		 * if the timing mode = GM then we need to reset the timing mode every 60s.
 		 * This is an hack because the hardware need to be reinitialized after some time
 		 * to be sure to be ready when the external clocks will be present.
 		 */
-		timing_mode_t timing_mode=wrs_get_timing_mode(ppg);
-		if ( timing_mode == TM_GRAND_MASTER){
-			if ( tmoIndex==0 ) {
-				/* First time. Timer must be initialized */
-				if ( (tmoIndex=pp_gtimeout_get_timer(ppg,"GM_REFRESH", TO_RAND_NONE,0))>0 )
-						pp_gtimeout_set(ppg,tmoIndex,TIMEOUT_REFRESH_GRAND_MASTER_MS);
-			}
-			if ( tmoIndex > 0 ) {
-				if ( pp_gtimeout(ppg,tmoIndex) ) {
-					wrs_set_timing_mode(ppg,TM_GRAND_MASTER);
-					pp_gtimeout_reset(ppg,tmoIndex);
-					pp_diag(NULL,time,3,"Refresh (hw) timing mode GM\n");
+		wrh_timing_mode_t timing_mode;
+
+		if ( !wrs_get_timing_mode(ppg,&timing_mode) ) {
+			if ( timing_mode == WRH_TM_GRAND_MASTER){
+				if ( tmoIndex==0 ) {
+					/* First time. Timer must be initialized */
+					if ( (tmoIndex=pp_gtimeout_get_timer(ppg,"GM_REFRESH", TO_RAND_NONE,0))>0 )
+							pp_gtimeout_set(ppg,tmoIndex,TIMEOUT_REFRESH_GRAND_MASTER_MS);
+				}
+				if ( tmoIndex > 0 ) {
+					if ( pp_gtimeout(ppg,tmoIndex) ) {
+						wrs_set_timing_mode(ppg,WRH_TM_GRAND_MASTER);
+						pp_gtimeout_reset(ppg,tmoIndex);
+						pp_diag(NULL,time,3,"Refresh (hw) timing mode GM\n");
+					}
 				}
 			}
 		}
-		if ( ppg->timingModeLockingState == TM_LOCKING_STATE_LOCKED)
-			ppg->timingModeLockingState = TM_LOCKING_STATE_ERROR;
 	} else {
-		ppg->timingModeLockingState = TM_LOCKING_STATE_LOCKED;
 		if (tmoIndex > 0 ) {
 			/* Free the timer: Next unlock state, we will wait then 60s again
 			 * before to set again the Timing mode.
@@ -172,10 +201,24 @@ timing_mode_state_t wrs_get_timing_mode_state(struct pp_globals *ppg)
 			tmoIndex=0;
 		}
 	}
-	return rval;
+	// convert wrs_timing_mode_PLL_state_t to wrh_timing_mode_PLL_state_t
+	switch ((wrs_timing_mode_pll_state_t)rval) {
+	case WRS_TM_PLL_STATE_LOCKED:
+		*state= WRH_TM_PLL_STATE_LOCKED;
+		break;
+	case WRS_TM_PLL_STATE_UNLOCKED:
+		*state= WRH_TM_PLL_STATE_UNLOCKED;
+		break;
+	case WRS_TM_PLL_STATE_HOLDOVER:
+		*state= WRH_TM_PLL_STATE_HOLDOVER;
+		break;
+	default :
+		ret=-1;
+	}
+	return ret;
 }
 
-timing_mode_t wrs_get_timing_mode(struct pp_globals *ppg)
+int wrs_get_timing_mode(struct pp_globals *ppg,wrh_timing_mode_t *tm)
 {
 
 	int ret, rval;
@@ -184,19 +227,30 @@ timing_mode_t wrs_get_timing_mode(struct pp_globals *ppg)
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 			&rval, HEXP_PPSG_CMD_GET_TIMING_MODE, &p);
 
-	if (ret < 0)
+	if (ret < 0) {
+		COMM_ERR_MSG(NULL);
 		return -1;
-
-	ppg->timingMode=rval; // Update timing mode
-	return rval;
+	}
+	// We can use rval directly because wrh_timing_mode_t enum is identical to wrs_timing_mode_t
+	WRS_ARCH_G(ppg)->timingMode=
+			*tm=(wrh_timing_mode_t)rval; // Update timing mode
+	return 0;
 }
 
 int wrs_locking_disable(struct pp_instance *ppi)
 {
+	int ret;
+	wrh_timing_mode_t tm;
+
 	pp_diag(ppi, time, 1, "Disable locking\n");
-	timing_mode_t tm=wrs_get_timing_mode(GLBS(ppi));
-	if ( tm==TM_BOUNDARY_CLOCK ) {
-		return wrs_set_timing_mode(GLBS(ppi),TM_FREE_MASTER);
+	ret=wrs_get_timing_mode(GLBS(ppi),&tm);
+	if ( ret<0 ) {
+		COMM_ERR_MSG(ppi);
+		return ret;
+	}
+
+	if ( tm==WRH_TM_BOUNDARY_CLOCK ) {
+		return wrs_set_timing_mode(GLBS(ppi),WRH_TM_FREE_MASTER);
 	}
 	return 0;
 }
@@ -205,14 +259,16 @@ int wrs_locking_enable(struct pp_instance *ppi)
 {
 	int ret, rval;
 
-	GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
-	wrs_set_timing_mode(GLBS(ppi),TM_BOUNDARY_CLOCK);
+	WRS_ARCH_I(ppi)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKING;
+	wrs_set_timing_mode(GLBS(ppi),WRH_TM_BOUNDARY_CLOCK);
 	pp_diag(ppi, time, 1, "Start locking\n");
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_START, 0);
 
-	if ((ret < 0) || (rval < 0))
+	if ((ret < 0) || (rval < 0)) {
+		COMM_ERR_MSG(ppi);
 		return WRH_SPLL_ERROR;
+	}
 
 	return WRH_SPLL_OK;
 }
@@ -224,15 +280,17 @@ int wrs_locking_reset(struct pp_instance *ppi)
 	pp_diag(ppi, time, 1, "Reset locking\n");
 
 	if ( ppi->glbs->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED )
-		if ( wrs_set_timing_mode(GLBS(ppi),TM_FREE_MASTER)<0 ) {
+		if ( wrs_set_timing_mode(GLBS(ppi),WRH_TM_FREE_MASTER)<0 ) {
 			return -1;
 		}
-	GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_LOCKING;
+	WRS_ARCH_I(ppi)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKING;
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_RESET, 0);
 
-	if ((ret < 0) || (rval < 0))
+	if ((ret < 0) || (rval < 0)) {
+		COMM_ERR_MSG(ppi);
 		return WRH_SPLL_ERROR;
+	}
 
 	return WRH_SPLL_OK;
 }
@@ -248,13 +306,10 @@ int wrs_locking_poll(struct pp_instance *ppi)
 		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
 	}
 	if (rval != HEXP_LOCK_STATUS_LOCKED) {
-		if ( GLBS(ppi)->timingModeLockingState==TM_LOCKING_STATE_LOCKED )
-			GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_ERROR;
 		pp_diag(ppi, time, 2, "PLL not locked(%d)\n",rval);
 		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
 	}
 
-	GLBS(ppi)->timingModeLockingState=TM_LOCKING_STATE_LOCKED;
 	pp_diag(ppi, time, 2, "PLL is locked\n");
 	return WRH_SPLL_READY;
 }
@@ -341,71 +396,77 @@ static int wrs_time_get(struct pp_instance *ppi, struct pp_time *t)
 
 static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
-	struct pp_time diff, now;
-	int msec;
-
-	/*
-	 * This is almost unused in ppsi, only proto-standard/servo.c
-	 * calls it, at initialization time, when the offset is bigger
-	 * than one second.  Or ...
-	 */
-	if (!t) /* ... when the utc/tai offset changes, if t is NULL */
-		return unix_time_ops.set(ppi, t);
-
-	/*
-	 * We say "weird" because we are not expected to set time here;
-	 * rather, time setting goes usually from the WR servo, straight
-	 * to the HAL process, where a difference is injected into the fpga.
-	 * We are only asked to set a time when slave of non-wr (and
-	 * normal servo drives us).  So get time to calc a rough difference.
-	 */
-	wrdate_get(&now);
-	diff = *t;
-	pp_time_sub(&diff, &now);
-	pp_diag(ppi, time, 1, "%s: (weird) %9li.%09li - delta %9li.%09li\n",
-		__func__,
-		(long)t->secs, (long)(t->scaled_nsecs >> 16),
-		(long)diff.secs, (long)(diff.scaled_nsecs >> 16));
-
-	/*
-	 * We can adjust nanoseconds or seconds, but not both at the
-	 * same time. When an adjustment is in progress we can't do
-	 * the other.  So make seconds first and then nanoseconds if > 20ms.
-	 * The servo will call us again later for the seconds part.
-	 * Thus, we fall near, and can then trim frequency (hopefully).
-	 * Seconds have to be adjusted first otherwise when a jitter greater
-	 * than 20ms is observed with peer, seconds are never adjusted.
-	 */
-	msec = (diff.scaled_nsecs >> 16) / 1000 / 1000;;
-	#define THRESHOLD_MS 20
-
-	if ( diff.secs ) {
-		diff.scaled_nsecs = 0;
-		if (msec > 500)
-			diff.secs++;
-		else if (msec < -500)
-			diff.secs--;
-		pp_diag(ppi, time, 1, "%s: adjusting seconds: %li\n",
-			__func__, (long)diff.secs);
+	if ( WRS_ARCH_I(ppi)->timingMode==WRH_TM_GRAND_MASTER) {
+		// Grand master mode
+		// We delegate the time setup to the wr_date tool has
+		// it can take time to adjust the time
+		system("/wr/bin/wr_date -v set host &");
 	} else {
-		if ((msec > THRESHOLD_MS && msec < (1000 - THRESHOLD_MS))
-		    || (msec < -THRESHOLD_MS && msec > (-1000 + THRESHOLD_MS))) {
-			pp_diag(ppi, time, 1, "%s: adjusting nanoseconds: %li\n",
-				__func__, (long)(diff.scaled_nsecs >> 16));
-			diff.secs = 0;
-		}
-		else
+		struct pp_time diff, now;
+		int msec;
+
+		/*
+		 * This is almost unused in ppsi, only proto-standard/servo.c
+		 * calls it, at initialization time, when the offset is bigger
+		 * than one second.  Or ...
+		 */
+		if (!t) /* ... when the utc/tai offset changes, if t is NULL */
+			return unix_time_ops.set(ppi, t);
+
+		/*
+		 * We say "weird" because we are not expected to set time here;
+		 * rather, time setting goes usually from the WR servo, straight
+		 * to the HAL process, where a difference is injected into the fpga.
+		 * We are only asked to set a time when slave of non-wr (and
+		 * normal servo drives us).  So get time to calc a rough difference.
+		 */
+		wrdate_get(&now);
+		diff = *t;
+		pp_time_sub(&diff, &now);
+		pp_diag(ppi, time, 1, "%s: (weird) %9li.%09li - delta %9li.%09li\n",
+			__func__,
+			(long)t->secs, (long)(t->scaled_nsecs >> 16),
+			(long)diff.secs, (long)(diff.scaled_nsecs >> 16));
+
+		/*
+		 * We can adjust nanoseconds or seconds, but not both at the
+		 * same time. When an adjustment is in progress we can't do
+		 * the other.  So make seconds first and then nanoseconds if > 20ms.
+		 * The servo will call us again later for the seconds part.
+		 * Thus, we fall near, and can then trim frequency (hopefully).
+		 * Seconds have to be adjusted first otherwise when a jitter greater
+		 * than 20ms is observed with peer, seconds are never adjusted.
+		 */
+		msec = (diff.scaled_nsecs >> 16) / 1000 / 1000;;
+		#define THRESHOLD_MS 20
+
+		if ( diff.secs ) {
 			diff.scaled_nsecs = 0;
+			if (msec > 500)
+				diff.secs++;
+			else if (msec < -500)
+				diff.secs--;
+			pp_diag(ppi, time, 1, "%s: adjusting seconds: %li\n",
+				__func__, (long)diff.secs);
+		} else {
+			if ((msec > THRESHOLD_MS && msec < (1000 - THRESHOLD_MS))
+				|| (msec < -THRESHOLD_MS && msec > (-1000 + THRESHOLD_MS))) {
+				pp_diag(ppi, time, 1, "%s: adjusting nanoseconds: %li\n",
+					__func__, (long)(diff.scaled_nsecs >> 16));
+				diff.secs = 0;
+			}
+			else
+				diff.scaled_nsecs = 0;
+		}
+		wrs_adjust_counters(diff.secs, diff.scaled_nsecs >> 16);
+
+		/* If WR time is unrelated to real-world time, we are done. */
+		if (t->secs < 1420730822 /* "now" as I write this */)
+			return 0;
+
+		/* Finally, set unix time too */
+		unix_time_ops.set(ppi, t);
 	}
-	wrs_adjust_counters(diff.secs, diff.scaled_nsecs >> 16);
-
-	/* If WR time is unrelated to real-world time, we are done. */
-	if (t->secs < 1420730822 /* "now" as I write this */)
-		return 0;
-
-	/* Finally, set unix time too */
-	unix_time_ops.set(ppi, t);
-
 	return 0;
 }
 
@@ -477,6 +538,31 @@ static unsigned long wrs_calc_timeout(struct pp_instance *ppi,
 	return unix_time_ops.calc_timeout(ppi, millisec);
 }
 
+static int wrs_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state) {
+
+	wrh_timing_mode_pll_state_t wrh_state;
+	int ret=wrs_get_timing_mode_state(ppg,&wrh_state);
+
+	if ( ret<0 )
+		return ret;
+
+	switch ( wrh_state ) {
+		case WRH_TM_PLL_STATE_HOLDOVER :
+			*state=PP_TIMING_MODE_STATE_HOLDOVER;
+			break;
+		case WRH_TM_PLL_STATE_LOCKED :
+			*state=PP_TIMING_MODE_STATE_LOCKED;
+			break;
+		case WRH_TM_PLL_STATE_UNLOCKED :
+			*state=PP_TIMING_MODE_STATE_UNLOCKED;
+			break;
+		default:
+			ret=-1;
+	}
+	return ret;
+}
+
+
 struct pp_time_operations wrs_time_ops = {
 	.get_utc_time = wrs_time_get_utc_time,
 	.get_utc_offset = wrs_time_get_utc_offset,
@@ -487,6 +573,6 @@ struct pp_time_operations wrs_time_ops = {
 	.adjust_offset = wrs_time_adjust_offset,
 	.adjust_freq = wrs_time_adjust_freq,
 	.calc_timeout = wrs_calc_timeout,
-	.get_GM_locked_state= wrs_get_GM_locked_state,
+	.get_GM_lock_state= wrs_get_GM_lock_state,
 	.enable_timing_output=wrs_enable_timing_output
 };

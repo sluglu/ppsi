@@ -1316,16 +1316,16 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 }
 
 
-static void bmc_update_clock_quality(struct pp_globals *ppg)
+void bmc_update_clock_quality(struct pp_globals *ppg)
 {
 	char *pp_diag_msg;
 	struct pp_runtime_opts *rt_opts = ppg->rt_opts;
 	int rt_opts_clock_quality_clockClass=rt_opts->clock_quality_clockClass;
 	int defaultDS_clock_quality_clockClass=ppg->defaultDS->clockQuality.clockClass;
-	timing_mode_state_t timing_mode_state;
+	pp_timing_mode_state_t timing_mode_state;
 
 	static struct oper_t {
-		timing_mode_state_t timing_mode_state;
+		pp_timing_mode_state_t  timing_mode_state;
 		int reqClockQuality;
 		ClockQuality clockQuality;
 		char *msg;
@@ -1394,10 +1394,7 @@ static void bmc_update_clock_quality(struct pp_globals *ppg)
 			}
 	};
 
-    // Called here because get_timing_mode_state() updates  timingModeLockingState field in pp_globals
-	timing_mode_state=WRH_OPER()->get_timing_mode_state(ppg);
-
-	if (rt_opts_clock_quality_clockClass >= 128)
+ 	if (rt_opts_clock_quality_clockClass >= 128)
 		return;
 
 	if ((rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED) ||
@@ -1416,9 +1413,9 @@ static void bmc_update_clock_quality(struct pp_globals *ppg)
 		return;
 	}
 
-	if (timing_mode_state==PP_TIMING_MODE_STATE_ERROR) {
+	if (TOPS(INST(ppg,0))->get_GM_lock_state(ppg,&timing_mode_state) ) {
 		pp_diag(NULL, bmc, 1,
-			"Could not get timing mode locking state, taking old clock class: %i\n",
+			"Could not get GM locking state, taking old clock class: %i\n",
 			ppg->defaultDS->clockQuality.clockClass);
 		return;
 	}

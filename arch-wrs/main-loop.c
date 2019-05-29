@@ -128,7 +128,10 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 				if ( WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_LOCKING ||
 						WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_ERROR) {
 					// Was not locked before
-					TOPS(INST(ppg,0))->set(INST(ppg,0),NULL); // GM locked: set the time
+					struct pp_instance *ppi=INST(ppg,0);
+
+					TOPS(ppi)->set(ppi,NULL); // GM locked: set the time
+					TOPS(ppi)->enable_timing_output(ppg,1); // Enable timing output
 				}
 			}
 			// Update timingModeLockingState field

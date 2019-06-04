@@ -39,10 +39,6 @@ static timeOutConfig_t timeOutConfigs[PP_TO_COUNT]= {
 				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
 		},
 		{
-				.name="FAULT",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
-		},
-		{
 				.name="QUAL",
 				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
 		},

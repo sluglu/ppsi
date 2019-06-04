@@ -141,7 +141,8 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	for (i = 0; i < get_numberPorts(def); i++) {
 		struct pp_instance *ppi = INST(ppg, i);
 
-		ppi->state = PPS_INITIALIZING;
+		ppi->state = PPS_DISABLED;
+		ppi->pdstate = PP_PDSTATE_NONE;
 		ppi->current_state_item = NULL;
 		ppi->port_idx = i;
 		ppi->frgn_rec_best = -1;

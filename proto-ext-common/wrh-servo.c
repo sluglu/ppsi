@@ -105,7 +105,7 @@ int wrh_servo_init(struct pp_instance *ppi)
 
 void wrh_servo_reset(struct pp_instance *ppi)
 {
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		/* shmem lock */
 		wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 		ppi->flags = 0;

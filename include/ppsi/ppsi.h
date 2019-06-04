@@ -219,6 +219,7 @@ struct pp_ext_hooks {
 	/* If the extension requires hardware support for precise time stamp, returns 1 */
 	int (*require_precise_timestamp)(struct pp_instance *ppi);
 	int (*get_tmo_lstate_detection) (struct pp_instance *ppi);
+	int (*extension_state_changed)(struct pp_instance *ppi); /* Called when extension state as changed */
 };
 
 #define is_ext_hook_available(p, c) ( /*p->ext_enabled && */ p->ext_hooks->c)
@@ -442,9 +443,12 @@ extern int ppsi_drop_tx(void);
 /* link state functions to manage the extension (Enable/disable) */
 static inline void pdstate_disable_extension(struct pp_instance * ppi) {
 	ppi->pdstate=PP_PDSTATE_FAILURE;
-	if ( ppi->ptp_support && ppi->ext_enabled) {
-		ppi->ext_enabled=FALSE;
+	if ( ppi->extState==PP_EXSTATE_ACTIVE) {
+		if ( ppi->ptp_support )
+			ppi->extState=ppi->ptp_support ? PP_EXSTATE_PTP : PP_EXSTATE_DISABLE;
 		pp_servo_init(ppi); // Reinitialize the servo
+		if ( is_ext_hook_available(ppi,extension_state_changed) )
+				ppi->ext_hooks->extension_state_changed(ppi);
 	}
 }
 
@@ -467,7 +471,11 @@ static inline void pdstate_enable_extension(struct pp_instance * ppi) {
 	if (ppi->pdstate != PP_PDSTATE_NONE ) {
 		ppi->pdstate=PP_PDSTATE_PDETECTED;
 		pp_timeout_reset(ppi,PP_TO_PROT_STATE);
-		ppi->ext_enabled=TRUE;
+		if ( ppi->extState!=PP_EXSTATE_ACTIVE ) {
+			ppi->extState=PP_EXSTATE_ACTIVE;
+			if ( is_ext_hook_available(ppi,extension_state_changed) )
+					ppi->ext_hooks->extension_state_changed(ppi);
+		}
 	}
 }
 

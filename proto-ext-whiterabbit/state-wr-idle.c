@@ -35,7 +35,7 @@ int wr_idle(struct pp_instance *ppi, void *buf, int len, int new_state)
 			}
 		}
 	} else {
-		if ( ppi->ext_enabled && ppi->state==PPS_SLAVE ) {
+		if ( ppi->extState==PP_EXSTATE_ACTIVE && ppi->state==PPS_SLAVE ) {
 			if ( !(wrp->wrModeOn && wrp->parentWrModeOn) ) {
 				/* Failure detected in the protocol */
 				ppi->next_state=PPS_UNCALIBRATED;

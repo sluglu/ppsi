@@ -52,7 +52,7 @@ int wrs_update_port_info(struct pp_globals *ppg) {
 					pSlot->synchronized=
 							SRV(ppi)->servo_locked &&
 							(ppi->protocol_extension==PPSI_EXT_WR || ppi->protocol_extension==PPSI_EXT_L1S) &&
-							ppi->ext_enabled;
+							ppi->extState==PP_EXSTATE_ACTIVE;
 			} else {
 				if ( ppi->state==PPS_MASTER && pSlot->mode!=PORT_MODE_SLAVE ) {
 					pSlot->mode=PORT_MODE_MASTER;

@@ -210,7 +210,7 @@ int msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	if (tlv_type != TLV_TYPE_ORG_EXTENSION) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, This is not "
 			"organization extension TLV = 0x%x\n", tlv_type);
-		return 1;
+		return 0;
 	}
 
 	if (tlv_organizationID != WR_TLV_ORGANIZATION_ID) {

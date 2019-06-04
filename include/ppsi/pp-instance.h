@@ -199,6 +199,12 @@ typedef enum  {
 	PP_PDSTATE_FAILURE, /* Impossible to connect correctly to a peer instance - extension disabled */
 } pp_pdstate_t;
 
+
+typedef enum {
+	PP_EXSTATE_DISABLE, /* Extension is disabled */
+	PP_EXSTATE_ACTIVE, /* Extension active */
+	PP_EXSTATE_PTP /* Extension uses only PTP protocol */
+} pp_exstate_t;
 /*
  * Structure for the individual ppsi link
  */
@@ -279,9 +285,9 @@ struct pp_instance {
 	Boolean received_dresp; /* Count the number of delay response messages received for a given delay request */
 	Boolean received_dresp_fup; /* Count the number of delay response follow up messages received for a given delay request */
 	Boolean ptp_support; /* True if allow pure PTP support */
-	Boolean ext_enabled; /* True if the extension is enabled */
-	pp_pdstate_t pdstate;  /* Protocol detection state */
 	Boolean bmca_execute; /* True: Ask fsm to run bmca state decision */
+	pp_pdstate_t pdstate;  /* Protocol detection state */
+	pp_exstate_t extState; /* Extension state */
 };
 
 /* The following things used to be bit fields. Other flags are now enums */

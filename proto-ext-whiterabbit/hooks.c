@@ -49,7 +49,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	/* This correction_field we received is already part of t4 */
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		wr_servo_got_resp(ppi);
 		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
 			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
@@ -63,7 +63,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 static int wr_handle_dreq(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
 			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
 	}
@@ -71,11 +71,9 @@ static int wr_handle_dreq(struct pp_instance *ppi)
 	return 0;
 }
 
-
-
 static int  wr_sync_followup(struct pp_instance *ppi) {
 
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		wr_servo_got_sync(ppi);
 	}
 	else {
@@ -100,7 +98,7 @@ static int wr_handle_followup(struct pp_instance *ppi)
 
 static int wr_handle_presp(struct pp_instance *ppi)
 {
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		wr_servo_got_presp(ppi);
 		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
 			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
@@ -124,14 +122,17 @@ static int wr_pack_announce(struct pp_instance *ppi)
 static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *ann)
 {
 	int msg_len = ntohs(*(UInteger16 *) (buf + 2));
+	Boolean parentIsWRnode=FALSE;
+	Boolean resetWrProtocol=FALSE;
+	int slaveUncalState=ppi->state==PPS_UNCALIBRATED || ppi->state==PPS_SLAVE;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 	if (msg_len >= WR_ANNOUNCE_LENGTH) {
 		UInteger16 wr_flags;
-		Boolean parentIsWRnode;
-		struct wr_dsport *wrp = WR_DSPOR(ppi);
 		MsgHeader *hdr = &ppi->received_ptp_header;
 		struct PortIdentity *pid = &hdr->sourcePortIdentity;
+
 
 		msg_unpack_announce_wr_tlv(buf, ann, &wr_flags);
 		parentIsWRnode=(wr_flags & WR_NODE_MODE)!=NON_WR;
@@ -142,9 +143,7 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 		// - Same parent port ID but with a not continuous sequence ID (With a margin of 1)
 		// - The port identity is different
 		if ( parentIsWRnode &&
-				(ppi->state==PPS_SLAVE ||
-				ppi->state==PPS_UNCALIBRATED ||
-				ppi->state==PPS_LISTENING))  {
+				(slaveUncalState ||	ppi->state==PPS_LISTENING))  {
 
 			Boolean samePid=!bmc_pidcmp(pid, &wrp->parentAnnPortIdentity);
 			if ( !samePid  ||
@@ -152,15 +151,13 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 							(hdr->sequenceId!=wrp->parentAnnSequenceId+1 &&
 							hdr->sequenceId!=wrp->parentAnnSequenceId+2)
 							)) {
-				if ( ppi->state==PPS_UNCALIBRATED && wrp->state==WRS_IDLE) {
-					/* For other states, it is done in the state_change hook */
-					wrp->next_state=WRS_PRESENT;
-					wrp->wrMode=WR_SLAVE;
-				}
+				/* For other states, it is done in the state_change hook */
+				resetWrProtocol=slaveUncalState;
 				pdstate_enable_extension(ppi);
 			}
 		} else {
 			parentIsWRnode=FALSE;
+			resetWrProtocol=ppi->extState==PP_EXSTATE_ACTIVE  &&  slaveUncalState;
 		}
 
 		memcpy(&wrp->parentAnnPortIdentity,pid,sizeof(struct PortIdentity));
@@ -174,6 +171,14 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 		wrp->parentWrModeOn = (wr_flags & WR_IS_WR_MODE) != 0;
 		wrp->parentCalibrated =(wr_flags & WR_IS_CALIBRATED) != 0;
 		wrp->parentWrConfig = wr_flags & WR_NODE_MODE;
+	} else {
+		resetWrProtocol=ppi->extState==PP_EXSTATE_ACTIVE  &&  slaveUncalState;
+	}
+
+	if ( resetWrProtocol ) {
+		ppi->state=PPS_UNCALIBRATED;
+		wrp->next_state=WRS_PRESENT;
+		wrp->wrMode=WR_SLAVE;
 	}
 }
 
@@ -182,7 +187,7 @@ static void wr_state_change(struct pp_instance *ppi)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 
 		// Check leaving state
 		if ( wrp->wrModeOn &&
@@ -220,7 +225,7 @@ static void wr_state_change(struct pp_instance *ppi)
 }
 
 int wr_ready_for_slave(struct pp_instance *ppi) {
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		struct wr_dsport *wrp = WR_DSPOR(ppi);
 		return wrp->wrModeOn && wrp->parentWrModeOn && wrp->state == WRS_IDLE;
 	} else
@@ -229,7 +234,7 @@ int wr_ready_for_slave(struct pp_instance *ppi) {
 
 
 static int wr_require_precise_timestamp(struct pp_instance *ppi) {
-	return ppi->ext_enabled  && WR_DSPOR(ppi)->wrModeOn;
+	return ppi->extState==PP_EXSTATE_ACTIVE && WR_DSPOR(ppi)->wrModeOn;
 }
 
 static int wr_get_tmo_lstate_detection(struct pp_instance *ppi) {
@@ -251,6 +256,14 @@ static TimeInterval wr_get_latency (struct pp_instance *ppi) {
 static int wr_is_correction_field_compliant (struct pp_instance *ppi) {
 	return 0;
 }
+
+static int wr_extension_state_changed( struct pp_instance * ppi) {
+	if ( ppi->extState==PP_EXSTATE_DISABLE || ppi->extState==PP_EXSTATE_PTP) {
+		wr_reset_process(ppi,WR_ROLE_NONE);
+	}
+	return 0;
+}
+
 struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
@@ -272,4 +285,5 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.get_ingress_latency=wr_get_latency,
 	.get_egress_latency=wr_get_latency,
 	.is_correction_field_compliant=wr_is_correction_field_compliant,
+	.extension_state_changed= wr_extension_state_changed
 };

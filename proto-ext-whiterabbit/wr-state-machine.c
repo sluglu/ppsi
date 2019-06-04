@@ -72,7 +72,7 @@ int wr_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 	Boolean newState;
 	int delay;
 
-	if ( wrp->next_state>=MAX_STATE_ACTIONS ||  ppi->state==PPS_INITIALIZING ||  !ppi->ext_enabled ) {
+	if ( wrp->next_state>=MAX_STATE_ACTIONS ||  ppi->state==PPS_INITIALIZING ||  !(ppi->extState==PP_EXSTATE_ACTIVE)) {
 		wrp->next_state=WRS_IDLE; // Force to IDLE state
 	}
 

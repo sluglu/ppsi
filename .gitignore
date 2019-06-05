@@ -13,3 +13,11 @@ ppsi.bin
 .config.old
 include/config
 include/generated
+size_wrs_info.txt
+
+## IDE: eclipse,vscode,etc.
+.project
+.cproject
+.settings/*
+.vscode
+.library_mapping.xml

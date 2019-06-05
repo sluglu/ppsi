@@ -340,9 +340,14 @@ static int wrdate_get(struct pp_time *t)
 
 		fd = open(WRS_RTS_DEVNAME, O_RDWR | O_SYNC);
 		if (fd < 0)
+		{
+			fprintf(stderr, "ppsi: %s: %s\n",WRS_RTS_DEVNAME,strerror(errno));
 			return -1;
+		}
 		mapaddr = mmap(0, 4096, PROT_READ, MAP_SHARED, fd, WRS_RTS_BASE_ADDR);
 		if (mapaddr == MAP_FAILED) {
+			fprintf(stderr, "ppsi: mmap(%s) @x%x: %s\n",
+					WRS_RTS_DEVNAME,WRS_RTS_BASE_ADDR,strerror(errno));
 			return -1;
 		}
 		pps = mapaddr + WRS_RTS_PPSG_OFFSET;

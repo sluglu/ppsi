@@ -480,7 +480,7 @@ static int wrs_time_adjust_offset(struct pp_instance *ppi, long offset_ns)
 
 static int wrs_time_adjust_freq(struct pp_instance *ppi, long freq_ppb)
 {
-	static void *mapaddress;
+	static volatile void *mapaddress;
 	long tmp;
 	int32_t regval;
 	int fd;

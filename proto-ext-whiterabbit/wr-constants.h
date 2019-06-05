@@ -13,6 +13,8 @@
 #ifndef __WREXT_WR_CONSTANTS_H__
 #define __WREXT_WR_CONSTANTS_H__
 
+#include <limits.h>
+
 #define WR_IS_CALIBRATED		0x04
 #define WR_IS_WR_MODE			0x08
 #define WR_NODE_MODE			0x03 /* a mask, see NON_WR etc below */

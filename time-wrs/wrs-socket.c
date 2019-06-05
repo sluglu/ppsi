@@ -662,8 +662,8 @@ static int wrs_net_init(struct pp_instance *ppi)
 	 * conversions, and what is constant in the HAL becomes
 	 * constant here (ARub)
 	 */
-	s->clock_period = 16000; /* REF_CLOCK_PERIOD_PS */
-	s->phase_transition = 0; /* DEFAULT_T2_PHASE_TRANS */
+	s->clock_period = (p->clock_period)?p->clock_period:HAL_REF_CLOCK_PERIOD_PS;
+	s->phase_transition = (p->t2_phase_transition)?p->t2_phase_transition:HAL_DEF_T2_PHASE_TRANS;
 	s->dmtd_phase = p->phase_val;
 
 	s->dmtd_phase_valid = 0;

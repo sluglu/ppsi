@@ -86,3 +86,6 @@ int wrs_get_timing_mode_state(struct pp_globals *,wrh_timing_mode_pll_state_t *s
 int wrs_set_timing_mode(struct pp_globals *,wrh_timing_mode_t tm);
 int wrs_update_port_info(struct pp_globals *ppg);
 
+/* Default value if not set by hal */
+#define HAL_REF_CLOCK_PERIOD_PS        1600
+#define HAL_DEF_T2_PHASE_TRANS         0

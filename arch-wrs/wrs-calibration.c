@@ -26,7 +26,7 @@ int wrs_read_calibration_data(struct pp_instance *ppi,int32_t *clock_period, Tim
 	if ( scaledBitSlide )
 		*scaledBitSlide=picos_to_interval( (int64_t) p->calib.bitslide_ps);
 	if(clock_period)
-		*clock_period =  16000; /* REF_CLOCK_PERIOD_PS */
+		*clock_period =   (p->clock_period)?p->clock_period:HAL_REF_CLOCK_PERIOD_PS; /* REF_CLOCK_PERIOD_PS */
 	if ( scaledDelayCoefficient )
 		*scaledDelayCoefficient=(RelativeDifference)(p->calib.sfp.alpha * REL_DIFF_TWO_POW_FRACBITS);
 	if ( scaledSfpDeltaTx )

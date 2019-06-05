@@ -72,6 +72,7 @@ int wrs_read_calibration_data(struct pp_instance *ppi,int32_t *clock_period, Tim
 void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable );
 
 /* wrs-time.c (some should moce to wrs-spll.c) */
+void wrs_init_rts_addr(uint32_t addr,const char *devname);
 int wrs_locking_enable(struct pp_instance *ppi);
 int wrs_locking_poll(struct pp_instance *ppi);
 int wrs_locking_disable(struct pp_instance *ppi);

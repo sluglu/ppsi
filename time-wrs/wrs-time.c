@@ -34,6 +34,20 @@ typedef enum {
 
 #define COMM_ERR_MSG(p) pp_diag(p, time, 1, "%s: HAL returned an error\n",__func__);
 
+static const char *   WRS_RTS_DEVNAME     = "/dev/mem";
+static uint32_t       WRS_RTS_BASE_ADDR   = 0x10010000;
+
+#define               WRS_RTS_PPSG_OFFSET   0x500
+
+
+void wrs_init_rts_addr(uint32_t addr,const char *devname)
+{
+	if(devname && devname[0]=='/') WRS_RTS_DEVNAME=devname;
+	WRS_RTS_BASE_ADDR=addr;
+}
+
+
+
 int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
 {
 	hexp_pps_params_t p;
@@ -324,14 +338,14 @@ static int wrdate_get(struct pp_time *t)
 	if (!pps) {
 		void *mapaddr;
 
-		fd = open("/dev/mem", O_RDWR | O_SYNC);
+		fd = open(WRS_RTS_DEVNAME, O_RDWR | O_SYNC);
 		if (fd < 0)
 			return -1;
-		mapaddr = mmap(0, 4096, PROT_READ, MAP_SHARED, fd, 0x10010000);
+		mapaddr = mmap(0, 4096, PROT_READ, MAP_SHARED, fd, WRS_RTS_BASE_ADDR);
 		if (mapaddr == MAP_FAILED) {
 			return -1;
 		}
-		pps = mapaddr + 0x500; /* pps: 0x10010500 */
+		pps = mapaddr + WRS_RTS_PPSG_OFFSET;
 	}
 	memset(t, 0, sizeof(*t));
 
@@ -490,18 +504,18 @@ static int wrs_time_adjust_freq(struct pp_instance *ppi, long freq_ppb)
 	 */
 	if (!mapaddress) {
 		/* FIXME: we should call the wrs library instead */
-		if ((fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
-			fprintf(stderr, "ppsi: /dev/mem: %s\n",
-				strerror(errno));
+		if ((fd = open(WRS_RTS_DEVNAME, O_RDWR | O_SYNC)) < 0) {
+			fprintf(stderr, "ppsi: %s: %s\n",
+				WRS_RTS_DEVNAME,strerror(errno));
 			exit(1);
 		}
 		mapaddress = mmap(0, 0x1000, PROT_READ | PROT_WRITE,
-				  MAP_SHARED, fd, 0x10010000);
+				  MAP_SHARED, fd, WRS_RTS_BASE_ADDR);
 		close(fd);
 
 		if (mapaddress == MAP_FAILED) {
-			fprintf(stderr, "ppsi: mmap(/dev/mem): %s\n",
-				strerror(errno));
+			fprintf(stderr, "ppsi: mmap(%s) @x%x: %s\n",
+				WRS_RTS_DEVNAME,WRS_RTS_BASE_ADDR,strerror(errno));
 			exit(1);
 		}
 	}

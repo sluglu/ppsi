@@ -187,6 +187,11 @@ static void wr_state_change(struct pp_instance *ppi)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	if ( ppi->extState==PP_EXSTATE_PTP &&  ppi->next_state==PPS_UNCALIBRATED ) {
+		// Extension need to be re-enabled
+		pdstate_enable_extension(ppi);
+	}
+
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 
 		// Check leaving state
@@ -219,9 +224,9 @@ static void wr_state_change(struct pp_instance *ppi)
 			/* Leave SLAVE state : We must stop the PPS generation */
 			TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
 		}
-	} else
+	} else {
 		wr_reset_process(ppi,WR_ROLE_NONE);
-
+	}
 }
 
 int wr_ready_for_slave(struct pp_instance *ppi) {

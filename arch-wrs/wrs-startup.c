@@ -240,6 +240,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Set offset here, so config parsing can override it */
+	memset(&t, 0, sizeof(t));
 	if (adjtimex(&t) >= 0) {
 		int *p;
 		/*

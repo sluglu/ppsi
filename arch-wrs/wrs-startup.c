@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 					}
 					/* Set WR extension hooks */
 					ppi->ext_hooks=&wr_ext_hooks;
-					enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);
+					enable_asymmetryCorrection(ppi,TRUE);
 #else
 					fprintf(stderr, "ppsi: Profile WR not supported");
 					exit(1);

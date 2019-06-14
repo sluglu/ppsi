@@ -268,8 +268,7 @@ int pp_servo_calculate_delays(struct pp_instance *ppi) {
 	}
 	/* delayMS = meanDelay + delayAsym */
 	delayMS_ps = meanDelay_ps + interval_to_picos(ppi->portDS->delayAsymmetry);
-	picos_to_pp_time(delayMS_ps, &SRV(ppi)->delayMS);
-
+	picos_to_pp_time(delayMS_ps, &servo->delayMS);
 	/* Calculate offsetFromMaster : t1-t2+meanDelay+delayAsym=t1-t2+delayMS */
 	servo->offsetFromMaster = servo->t1;
 	pp_time_sub(&servo->offsetFromMaster, &servo->t2);

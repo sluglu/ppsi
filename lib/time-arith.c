@@ -178,7 +178,17 @@ TimeInterval picos_to_interval(int64_t picos)
 
 int64_t interval_to_picos(TimeInterval interval)
 {
-	return (((interval * (int64_t)1000) + TIME_INTERVAL_ROUNDING_VALUE) >> TIME_INTERVAL_FRACBITS);
+	int neg;
+	int64_t picos;
+
+	if ( interval < 0 ) {
+		neg=1;
+		interval=-interval;
+	} else
+		neg=0;
+
+	picos=(((interval * (int64_t)1000) + TIME_INTERVAL_ROUNDING_VALUE) >> TIME_INTERVAL_FRACBITS);
+	return neg ? -picos : picos;
 }
 
 /*

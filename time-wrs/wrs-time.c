@@ -96,6 +96,8 @@ int wrs_adjust_phase(int32_t phase_ps)
 	return rval;
 }
 
+/* return a value > 0 if an adjustment is in progress */
+/* return -1 in case of error */
 int wrs_adjust_in_progress(void)
 {
 	hexp_pps_params_t p;
@@ -104,12 +106,11 @@ int wrs_adjust_in_progress(void)
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_pps_cmd,
 		&rval, HEXP_PPSG_CMD_POLL, &p);
 
-	if ((ret < 0) || rval) {
+	if (ret < 0) {
 		COMM_ERR_MSG(NULL);
-		return 0;
+		return -1;
 	}
-
-	return 1;
+	return rval ;
 }
 
 int wrs_enable_ptracker(struct pp_instance *ppi)

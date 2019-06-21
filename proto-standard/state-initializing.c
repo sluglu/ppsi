@@ -45,7 +45,6 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	int i;
 	int initds = 1;
 
-
 	if ( ppg->rt_opts->clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED  &&
 			DSDEF(ppi)->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
 		// GM not locked
@@ -70,22 +69,20 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 		unsigned char mac_port1[PP_MAC_ADRESS_SIZE];
 		unsigned char *mac;
 		unsigned char *pci;
+		unsigned char portIdx=ppi-ppi->glbs->pp_instances;
 
-		if (get_numberPorts(GDSDEF(ppg)) > 1) {
+		if (get_numberPorts(GDSDEF(ppg)) > 1 && portIdx!=0) {
 			/* Clock identity comes from mac address with 0xff:0xfe intermixed */
 			/* calculate MAC of Port 0 */
-			unsigned char portIdx;
 
-			if ( (portIdx = ppi - ppi->glbs->pp_instances) > 0 ) {
-				unsigned char *mac = ppi->ch[PP_NP_GEN].addr;
-				unsigned char remainder = portIdx;
-				for (i = sizeof(mac_port1)-1; i >= 0; i--) {
-					mac_port1[i] = mac[i] - remainder;
-					if (mac[i] >= remainder)
-						remainder = 0;
-					else
-						remainder = 1;
-				}
+			unsigned char *mac = ppi->ch[PP_NP_GEN].addr;
+			unsigned char remainder = portIdx;
+			for (i = sizeof(mac_port1)-1; i >= 0; i--) {
+				mac_port1[i] = mac[i] - remainder;
+				if (mac[i] >= remainder)
+					remainder = 0;
+				else
+					remainder = 1;
 			}
 		} else {
 			memcpy (mac_port1,ppi->ch[PP_NP_GEN].addr,sizeof(mac_port1));
@@ -97,7 +94,7 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 		*(pci++)= 0xfe;
 		*(pci++)=*(mac++); *(pci++)=*(mac++); *pci=*mac;
 
-		init_parent_ds(ppi);	
+		init_parent_ds(ppi);
 	}
 		
 	/*

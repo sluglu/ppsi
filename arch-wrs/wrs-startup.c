@@ -242,14 +242,7 @@ int main(int argc, char **argv)
 	/* Set offset here, so config parsing can override it */
 	memset(&t, 0, sizeof(t));
 	if (adjtimex(&t) >= 0) {
-		int *p;
-		/*
-		 * Our WRS kernel has tai support, but our compiler does not.
-		 * We are 32-bit only, and we know for sure that tai is
-		 * exactly after stbcnt. It's a bad hack, but it works
-		 */
-		p = (int *)(&t.stbcnt) + 1;
-		ppg->timePropertiesDS->currentUtcOffset = (Integer16)*p;
+		ppg->timePropertiesDS->currentUtcOffset = (Integer16)t.tai;
 	}
 
 	if (pp_parse_cmdline(ppg, argc, argv) != 0)

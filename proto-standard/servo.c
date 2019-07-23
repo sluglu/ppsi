@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2011 CERN (www.cern.ch)
- * Author: Aurelio Colosimo
+ * Author: Aurelio Colosimo, Jean-Claude BAU
  * Based on PTPd project v. 2.1.0 (see AUTHORS for details)
  *
  * Released according to the GNU LGPL, version 2.1 or any later version.
@@ -85,6 +85,8 @@ static int __getMsbSet(uint64_t value) {
  *  Return :
  *   (op1 x op2)/2^62. The returned value is a 2^X scaled value
  *
+ * Based on Rens Roosenstein work.
+ * See the gitlab site https://ohwr.org/project/wr-fixed-point-calculations for further information.
  */
 static uint64_t __mulRelativeDifference(RelativeDifference op1, uint64_t op2)
 {
@@ -147,6 +149,9 @@ static TimeInterval calculateDelayAsymmetry(RelativeDifference scaledDelayAsymCo
 
 /*
  * Calculation of delay asymmetry with polynomial expansion
+ *
+ * Based on Rens Roosenstein work.
+ * See the gitlab site https://ohwr.org/project/wr-fixed-point-calculations for further information.
  */
 
 RelativeDifference pp_servo_calculateDelayAsymCoefficient(RelativeDifference delayCoeff){

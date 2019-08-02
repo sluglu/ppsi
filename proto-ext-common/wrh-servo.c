@@ -233,7 +233,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 	locking_poll_ret = WRH_OPER()->locking_poll(ppi);
 	if (locking_poll_ret != WRH_SPLL_READY
 	    && locking_poll_ret != WRH_SPLL_CALIB_NOT_READY) {
-		pp_diag(ppi, servo, 1, "PLL out of lock\n");
+		pp_error("%s: PLL out of lock (Err=%d)\n",__func__,locking_poll_ret);
 
 		s->doRestart = TRUE;
 		return 0;

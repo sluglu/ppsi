@@ -10,6 +10,7 @@
 #include <generated/autoconf.h>
 
 #include <stdint.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <float.h>
 #include <stddef.h>

@@ -27,7 +27,7 @@
 static struct pp_globals ppg_static;
 static defaultDS_t defaultDS;
 static currentDS_t currentDS;
-static [parentDS_t parentDS;
+static parentDS_t parentDS;
 static timePropertiesDS_t timePropertiesDS;
 static struct pp_servo servo;
 

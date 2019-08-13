@@ -15,6 +15,7 @@
 #include <netinet/if_ether.h>
 #include <signal.h>
 #include <unistd.h>
+#include <limits.h>
 #include <time.h>
 
 #include <ppsi/ppsi.h>
@@ -53,9 +54,7 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 			continue;
 		}
 
-		ppi->link_up =
-			(p->state != HAL_PORT_STATE_LINK_DOWN &&
-			 p->state != HAL_PORT_STATE_DISABLED);
+		ppi->link_up =state_up(p);
 
 		if (old_lu != ppi->link_up) {
 

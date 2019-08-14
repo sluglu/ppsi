@@ -148,8 +148,8 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 			Boolean samePid=!bmc_pidcmp(pid, &wrp->parentAnnPortIdentity);
 			if ( !samePid  ||
 					(samePid &&
-							(hdr->sequenceId!=wrp->parentAnnSequenceId+1 &&
-							hdr->sequenceId!=wrp->parentAnnSequenceId+2)
+							(hdr->sequenceId!=(UInteger16) (wrp->parentAnnSequenceId+1) &&
+							hdr->sequenceId!=(UInteger16) (wrp->parentAnnSequenceId+2))
 							)) {
 				/* For other states, it is done in the state_change hook */
 				resetWrProtocol=slaveUncalState;
@@ -176,7 +176,7 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 	}
 
 	if ( resetWrProtocol ) {
-		ppi->state=PPS_UNCALIBRATED;
+		ppi->next_state=PPS_UNCALIBRATED;
 		wrp->next_state=WRS_PRESENT;
 		wrp->wrMode=WR_SLAVE;
 	}

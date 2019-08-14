@@ -2,8 +2,7 @@
 # All files are under directory D: I'm lazy
 D := proto-ext-whiterabbit
 
-OBJ-y += $D/fsm-table.o \
-	$D/hooks.o \
+OBJ-y += $D/hooks.o \
 	$D/common-fun.o \
 	$D/state-wr-present.o \
 	$D/state-wr-m-lock.o \

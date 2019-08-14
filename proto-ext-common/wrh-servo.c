@@ -198,6 +198,14 @@ int wrh_servo_got_presp(struct pp_instance *ppi)
 	return 1;
 }
 
+static void  setState(struct pp_instance *ppi, int newState)  {
+	struct pp_servo *gs=SRV(ppi);
+	if ( gs->state != newState ) {
+		pp_diag(ppi, servo, 2, "new state %s\n", wrh_servo_state_name[newState]);
+		gs->state=newState;
+    }
+}
+
 static int __wrh_servo_update(struct pp_instance *ppi)
 {
 	struct pp_servo *gs=SRV(ppi);
@@ -249,7 +257,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 
 	/* So, we didn't return. Choose the right state */
 	if (offsetMS.secs) {/* so bad... */
-		gs->state = WRH_SYNC_TAI;
+		setState(ppi,WRH_SYNC_TAI);
 		pp_diag(ppi, servo, 2, "offsetMS: %li sec ...\n",
 				(long)offsetMS.secs);
 	} else {
@@ -260,7 +268,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 			(long)offset_ps);
 
 		if (offset_ticks) /* not that bad */
-			gs->state = WRH_SYNC_NSEC;
+			setState(ppi,WRH_SYNC_NSEC);
 	/* else, let the states below choose the sequence */
 	}
 
@@ -280,13 +288,13 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 		 * Else, we must ensure we leave this status towards
 		 * fine tuning
 		 */
-		gs->state = WRH_SYNC_PHASE;
+		setState(ppi,WRH_SYNC_PHASE);
 		break;
 
 	case WRH_SYNC_NSEC:
 		WRH_OPER()->adjust_counters(0, offset_ticks);
 		gs->flags |= PP_SERVO_FLAG_WAIT_HW;
-		gs->state = WRH_SYNC_PHASE;
+		setState(ppi,WRH_SYNC_PHASE);
 		break;
 
 	case WRH_SYNC_PHASE:
@@ -298,7 +306,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 		WRH_OPER()->adjust_phase(s->cur_setpoint_ps);
 
 		gs->flags |= PP_SERVO_FLAG_WAIT_HW;
-		gs->state = WRH_WAIT_OFFSET_STABLE;
+		setState(ppi,WRH_WAIT_OFFSET_STABLE);
 
 		if (CONFIG_ARCH_IS_WRS) {
 			/*
@@ -321,13 +329,13 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 		if(remaining_offset < WRH_SERVO_OFFSET_STABILITY_THRESHOLD) {
 			TOPS(ppi)->enable_timing_output(GLBS(ppi),1);
 			s->prev_delayMS_ps = s->delayMS_ps;
-			gs->state = WRH_TRACK_PHASE;
+			setState(ppi,WRH_TRACK_PHASE);
 		} else {
 			s->missed_iters++;
 		}
 		if (s->missed_iters >= 10) {
 			s->missed_iters = 0;
-			gs->state = WRH_SYNC_PHASE;
+			setState(ppi,WRH_SYNC_PHASE);
 		}
 		break;
 
@@ -338,7 +346,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 		if(wrh_tracking_enabled) {
 			if (abs(offset_ps) >
 			    2 * WRH_SERVO_OFFSET_STABILITY_THRESHOLD) {
-				gs->state = WRH_SYNC_PHASE;
+				setState(ppi,WRH_SYNC_PHASE);
 				break;
 			}
 

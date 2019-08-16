@@ -61,6 +61,7 @@ typedef struct hal_port_calibration {
 	struct shw_sfp_dom sfp_dom_raw;
 } hal_port_calibration_t;
 
+/* States used by the generic FSM */
 typedef struct {
 	int state;
 	int nextState;
@@ -70,6 +71,8 @@ typedef struct {
 	int isSupported; /* Set if Low Phase Drift Calibration is supported */
 	halPortFsmState_t txSetupStates;
 	halPortFsmState_t rxSetupStates;
+	void             *txSetup;
+	void             *rxSetup;
 }halPortLPDC_t; /* data for Low phase drift calibration */
 
 
@@ -144,7 +147,7 @@ struct hal_temp_sensors {
 };
 
 /* This is the overall structure stored in shared memory */
-#define HAL_SHMEM_VERSION 13 /* Version 13, HAL code review */
+#define HAL_SHMEM_VERSION 14 /* Version 13, HAL with PLDC */
 
 struct hal_shmem_header {
 	int nports;

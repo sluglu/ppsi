@@ -107,8 +107,11 @@ int pp_leave_current_state(struct pp_instance *ppi)
 		pp_timeout_setall(ppi);
 
 	ppi->state = ppi->next_state;
-	if ( ppi->state==PPS_DISABLED )
+	if ( ppi->state==PPS_DISABLED ){
 		ppi->pdstate = PP_PDSTATE_NONE; // Clear state
+		/* clear extState so that it is displayed correctly in the wr_mon*/
+		ppi->extState = PP_EXSTATE_DISABLE;
+        }
 	ppi->flags &= ~PPI_FLAGS_WAITING;
 	pp_diag_fsm(ppi, ppi->current_state_item->name, STATE_LEAVE, 0);
 	/* next_delay unused: go to new state now */

@@ -67,15 +67,6 @@ typedef struct {
 	int nextState;
 } halPortFsmState_t;
 
-typedef struct {
-	int isSupported; /* Set if Low Phase Drift Calibration is supported */
-	halPortFsmState_t txSetupStates;
-	halPortFsmState_t rxSetupStates;
-	void             *txSetup;
-	void             *rxSetup;
-}halPortLPDC_t; /* data for Low phase drift calibration */
-
-
 /* Internal port state structure */
 struct hal_port_state {
 	int in_use; /* non-zero: allocated */
@@ -133,7 +124,7 @@ struct hal_port_state {
 	int evt_linkUp; /* Set if link is up ( driver call */
 
 	/* Low phase drift calibration data */
-	halPortLPDC_t lpdc;
+	void *lpdc;
 
 	/* Pll FSM */
 	halPortFsmState_t pllStates;

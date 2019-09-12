@@ -52,6 +52,7 @@ struct wrh_operations wrh_oper = {
 struct minipc_ch *hal_ch;
 struct minipc_ch *ppsi_ch;
 struct hal_port_state *hal_ports;
+struct hal_shmem_header *hal_shmem;
 int hal_nports;
 struct wrs_shm_head *ppsi_head;
 
@@ -122,7 +123,6 @@ int main(int argc, char **argv)
 	struct timex t;
 	int i, hal_retries;
 	struct wrs_shm_head *hal_head;
-	struct hal_shmem_header *h;
 
 	setbuf(stdout, NULL);
 
@@ -189,10 +189,10 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	h = (void *)hal_head + hal_head->data_off;
-	hal_nports = h->nports;
+	hal_shmem = (void *)hal_head + hal_head->data_off;
+	hal_nports = hal_shmem->nports;
 
-	hal_ports = wrs_shm_follow(hal_head, h->ports);
+	hal_ports = wrs_shm_follow(hal_head, hal_shmem->ports);
 
 	if (!hal_ports) {
 		pp_printf("ppsi: unable to follow hal_ports pointer "
@@ -380,8 +380,8 @@ int main(int argc, char **argv)
 		int enablePPS;
 		wrh_timing_mode_pll_state_t timing_mode_pll_state;
 		struct pp_instance *ppi=INST(ppg,0);
-		wrh_timing_mode_t prev_timing_mode;
-		int ret=WRH_OPER()->get_timing_mode(ppg,&prev_timing_mode);
+		wrh_timing_mode_t current_timing_mode;
+		int ret=WRH_OPER()->get_timing_mode(ppg,&current_timing_mode);
 
 		if (ret<0) {
 			fprintf(stderr, "ppsi: Cannot get current timing mode\n");
@@ -390,26 +390,34 @@ int main(int argc, char **argv)
 
 		WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKING;
 
-		if ( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED ) {
-			/* If read timing mode was GM, then we do not reprogram the hardware because it
-			 * may unlock the PLL.
-			 */
-			if ( prev_timing_mode != WRH_TM_GRAND_MASTER ){
-				/* Timing mode was not GM before */
-				WRH_OPER()->set_timing_mode(ppg,WRH_TM_GRAND_MASTER);
-			} else
+		switch (current_timing_mode) {
+		case WRH_TM_FREE_MASTER :
+			// FR mode is OK for starting in all cases. We are not going to touch it
+			// -> GM will be set in the main loop
+			// -> BC will be set when a port will become slave
+			WRS_ARCH_G(ppg)->timingMode=WRH_TM_FREE_MASTER; // set here because set_timing_mode() is not called
+			break;
+		case WRH_TM_GRAND_MASTER :
+			if ( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED  ) {
+				// Already the correct timing mode. Not touched to avoid an unlock of the PLL
 				WRS_ARCH_G(ppg)->timingMode=WRH_TM_GRAND_MASTER; // set here because set_timing_mode() is not called
-		} else {
-			/* Timing mode will be set to BC when a port will become slave */
+				break;
+			}
+			// No break here to set the timing mode to FR
+		case WRH_TM_BOUNDARY_CLOCK :
+		case WRH_TM_DISABLED :
+			// Must be reseted to FR
 			WRH_OPER()->set_timing_mode(ppg,WRH_TM_FREE_MASTER);
+			break;
 		}
+
 		/* Waiting for PLL locking. We do not need a precise time-out here */
 		/* We are waiting up to 3s for PLL locking.
 		 * We do that to avoid to jump too quickly to a degraded clock class.
 		 */
 		nbRetry=2;
 		while(nbRetry>0) {
-			ret=WRH_OPER()->get_timing_mode_state(ppg,&timing_mode_pll_state);
+			int ret=WRH_OPER()->get_timing_mode_state(ppg,&timing_mode_pll_state);
 			if ( ret==0 && timing_mode_pll_state==WRH_TM_PLL_STATE_LOCKED )
 				break;
 			sleep(1); // wait 1s

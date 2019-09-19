@@ -25,7 +25,7 @@
 #define PP_DEFAULT_DELAY_S			6
 
 #define PP_MIN_DOMAIN_NUMBER		        0
-#define PP_MAX_DOMAIN_NUMBER	 	        255
+#define PP_MAX_DOMAIN_NUMBER	 	        127
 #define PP_DEFAULT_DOMAIN_NUMBER		    0
 
 #define PP_DEFAULT_ANNOUNCE_INTERVAL		1	/* 0 in 802.1AS */

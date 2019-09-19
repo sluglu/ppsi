@@ -52,10 +52,13 @@ static int master_handle_announce(struct pp_instance *ppi, void *buf, int len)
 static int master_handle_delay_request(struct pp_instance *ppi,
 				       void *buf, int len)
 {
-	if (ppi->state == PPS_MASTER) { /* not pre-master */
-		if ( !msg_issue_delay_resp(ppi, &ppi->last_rcv_time) ) {
-			if (is_ext_hook_available(ppi,handle_dreq))
-				ppi->ext_hooks->handle_dreq(ppi);
+	/* if not in E2E mode, just return */
+	if ( is_delayMechanismE2E(ppi) ) {
+		if (ppi->state == PPS_MASTER) { /* not pre-master */
+			if ( !msg_issue_delay_resp(ppi, &ppi->last_rcv_time) ) {
+				if (is_ext_hook_available(ppi,handle_dreq))
+					ppi->ext_hooks->handle_dreq(ppi);
+			}
 		}
 	}
 	return 0;

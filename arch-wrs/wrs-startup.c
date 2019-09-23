@@ -307,19 +307,19 @@ int main(int argc, char **argv)
 				break;
 			case PPSI_PROFILE_HA :
 #if CONFIG_HAS_PROFILE_HA
-					if ( !enable_l1Sync(ppi,TRUE) )
-						goto exit_out_of_memory;
-					/* Force mandatory attributes - Do not take care of the configuration */
-					L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =
-							L1E_DSPOR_BS(ppi)->txCoherentIsRequired =
-									L1E_DSPOR_BS(ppi)->congruentIsRequired=
-											L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
-					L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
-					enable_asymmetryCorrection(ppi,TRUE);
-				}
+				if ( !enable_l1Sync(ppi,TRUE) )
+					goto exit_out_of_memory;
+				/* Force mandatory attributes - Do not take care of the configuration */
+				L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =
+						L1E_DSPOR_BS(ppi)->txCoherentIsRequired =
+								L1E_DSPOR_BS(ppi)->congruentIsRequired=
+										L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
+				L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
+				enable_asymmetryCorrection(ppi,TRUE);
+
 #else
-					fprintf(stderr, "ppsi: Profile HA not supported");
-					exit(1);
+				fprintf(stderr, "ppsi: Profile HA not supported");
+				exit(1);
 #endif
 				break;
 			case PPSI_PROFILE_PTP :
@@ -331,17 +331,16 @@ int main(int argc, char **argv)
 #if CONFIG_HAS_PROFILE_CUSTOM
 				ppi->protocol_extension=PPSI_EXT_NONE; /* can be changed ...*/
 #if CONFIG_HAS_EXT_L1SYNC
-					if (ppi->cfg.l1SyncEnabled ) {
-						if ( !enable_l1Sync(ppi,TRUE) )
-							goto exit_out_of_memory;
-						/* Read L1SYNC parameters */
-						L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =ppi->cfg.l1SyncRxCoherencyIsRequired;
-						L1E_DSPOR_BS(ppi)->txCoherentIsRequired =ppi->cfg.l1SyncTxCoherencyIsRequired;
-						L1E_DSPOR_BS(ppi)->congruentIsRequired =ppi->cfg.l1SyncCongruencyIsRequired;
-						L1E_DSPOR_BS(ppi)->optParamsEnabled=ppi->cfg.l1SyncOptParamsEnabled;
-						if ( L1E_DSPOR_BS(ppi)->optParamsEnabled ) {
-							L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=ppi->cfg.l1SyncOptParamsTimestampsCorrectedTx;
-						}
+				if (ppi->cfg.l1SyncEnabled ) {
+					if ( !enable_l1Sync(ppi,TRUE) )
+						goto exit_out_of_memory;
+					/* Read L1SYNC parameters */
+					L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =ppi->cfg.l1SyncRxCoherencyIsRequired;
+					L1E_DSPOR_BS(ppi)->txCoherentIsRequired =ppi->cfg.l1SyncTxCoherencyIsRequired;
+					L1E_DSPOR_BS(ppi)->congruentIsRequired =ppi->cfg.l1SyncCongruencyIsRequired;
+					L1E_DSPOR_BS(ppi)->optParamsEnabled=ppi->cfg.l1SyncOptParamsEnabled;
+					if ( L1E_DSPOR_BS(ppi)->optParamsEnabled ) {
+						L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=ppi->cfg.l1SyncOptParamsTimestampsCorrectedTx;
 					}
 				}
 				enable_asymmetryCorrection(ppi,ppi->cfg.asymmetryCorrectionEnable);

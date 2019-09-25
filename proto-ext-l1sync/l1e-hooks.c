@@ -108,6 +108,8 @@ static int l1e_handle_signaling(struct pp_instance * ppi, void *buf, int len)
 			// Extension need to be re-enabled
 			pdstate_enable_extension(ppi);
 		}
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTION)
+			pdstate_set_state_pdetected(ppi);
 	}
 	return 0;
 }
@@ -127,7 +129,7 @@ static int l1e_handle_resp(struct pp_instance *ppi)
 
 	/* This correction_field we received is already part of t4 */
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
-		wr_servo_got_resp(ppi);
+		l1e_servo_got_resp(ppi);
 		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
 			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
 	}

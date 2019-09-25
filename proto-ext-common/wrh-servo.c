@@ -89,12 +89,11 @@ int wrh_servo_init(struct pp_instance *ppi)
 
 		WRH_OPER()->adjust_phase(s->cur_setpoint_ps);
 
-		strcpy(gs->servo_state_name, wrh_servo_state_name[gs->state]);
-
 		gs->flags |= PP_SERVO_FLAG_VALID;
 		TOPS(ppi)->get(ppi, &gs->update_time);
 		s->tracking_enabled = wrh_tracking_enabled;
 		gs->state = WRH_SYNC_TAI;
+		strcpy(gs->servo_state_name, wrh_servo_state_name[gs->state]);
 	}
 
 	/* shmem unlock */

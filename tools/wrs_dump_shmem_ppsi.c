@@ -206,6 +206,8 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(int, next_state),
 	DUMP_FIELD(int, next_delay),
 	DUMP_FIELD(int, is_new_state),
+	DUMP_FIELD(int,extState),
+	DUMP_FIELD(int,pdstate),
 	DUMP_FIELD(pointer, arch_data),
 	DUMP_FIELD(pointer, ext_data),
 	DUMP_FIELD(int, protocol_extension),

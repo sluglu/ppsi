@@ -622,6 +622,10 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
 
+	if ( (ppi->state == PPS_FAULTY))
+		/* Exit from FAULTY state is implementation specific and implemented in state_faulty.c */
+		return PPS_FAULTY;
+
 	if (is_slaveOnly(DSDEF(ppi))) {
 		if ( !erbestValid )
     			return PPS_LISTENING; /* No foreign master */

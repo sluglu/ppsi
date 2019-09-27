@@ -56,7 +56,7 @@
 #define PP_DEFAULT_UTC_OFFSET			37
 #define PP_MIN_PRIORITY1			    0
 #define PP_MAX_PRIORITY1			    255
-#define PP_DEFAULT_PRIORITY1			64
+#define PP_DEFAULT_PRIORITY1			128
 
 #define PP_MIN_PRIORITY2			    0
 #define PP_MAX_PRIORITY2			    255

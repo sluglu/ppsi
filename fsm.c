@@ -177,6 +177,19 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 		}
 	}
 	
+	/** 9.2.5 State machines
+	 * INITIALIZING: No port of the clock shall place any PTP messages on its communication path.
+	 * FAULTY: A port in this state shall not place any PTP messages except for
+	 *         management messages that are a required response to another management message on its
+	 *         communication path
+	 * DISABLED: The port shall not place any messages on its communication path
+	 */
+	if ( ppi->state==PPS_INITIALIZING || ppi->state==PPS_DISABLED || ppi->state==PPS_FAULTY ) {
+		pp_printf("JCB:%s:%d:%s Ignore message (state=%d)\n",
+				__func__,__LINE__,ppi->port_name,ppi->state);
+
+		return -1;/* ignore messages all messages */
+	}
 	return 0;
 }
 

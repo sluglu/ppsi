@@ -8,24 +8,45 @@ CFLAGS += -Itools
 # Prevent a warning for a missing prototype in pp_printf, bug since ever
 ARCH_PP_PRINTF_CFLAGS += -include ../$A/include/strnlen.h
 
-OBJ-y += $A/wrs-startup.o \
-	$A/hal_minirpc.o \
-	$A/main-loop.o \
-	$A/wrs-io.o \
-	$A/wrs-conf.o \
-	$A/wrs-calibration.o \
-	$A/wrs-port.o \
-	$A/wrs-ipcserver.o \
-	$A/shmem.o \
-	$A/util.o \
-	lib/cmdline.o \
-	lib/conf.o \
-	lib/libc-functions.o \
-	lib/dump-funcs.o \
-	lib/drop.o \
-	lib/assert.o \
-	lib/div64.o \
-	lib/time-arith.o
+arch-spec-c = $A/wrs-startup.c \
+	$A/hal_minirpc.c \
+	$A/main-loop.c \
+	$A/wrs-io.c \
+	$A/wrs-conf.c \
+	$A/wrs-calibration.c \
+	$A/wrs-port.c \
+	$A/wrs-ipcserver.c \
+	$A/shmem.c \
+	$A/util.c \
+	lib/cmdline.c \
+	lib/conf.c \
+	lib/libc-functions.c \
+	lib/dump-funcs.c \
+	lib/drop.c \
+	lib/assert.c \
+	lib/div64.c \
+	lib/time-arith.c
+
+arch-spec-o = $(patsubst %.c,%.o,$(arch-spec-c))
+
+OBJ-y += $(arch-spec-o)
+
+# build symbolic links for libwr
+hal_headers = hal_shmem.h \
+	generic_fsm.h\
+	sfp_lib.h\
+	util.h\
+	shmem.h	\
+	timeout.h
+
+hal_headers_in_ppsi= $(addprefix $A/include/libwr/,$(hal_headers))
+
+$(arch-spec-o) : $(hal_headers_in_ppsi)
+
+$(hal_headers_in_ppsi):
+	@f=$(notdir $@); \
+	echo "Creating symbolic link to $$f";\
+	ln -sf ../../../../libwr/include/libwr/$$f  $@
 
 export size_db_file:=size_wrs_db.txt
 export size_info_file:=size_wrs_info.txt
@@ -50,6 +71,9 @@ $(MINIPC_LIB):
 OBJ-y += $(MINIPC_LIB)
 
 all: $(TARGET)
+
+clean::
+	rm -f $(hal_headers_in_ppsi)
 
 # to build the target, we need -lstd again, in case we call functions that
 # were not selected yet (e.g., pp_init_globals() ).

@@ -109,7 +109,7 @@ $(TARGET).o: $(OBJ-y)
 $(OBJ-y): .config $(wildcard include/ppsi/*.h)
 
 # Finally, "make clean" is expected to work
-clean:
+clean::
 	rm -f $$(find . -name '*.[oa]' ! -path './scripts/kconfig/*') *.bin $(TARGET) *~ $(TARGET).map*
 
 distclean: clean

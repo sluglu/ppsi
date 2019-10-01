@@ -52,7 +52,7 @@ typedef struct
 {
 	uint64_t start_tics;
 	uint64_t timeout;
-} timeout_t ;
+} _timeout_t ;
 
 struct wrs_socket {
 	/* parameters for linearization of RX timestamps */
@@ -60,7 +60,7 @@ struct wrs_socket {
 	uint32_t phase_transition;
 	uint32_t dmtd_phase;
 	int dmtd_phase_valid;
-	timeout_t dmtd_update_tmo;
+	_timeout_t dmtd_update_tmo;
 };
 
 static uint64_t get_tics(void)
@@ -72,20 +72,20 @@ static uint64_t get_tics(void)
 	return (uint64_t) tv.tv_sec * 1000000ULL + (uint64_t) tv.tv_usec;
 }
 
-static inline int tmo_init(timeout_t *tmo, uint32_t milliseconds)
+static inline int tmo_init(_timeout_t *tmo, uint32_t milliseconds)
 {
 	tmo->start_tics = get_tics();
 	tmo->timeout = (uint64_t) milliseconds * 1000ULL;
 	return 0;
 }
 
-static inline int tmo_restart(timeout_t *tmo)
+static inline int tmo_restart(_timeout_t *tmo)
 {
 	tmo->start_tics = get_tics();
 	return 0;
 }
 
-static inline int tmo_expired(timeout_t *tmo)
+static inline int tmo_expired(_timeout_t *tmo)
 {
 	return (get_tics() - tmo->start_tics > tmo->timeout);
 }

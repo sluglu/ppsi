@@ -61,7 +61,7 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 
 	if ( basicDS->next_state!=L1SYNC_DISABLED &&
 			(ppi->extState!=PP_EXSTATE_ACTIVE || ppi->state==PPS_INITIALIZING))
-		return INT_MAX; /* Return a big delay. fsm will then not use it */
+		return PP_DEFAULT_NEXT_DELAY_MS; /* Return default delay */
 
 	if ( nextState>=MAX_STATE_ACTIONS)
 		return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC);

@@ -594,7 +594,7 @@ static int unix_net_check_packet(struct pp_globals *ppg, int delay_ms)
 	old_delay_ms = arch_data->tv.tv_sec * 1000 +
 		arch_data->tv.tv_usec / 1000;
 
-	if ((delay_ms != -1) &&
+	if ((delay_ms >=0 ) &&
 		((old_delay_ms == 0) || (delay_ms < old_delay_ms))) {
 		/* Wait for a packet or for the timeout */
 		arch_data->tv.tv_sec = delay_ms / 1000;
@@ -625,12 +625,13 @@ static int unix_net_check_packet(struct pp_globals *ppg, int delay_ms)
 	i = select(maxfd + 1, &set, NULL, NULL, &arch_data->tv);
 
 	if ( i < 0 ) {
-		if ( errno != EINTR )
-			exit(__LINE__);
-		else {
+		if ( errno==EINVAL || errno==EINTR ) {
 			arch_data->tv.tv_sec =
 			arch_data->tv.tv_usec =0;
 			return -1;
+		} else {
+			pp_error("%s: Errno=%d %s\n",__func__, errno, strerror(errno));
+			exit(errno);
 		}
 	}
 	if (i == 0)

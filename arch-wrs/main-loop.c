@@ -231,7 +231,7 @@ static void start_alarm(timer_t *timerid, unsigned int delay_ms) {
 
 }
 
-static int stop_alarm(timer_t *timerid) {
+static unsigned int stop_alarm(timer_t *timerid) {
 	struct itimerspec its;
 	struct itimerspec ito;
 
@@ -294,6 +294,9 @@ void wrs_main_loop(struct pp_globals *ppg)
 			/* Time to run the state machine */
 			stop_alarm(&timerid); /* Clear previous alarm */
 		    delay_ms = run_all_state_machines(ppg);
+		    /* We force to run the state machine at a minimum rate of PP_DEFAULT_NEXT_DELAY_MS */
+			if (delay_ms>PP_DEFAULT_NEXT_DELAY_MS )
+				delay_ms=PP_DEFAULT_NEXT_DELAY_MS;
 		    alarmDetected=0;
 		    if ( delay_ms != 0 ) {
 		    	/* Start the alarm */

@@ -185,9 +185,6 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 	 * DISABLED: The port shall not place any messages on its communication path
 	 */
 	if ( ppi->state==PPS_INITIALIZING || ppi->state==PPS_DISABLED || ppi->state==PPS_FAULTY ) {
-		pp_printf("JCB:%s:%d:%s Ignore message (state=%d)\n",
-				__func__,__LINE__,ppi->port_name,ppi->state);
-
 		return -1;/* ignore messages all messages */
 	}
 	return 0;

@@ -290,7 +290,6 @@ int wrs_locking_enable(struct pp_instance *ppi)
 
 int wrs_locking_reset(struct pp_instance *ppi)
 {
-	int ret=0, rval;
 
 	pp_diag(ppi, time, 1, "Reset locking\n");
 
@@ -299,13 +298,6 @@ int wrs_locking_reset(struct pp_instance *ppi)
 			return -1;
 		}
 	WRS_ARCH_I(ppi)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKING;
-	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
-			  &rval, ppi->iface_name, HEXP_LOCK_CMD_RESET, 0);
-
-	if ((ret < 0) || (rval < 0)) {
-		COMM_ERR_MSG(ppi);
-		return WRH_SPLL_ERROR;
-	}
 
 	return WRH_SPLL_OK;
 }

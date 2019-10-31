@@ -15,6 +15,7 @@
 #include <netinet/if_ether.h>
 #include <signal.h>
 #include <unistd.h>
+#include <limits.h>
 #include <time.h>
 
 #include <ppsi/ppsi.h>
@@ -29,6 +30,7 @@
 static unsigned int run_all_state_machines(struct pp_globals *ppg)
 {
 	static int portInfoTmoIdx=-1;
+	static int checkForGM=1;
 
 	int j;
 	int delay_ms = 0, delay_ms_j;
@@ -38,6 +40,31 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 		pp_gtimeout_set(ppg,portInfoTmoIdx,2000); // Update interface info every 2 seconds
 		pp_gtimeout_set(ppg, PP_TO_BMC,TMO_DEFAULT_BMCA_MS);
 		bmc_update_clock_quality(ppg);// Update clock quality before any call to the state machine
+	}
+
+	// For GM, we have to wait the initialization of all ports before to set timing mode to GM
+	if ( checkForGM ) {
+		if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
+			checkForGM=0;
+		} else
+		if ( hal_shmem->shmemState==HAL_SHMEM_STATE_INITITALIZED ) {
+			wrh_timing_mode_t current_timing_mode;
+			int ret=WRH_OPER()->get_timing_mode(ppg,&current_timing_mode);
+
+			if (ret<0) {
+				fprintf(stderr, "ppsi: Cannot get current timing mode\n");
+				exit(1);
+			}
+			/* If read timing mode was GM, then we do not reprogram the hardware because it
+			 * may unlock the PLL.
+			 */
+			if ( current_timing_mode != WRH_TM_GRAND_MASTER )
+				/* Timing mode was not GM before */
+				WRH_OPER()->set_timing_mode(ppg,WRH_TM_GRAND_MASTER);
+			else
+				WRS_ARCH_G(ppg)->timingMode=WRH_TM_GRAND_MASTER; // set here because set_timing_mode() is not called
+			checkForGM=0;
+		}
 	}
 
 	for (j = 0; j < ppg->nlinks; j++) {
@@ -53,9 +80,8 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 			continue;
 		}
 
-		ppi->link_up =
-			(p->state != HAL_PORT_STATE_LINK_DOWN &&
-			 p->state != HAL_PORT_STATE_DISABLED);
+		ppi->link_up =state_up(p) &&
+				hal_shmem->shmemState==HAL_SHMEM_STATE_INITITALIZED;// Up only when all links are initialized
 
 		if (old_lu != ppi->link_up) {
 
@@ -205,7 +231,7 @@ static void start_alarm(timer_t *timerid, unsigned int delay_ms) {
 
 }
 
-static int stop_alarm(timer_t *timerid) {
+static unsigned int stop_alarm(timer_t *timerid) {
 	struct itimerspec its;
 	struct itimerspec ito;
 
@@ -268,6 +294,9 @@ void wrs_main_loop(struct pp_globals *ppg)
 			/* Time to run the state machine */
 			stop_alarm(&timerid); /* Clear previous alarm */
 		    delay_ms = run_all_state_machines(ppg);
+		    /* We force to run the state machine at a minimum rate of PP_DEFAULT_NEXT_DELAY_MS */
+			if (delay_ms>PP_DEFAULT_NEXT_DELAY_MS )
+				delay_ms=PP_DEFAULT_NEXT_DELAY_MS;
 		    alarmDetected=0;
 		    if ( delay_ms != 0 ) {
 		    	/* Start the alarm */

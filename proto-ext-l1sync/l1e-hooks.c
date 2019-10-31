@@ -86,7 +86,7 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 	/* Init configuration members of L1SyncOptParamsPortDS */
 	L1E_DSPOR_OP(ppi)->timestampsCorrectedTx=TRUE;
 
-	ppi->ext_enabled=TRUE;
+	ppi->pdstate = PP_PDSTATE_WAIT_MSG;
 	return 0;
 }
 
@@ -104,7 +104,12 @@ static int l1e_handle_signaling(struct pp_instance * ppi, void *buf, int len)
 		pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(bds));
 
 		bds->L1SyncLinkAlive = TRUE;
-		lstate_enable_extension(ppi);
+		if ( ppi->extState==PP_EXSTATE_PTP ) {
+			// Extension need to be re-enabled
+			pdstate_enable_extension(ppi);
+		}
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTION)
+			pdstate_set_state_pdetected(ppi);
 	}
 	return 0;
 }
@@ -123,8 +128,10 @@ static int l1e_handle_resp(struct pp_instance *ppi)
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	/* This correction_field we received is already part of t4 */
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		l1e_servo_got_resp(ppi);
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
+			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
 	}
 	else {
 		pp_servo_got_resp(ppi,OPTS(ppi)->ptpFallbackPpsGen);
@@ -132,8 +139,20 @@ static int l1e_handle_resp(struct pp_instance *ppi)
 	return 0;
 }
 
+static int l1e_handle_dreq(struct pp_instance *ppi)
+{
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
+			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
+	}
+
+	return 0;
+}
+
+
 static int  l1e_sync_followup(struct pp_instance *ppi) {
-	if ( ppi->ext_enabled ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		l1e_servo_got_sync(ppi);
 	}
 	else {
@@ -159,9 +178,11 @@ static int l1e_handle_sync(struct pp_instance *ppi)
 
 static int l1e_handle_presp(struct pp_instance *ppi)
 {
-	/* FIXME: verify that last-received cField is already accounted for */
-	if ( ppi->ext_enabled )
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		l1e_servo_got_presp(ppi);
+		if ( ppi->pdstate==PP_PDSTATE_PDETECTED)
+			pdstate_set_state_pdetected(ppi); // Maintain state Protocol detected on MASTER side
+	}
 	else
 		pp_servo_got_presp(ppi);
 	return 0;
@@ -181,40 +202,70 @@ static 	void l1e_state_change(struct pp_instance *ppi) {
 
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	if ( !ppi->ext_enabled)
-		return;
-	switch (ppi->next_state) {
-		case PPS_DISABLED :
-			/* In PPSI we go to DISABLE state when the link is down */
-			/* For the time being, it should be done like this because fsm is not called when the link is down */
-			L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */
-			l1e_run_state_machine(ppi,NULL,0);
-			break;
-		case PPS_INITIALIZING :
+	if ( ppi->extState==PP_EXSTATE_PTP &&  ppi->next_state==PPS_UNCALIBRATED ) {
+		// Extension need to be re-enabled
+		pdstate_enable_extension(ppi);
+	}
+
+	if ( (ppi->next_state==PPS_DISABLED || ppi->extState!=PP_EXSTATE_ACTIVE) &&
+			L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED) {
+		// Extension not active but the l1sync state is not disable yet.
+		L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */
+		l1e_run_state_machine(ppi,NULL,0);
+	} else {
+		if ( ppi->extState==PP_EXSTATE_ACTIVE && ppi->next_state==PPS_INITIALIZING) {
 			L1E_DSPOR(ppi)->basic.L1SyncState=L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED;
-			break;
+		} else {
+			if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED &&
+					L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED ) {
+				/* Leave SLAVE state : We must stop the PPS generation */
+				TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
+				WRH_OPER()->locking_disable(ppi);
+				WRH_OPER()->locking_reset(ppi);
+				l1e_servo_reset(ppi);
+			}
+
+		}
 	}
-	if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED ) {
-		/* Leave SLAVE state : We must stop the PPS generation */
-		TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
-		WRH_OPER()->locking_reset(ppi);
-	}
+
 }
 
 static int l1e_new_slave (struct pp_instance *ppi, void *buf, int len) {
-	if ( ppi->ext_enabled )
+	if ( ppi->extState==PP_EXSTATE_ACTIVE )
 		l1e_servo_init(ppi);
 	return 0;
 }
 
 static int l1e_require_precise_timestamp(struct pp_instance *ppi) {
-	return ppi->ext_enabled  ? L1E_DSPOR_BS(ppi)->L1SyncState==L1SYNC_UP : 0;
+	return  ppi->extState==PP_EXSTATE_ACTIVE  ? L1E_DSPOR_BS(ppi)->L1SyncState==L1SYNC_UP : 0;
 }
 
 static int l1e_get_tmo_lstate_detection(struct pp_instance *ppi) {
 	return is_externalPortConfigurationEnabled(DSDEF(ppi)) ?
 			10000 : /* 10s: externalPortConfiguration enable means no ANN_RECEIPT timeout */
 			l1e_get_rx_tmo_ms(L1E_DSPOR_BS(ppi));
+}
+
+static TimeInterval l1e_get_ingress_latency (struct pp_instance *ppi) {
+	return ppi->timestampCorrectionPortDS.ingressLatency;
+}
+
+static TimeInterval l1e_get_egress_latency (struct pp_instance *ppi) {
+	return ppi->timestampCorrectionPortDS.egressLatency;
+}
+
+/* HA extension is compliant with the standard concerning the contents of the correction fields */
+static int l1e_is_correction_field_compliant (struct pp_instance *ppi) {
+	return 1;
+}
+
+static int l1e_extension_state_changed( struct pp_instance * ppi) {
+	if ( ppi->extState!=PP_EXSTATE_ACTIVE && L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED ) {
+		// Extension disabled : Force L1SYNC_DISABLED disable state
+		L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */
+		l1e_run_state_machine(ppi,NULL,0);
+	}
+	return 0;
 }
 
 /* The global structure used by ppsi */
@@ -225,6 +276,7 @@ struct pp_ext_hooks l1e_ext_hooks = {
 	.run_ext_state_machine = l1e_run_state_machine,
 	.ready_for_slave = l1e_ready_for_slave,
 	.handle_resp = l1e_handle_resp,
+	.handle_dreq = l1e_handle_dreq,
 	.handle_sync = l1e_handle_sync,
 	.handle_followup = l1e_handle_followup,
 	.new_slave = l1e_new_slave,
@@ -234,6 +286,11 @@ struct pp_ext_hooks l1e_ext_hooks = {
 	.state_change = l1e_state_change,
 	.servo_reset= l1e_servo_reset,
 	.require_precise_timestamp=l1e_require_precise_timestamp,
-	.get_tmo_lstate_detection=l1e_get_tmo_lstate_detection
+	.get_tmo_lstate_detection=l1e_get_tmo_lstate_detection,
+	.get_ingress_latency=l1e_get_ingress_latency,
+	.get_egress_latency=l1e_get_egress_latency,
+	.is_correction_field_compliant=l1e_is_correction_field_compliant,
+	.extension_state_changed= l1e_extension_state_changed
+
 };
 

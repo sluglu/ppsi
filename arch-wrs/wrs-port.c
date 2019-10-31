@@ -46,16 +46,26 @@ int wrs_update_port_info(struct pp_globals *ppg) {
 
 		if (ppi->link_up) {
 			hexp_port_info_t *pSlot=getPortSlot(&infos,ppi);
+			pSlot->mode = 0;
 			if ( ppi->state==PPS_SLAVE ) {
-				pSlot->mode=PORT_MODE_SLAVE;
 				if (!pSlot->synchronized )
 					pSlot->synchronized=
 							SRV(ppi)->servo_locked &&
 							(ppi->protocol_extension==PPSI_EXT_WR || ppi->protocol_extension==PPSI_EXT_L1S) &&
-							ppi->extState==PP_EXSTATE_ACTIVE;
+							ppi->extState==PP_EXSTATE_ACTIVE &&
+							ppi->pdstate==PP_PDSTATE_PDETECTED;
+				/* Set only if it is a synchronzied WR/HA slave
+				   (i.e. if the extension is active and protocol detected) */
+				if ( pSlot->synchronized )
+					pSlot->mode=PORT_MODE_SLAVE;
 			} else {
 				if ( ppi->state==PPS_MASTER && pSlot->mode!=PORT_MODE_SLAVE ) {
-					pSlot->mode=PORT_MODE_MASTER;
+					/* Set only if this is HA/WR Master */
+					if((ppi->protocol_extension==PPSI_EXT_WR ||
+					    ppi->protocol_extension==PPSI_EXT_L1S) &&
+					    ppi->extState==PP_EXSTATE_ACTIVE &&
+					    ppi->pdstate==PP_PDSTATE_PDETECTED)
+						pSlot->mode=PORT_MODE_MASTER;
 				}
 			}
 		}

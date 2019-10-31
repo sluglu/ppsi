@@ -25,7 +25,7 @@
 #define PP_DEFAULT_DELAY_S			6
 
 #define PP_MIN_DOMAIN_NUMBER		        0
-#define PP_MAX_DOMAIN_NUMBER	 	        255
+#define PP_MAX_DOMAIN_NUMBER	 	        127
 #define PP_DEFAULT_DOMAIN_NUMBER		    0
 
 #define PP_DEFAULT_ANNOUNCE_INTERVAL		1	/* 0 in 802.1AS */
@@ -56,7 +56,7 @@
 #define PP_DEFAULT_UTC_OFFSET			37
 #define PP_MIN_PRIORITY1			    0
 #define PP_MAX_PRIORITY1			    255
-#define PP_DEFAULT_PRIORITY1			64
+#define PP_DEFAULT_PRIORITY1			128
 
 #define PP_MIN_PRIORITY2			    0
 #define PP_MAX_PRIORITY2			    255
@@ -112,7 +112,7 @@
 #define PP_ALTERNATE_MASTER_FLAG	1
 #define PP_TWO_STEP_FLAG		2
 #define PP_VERSION_PTP			2
-#define PP_MINOR_VERSION_PTP	1
+#define PP_MINOR_VERSION_PTP	0
 
 #define PP_HEADER_LENGTH		34
 #define PP_ANNOUNCE_LENGTH		64

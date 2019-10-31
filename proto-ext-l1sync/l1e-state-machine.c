@@ -59,8 +59,9 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 	int *execute_state_machine=&L1E_DSPOR(ppi)->execute_state_machine;
 	int delay;
 
-	if ( !ppi->ext_enabled || ppi->state==PPS_INITIALIZING)
-		return INT_MAX; /* Return a big delay. fsm will then not use it */
+	if ( basicDS->next_state!=L1SYNC_DISABLED &&
+			(ppi->extState!=PP_EXSTATE_ACTIVE || ppi->state==PPS_INITIALIZING))
+		return PP_DEFAULT_NEXT_DELAY_MS; /* Return default delay */
 
 	if ( nextState>=MAX_STATE_ACTIONS)
 		return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC);
@@ -232,6 +233,7 @@ static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 /* DISABLED state */
 static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state){
 	l1e_ext_portDS_t * l1e_portDS=L1E_DSPOR(ppi);
+
 	/* State initialization */
 	if ( new_state ) {
 		/* Table 157 - page 449
@@ -281,7 +283,7 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 	if ( !le1_evt_L1_SYNC_ENABLED(ppi) || le1_evt_L1_SYNC_RESET(ppi) ) {
 		/* Go to DISABLE state */
 		l1e_portDS->basic.next_state=L1SYNC_DISABLED;
-		lstate_set_link_failure(ppi);
+		pdstate_disable_extension(ppi);
 		return 0; /* Treatment required asap */
 	}
 	if ( le1_evt_LINK_OK(ppi) ) {
@@ -335,9 +337,7 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 				}
 				break;
 			case PPS_MASTER :
-				if (  basic->congruentIsRequired ) {
-					WRH_OPER()->locking_disable(ppi);
-				}
+				// Nothing to do for the master state
 				break;
 			default:
 				break;
@@ -379,7 +379,7 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	if ( !le1_evt_LINK_OK(ppi) ) {
 		/* Go to IDLE state */
 		next_state=L1SYNC_IDLE;
-		lstate_set_link_failure(ppi);
+		pdstate_disable_extension(ppi);
 	}
 	if ( !le1_evt_CONFIG_OK(ppi) ) {
 		/* Return to LINK_ALIVE state */
@@ -391,13 +391,15 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	}
 	if (next_state!=0 ) {
 		l1e_portDS->basic.next_state=next_state;
-		WRH_OPER()->locking_disable(ppi); /* Unlock the PLL */
-		l1e_servo_reset(ppi);
+		if ( ppi->state == PPS_SLAVE || ppi->state==PPS_UNCALIBRATED) {
+			WRH_OPER()->locking_disable(ppi); /* Unlock the PLL */
+			l1e_servo_reset(ppi);
+		}
 		return 0; /* Treat the next state asap */
 	}
 
 	/* Iterative treatment */
-	lstate_set_link_established(ppi);
+	pdstate_enable_extension(ppi);
 	wrh_update_correction_values(ppi);
 	l1e_send_sync_msg(ppi,0);
 	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */

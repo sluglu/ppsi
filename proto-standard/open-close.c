@@ -28,6 +28,7 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 	.gmDelayToGenPpsSec=PP_DEFAULT_GM_DELAY_TO_GEN_PPS_SEC,
 	.forcePpsGen=    FALSE,
 	.ptpFallbackPpsGen=FALSE,
+	.slaveOnly=FALSE
 
 };
 

@@ -107,8 +107,11 @@ int pp_leave_current_state(struct pp_instance *ppi)
 		pp_timeout_setall(ppi);
 
 	ppi->state = ppi->next_state;
-	if ( ppi->state==PPS_DISABLED )
+	if ( ppi->state==PPS_DISABLED ){
 		ppi->pdstate = PP_PDSTATE_NONE; // Clear state
+		/* clear extState so that it is displayed correctly in the wr_mon*/
+		ppi->extState = PP_EXSTATE_DISABLE;
+        }
 	ppi->flags &= ~PPI_FLAGS_WAITING;
 	pp_diag_fsm(ppi, ppi->current_state_item->name, STATE_LEAVE, 0);
 	/* next_delay unused: go to new state now */
@@ -174,6 +177,16 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 		}
 	}
 	
+	/** 9.2.5 State machines
+	 * INITIALIZING: No port of the clock shall place any PTP messages on its communication path.
+	 * FAULTY: A port in this state shall not place any PTP messages except for
+	 *         management messages that are a required response to another management message on its
+	 *         communication path
+	 * DISABLED: The port shall not place any messages on its communication path
+	 */
+	if ( ppi->state==PPS_INITIALIZING || ppi->state==PPS_DISABLED || ppi->state==PPS_FAULTY ) {
+		return -1;/* ignore messages all messages */
+	}
 	return 0;
 }
 

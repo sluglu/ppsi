@@ -22,6 +22,8 @@ extern struct minipc_ch *hal_ch;
 extern struct minipc_ch *ppsi_ch;
 extern struct hal_port_state *hal_ports;
 extern int hal_nports;
+extern struct hal_shmem_header *hal_shmem;
+
 
 static inline struct hal_port_state *pp_wrs_lookup_port(char *name)
 {

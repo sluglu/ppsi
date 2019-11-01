@@ -50,21 +50,18 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
 
-	/* Time Properties data set */
-	/* based on the clock class we set the frequency traceable flags */
-	prop->frequencyTraceable= (
-			(defds->clockQuality.clockClass < PP_PTP_CLASS_GM_UNLOCKED) ||
-	        (defds->clockQuality.clockClass < PP_ARB_CLASS_GM_UNLOCKED)) ? TRUE : FALSE;
-
-
    /* FIXME: if we don't know better we stay with theses values*/
 	ptpTimescale=TRUE; /* Default value */
 	timeSource=INTERNAL_OSCILLATOR; /* Default value */
+	prop->frequencyTraceable=
+		prop->timeTraceable=FALSE; /* Default value */
 
 	switch (defds->clockQuality.clockClass) {
 		case PP_PTP_CLASS_GM_LOCKED:
 		case PP_PTP_CLASS_GM_HOLDOVER:
 			timeSource = GPS;
+			prop->frequencyTraceable=
+					prop->timeTraceable=TRUE;
 		    break;
 		case PP_ARB_CLASS_GM_LOCKED:
 		case PP_ARB_CLASS_GM_HOLDOVER:
@@ -99,14 +96,13 @@ void bmc_m1(struct pp_instance *ppi)
 		
 		if (ret)
 		{
-			prop->timeTraceable = FALSE;
+			prop->timeTraceable = FALSE; /* Clear it if it was set */
 			prop->currentUtcOffsetValid = FALSE;
 			prop->leap59 = FALSE;
 			prop->leap61 = FALSE;
 		}
 		else
 		{
-			prop->timeTraceable = TRUE;
 			prop->currentUtcOffsetValid = TRUE;
 			prop->leap59 = (leap59 != 0);
 			prop->leap61 = (leap61 != 0);
@@ -115,7 +111,6 @@ void bmc_m1(struct pp_instance *ppi)
 		/* 9.4 for ARB just take the value when built */
 		prop->currentUtcOffset = PP_DEFAULT_UTC_OFFSET;
 		/* always false */
-		prop->timeTraceable = FALSE;
 		prop->currentUtcOffsetValid = FALSE;
 		prop->leap59 = FALSE;
 		prop->leap61 = FALSE;

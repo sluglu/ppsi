@@ -1376,7 +1376,7 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 				.timing_mode_state=PP_TIMING_MODE_STATE_UNLOCKED,
 				.reqClockQuality=PP_PTP_CLASS_GM_LOCKED,
 				.clockQuality={
-						.clockClass=PP_PTP_CLASS_GM_UNLOCKED,
+						.clockClass=PP_PTP_CLASS_GM_UNLOCKED_B,
 						.clockAccuracy=PP_PTP_ACCURACY_GM_UNLOCKED,
 						.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_UNLOCKED,
 				},
@@ -1386,7 +1386,7 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 				.timing_mode_state=PP_TIMING_MODE_STATE_UNLOCKED,
 				.reqClockQuality=PP_ARB_CLASS_GM_LOCKED,
 				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_UNLOCKED,
+						.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
 						.clockAccuracy=PP_ARB_ACCURACY_GM_UNLOCKED,
 						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED,
 				},
@@ -1394,25 +1394,28 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 			}
 	};
 
- 	if (rt_opts_clock_quality_clockClass >= 128)
-		return;
+	/* We are only interested on configured clock class PP_PTP_CLASS_GM_LOCKED and PP_ARB_CLASS_GM_LOCKED */
+	if ( rt_opts_clock_quality_clockClass  > PP_MAX_VALUE_GM )
+		return ; /* Exclude also PP_PTP_CLASS_GM_UNLOCKED_B and PP_ARB_CLASS_GM_UNLOCKED_B */
 
-	if ((rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_LOCKED) ||
-		(rt_opts_clock_quality_clockClass == PP_ARB_CLASS_GM_LOCKED)) {
-		pp_diag(NULL, bmc, 2,
-			"GM locked class configured, checking PLL locking\n");
-
-	} else if ((rt_opts_clock_quality_clockClass == PP_PTP_CLASS_GM_UNLOCKED) ||
-			   (rt_opts_clock_quality_clockClass == PP_ARB_CLASS_GM_UNLOCKED)) {
-		pp_diag(NULL, bmc, 2,
-			"GM unlocked class configured, skipping checking PLL locking\n");
-		return;
-	} else {
-		pp_diag(NULL, bmc, 2,
-			"GM unknown clock class configured, skipping checking PLL locking\n");
-		return;
+	switch (rt_opts_clock_quality_clockClass ) {
+		case PP_PTP_CLASS_GM_LOCKED :
+		case PP_ARB_CLASS_GM_LOCKED :
+			pp_diag(NULL, bmc, 2,
+				"GM locked class configured, checking PLL locking\n");
+			break;
+		case PP_PTP_CLASS_GM_UNLOCKED_A :
+		case PP_ARB_CLASS_GM_UNLOCKED_A :
+			pp_diag(NULL, bmc, 2,
+				"GM unlocked class configured, skipping checking PLL locking\n");
+			return;
+		default :
+			pp_diag(NULL, bmc, 2,
+				"GM unknown clock class configured, skipping checking PLL locking\n");
+			return;
 	}
 
+	/* Get the clock status ( locked, holdover, unlocked ) */
 	if (TOPS(INST(ppg,0))->get_GM_lock_state(ppg,&timing_mode_state) ) {
 		pp_diag(NULL, bmc, 1,
 			"Could not get GM locking state, taking old clock class: %i\n",

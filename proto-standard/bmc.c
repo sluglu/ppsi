@@ -617,9 +617,10 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
 
-	if ( (ppi->state == PPS_FAULTY))
-		/* Exit from FAULTY state is implementation specific and implemented in state_faulty.c */
-		return PPS_FAULTY;
+	if ( (ppi->state == PPS_FAULTY) || (ppi->state==PPS_INITIALIZING) )
+		/* - Exit from FAULTY state is implementation specific and implemented in state_faulty.c */
+		/* - If INITIALIZING state in progress, do not change it. It may wait for GM to be locked */
+		return ppi->state;
 
 	if (is_slaveOnly(DSDEF(ppi))) {
 		if ( !erbestValid )

@@ -438,8 +438,8 @@ int main(int argc, char **argv)
 		 */
 		enablePPS=(WRS_ARCH_G(ppg)->timingModeLockingState== WRH_TM_LOCKING_STATE_LOCKED &&
 				ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_LOCKED) ||
-				( ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_UNLOCKED ||
-						GOPTS(ppg)->forcePpsGen);
+				ppg->defaultDS->clockQuality.clockClass == PP_PTP_CLASS_GM_UNLOCKED_A ||
+				GOPTS(ppg)->forcePpsGen;
 		TOPS(ppi)->enable_timing_output(ppg,enablePPS);
 	}
 

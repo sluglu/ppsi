@@ -75,14 +75,17 @@
 /* Clock classes (pag 55, PTP-2008). See ppsi-manual for an explanation */
 #define PP_MIN_CLOCK_CLASS              0
 #define PP_MAX_CLOCK_CLASS              255
+#define PP_MAX_VALUE_GM                 127
 #define PP_CLASS_SLAVE_ONLY			    255
 #define PP_CLASS_DEFAULT			    248
 #define PP_PTP_CLASS_GM_LOCKED			6
 #define PP_PTP_CLASS_GM_HOLDOVER		7
-#define PP_PTP_CLASS_GM_UNLOCKED		52
+#define PP_PTP_CLASS_GM_UNLOCKED_A		52  /* Path A */
+#define PP_PTP_CLASS_GM_UNLOCKED_B		187 /* Path B */
 #define PP_ARB_CLASS_GM_LOCKED			13
 #define PP_ARB_CLASS_GM_HOLDOVER		14
-#define PP_ARB_CLASS_GM_UNLOCKED		58
+#define PP_ARB_CLASS_GM_UNLOCKED_A		58	/* Path A */
+#define PP_ARB_CLASS_GM_UNLOCKED_B		193 /* Path B */
 
 #define PP_MIN_CLOCK_ACCURACY           0
 #define PP_MAX_CLOCK_ACCURACY           255

@@ -27,10 +27,9 @@ void bmc_m1(struct pp_instance *ppi)
 	parentDS_t *parent = DSPAR(ppi);
 	defaultDS_t *defds = DSDEF(ppi);
 	timePropertiesDS_t *prop = DSPRO(ppi);
+	UInteger8 clockClass;
 	int ret = 0;
 	int offset, leap59, leap61;
-	Boolean ptpTimescale;
-	Enumeration8 timeSource;
 
 	/* Current data set update */
 	DSCUR(ppi)->stepsRemoved =
@@ -50,35 +49,35 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
 
-   /* FIXME: if we don't know better we stay with theses values*/
-	ptpTimescale=TRUE; /* Default value */
-	timeSource=INTERNAL_OSCILLATOR; /* Default value */
+	/**
+	 * This table describes how the time properties are set :
+	 *
+	 * field\clockClass   | GM_LOCKED | GM_HOLDOVER  | GM_UNLOCKED_A| DEFAULT
+	 * ---------------------------------------------------------------------------
+	 * ptpTimescale       |   TRUE    |     TRUE     |   TRUE       | FALSE
+	 * timeSource         |   GPS     | INTERNAL_OSC | INTERNAL_OSC | INTERNAL_OSC
+ 	 * frequencyTraceable |   TRUE    |     TRUE     |   FALSE      | FALSE
+	 * timeTraceable      |   TRUE    |     TRUE     |   FALSE      | FALSE
+	 */
+	clockClass=defds->clockQuality.clockClass;
+	prop->timeSource= clockClass==PP_PTP_CLASS_GM_LOCKED ?
+			GPS : INTERNAL_OSCILLATOR;
+	prop->ptpTimescale=
+			((clockClass== PP_PTP_CLASS_GM_LOCKED) ||
+			(clockClass== PP_PTP_CLASS_GM_HOLDOVER) ||
+			(clockClass== PP_PTP_CLASS_GM_UNLOCKED_A))
+			? TRUE : FALSE;
 	prop->frequencyTraceable=
-		prop->timeTraceable=FALSE; /* Default value */
+			prop->timeTraceable=
+					((clockClass== PP_PTP_CLASS_GM_LOCKED) ||
+			        (clockClass== PP_PTP_CLASS_GM_HOLDOVER))
+					? TRUE : FALSE;
 
-	switch (defds->clockQuality.clockClass) {
-		case PP_PTP_CLASS_GM_LOCKED:
-		case PP_PTP_CLASS_GM_HOLDOVER:
-			timeSource = GPS;
-			prop->frequencyTraceable=
-					prop->timeTraceable=TRUE;
-		    break;
-		case PP_ARB_CLASS_GM_LOCKED:
-		case PP_ARB_CLASS_GM_HOLDOVER:
-			timeSource = GPS;
-			/* No break here */
-		case PP_ARB_CLASS_GM_UNLOCKED:
-			ptpTimescale= FALSE;
-			break;
-		case PP_PTP_CLASS_GM_UNLOCKED :
- 	 	    /* Take default values */
-			break;
-	}
-
-	prop->timeSource=timeSource;
-	prop->ptpTimescale=ptpTimescale;
 	
-	if (ptpTimescale) {
+	/* Set currentUtcOffset and currentUtcOffsetValid
+	 * If they cannot be set properly, frequencyTraceable & timeTraceable are cleared
+	 */
+	if (prop->ptpTimescale) {
 		ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 		if (ret) {
 			offset = PP_DEFAULT_UTC_OFFSET;
@@ -96,7 +95,8 @@ void bmc_m1(struct pp_instance *ppi)
 		
 		if (ret)
 		{
-			prop->timeTraceable = FALSE; /* Clear it if it was set */
+			prop->frequencyTraceable=
+					prop->timeTraceable = FALSE; /* Clear them if they were set */
 			prop->currentUtcOffsetValid = FALSE;
 			prop->leap59 = FALSE;
 			prop->leap61 = FALSE;

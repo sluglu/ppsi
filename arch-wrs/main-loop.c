@@ -25,12 +25,88 @@
 
 #define UPDATE_PORT_INFO_COUNT 2 // Update the port info every X time of the BMCA trigger
 
+/* Get the PLL state and :
+ * - for GM: set time and enable timing output
+ * - update timingModeLockingState
+ */
+static inline void check_PLL_state(struct pp_globals *ppg) {
+	wrh_timing_mode_pll_state_t pllState;
+
+	if ( WRH_OPER()->get_timing_mode_state(ppg,&pllState)>=0 ) {
+		// Check the PLL for grand master
+		if ( WRS_ARCH_G(ppg)->timingMode==WRH_TM_GRAND_MASTER && pllState==WRH_TM_PLL_STATE_LOCKED ) {
+			// GM Locked
+			if ( WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_LOCKING ||
+					WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_ERROR) {
+				// Was not locked before
+				struct pp_instance *ppi=INST(ppg,0);
+
+				TOPS(ppi)->set(ppi,NULL); // GM locked: set the time
+				TOPS(ppi)->enable_timing_output(ppg,1); // Enable timing output
+			}
+		}
+		// Update timingModeLockingState field
+		if (pllState==WRH_TM_PLL_STATE_LOCKED) {
+			WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKED;
+		} else if ( pllState==WRH_TM_PLL_STATE_UNLOCKED ) {
+			if ( WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_LOCKED ) {
+				// Was locked before
+				WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_ERROR;
+				if (WRS_ARCH_G(ppg)->timingMode==WRH_TM_GRAND_MASTER)
+					WRS_ARCH_G(ppg)->gmUnlockErr++;
+			}
+		}
+	}
+
+}
+
+/* For GM, we have to wait the initialization of all ports before to set timing mode to GM
+ * Returns 0 if initialization has been successfully applied otherwise 1
+ */
+static inline int grand_master_initialized(struct pp_globals *ppg) {
+	static int initialized=0;
+
+	if (!initialized) {
+		if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
+			/* Must be done before executing fsm to degrade the clock if needed */
+			bmc_update_clock_quality(ppg);
+			initialized = 1;
+		} else {
+			if (hal_shmem->shmemState == HAL_SHMEM_STATE_INITITALIZED) {
+				wrh_timing_mode_t current_timing_mode;
+				int ret = WRH_OPER()->get_timing_mode(ppg,
+						&current_timing_mode);
+
+				if (ret < 0) {
+					fprintf(stderr, "ppsi: Cannot get current timing mode\n");
+					exit(1);
+				}
+				/* If read timing mode was GM, then we do not reprogram the hardware because it
+				 * may unlock the PLL.
+				 */
+				if (current_timing_mode != WRH_TM_GRAND_MASTER) {
+					/* Timing mode was not GM before */
+					WRH_OPER()->set_timing_mode(ppg, WRH_TM_GRAND_MASTER);
+					// Leave a delay before to read the PLL state later
+				}
+				else {
+					WRS_ARCH_G(ppg)->timingMode = WRH_TM_GRAND_MASTER; // set here because set_timing_mode() is not called
+					/* check if we shall update the clock qualities */
+					/* Must be done before executing fsm to degrade the clock if needed */
+					bmc_update_clock_quality(ppg);
+					initialized = 1;
+				}
+			}
+		}
+	}
+	return initialized;
+}
+
 /* Call pp_state_machine for each instance. To be called periodically,
  * when no packets are incoming */
 static unsigned int run_all_state_machines(struct pp_globals *ppg)
 {
 	static int portInfoTmoIdx=-1;
-	static int checkForGM=1;
 
 	int j;
 	int delay_ms = 0, delay_ms_j;
@@ -39,33 +115,11 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 		portInfoTmoIdx=pp_gtimeout_get_timer(ppg, "SEND_PORT_INFO", TO_RAND_NONE, 0);
 		pp_gtimeout_set(ppg,portInfoTmoIdx,2000); // Update interface info every 2 seconds
 		pp_gtimeout_set(ppg, PP_TO_BMC,TMO_DEFAULT_BMCA_MS);
-		bmc_update_clock_quality(ppg);// Update clock quality before any call to the state machine
 	}
 
-	// For GM, we have to wait the initialization of all ports before to set timing mode to GM
-	if ( checkForGM ) {
-		if (ppg->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED) {
-			checkForGM=0;
-		} else
-		if ( hal_shmem->shmemState==HAL_SHMEM_STATE_INITITALIZED ) {
-			wrh_timing_mode_t current_timing_mode;
-			int ret=WRH_OPER()->get_timing_mode(ppg,&current_timing_mode);
-
-			if (ret<0) {
-				fprintf(stderr, "ppsi: Cannot get current timing mode\n");
-				exit(1);
-			}
-			/* If read timing mode was GM, then we do not reprogram the hardware because it
-			 * may unlock the PLL.
-			 */
-			if ( current_timing_mode != WRH_TM_GRAND_MASTER )
-				/* Timing mode was not GM before */
-				WRH_OPER()->set_timing_mode(ppg,WRH_TM_GRAND_MASTER);
-			else
-				WRS_ARCH_G(ppg)->timingMode=WRH_TM_GRAND_MASTER; // set here because set_timing_mode() is not called
-			checkForGM=0;
-		}
-	}
+	// If GM mode is not initialized, we cannot continue
+	if ( !grand_master_initialized(ppg) )
+		return PP_DEFAULT_NEXT_DELAY_MS;
 
 	for (j = 0; j < ppg->nlinks; j++) {
 		struct pp_instance *ppi = INST(ppg, j);
@@ -141,38 +195,13 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 
 	/* BMCA must run at least once per announce interval 9.2.6.8 */
 	if (pp_gtimeout(ppg, PP_TO_BMC)) {
-		wrh_timing_mode_pll_state_t pllState;
 
 		bmc_calculate_ebest(ppg); /* Calculation of erbest, ebest ,... */
 		pp_gtimeout_reset(ppg, PP_TO_BMC);
 		delay_ms=0;
-
-		if ( WRH_OPER()->get_timing_mode_state(ppg,&pllState)>=0 ) {
-			// Check the PLL for grand master
-			if ( WRS_ARCH_G(ppg)->timingMode==WRH_TM_GRAND_MASTER && pllState==WRH_TM_PLL_STATE_LOCKED ) {
-				// GM Locked
-				if ( WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_LOCKING ||
-						WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_ERROR) {
-					// Was not locked before
-					struct pp_instance *ppi=INST(ppg,0);
-
-					TOPS(ppi)->set(ppi,NULL); // GM locked: set the time
-					TOPS(ppi)->enable_timing_output(ppg,1); // Enable timing output
-				}
-			}
-			// Update timingModeLockingState field
-			if (pllState==WRH_TM_PLL_STATE_LOCKED) {
-				WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKED;
-			} else if ( pllState==WRH_TM_PLL_STATE_UNLOCKED ) {
-				if ( WRS_ARCH_G(ppg)->timingModeLockingState==WRH_TM_LOCKING_STATE_LOCKED ) {
-					// Was locked before
-					WRS_ARCH_G(ppg)->timingModeLockingState=WRH_TM_LOCKING_STATE_ERROR;
-					if (WRS_ARCH_G(ppg)->timingMode==WRH_TM_GRAND_MASTER)
-						WRS_ARCH_G(ppg)->gmUnlockErr++;
-				}
-			}
-		}
+		check_PLL_state(ppg);
 	} else {
+
 		/* check if the BMC timeout is the next to run */
 		int delay_bmca;
 		if ( (delay_bmca=pp_gnext_delay_1(ppg,PP_TO_BMC))<delay_ms )

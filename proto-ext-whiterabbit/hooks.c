@@ -200,9 +200,6 @@ static void wr_state_change(struct pp_instance *ppi)
 						(ppi->state == PPS_MASTER))) {
 			/* if we are leaving the MASTER or SLAVE state */
 			wr_reset_process(ppi,WR_ROLE_NONE);
-			if (ppi->state == PPS_SLAVE)
-				//* We are leaving SLAVE state
-				WRH_OPER()->locking_reset(ppi);
 		}
 
 		// Check entering state
@@ -220,12 +217,20 @@ static void wr_state_change(struct pp_instance *ppi)
 			break;
 		}
 
-		if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED ) {
-			/* Leave SLAVE state : We must stop the PPS generation */
-			TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
-		}
 	} else {
 		wr_reset_process(ppi,WR_ROLE_NONE);
+	}
+
+	if (ppi->state == PPS_SLAVE) {
+		/* We are leaving SLAVE state, so we must reset locking
+		 * This must be done on all cases (extension ACTIVE or NOT) because it may be possible we entered
+		 * in SLAVE state with the extension active and now it can be inactive
+		 */
+		WRH_OPER()->locking_reset(ppi);
+		if ( ppi->next_state!=PPS_UNCALIBRATED ) {
+			/* Leave SLAVE/UNCALIB states : We must stop the PPS generation */
+			TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
+		}
 	}
 }
 

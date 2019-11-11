@@ -58,6 +58,9 @@ static int master_handle_delay_request(struct pp_instance *ppi,
 			if ( !msg_issue_delay_resp(ppi, &ppi->last_rcv_time) ) {
 				if (is_ext_hook_available(ppi,handle_dreq))
 					ppi->ext_hooks->handle_dreq(ppi);
+
+				/* Save active peer MAC address */
+				memcpy(ppi->activePeer,ppi->peer, sizeof(ppi->activePeer));
 			}
 		}
 	}

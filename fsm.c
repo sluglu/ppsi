@@ -99,8 +99,13 @@ char *get_state_as_string(struct pp_instance *ppi, int state) {
 int pp_leave_current_state(struct pp_instance *ppi)
 {
 	/* If something has to be done in an extension */
-	if ( ppi->ext_hooks->state_change)
+	if ( ppi->ext_hooks->state_change) {
+		// When leaving MASTER/SLAVE states, clear the active peer field
+		if ( ppi->state==PPS_MASTER || ppi->state==PPS_SLAVE)
+			bzero(ppi->activePeer,sizeof(ppi->activePeer));
+
 		ppi->ext_hooks->state_change(ppi);
+	}
 	
 	/* if the next or old state is non standard PTP reset all timeouts */
 	if ((ppi->state > PPS_LAST_STATE) || (ppi->next_state > PPS_LAST_STATE))

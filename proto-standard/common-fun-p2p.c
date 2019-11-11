@@ -101,6 +101,10 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 
 		if (!(hdr->flagField[0] & PP_TWO_STEP_FLAG))
 			e = presp_call_servo(ppi);
+
+		/* Save active peer MAC address */
+		memcpy(ppi->activePeer,ppi->peer, sizeof(ppi->activePeer));
+
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
 			"PDelay Resp doesn't match PDelay Req\n");

@@ -192,7 +192,7 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	int ret;
 	struct pp_frgn_master frgn_master;
-					  
+
 	if ((ret = st_com_handle_announce(ppi, buf, len))!=0)
 		return ret;
 
@@ -230,6 +230,9 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	/* 9.5.3 Figure 29 update data set if announce from current master */
 	bmc_s1(ppi, &frgn_master);
 	
+	/* Save active peer MAC address */
+	memcpy(ppi->activePeer,ppi->peer, sizeof(ppi->activePeer));
+
 	return 0;
 }
 

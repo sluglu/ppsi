@@ -243,6 +243,7 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(int, tx_offset),
 	DUMP_FIELD(int, rx_offset),
 	DUMP_FIELD_SIZE(bina, peer, 6),
+	DUMP_FIELD_SIZE(bina, activePeer, 6),
 	DUMP_FIELD(uint16_t, peer_vid),
 
 	DUMP_FIELD(time, t1),

@@ -27,7 +27,6 @@ void bmc_m1(struct pp_instance *ppi)
 	parentDS_t *parent = DSPAR(ppi);
 	defaultDS_t *defds = DSDEF(ppi);
 	timePropertiesDS_t *prop = DSPRO(ppi);
-	UInteger8 clockClass;
 	int ret = 0;
 	int offset, leap59, leap61;
 
@@ -49,31 +48,6 @@ void bmc_m1(struct pp_instance *ppi)
 	parent->grandmasterPriority1 = defds->priority1;
 	parent->grandmasterPriority2 = defds->priority2;
 
-	/**
-	 * This table describes how the time properties are set :
-	 *
-	 * field\clockClass   | GM_LOCKED | GM_HOLDOVER  | GM_UNLOCKED_A| DEFAULT
-	 * ---------------------------------------------------------------------------
-	 * ptpTimescale       |   TRUE    |     TRUE     |   TRUE       | FALSE
-	 * timeSource         |   GPS     | INTERNAL_OSC | INTERNAL_OSC | INTERNAL_OSC
- 	 * frequencyTraceable |   TRUE    |     TRUE     |   FALSE      | FALSE
-	 * timeTraceable      |   TRUE    |     TRUE     |   FALSE      | FALSE
-	 */
-	clockClass=defds->clockQuality.clockClass;
-	prop->timeSource= clockClass==PP_PTP_CLASS_GM_LOCKED ?
-			GPS : INTERNAL_OSCILLATOR;
-	prop->ptpTimescale=
-			((clockClass== PP_PTP_CLASS_GM_LOCKED) ||
-			(clockClass== PP_PTP_CLASS_GM_HOLDOVER) ||
-			(clockClass== PP_PTP_CLASS_GM_UNLOCKED_A))
-			? TRUE : FALSE;
-	prop->frequencyTraceable=
-			prop->timeTraceable=
-					((clockClass== PP_PTP_CLASS_GM_LOCKED) ||
-			        (clockClass== PP_PTP_CLASS_GM_HOLDOVER))
-					? TRUE : FALSE;
-
-	
 	/* Set currentUtcOffset and currentUtcOffsetValid
 	 * If they cannot be set properly, frequencyTraceable & timeTraceable are cleared
 	 */
@@ -95,11 +69,9 @@ void bmc_m1(struct pp_instance *ppi)
 		
 		if (ret)
 		{
-			prop->frequencyTraceable=
-					prop->timeTraceable = FALSE; /* Clear them if they were set */
-			prop->currentUtcOffsetValid = FALSE;
-			prop->leap59 = FALSE;
-			prop->leap61 = FALSE;
+			prop->currentUtcOffsetValid =
+					prop->leap59 =
+							prop->leap61 = FALSE;
 		}
 		else
 		{
@@ -111,9 +83,9 @@ void bmc_m1(struct pp_instance *ppi)
 		/* 9.4 for ARB just take the value when built */
 		prop->currentUtcOffset = PP_DEFAULT_UTC_OFFSET;
 		/* always false */
-		prop->currentUtcOffsetValid = FALSE;
-		prop->leap59 = FALSE;
-		prop->leap61 = FALSE;
+		prop->currentUtcOffsetValid =
+				prop->leap59 =
+						prop->leap61 = FALSE;
 	}
 }
 
@@ -345,7 +317,7 @@ static void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 	memcpy(&frgn_master->grandmasterIdentity,
 		   &DSDEF(ppi)->clockIdentity, sizeof(ClockIdentity));
 	frgn_master->stepsRemoved = 0;
-	frgn_master->timeSource = INTERNAL_OSCILLATOR; //TODO get this from somewhere
+	frgn_master->timeSource = TIME_SRC_INTERNAL_OSCILLATOR; //TODO get this from somewhere
 
 	frgn_master->ext_specific = 0;
 }
@@ -1315,150 +1287,6 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 	ppg->ebest_idx=best;
 }
 
-
-void bmc_update_clock_quality(struct pp_globals *ppg)
-{
-	char *pp_diag_msg;
-	struct pp_runtime_opts *rt_opts = ppg->rt_opts;
-	int rt_opts_clock_quality_clockClass=rt_opts->clock_quality_clockClass;
-	int defaultDS_clock_quality_clockClass=ppg->defaultDS->clockQuality.clockClass;
-	pp_timing_mode_state_t timing_mode_state;
-
-	static struct oper_t {
-		pp_timing_mode_state_t  timing_mode_state;
-		int reqClockQuality;
-		ClockQuality clockQuality;
-		char *msg;
-		int enable_timing_output;
-	} oper[]= {
-			{
-				.timing_mode_state=PP_TIMING_MODE_STATE_LOCKED,
-				.reqClockQuality=PP_PTP_CLASS_GM_LOCKED,
-				.clockQuality={
-						.clockClass=PP_PTP_CLASS_GM_LOCKED,
-						.clockAccuracy=PP_PTP_ACCURACY_GM_LOCKED,
-						.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_LOCKED,
-				},
-				.msg="locked",
-				.enable_timing_output=1
-			},
-			{
-				.timing_mode_state=PP_TIMING_MODE_STATE_LOCKED,
-				.reqClockQuality=PP_ARB_CLASS_GM_LOCKED,
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_LOCKED,
-						.clockAccuracy=PP_ARB_ACCURACY_GM_LOCKED,
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_LOCKED,
-				},
-				.msg="locked",
-			},
-			{
-				.timing_mode_state=PP_TIMING_MODE_STATE_HOLDOVER,
-				.reqClockQuality=PP_PTP_CLASS_GM_LOCKED,
-				.clockQuality={
-						.clockClass=PP_PTP_CLASS_GM_HOLDOVER,
-						.clockAccuracy=PP_PTP_ACCURACY_GM_HOLDOVER,
-						.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_HOLDOVER,
-				},
-				.msg="holdover",
-			},
-			{
-				.timing_mode_state=PP_TIMING_MODE_STATE_HOLDOVER,
-				.reqClockQuality=PP_ARB_CLASS_GM_LOCKED,
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_HOLDOVER,
-						.clockAccuracy=PP_ARB_ACCURACY_GM_HOLDOVER,
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_HOLDOVER,
-				},
-				.msg="holdover",
-			},
-			{
-				.timing_mode_state=PP_TIMING_MODE_STATE_UNLOCKED,
-				.reqClockQuality=PP_PTP_CLASS_GM_LOCKED,
-				.clockQuality={
-						.clockClass=PP_PTP_CLASS_GM_UNLOCKED_B,
-						.clockAccuracy=PP_PTP_ACCURACY_GM_UNLOCKED,
-						.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_UNLOCKED,
-				},
-				.msg="unlocked",
-			},
-			{
-				.timing_mode_state=PP_TIMING_MODE_STATE_UNLOCKED,
-				.reqClockQuality=PP_ARB_CLASS_GM_LOCKED,
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
-						.clockAccuracy=PP_ARB_ACCURACY_GM_UNLOCKED,
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED,
-				},
-				.msg="unlocked",
-			}
-	};
-
-	/* We are only interested on configured clock class PP_PTP_CLASS_GM_LOCKED and PP_ARB_CLASS_GM_LOCKED */
-	if ( rt_opts_clock_quality_clockClass  > PP_MAX_VALUE_GM )
-		return ; /* Exclude also PP_PTP_CLASS_GM_UNLOCKED_B and PP_ARB_CLASS_GM_UNLOCKED_B */
-
-	switch (rt_opts_clock_quality_clockClass ) {
-		case PP_PTP_CLASS_GM_LOCKED :
-		case PP_ARB_CLASS_GM_LOCKED :
-			pp_diag(NULL, bmc, 2,
-				"GM locked class configured, checking PLL locking\n");
-			break;
-		case PP_PTP_CLASS_GM_UNLOCKED_A :
-		case PP_ARB_CLASS_GM_UNLOCKED_A :
-			pp_diag(NULL, bmc, 2,
-				"GM unlocked class configured, skipping checking PLL locking\n");
-			return;
-		default :
-			pp_diag(NULL, bmc, 2,
-				"GM unknown clock class configured, skipping checking PLL locking\n");
-			return;
-	}
-
-	/* Get the clock status ( locked, holdover, unlocked ) */
-	if (TOPS(INST(ppg,0))->get_GM_lock_state(ppg,&timing_mode_state) ) {
-		pp_diag(NULL, bmc, 1,
-			"Could not get GM locking state, taking old clock class: %i\n",
-			ppg->defaultDS->clockQuality.clockClass);
-		return;
-	}
-
-	pp_diag_clear_msg(pp_diag_msg);
-	{
-		struct oper_t *p=oper;
-		int i;
-
-		for (i=0; i<ARRAY_SIZE(oper); i++ ) {
-			if ( p->timing_mode_state==timing_mode_state &&
-					rt_opts_clock_quality_clockClass==p->reqClockQuality &&
-					defaultDS_clock_quality_clockClass!=p->clockQuality.clockClass) {
-				ppg->defaultDS->clockQuality=p->clockQuality;
-				pp_diag_set_msg(pp_diag_msg,p->msg);
-				if ( p->enable_timing_output)
-					TOPS(INST(ppg,0))->enable_timing_output(ppg,1); /* Enable PPS generation */
-				break;
-			}
-			p++;
-		}
-		if ( i > ARRAY_SIZE(oper) )
-			pp_diag(NULL, bmc, 2,
-				"Unknown timing mode state, taking old clock class: %i\n",
-				defaultDS_clock_quality_clockClass);
-	}
-
-	if ( pp_diag_is_msg_set(pp_diag_msg) ) {
-		pp_diag(NULL, bmc, 1,
-				"Timing mode: %s, "
-				"new clock class: %i, "
-				"new clock accuracy: %i, "
-				"new clock variance: %04x\n",
-				pp_diag_get_msg(pp_diag_msg),
-				ppg->defaultDS->clockQuality.clockClass,
-				ppg->defaultDS->clockQuality.clockAccuracy,
-				ppg->defaultDS->clockQuality.offsetScaledLogVariance);
-
-	}
-}
 
 void bmc_calculate_ebest(struct pp_globals *ppg)
 {

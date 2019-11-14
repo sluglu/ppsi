@@ -14,6 +14,7 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-slave.o \
 	$D/common-fun.o \
 	$D/common-fun-p2p.o \
+	$D/bmc_clock_quality.o \
 	$D/bmc.o \
 	$D/msg.o \
 	$D/msg-p2p.o \

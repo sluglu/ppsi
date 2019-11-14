@@ -19,6 +19,10 @@ struct pp_runtime_opts {
 	int clock_quality_clockClass;                 // ClockQuality.clockClass
 	int clock_quality_clockAccuracy;              // ClockQuality.clockAccuracy
 	int clock_quality_offsetScaledLogVariance;    // ClockQuality.offsetScaledLogVariance
+	int timeSource;                               // timePropertiesDS_t.timeSource
+	Boolean ptpTimeScale;                         // timePropertiesDS_t.timeSource
+	Boolean frequencyTraceable;                   // timePropertiesDS_t.frequencyTraceable
+	Boolean timeTraceable;                        // timePropertiesDS_t.timeTraceable
 	Integer32 ttl;
 	int flags;		/* see below */
 	Integer16 ap, ai;

@@ -370,6 +370,8 @@ static struct pp_argline pp_global_arglines[] = {
 			PP_MIN_CLOCK_ACCURACY,PP_MAX_CLOCK_ACCURACY),
 	RT_OPTION_INT_RANGE("clock-allan-variance", ARG_INT, NULL,clock_quality_offsetScaledLogVariance,
 			PP_MIN_CLOCK_VARIANCE,PP_MAX_CLOCK_VARIANCE),
+	RT_OPTION_INT_RANGE("time-source", ARG_INT, NULL, timeSource,
+				PP_MIN_TIME_SOURCE,PP_MAX_TIME_SOURCE),
 	RT_OPTION_INT_RANGE("domain-number", ARG_INT, NULL, domainNumber,
 			PP_MIN_DOMAIN_NUMBER,PP_MAX_DOMAIN_NUMBER),
 	RT_OPTION_INT_RANGE("priority1", ARG_INT, NULL, priority1,

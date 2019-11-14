@@ -13,8 +13,12 @@
  */
 struct pp_runtime_opts __pp_default_rt_opts = {
 	.clock_quality_clockClass = PP_CLASS_DEFAULT,
-	.clock_quality_clockAccuracy = PP_ACCURACY_DEFAULT,
-	.clock_quality_offsetScaledLogVariance = PP_VARIANCE_DEFAULT,
+	.clock_quality_clockAccuracy = -1, // Not defined
+	.clock_quality_offsetScaledLogVariance = -1, // Not defined
+	.timeSource = -1, // Not defined
+	.ptpTimeScale=-1, // Not defined
+	.frequencyTraceable=-1, // Not defined
+	.timeTraceable=-1, // Not defined
 	.flags =		PP_DEFAULT_FLAGS,
 	.ap =			PP_DEFAULT_AP,
 	.ai =			PP_DEFAULT_AI,
@@ -88,10 +92,10 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 
 	rt_opts = ppg->rt_opts;
 
-	// Copy clock quality
-	def->clockQuality.clockClass=rt_opts->clock_quality_clockClass;
-	def->clockQuality.clockAccuracy=rt_opts->clock_quality_clockAccuracy;
-	def->clockQuality.offsetScaledLogVariance=rt_opts->clock_quality_offsetScaledLogVariance;
+	// Update the default attributes depending on the clock class in the configuration structure
+	bmc_set_default_device_attributes(ppg);
+	// Update defaultDS & timePropertiesDS with configured setting (clockClass,...)
+	bmc_apply_configured_device_attributes(ppg);
 
 	/* Clause 17.6.5.3 : Clause 9.2.2 shall not be in effect. If implemented, defaultDS.slaveOnly should be FALSE, and
 	 * portDS.masterOnly should be FALSE on all PTP Ports of the PTP Instance.

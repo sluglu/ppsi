@@ -21,6 +21,7 @@
 #include <ppsi/timeout_def.h>
 #include <ppsi/pp-instance.h>
 #include <ppsi/diag-macros.h>
+#include <ppsi/bmc.h>
 
 #include <arch/arch.h> /* ntohs and so on -- and wr-api.h for wr archs */
 
@@ -144,6 +145,11 @@ static inline timePropertiesDS_t *DSPRO(struct pp_instance *ppi)
 	return GLBS(ppi)->timePropertiesDS;
 }
 
+static inline timePropertiesDS_t *GDSPRO(struct pp_globals *ppg)
+{
+	return ppg->timePropertiesDS;
+}
+
 static inline struct pp_time_operations *TOPS(struct pp_instance *ppi) {
 	return ppi->t_ops;
 }
@@ -243,12 +249,6 @@ extern struct pp_network_operations DEFAULT_NET_OPS;
 
 /* These can be liked and used as fallback by a different timing engine */
 extern struct pp_network_operations unix_net_ops;
-
-typedef enum {
-	PP_TIMING_MODE_STATE_UNLOCKED=0,
-	PP_TIMING_MODE_STATE_HOLDOVER,
-	PP_TIMING_MODE_STATE_LOCKED,
-}pp_timing_mode_state_t;
 
 /*
  * Time operations, like network operations above, are encapsulated.

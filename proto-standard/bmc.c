@@ -1201,19 +1201,21 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 							) < 0)
 							best = j;
 				}
-				pp_diag(ppi, bmc, 1, "Best foreign master is "
-					"at index %i/%i\n", best,
-					ppi->frgn_rec_num);
+				if ( is_qualified(ppi,&frgn_master[best]) ) {
+					pp_diag(ppi, bmc, 1, "Best foreign master is "
+						"at index %i/%i\n", best,
+						ppi->frgn_rec_num);
 
-				frgn_master_pid = &frgn_master[best].sourcePortIdentity;
-				pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
-					"SourcePortId",
-					frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
-					frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
-					frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
-					frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
-					frgn_master_pid->portNumber);
-
+					frgn_master_pid = &frgn_master[best].sourcePortIdentity;
+					pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+						"SourcePortId",
+						frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
+						frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
+						frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
+						frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
+						frgn_master_pid->portNumber);
+				} else
+					best=-1;
 			}
 			ppi->frgn_rec_best = best;
 		} else { //if ((ppi->state != ...

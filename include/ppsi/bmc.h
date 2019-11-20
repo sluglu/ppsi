@@ -55,6 +55,9 @@ extern defaultDeviceAttributes_t defaultDeviceAttributes[];
 extern void bmc_set_default_device_attributes (struct pp_globals *ppg);
 extern void bmc_update_clock_quality(struct pp_globals *ppg);
 extern void bmc_apply_configured_device_attributes(struct pp_globals *ppg);
+extern int bmc_is_erbest(struct pp_instance *ppi, struct PortIdentity *srcPortIdentity);
+
+
 
 
 

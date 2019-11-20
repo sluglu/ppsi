@@ -63,6 +63,7 @@ struct dump_info dsp_info [] = {
 	DUMP_FIELD(ClockQuality, grandmasterClockQuality),
 	DUMP_FIELD(UInteger8, grandmasterPriority1),
 	DUMP_FIELD(UInteger8, grandmasterPriority2),
+	DUMP_FIELD(UInteger8, newGrandmaster),
 };
 
 #undef DUMP_STRUCT
@@ -200,6 +201,24 @@ struct dump_info portDS_info [] = {
 };
 
 #undef DUMP_STRUCT
+#define DUMP_STRUCT struct pp_frgn_master
+struct dump_info dsfm_info [] = {
+	DUMP_FIELD(PortIdentity, sourcePortIdentity),
+	DUMP_FIELD(PortIdentity, receivePortIdentity),
+	DUMP_FIELD(ClockQuality, grandmasterClockQuality),
+	DUMP_FIELD(ClockIdentity, grandmasterIdentity),
+	DUMP_FIELD(UInteger8, grandmasterPriority1),
+	DUMP_FIELD(UInteger8, grandmasterPriority2),
+	DUMP_FIELD_SIZE(UInteger8, flagField,2),
+	DUMP_FIELD(Enumeration8, timeSource),
+	DUMP_FIELD(UInteger16, sequenceId),
+	DUMP_FIELD(UInteger16, stepsRemoved),
+	DUMP_FIELD(Integer16, currentUtcOffset),
+	DUMP_FIELD(Boolean, qualified),
+	DUMP_FIELD(unsigned_long, lastAnnounceMsgMs),
+};
+
+#undef DUMP_STRUCT
 #define DUMP_STRUCT struct pp_instance
 struct dump_info ppi_info [] = {
 	DUMP_FIELD(int, state),
@@ -259,7 +278,7 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(time, last_snt_time),
 	DUMP_FIELD(UInteger16, frgn_rec_num),
 	DUMP_FIELD(Integer16,  frgn_rec_best),
-	//DUMP_FIELD(struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS]),
+	DUMP_FIELD(pointer,frgn_master),
 	DUMP_FIELD(pointer, portDS),
 	DUMP_FIELD(Boolean,asymmetryCorrectionPortDS.enable),
 	DUMP_FIELD(TimeInterval,asymmetryCorrectionPortDS.constantAsymmetry),
@@ -399,6 +418,17 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 
 		sprintf(prefix,"ppsi.inst.%d.info",i);
 		dump_many_fields(ppi, ppi_info, ARRAY_SIZE(ppi_info),prefix);
+
+		// Print foreign master list
+		if ( ppi->frgn_rec_num>0 ) {
+			int fm;
+
+			for ( fm=0; fm<ppi->frgn_rec_num && fm<PP_NR_FOREIGN_RECORDS; fm++) {
+				sprintf(prefix,"ppsi.inst.%d.frgn_master[%d]",i,fm);
+				dump_many_fields( &ppi->frgn_master[fm], dsfm_info, ARRAY_SIZE(dsfm_info),prefix);
+			}
+		}
+
 #if CONFIG_HAS_EXT_L1SYNC == 1
 		sprintf(prefix,"ppsi.inst.%d.l1sync_portDS",i);
 		if ( ppi->protocol_extension == PPSI_EXT_L1S) {

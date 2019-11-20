@@ -4,6 +4,7 @@
 
 
 #define pp_error(...) pp_printf("ERROR: " __VA_ARGS__)
+#define pp_info(...) pp_printf("INFO: " __VA_ARGS__)
 
 /*
  * The "new" diagnostics is based on flags: there are per-instance d_flags

@@ -77,9 +77,6 @@ struct pp_channel {
  * it is called foreignMasterDS, see 9.3.2.4
  */
 struct pp_frgn_master {
-	/* how many announce messages from this port where received in the
-	 * interval */
-	UInteger16 foreignMasterAnnounceMessages[PP_FOREIGN_MASTER_TIME_WINDOW];
 	/* BMC related information */
 	UInteger16 sequenceId;
 	UInteger16 stepsRemoved;
@@ -93,7 +90,11 @@ struct pp_frgn_master {
 	UInteger8 grandmasterPriority2;
 	Enumeration8 timeSource;
 	Octet flagField[2];
-	unsigned long ext_specific;	/* used by extension */
+	/* Private data */
+	Boolean  qualified; // TRUE if qualified
+	unsigned long lastAnnounceMsgMs; // Last time in ms when the announce message was received
+	/* used by extension */
+	unsigned long ext_specific;
 };
 
 /*
@@ -259,6 +260,7 @@ struct pp_instance {
 	 * messages */
 	UInteger16 frgn_rec_num;
 	Integer16  frgn_rec_best;
+	UInteger32 frgn_master_time_window_ms;
 	struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS];
 
 	portDS_t *portDS;		 /* page 72 */

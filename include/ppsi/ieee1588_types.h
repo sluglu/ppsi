@@ -260,6 +260,8 @@ typedef struct  {		/* page 68 */
 	ClockQuality	grandmasterClockQuality;
 	UInteger8	grandmasterPriority1;
 	UInteger8	grandmasterPriority2;
+	/* Private data */
+	Boolean newGrandmaster;
 } parentDS_t;
 
 /* Port Data set */

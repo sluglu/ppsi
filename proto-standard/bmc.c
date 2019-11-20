@@ -137,6 +137,12 @@ void bmc_s1(struct pp_instance *ppi,
 	/* Current DS */
 	DSCUR(ppi)->stepsRemoved = frgn_master->stepsRemoved + 1;
 
+	/* Check if it is a new foreign master
+	 * In this case the BMCA state machine must be informed
+	 * to transition form SLAVE to UNCALIBRATED state.
+	 */
+	parent->newGrandmaster=bmc_pidcmp(&parent->parentPortIdentity,&frgn_master->sourcePortIdentity)!=0;
+
 	/* Parent DS */
 	parent->parentPortIdentity = frgn_master->sourcePortIdentity;
 	parent->grandmasterIdentity = frgn_master->grandmasterIdentity;
@@ -297,9 +303,7 @@ static void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 
 	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
 		/* this shall be always qualified */
-		int i;
-		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-			frgn_master->foreignMasterAnnounceMessages[i] = 1;
+		frgn_master->qualified=1;
 	}
 	memcpy(&frgn_master->receivePortIdentity,
 	       &DSPOR(ppi)->portIdentity, sizeof(PortIdentity));
@@ -355,19 +359,8 @@ static int is_ebest(struct pp_globals *ppg, struct pp_frgn_master *foreignMaster
 	return 0;
 }
 
-static int is_qualified(struct pp_instance *ppi, struct pp_frgn_master *foreignMaster) {
-	int i;
-	int qualified=0;
-	UInteger16 *annMsgs = foreignMaster->foreignMasterAnnounceMessages;
-
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		qualified += annMsgs[i];
-	qualified=qualified >= PP_FOREIGN_MASTER_THRESHOLD;
-
-	if ( !qualified )
-		qualified=is_ebest(GLBS(ppi),foreignMaster);
-
-	return qualified;
+static __inline__ int is_qualified(struct pp_instance *ppi, struct pp_frgn_master *foreignMaster) {
+	return foreignMaster->qualified || is_ebest(GLBS(ppi),foreignMaster);
 }
 
 static int are_qualified(struct pp_instance *ppi,
@@ -448,12 +441,13 @@ static int bmc_gm_cmp(struct pp_instance *ppi,
 		return a->grandmasterPriority2 - b->grandmasterPriority2;
 	}
 
-	pp_diag(ppi, bmc, 3, "GmId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x,\n"
-		"GmId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
-		a->grandmasterIdentity.id[0], a->grandmasterIdentity.id[1],
-		a->grandmasterIdentity.id[2], a->grandmasterIdentity.id[3],
-		a->grandmasterIdentity.id[4], a->grandmasterIdentity.id[5],
-		a->grandmasterIdentity.id[6], a->grandmasterIdentity.id[7],
+	pp_diag(ppi, bmc, 3, "GmId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+			a->grandmasterIdentity.id[0], a->grandmasterIdentity.id[1],
+			a->grandmasterIdentity.id[2], a->grandmasterIdentity.id[3],
+			a->grandmasterIdentity.id[4], a->grandmasterIdentity.id[5],
+			a->grandmasterIdentity.id[6], a->grandmasterIdentity.id[7]);
+
+	pp_diag(ppi, bmc, 3, "GmId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
 		b->grandmasterIdentity.id[0], b->grandmasterIdentity.id[1],
 		b->grandmasterIdentity.id[2], b->grandmasterIdentity.id[3],
 		b->grandmasterIdentity.id[4], b->grandmasterIdentity.id[5],
@@ -558,6 +552,17 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 {
 	/* dataset_cmp is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
+	pp_diag(ppi, bmc, 3, "portId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+			a->sourcePortIdentity.clockIdentity.id[0], a->sourcePortIdentity.clockIdentity.id[1],
+			a->sourcePortIdentity.clockIdentity.id[2], a->sourcePortIdentity.clockIdentity.id[3],
+			a->sourcePortIdentity.clockIdentity.id[4], a->sourcePortIdentity.clockIdentity.id[5],
+			a->sourcePortIdentity.clockIdentity.id[6], a->sourcePortIdentity.clockIdentity.id[7]);
+
+	pp_diag(ppi, bmc, 3, "portId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+		b->sourcePortIdentity.clockIdentity.id[0], b->sourcePortIdentity.clockIdentity.id[1],
+		b->sourcePortIdentity.clockIdentity.id[2], b->sourcePortIdentity.clockIdentity.id[3],
+		b->sourcePortIdentity.clockIdentity.id[4], b->sourcePortIdentity.clockIdentity.id[5],
+		b->sourcePortIdentity.clockIdentity.id[6], b->sourcePortIdentity.clockIdentity.id[7]);
 
 	if (!bmc_idcmp(&a->grandmasterIdentity, &b->grandmasterIdentity)) {
 		/* Check topology */
@@ -821,16 +826,12 @@ slave_s1:
 	}
 }
 
+
 void bmc_store_frgn_master(struct pp_instance *ppi,
 		       struct pp_frgn_master *frgn_master, void *buf, int len)
 {
-	int i;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgAnnounce ann;
-
-	/* clear qualification timeouts */
-	for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-		frgn_master->foreignMasterAnnounceMessages[i] = 0;
 
 	/*
 	 * header and announce field of each Foreign Master are
@@ -855,7 +856,10 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 		   &ann.grandmasterIdentity, sizeof(ClockIdentity));
 	frgn_master->stepsRemoved = ann.stepsRemoved;
 	frgn_master->timeSource = ann.timeSource;
+	frgn_master->qualified=
+			frgn_master->lastAnnounceMsgMs=0;
 }
+
 
 void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_master)
 {
@@ -895,7 +899,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 
 	} else {
 		int cmpres;
-		int i, j, worst;
+		int i, worst;
 		struct pp_frgn_master worst_frgn_master;
 		struct pp_frgn_master temp_frgn_master;
 		if (get_numberPorts(DSDEF(ppi)) > 1) {
@@ -948,20 +952,23 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 		{
 			if (!bmc_pidcmp(pid,
 					&ppi->frgn_master[i].sourcePortIdentity)) {
-
+				// Foreign master found
 				pp_diag(ppi, bmc, 2, "Foreign Master %i updated\n", i);
 
 				/* fill in number of announce received */
-				for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
-					frgn_master->foreignMasterAnnounceMessages[j] =
-						ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
-				}
+				frgn_master->qualified=ppi->frgn_master[i].qualified;
+				frgn_master->lastAnnounceMsgMs=ppi->frgn_master[i].lastAnnounceMsgMs;
+
 				/* update the number of announce received if correct
 				 * sequence number 9.3.2.5 b) */
-				if (hdr->sequenceId
-					  == (ppi->frgn_master[i].sequenceId + 1))
-					frgn_master->foreignMasterAnnounceMessages[0]++;
+				if (hdr->sequenceId == (ppi->frgn_master[i].sequenceId + 1)) {
+					unsigned long now=TOPS(ppi)->calc_timeout(ppi, 0);
 
+					frgn_master->qualified=
+								(UInteger32)(now-frgn_master->lastAnnounceMsgMs)
+									<= ppi->frgn_master_time_window_ms;
+					frgn_master->lastAnnounceMsgMs=now;
+				}
 				/* already in Foreign master data set, update info */
 				memcpy(&ppi->frgn_master[i], frgn_master,
 					   sizeof(struct pp_frgn_master));
@@ -970,8 +977,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 		}
 
 		/* set qualification timeouts as valid to compare against worst*/
-		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-			frgn_master->foreignMasterAnnounceMessages[i] = 1;
+		frgn_master->qualified=1;
 
 		/* New foreign master */
 		if ( !CONFIG_HAS_CODEOPT_SINGLE_FMASTER ) {
@@ -989,10 +995,8 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 						   sizeof(struct pp_frgn_master));
 					memcpy(&worst_frgn_master, &ppi->frgn_master[worst],
 						   sizeof(struct pp_frgn_master));
-					for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++) {
-						temp_frgn_master.foreignMasterAnnounceMessages[j] = 1;
-						worst_frgn_master.foreignMasterAnnounceMessages[j] = 1;
-					}
+					temp_frgn_master.qualified=
+						worst_frgn_master.qualified=1;
 
 					if (bmc_dataset_cmp(ppi, &temp_frgn_master,
 								&worst_frgn_master) > 0)
@@ -1002,9 +1006,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 				/* copy the worst again and qualify it */
 				memcpy(&worst_frgn_master, &ppi->frgn_master[worst],
 					   sizeof(struct pp_frgn_master));
-				for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++) {
-					worst_frgn_master.foreignMasterAnnounceMessages[i] = 1;
-				}
+				worst_frgn_master.qualified=1;
 
 				/* check if worst is better than the new one, and skip the new
 				 * one if so */
@@ -1025,11 +1027,10 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 		}
 
 		/* clear qualification timeouts */
-		for (i = 0; i < PP_FOREIGN_MASTER_TIME_WINDOW; i++)
-			frgn_master->foreignMasterAnnounceMessages[i] = 0;
+		frgn_master->qualified=0;
 
 		/* This is the first one qualified 9.3.2.5 e)*/
-		frgn_master->foreignMasterAnnounceMessages[0] = 1;
+		frgn_master->lastAnnounceMsgMs=TOPS(ppi)->calc_timeout(ppi, 0);
 	}
 	/* Copy the temporary foreign master entry */
 	memcpy(&ppi->frgn_master[sel], frgn_master,
@@ -1046,8 +1047,13 @@ static void bmc_flush_frgn_master(struct pp_instance *ppi)
 	ppi->frgn_rec_num = 0;
 }
 
+
 static void bmc_remove_foreign_master(struct pp_instance *ppi, int frg_master_idx) {
 	int i;
+
+	if ( ppi->frgn_rec_best == frg_master_idx ) {
+		ppi->frgn_rec_best=-1;
+	}
 	for (i = frg_master_idx; i < PP_NR_FOREIGN_RECORDS; i++) {
 		if (frg_master_idx < (ppi->frgn_rec_num-1)) {
 			/* overwrite and shift next foreign
@@ -1055,6 +1061,8 @@ static void bmc_remove_foreign_master(struct pp_instance *ppi, int frg_master_id
 			memcpy(&ppi->frgn_master[i],
 			       &ppi->frgn_master[i+1],
 			       sizeof(struct pp_frgn_master));
+			if ( ppi->frgn_rec_best == (i+1) )
+				ppi->frgn_rec_best=i; // Re-adjust the erBest
 		} else {
 			/* clear the last (and others) since
 			 * shifted */
@@ -1075,39 +1083,29 @@ void bmc_flush_erbest(struct pp_instance *ppi)
 		bmc_remove_foreign_master(ppi,ppi->frgn_rec_best);
 	}
 	ppi->frgn_rec_best=-1;
-
 }
 
 static void bmc_age_frgn_master(struct pp_instance *ppi)
 {
-	int i, j;
-	int qualified;
+	int i=0;
 
 
-	for (i=0;i < ppi->frgn_rec_num; i++)
-	{
+	unsigned long now=TOPS(ppi)->calc_timeout(ppi, 0);
+
+	while (i < ppi->frgn_rec_num ) {
+		struct pp_frgn_master *frgn_master=&ppi->frgn_master[i];
+
 		/* get qualification */
-		if ( !(qualified=is_ebest(GLBS(ppi),&ppi->frgn_master[i])) ) {
-			for (j = 0; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
-				qualified += ppi->frgn_master[i].foreignMasterAnnounceMessages[j];
+		if ( !is_ebest(GLBS(ppi),frgn_master) ) {
+			if ( (UInteger32)(now-frgn_master->lastAnnounceMsgMs)> ppi->frgn_master_time_window_ms ) {
+				// Remove age out
+				pp_diag(ppi, bmc, 1, "Aged out foreign master %i/%i\n",
+						i, ppi->frgn_rec_num);
+				bmc_remove_foreign_master(ppi,i);
+				continue;
+			}
 		}
-
-		/* shift qualification */
-		for (j = 1; j < PP_FOREIGN_MASTER_TIME_WINDOW; j++)
-			ppi->frgn_master[i].foreignMasterAnnounceMessages[
-					  (PP_FOREIGN_MASTER_TIME_WINDOW - j)] =
-				ppi->frgn_master[i].foreignMasterAnnounceMessages[
-					  (PP_FOREIGN_MASTER_TIME_WINDOW - j - 1)];
-		/* clear lowest */
-		ppi->frgn_master[i].foreignMasterAnnounceMessages[0] = 0;
-
-		/* remove aged out */
-		if ( !qualified ) {
-			pp_diag(ppi, bmc, 1, "Aged out foreign master %i/%i\n",
-					i, ppi->frgn_rec_num);
-			bmc_remove_foreign_master(ppi,i);
-			i--;
-		}
+		i++;
 	}
 }
 

@@ -245,6 +245,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	int ret = PP_SEND_OK; /* error var, to check errors in msg handling */
 	Boolean uncalibrated = (ppi->state == PPS_UNCALIBRATED);
 	MsgHeader *hdr = &ppi->received_ptp_header;
+	int newState=ppi->is_new_state;
 
 	/* upgrade from uncalibrated to slave or back*/
 	if (uncalibrated) {
@@ -257,6 +258,23 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 		}
 	}
 
+	/* Check if the foreign master has changed */
+	if ( DSPAR(ppi)->newGrandmaster ) {
+		// New grandmaster detected
+
+		DSPAR(ppi)->newGrandmaster=FALSE; // Clear it
+
+		if ( !uncalibrated )
+			// State must transition from SLAVE to UNCALIBRATED
+			ppi->next_state =PPS_UNCALIBRATED;
+		else
+			newState=1;// If already in uncalibrated state, force to see it as a new state
+
+		Octet *id=DSPAR(ppi)->parentPortIdentity.clockIdentity.id;
+		pp_info("New grandmaster detected: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
+					id[0],id[1],id[2],id[3],id[4],id[5],id[6],id[7]);
+	}
+
 	/* Force to stay on desired state if externalPortConfiguration option is enabled */
 	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) &&
 			ppi->next_state == PPS_SLAVE &&
@@ -264,9 +282,9 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 		ppi->next_state = PPS_UNCALIBRATED; //Force to stay in uncalibrated state
 
 	/* when entering uncalibrated init servo */
-	if (uncalibrated && (ppi->is_new_state)) {
+	if (uncalibrated && newState) {
 		memset(&ppi->t1, 0, sizeof(ppi->t1));
-		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");	
+		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");
 		pp_servo_init(ppi);
 
 		if (is_ext_hook_available(ppi,new_slave))

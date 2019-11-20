@@ -116,6 +116,9 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	pp_timeout_init(ppi);
 	pp_timeout_setall(ppi);
 
+	/* Foreign master time window */
+	ppi->frgn_master_time_window_ms= pp_timeout_log_to_ms(DSPOR(ppi)->logAnnounceInterval)*PP_FOREIGN_MASTER_TIME_WINDOW;
+
 	ppi->pdstate = PP_PDSTATE_NONE; // Default value for PTP. Can be overwritten in specific init
 	ppi->extState=(ppi->protocol_extension==PPSI_EXT_NONE) ? PP_EXSTATE_DISABLE : PP_EXSTATE_ACTIVE;
 

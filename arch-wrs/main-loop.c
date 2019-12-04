@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
+#include <limits.h>
 
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>

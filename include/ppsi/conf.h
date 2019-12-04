@@ -4,6 +4,7 @@
  *
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
+#include <limits.h>
 
 /* platform independent timespec-like data structure */
 struct pp_cfg_time {

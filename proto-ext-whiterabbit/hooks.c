@@ -121,6 +121,7 @@ static int wr_pack_announce(struct pp_instance *ppi)
 
 static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *ann)
 {
+	MsgHeader *hdr = &ppi->received_ptp_header;
 	int msg_len = ntohs(*(UInteger16 *) (buf + 2));
 	Boolean parentIsWRnode=FALSE;
 	Boolean resetWrProtocol=FALSE;
@@ -128,6 +129,11 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
+
+	// If the message is not coming from erbest, it must be discarded
+	if ( !bmc_is_erbest(ppi,&hdr->sourcePortIdentity))
+		return;
+
 	if (msg_len >= WR_ANNOUNCE_LENGTH) {
 		UInteger16 wr_flags;
 		MsgHeader *hdr = &ppi->received_ptp_header;
@@ -137,7 +143,12 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 		msg_unpack_announce_wr_tlv(buf, ann, &wr_flags);
 		parentIsWRnode=(wr_flags & WR_NODE_MODE)!=NON_WR;
 
-		// Check if a new parent is detected
+		// Check if a new parent is detected.
+		// This part is needed to cover the following use case :
+		// on the master side, the WR extension is disabled (WR  calibration failure or PTP profile selected)
+		// then the PPSi process is restarted using the WR profile. On the slave side, if the timeout ANN_RECEIPT has not fired,
+		// we must detect that the PPSi process has been restarted and then replay the calibration protocol.
+		// Checked parameters :
 		// - The parent is a WR node
 		// - ptp state=(slave|uncalibrated|listening)
 		// - Same parent port ID but with a not continuous sequence ID (With a margin of 1)
@@ -159,9 +170,9 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 			parentIsWRnode=FALSE;
 			resetWrProtocol=ppi->extState==PP_EXSTATE_ACTIVE  &&  slaveUncalState;
 		}
-
 		memcpy(&wrp->parentAnnPortIdentity,pid,sizeof(struct PortIdentity));
 		wrp->parentAnnSequenceId=hdr->sequenceId;
+
 
 		/* Update the WR parent state */
 		if ( !parentIsWRnode  )

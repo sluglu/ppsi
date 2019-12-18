@@ -1172,6 +1172,15 @@ static struct pp_instance *bmc_any_port_initializing(struct pp_globals *ppg)
 	return NULL;
 }
 
+int bmc_is_erbest(struct pp_instance *ppi, PortIdentity *srcPortIdentity) {
+	if (ppi->frgn_rec_num > 0 && ppi->frgn_rec_best != -1) {
+		return bmc_pidcmp(&ppi->frgn_master[ppi->frgn_rec_best].sourcePortIdentity,
+				srcPortIdentity)==0;
+	}
+	return 0;
+}
+
+
 static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 
 	struct pp_frgn_master *frgn_master;

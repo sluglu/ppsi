@@ -29,6 +29,7 @@ static int wrh_tracking_enabled = 1;
 
 /* prototypes */
 static int __wrh_servo_update(struct pp_instance *ppi);
+static void  setState(struct pp_instance *ppi, int newState);
 
 /* External data */
 extern struct wrs_shm_head *ppsi_head;
@@ -92,7 +93,7 @@ int wrh_servo_init(struct pp_instance *ppi)
 		gs->flags |= PP_SERVO_FLAG_VALID;
 		TOPS(ppi)->get(ppi, &gs->update_time);
 		s->tracking_enabled = wrh_tracking_enabled;
-		gs->state = WRH_SYNC_TAI;
+		setState(ppi,WRH_SYNC_TAI);
 		strcpy(gs->servo_state_name, wrh_servo_state_name[gs->state]);
 	}
 
@@ -111,7 +112,7 @@ void wrh_servo_reset(struct pp_instance *ppi)
 
 		WRH_SERVO_RESET_DATA(WRH_SRV(ppi));
 
-		SRV(ppi)->state = WRH_UNINITIALIZED;
+		setState(ppi,WRH_UNINITIALIZED);
 
 		/* shmem unlock */
 		wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
@@ -217,8 +218,10 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 	struct pp_time offsetMS ;
 	int32_t  offset_ps;
 
-	if ( gs->state==WRH_UNINITIALIZED )
+	if ( gs->state==WRH_UNINITIALIZED ) {
+		pp_error("%s : Servo not initialized !!!!\n",__FUNCTION__);
 		return 0;
+	}
 
 	prev_delayMM_ps = s->delayMM_ps;
 

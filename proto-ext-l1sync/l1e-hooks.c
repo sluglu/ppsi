@@ -219,7 +219,8 @@ static 	void l1e_state_change(struct pp_instance *ppi) {
 			if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED &&
 					L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED ) {
 				/* Leave SLAVE state : We must stop the PPS generation */
-				TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
+				if ( !GOPTS(GLBS(ppi))->forcePpsGen )
+					TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
 				WRH_OPER()->locking_disable(ppi);
 				WRH_OPER()->locking_reset(ppi);
 				l1e_servo_reset(ppi);

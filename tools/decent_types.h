@@ -5,6 +5,8 @@
  * Released according to the GNU GPL, version 2 or any later version.
  */
 
+#include <ppsi/constants.h>
+
 /*
  * I used to have bit fields, but endianness detection failed. Let's be
  * honest: bit fields must die. I use masks at run time instead
@@ -21,7 +23,7 @@ struct ptp_header {
 	/* 4 */
 	uint8_t		domainNumber;
 	uint8_t		reserved5;
-	uint16_t	flagField;
+	uint8_t	    flagField[PP_FLAG_FIELD_LENGTH];
 	/* 8 */
 	uint64_t	correctionField;
 	/* 16 */

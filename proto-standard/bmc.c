@@ -1358,7 +1358,7 @@ static int bmc_state_descision_epc(struct pp_instance *ppi) {
 			/* Update the data set: Table 136 */
 			int i;
 			int exec_m2=1;
-			for (i=get_numberPorts(DSDEF(ppi)-1); i>=0;i--) {
+			for (i=get_numberPorts(DSDEF(ppi))-1; i>=0;i--) {
 				pp_std_states state=INST(GLBS(ppi),i)->state;
 				if ( state==PPS_SLAVE || state==PPS_UNCALIBRATED ) {
 					/* Clause 17.6.5.4 a)  if none of the PTP Instance’s PTP Ports are in the

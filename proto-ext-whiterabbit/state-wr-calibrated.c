@@ -39,8 +39,10 @@ int wr_calibrated(struct pp_instance *ppi, void *buf, int len, int new_state)
 				else if ((wrMsgId == WR_MODE_ON) &&
 					(wrp->wrMode == WR_SLAVE)) {
 					wrp->next_state = WRS_WR_LINK_ON;
-				} else
-					wrp->next_state = WRS_IDLE; // Unexpected msg: abort handshake
+				} else {
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(%d) received. CALIBRATE/WR_MODE_ON was expected\n",wrMsgId);
+					wr_handshake_fail(ppi);
+				}
 				return 0;
 
 			}
@@ -50,8 +52,8 @@ int wr_calibrated(struct pp_instance *ppi, void *buf, int len, int new_state)
 			int rms=pp_next_delay_1(ppi, wrTmoIdx);
 			if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 				if ( !rms ) {
-					wr_handshake_fail(ppi);
 					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					wr_handshake_fail(ppi);
 					return 0; /* non-wr already */
 				}
 				if (wr_handshake_retry(ppi))

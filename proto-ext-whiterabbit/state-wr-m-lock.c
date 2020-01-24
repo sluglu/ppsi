@@ -31,9 +31,12 @@ int wr_m_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 			MsgSignaling wrsig_msg;
 
 			if ( msg_unpack_wrsig(ppi, buf, &wrsig_msg,&wrMsgId) ) {
-				wrp->next_state = wrMsgId == LOCKED ?
-						WRS_CALIBRATION :
-						WRS_IDLE;
+				if (wrMsgId == LOCKED) {
+					wrp->next_state =  WRS_CALIBRATION;
+				} else {
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(%d) received. LOCKED was expected\n",wrMsgId);
+					wr_handshake_fail(ppi);
+				}
 				return 0;
 			}
 		}
@@ -42,8 +45,8 @@ int wr_m_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 			int rms=pp_next_delay_1(ppi, wrTmoIdx);
 			if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 				if ( !rms ) {
-					wr_handshake_fail(ppi);
 					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					wr_handshake_fail(ppi);
 					return 0; /* non-wr already */
 				}
 				if (wr_handshake_retry(ppi))

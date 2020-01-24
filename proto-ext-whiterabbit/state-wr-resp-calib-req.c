@@ -26,17 +26,19 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 
 			if ( msg_unpack_wrsig(ppi, buf, &wrsig_msg, &wrMsgId) ) {
 				if ( wrMsgId == CALIBRATED) {
-				/* Update servo */
-				wr_servo_ext_t *se =WRE_SRV(ppi);
+					/* Update servo */
+					wr_servo_ext_t *se =WRE_SRV(ppi);
 
-				fixedDelta_to_pp_time(wrp->otherNodeDeltaTx,&se->delta_txm);
-				fixedDelta_to_pp_time(wrp->otherNodeDeltaRx,&se->delta_rxm);
+					fixedDelta_to_pp_time(wrp->otherNodeDeltaTx,&se->delta_txm);
+					fixedDelta_to_pp_time(wrp->otherNodeDeltaRx,&se->delta_rxm);
 
-				wrp->next_state = (wrp->wrMode == WR_MASTER) ?
-						WRS_WR_LINK_ON :
-						WRS_CALIBRATION;
-				} else
-					wrp->next_state = WRS_IDLE;
+					wrp->next_state = (wrp->wrMode == WR_MASTER) ?
+							WRS_WR_LINK_ON :
+							WRS_CALIBRATION;
+				} else {
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(%d) received. CALIBRATED was expected\n",wrMsgId);
+					wr_handshake_fail(ppi);
+				}
 				return 0;
 			}
 		}
@@ -45,8 +47,8 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 			int rms=pp_next_delay_1(ppi, wrTmoIdx);
 			if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 				if ( !rms ) {
-					wr_handshake_fail(ppi);
 					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					wr_handshake_fail(ppi);
 					return 0; /* non-wr already */
 				}
 				wr_handshake_retry(ppi);

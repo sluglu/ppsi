@@ -33,8 +33,8 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 			if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 				WRH_OPER()->locking_disable(ppi);
 				if ( rms==0 ) {
-					wr_handshake_fail(ppi);
 					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					wr_handshake_fail(ppi);
 					return 0; /* non-wr already */
 				}
 				if (wr_handshake_retry(ppi))

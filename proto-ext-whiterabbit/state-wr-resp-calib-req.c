@@ -36,7 +36,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 							WRS_WR_LINK_ON :
 							WRS_CALIBRATION;
 				} else {
-					pp_diag(ppi, ext, 1, "WR: Invalid msgId(%d) received. CALIBRATED was expected\n",wrMsgId);
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. CALIBRATED was expected\n",wrMsgId);
 					wr_handshake_fail(ppi);
 				}
 				return 0;

@@ -40,7 +40,7 @@ int wr_calibrated(struct pp_instance *ppi, void *buf, int len, int new_state)
 					(wrp->wrMode == WR_SLAVE)) {
 					wrp->next_state = WRS_WR_LINK_ON;
 				} else {
-					pp_diag(ppi, ext, 1, "WR: Invalid msgId(%d) received. CALIBRATE/WR_MODE_ON was expected\n",wrMsgId);
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. CALIBRATE/WR_MODE_ON was expected\n",wrMsgId);
 					wr_handshake_fail(ppi);
 				}
 				return 0;

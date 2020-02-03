@@ -23,7 +23,7 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 	} else {
 
 		int poll_ret = WRH_OPER()->locking_poll(ppi);
-		if (poll_ret == WRH_SPLL_READY) {
+		if (poll_ret == WRH_SPLL_LOCKED) {
 			wrp->next_state = WRS_LOCKED;
 			return 0;
 		}

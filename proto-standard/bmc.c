@@ -280,6 +280,9 @@ void bmc_s1(struct pp_instance *ppi,
 	/* Disable timer (if needed) used to go to GM by BMCA */
 	pp_gtimeout_disable(GLBS(ppi),PP_TO_GM_BY_BMCA);
 
+	if (is_ext_hook_available(ppi,bmca_s1))
+		ppi->ext_hooks->bmca_s1(ppi,frgn_master);
+
 }
 
 void bmc_p1(struct pp_instance *ppi)
@@ -323,7 +326,7 @@ static void bmc_setup_local_frgn_master(struct pp_instance *ppi,
 	frgn_master->stepsRemoved = 0;
 	frgn_master->timeSource = TIME_SRC_INTERNAL_OSCILLATOR; //TODO get this from somewhere
 
-	frgn_master->ext_specific = 0;
+	bzero(frgn_master->ext_specific,sizeof(frgn_master->ext_specific));
 }
 
 int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b)
@@ -858,6 +861,7 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 	frgn_master->timeSource = ann.timeSource;
 	frgn_master->qualified=
 			frgn_master->lastAnnounceMsgMs=0;
+	memcpy(frgn_master->ext_specific,ann.ext_specific,sizeof(frgn_master->ext_specific));
 }
 
 

@@ -159,6 +159,7 @@ typedef struct MsgAnnounce {
 	ClockIdentity	grandmasterIdentity;
 	UInteger16	stepsRemoved;
 	Enumeration8	timeSource;
+	UInteger16      ext_specific[4]; /* Extension specific. Must be  UInteger16 to align it in the structure*/
 } MsgAnnounce;
 
 /* Sync Message (table 26, page 129) */

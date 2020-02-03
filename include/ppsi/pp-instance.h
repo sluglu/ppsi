@@ -94,7 +94,7 @@ struct pp_frgn_master {
 	Boolean  qualified; // TRUE if qualified
 	unsigned long lastAnnounceMsgMs; // Last time in ms when the announce message was received
 	/* used by extension */
-	unsigned long ext_specific;
+	UInteger16      ext_specific[4]; /* Extension specific. Must be  UInteger16 to align it in the structure*/
 };
 
 /*

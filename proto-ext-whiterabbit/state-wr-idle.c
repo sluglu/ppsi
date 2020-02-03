@@ -35,12 +35,35 @@ int wr_idle(struct pp_instance *ppi, void *buf, int len, int new_state)
 			}
 		}
 	} else {
-		if ( ppi->extState==PP_EXSTATE_ACTIVE && ppi->state==PPS_SLAVE ) {
-			if ( !(wrp->wrModeOn && wrp->parentWrModeOn) ) {
-				/* Failure detected in the protocol */
-				ppi->next_state=PPS_UNCALIBRATED;
-				wr_reset_process(ppi,WR_ROLE_NONE);
+		if ( wrp->parentDetection==PD_WR_PARENT ) {
+			// New WR parent detected
+			if ( ppi->extState==PP_EXSTATE_PTP) {
+				pp_diag(ppi, ext, 1, "%s: WR extension enabled.\n",__FUNCTION__);
+				pdstate_enable_extension(ppi);
 			}
+			if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
+				if ( wrp->state == WRS_IDLE ) {
+					if ( ppi->state==PPS_SLAVE) {
+						ppi->next_state=PPS_UNCALIBRATED;
+					}
+					wr_reset_process(ppi,WR_SLAVE);
+					wrp->next_state=WRS_PRESENT;
+					wrp->parentDetection=PD_NO_DETECTION;
+				}
+			} else {
+				wrp->parentDetection=PD_NO_DETECTION;
+			}
+			return 0;
+		}
+		else if ( wrp->parentDetection==PD_NOT_WR_PARENT ) {
+			if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
+				pp_diag(ppi, ext, 1, "%s: WR extension disabled.\n",__FUNCTION__);
+				pdstate_disable_extension(ppi);
+			}
+			if ( ppi->state==PPS_SLAVE) {
+				ppi->next_state=PPS_UNCALIBRATED;
+			}
+			wrp->parentDetection=PD_NO_DETECTION;
 		}
 	}
 

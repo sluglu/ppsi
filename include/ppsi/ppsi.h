@@ -227,6 +227,8 @@ struct pp_ext_hooks {
 	int (*require_precise_timestamp)(struct pp_instance *ppi);
 	int (*get_tmo_lstate_detection) (struct pp_instance *ppi);
 	int (*extension_state_changed)(struct pp_instance *ppi); /* Called when extension state as changed */
+	int (*bmca_s1)(struct pp_instance *ppi,
+			struct pp_frgn_master *frgn_master); /* Called at the end of the S1 treatment in the BMCA */
 };
 
 #define is_ext_hook_available(p, c) ( /*p->ext_enabled && */ p->ext_hooks->c)

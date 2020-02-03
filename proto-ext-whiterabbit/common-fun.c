@@ -14,11 +14,14 @@ void wr_reset_process(struct pp_instance *ppi, wr_role_t role) {
 	wrp->wrMode = role;
 	wrp->wrModeOn=FALSE;
 	wrp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
-	/* Reset parent data */
-	wrp->parentWrConfig = NON_WR;
-	wrp->parentIsWRnode =
-			wrp->parentWrModeOn =
-					wrp->parentCalibrated = FALSE;
+	if ( role != WR_SLAVE ) {
+		/* Reset parent data */
+		/* For a SLAVE, these info are updated when an Announce message is received */
+		wrp->parentWrConfig = NON_WR;
+		wrp->parentIsWRnode =
+				wrp->parentWrModeOn =
+						wrp->parentCalibrated = FALSE;
+	}
 }
 
 /* The handshake failed: go master or slave in normal PTP mode */

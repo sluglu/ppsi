@@ -17,6 +17,12 @@
 #include "../include/hw-specific/wrh.h"
 #include "wr-constants.h"
 
+typedef enum {
+	PD_NO_DETECTION=0, //No new parent detected
+	PD_WR_PARENT, // WR parent detected
+	PD_NOT_WR_PARENT // Not a WR parent detected
+}ParentDetection;
+
 /*
  * This structure is used as extension-specific data in the DSPort
  * (see wrspec.v2-06-07-2011, page 17)
@@ -52,6 +58,7 @@ struct wr_dsport {
 
 	struct PortIdentity parentAnnPortIdentity; /* Last received announce message port identity */
 	UInteger16	parentAnnSequenceId; /* Last received sequence did in the parent announce message */
+	ParentDetection     parentDetection; /* Indicates that a new parent has been detected */
 };
 
 /* This uppercase name matches "DSPOR(ppi)" used by standard protocol */

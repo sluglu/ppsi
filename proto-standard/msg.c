@@ -261,6 +261,7 @@ void msg_unpack_announce(struct pp_instance *ppi, void *buf, MsgAnnounce *ann)
 	ann->stepsRemoved = *(UInteger8 *)(buf + 61);
 	ann->stepsRemoved = (ann->stepsRemoved << 8) + *(UInteger8 *)(buf + 62);
 	ann->timeSource = *(Enumeration8 *) (buf + 63);
+	bzero(ann->ext_specific,sizeof(ann->ext_specific));
 
 	/* this can fill in extention specific flags otherwise just zero them*/
 	if (is_ext_hook_available(ppi,unpack_announce))

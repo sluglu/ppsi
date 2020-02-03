@@ -2,8 +2,30 @@
 
 /* ext-whiterabbit must offer its own hooks */
 
+// Used to store data in the ext_specific field of the pp_frgn_master an MsgAnnounce structure
+// This structure must not exceed the size of an 'MsgAnnounce.ext_specific'
+typedef struct {
+	UInteger16 notTreated; /* The WR flags must be treated only one time */
+	UInteger16 wrFlags;
+}wr_announce_field_t;
+
 int wrTmoIdx=0; /* TimeOut Index */
 
+#if 0
+// Useful function used for debugging
+#include <stdio.h>
+static char * getPortIdentityAsString ( PortIdentity *pid, UInteger16 seqId) {
+	static char text[52];
+
+	sprintf(text,"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x %04x %d",
+			pid->clockIdentity.id[0], pid->clockIdentity.id[1],
+			pid->clockIdentity.id[2], pid->clockIdentity.id[3],
+			pid->clockIdentity.id[4], pid->clockIdentity.id[5],
+			pid->clockIdentity.id[6], pid->clockIdentity.id[7],
+			pid->portNumber, seqId);
+	return text;
+}
+#endif
 static int wr_init(struct pp_instance *ppi, void *buf, int len)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
@@ -121,87 +143,95 @@ static int wr_pack_announce(struct pp_instance *ppi)
 
 static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *ann)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
 	int msg_len = ntohs(*(UInteger16 *) (buf + 2));
-	Boolean parentIsWRnode=FALSE;
-	Boolean resetWrProtocol=FALSE;
-	int slaveUncalState=ppi->state==PPS_UNCALIBRATED || ppi->state==PPS_SLAVE;
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	wr_announce_field_t *wrExtSpec=(wr_announce_field_t *)&ann->ext_specific[0];
 
-	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	UInteger16 wr_flags=0;
 
-	// If the message is not coming from erbest, it must be discarded
-	if ( !bmc_is_erbest(ppi,&hdr->sourcePortIdentity))
-		return;
-
-	if (msg_len >= WR_ANNOUNCE_LENGTH) {
-		UInteger16 wr_flags;
-		MsgHeader *hdr = &ppi->received_ptp_header;
-		struct PortIdentity *pid = &hdr->sourcePortIdentity;
-
-
+	if ( msg_len >= WR_ANNOUNCE_LENGTH )
 		msg_unpack_announce_wr_tlv(buf, ann, &wr_flags);
-		parentIsWRnode=(wr_flags & WR_NODE_MODE)!=NON_WR;
+	wrExtSpec->notTreated=TRUE;
+	wrExtSpec->wrFlags=wr_flags;
+}
 
-		// Check if a new parent is detected.
-		// This part is needed to cover the following use case :
-		// on the master side, the WR extension is disabled (WR  calibration failure or PTP profile selected)
-		// then the PPSi process is restarted using the WR profile. On the slave side, if the timeout ANN_RECEIPT has not fired,
-		// we must detect that the PPSi process has been restarted and then replay the calibration protocol.
-		// Checked parameters :
-		// - The parent is a WR node
-		// - ptp state=(slave|uncalibrated|listening)
-		// - Same parent port ID but with a not continuous sequence ID (With a margin of 1)
-		// - The port identity is different
-		if ( parentIsWRnode &&
-				(slaveUncalState ||	ppi->state==PPS_LISTENING))  {
+// Called by S1 treatment (BMCA or slave state)
+// Assumptions when this hook is called
+// - State= Slave or Uncalibrated
+// - frgn_master passed in parameter is the erBest
+// - WR data field of the announce message is stored in the field ext_specific of the frgn_master
 
-			Boolean samePid=!bmc_pidcmp(pid, &wrp->parentAnnPortIdentity);
-			if ( !samePid  ||
-					(samePid &&
-							(hdr->sequenceId!=(UInteger16) (wrp->parentAnnSequenceId+1) &&
-							hdr->sequenceId!=(UInteger16) (wrp->parentAnnSequenceId+2))
-							)) {
-				/* For other states, it is done in the state_change hook */
-				resetWrProtocol=slaveUncalState;
-				pdstate_enable_extension(ppi);
+
+static int wr_bmca_s1( struct pp_instance * ppi,
+		struct pp_frgn_master *frgn_master) {
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	Boolean newParentDectected;
+
+	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	wr_announce_field_t *wrExtSpec=(wr_announce_field_t *)frgn_master->ext_specific;
+
+	if ( wrExtSpec->notTreated ) {
+		wrh_servo_t *s=WRH_SRV(ppi);
+		UInteger16 wr_flags=wrExtSpec->wrFlags;
+		Boolean parentIsWRnode=(wr_flags & WR_NODE_MODE)!=NON_WR;
+		int samePid=0;
+		Boolean contSeqId=FALSE;
+
+		if ( !s->doRestart ) {
+			samePid= bmc_pidcmp(&frgn_master->receivePortIdentity, &wrp->parentAnnPortIdentity)==0;
+			if (samePid ) {
+				// We check for a continuous sequence ID (With a margin of 1)
+				contSeqId=frgn_master->sequenceId==(UInteger16) (wrp->parentAnnSequenceId+1) ||
+						frgn_master->sequenceId==(UInteger16) (wrp->parentAnnSequenceId+2);
 			}
+			newParentDectected = !samePid  ||(samePid && !contSeqId);
 		} else {
-			parentIsWRnode=FALSE;
-			resetWrProtocol=ppi->extState==PP_EXSTATE_ACTIVE  &&  slaveUncalState;
+			// Force a restart - simulate a new parent
+			s->doRestart=FALSE;
+			newParentDectected=TRUE;
 		}
-		memcpy(&wrp->parentAnnPortIdentity,pid,sizeof(struct PortIdentity));
-		wrp->parentAnnSequenceId=hdr->sequenceId;
 
+		if ( parentIsWRnode ) {
+			// Announce message from a WR node
 
-		/* Update the WR parent state */
-		if ( !parentIsWRnode  )
-			/* Not a WR node */
-			wr_flags=0; /* Forget all bits. They are not relevant */
-		wrp->parentIsWRnode = parentIsWRnode;
+			if ( newParentDectected && wrp->parentDetection!=PD_WR_PARENT ) {
+				// New WR parent detected - keep only wrConfig part
+				wr_flags&=WR_NODE_MODE;
+
+				// Check if parent is WR Master-enabled
+				if ( wr_flags==WR_MASTER || wr_flags==WR_M_AND_S ) {
+
+					wrp->parentDetection=PD_WR_PARENT;
+				}
+			}
+		} else	{
+			if ( newParentDectected && wrp->parentDetection!=PD_NOT_WR_PARENT ) {
+				wrp->parentDetection=PD_NOT_WR_PARENT;
+			}
+			wr_flags=0;
+		}
+
+		// Update WR parent flags
+		wrp->parentIsWRnode = (wr_flags & WR_NODE_MODE)==NON_WR;
 		wrp->parentWrModeOn = (wr_flags & WR_IS_WR_MODE) != 0;
 		wrp->parentCalibrated =(wr_flags & WR_IS_CALIBRATED) != 0;
 		wrp->parentWrConfig = wr_flags & WR_NODE_MODE;
-	} else {
-		resetWrProtocol=ppi->extState==PP_EXSTATE_ACTIVE  &&  slaveUncalState;
-	}
 
-	if ( resetWrProtocol ) {
-		ppi->next_state=PPS_UNCALIBRATED;
-		wrp->next_state=WRS_PRESENT;
-		wrp->wrMode=WR_SLAVE;
+		// Save parent identity and the sequence Id to be used next time
+		memcpy(&wrp->parentAnnPortIdentity,&frgn_master->receivePortIdentity,sizeof(PortIdentity));
+		wrp->parentAnnSequenceId=frgn_master->sequenceId;
+
+		wrExtSpec->notTreated=0;
 	}
+	return 0;
 }
+
 
 static void wr_state_change(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	if ( ppi->extState==PP_EXSTATE_PTP &&  ppi->next_state==PPS_UNCALIBRATED ) {
-		// Extension need to be re-enabled
-		pdstate_enable_extension(ppi);
-	}
 
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 
@@ -220,8 +250,19 @@ static void wr_state_change(struct pp_instance *ppi)
 			wr_reset_process(ppi,WR_MASTER);
 			break;
 		case PPS_UNCALIBRATED : /* Enter in UNCALIBRATED state */
-			wrp->next_state=WRS_PRESENT;
-			wr_reset_process(ppi,WR_SLAVE);
+			if ( ppi->state == PPS_SLAVE ) {
+				// This part must be done if doRestart() is called in the servo
+				if ( wrp->parentWrConfig==WR_MASTER || wrp->parentWrConfig==WR_M_AND_S ) {
+					wrp->next_state=WRS_PRESENT;
+					wr_reset_process(ppi,WR_SLAVE);
+				}
+			} else {
+				// This force the transition from UNCALIBRATED to SLAVE at startup if
+				// no parent is detected.
+				if ( !(wrp->parentWrConfig==WR_MASTER || wrp->parentWrConfig==WR_M_AND_S) ) {
+					wr_handshake_fail(ppi);
+				}
+			}
 			break;
 		case PPS_LISTENING : /* Enter in LISTENING state */
 			wr_reset_process(ppi,WR_ROLE_NONE);
@@ -307,5 +348,6 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.get_ingress_latency=wr_get_latency,
 	.get_egress_latency=wr_get_latency,
 	.is_correction_field_compliant=wr_is_correction_field_compliant,
-	.extension_state_changed= wr_extension_state_changed
+	.extension_state_changed= wr_extension_state_changed,
+	.bmca_s1=wr_bmca_s1
 };

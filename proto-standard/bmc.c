@@ -896,6 +896,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 		}
 		sel = 0;
 		ppi->frgn_rec_num=1;
+		ppi->frgn_rec_best=0;
 
 	} else {
 		int cmpres;
@@ -1322,10 +1323,11 @@ void bmc_calculate_ebest(struct pp_globals *ppg)
 		}
 	}
 
-	/* Calculate Erbest of all ports Figure 25 */
-	bmc_update_erbest(ppg);
-
 	if ( !is_externalPortConfigurationEnabled(GDSDEF(ppg)) ) {
+
+		/* Calculate Erbest of all ports Figure 25 */
+		bmc_update_erbest(ppg);
+
 		/* Calculate Ebest Figure 25 */
 		/* ebest shall be calculated only once after the calculation of the erbest on all ports
 		 *       See Figure 25 STATE_DECISION_EVENT logic

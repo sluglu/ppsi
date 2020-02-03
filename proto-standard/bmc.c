@@ -861,7 +861,7 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 }
 
 
-void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_master)
+struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_master)
 {
 	int sel;
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -892,7 +892,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 		if (!bmc_idcmp(&pid->clockIdentity, &DSDEF(ppi)->clockIdentity) &&
 				pid->portNumber==ppi->port_idx) {
 			pp_diag(ppi, bmc, 2, "Announce frame from same port\n");
-			return;
+			return NULL;
 		}
 		sel = 0;
 		ppi->frgn_rec_num=1;
@@ -924,10 +924,10 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 					pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 				} else if (cmpres > 0) {
 					pp_diag(ppi, bmc, 2, "Announce frame from a worse port on this clock\n");
-					return;
+					return NULL;
 				} else {
 					pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
-					return;
+					return NULL;
 				}
 			}
 		} else {
@@ -935,7 +935,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 			if (!bmc_idcmp(&pid->clockIdentity,
 					&DSDEF(ppi)->clockIdentity)) {
 				pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
-				return;
+				return NULL;
 			}
 		}
 
@@ -944,7 +944,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 			pp_diag(ppi, bmc, 2, "Announce frame steps removed"
 				"larger or equal 255: %i\n",
 				frgn_master->stepsRemoved);
-			return;
+			return NULL;
 		}
 
 		/* Check if foreign master is already known */
@@ -972,7 +972,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 				/* already in Foreign master data set, update info */
 				memcpy(&ppi->frgn_master[i], frgn_master,
 					   sizeof(struct pp_frgn_master));
-				return;
+				return NULL;
 			}
 		}
 
@@ -1016,7 +1016,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 							"master worse than worst in the full "
 							"table, skipping\n",
 					__func__, __LINE__);
-					return;
+					return NULL;
 				}
 
 				sel = worst;
@@ -1037,6 +1037,7 @@ void bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_frgn_master *frgn_m
 		   sizeof(struct pp_frgn_master));
 
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", sel);
+	return &ppi->frgn_master[sel];
 }
 
 static void bmc_flush_frgn_master(struct pp_instance *ppi)

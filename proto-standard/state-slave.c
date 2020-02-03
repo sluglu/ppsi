@@ -192,6 +192,7 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	int ret;
 	struct pp_frgn_master frgn_master;
+	struct pp_frgn_master *reg_frgn_master;
 
 	if ((ret = st_com_handle_announce(ppi, buf, len))!=0)
 		return ret;
@@ -220,18 +221,18 @@ static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 
 			return 0;
 		}
-		/* 9.2.6.11 a) reset timeout */
+		/* 9.2.6.12 a) reset timeout */
 		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 	}
 
 	/* Add foreign master: Figure 36 & 54 */
-	bmc_add_frgn_master(ppi, &frgn_master);
+	if ( ( reg_frgn_master=bmc_add_frgn_master(ppi, &frgn_master))!=NULL) {
+		/* 9.5.3 Figure 36 update data set if announce from current master */
+		bmc_s1(ppi, reg_frgn_master);
 
-	/* 9.5.3 Figure 29 update data set if announce from current master */
-	bmc_s1(ppi, &frgn_master);
-	
-	/* Save active peer MAC address */
-	memcpy(ppi->activePeer,ppi->peer, sizeof(ppi->activePeer));
+		/* Save active peer MAC address */
+		memcpy(ppi->activePeer,ppi->peer, sizeof(ppi->activePeer));
+	}
 
 	return 0;
 }

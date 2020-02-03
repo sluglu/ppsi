@@ -336,7 +336,7 @@ extern int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b);
 extern int bmc(struct pp_globals *ppg);
 extern void bmc_store_frgn_master(struct pp_instance *ppi, 
 		       struct pp_frgn_master *frgn_master, void *buf, int len);
-extern void bmc_add_frgn_master(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
+extern struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);
 extern void bmc_flush_erbest(struct pp_instance *ppi);
 extern void bmc_calculate_ebest(struct pp_globals *ppg);
 extern int bmc_apply_state_descision(struct pp_instance *ppi);

@@ -295,7 +295,7 @@ int wrs_locking_reset(struct pp_instance *ppi)
 
 	if ( ppi->glbs->defaultDS->clockQuality.clockClass != PP_PTP_CLASS_GM_LOCKED )
 		if ( wrs_set_timing_mode(GLBS(ppi),WRH_TM_FREE_MASTER)<0 ) {
-			return -1;
+			return WRH_SPLL_ERROR;
 		}
 	WRS_ARCH_I(ppi)->timingModeLockingState=WRH_TM_LOCKING_STATE_LOCKING;
 
@@ -305,20 +305,39 @@ int wrs_locking_reset(struct pp_instance *ppi)
 int wrs_locking_poll(struct pp_instance *ppi)
 {
 	int ret, rval;
+	char *pp_diag_msg;
+	char text[128];
 
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_CHECK, 0);
 	if ( ret<0 ) {
-		pp_diag(ppi, time, 2, "PLL is not ready: minirpc communication error %s\n",strerror(errno));
-		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
+		if (PP_HAS_DIAG) {
+			pp_sprintf(text,"not ready: minirpc communication error %s",strerror(errno));
+			pp_diag_set_msg(pp_diag_msg,text);
+		}
+		ret=WRH_SPLL_ERROR;
+	} else {
+		switch (rval) {
+		case HEXP_LOCK_STATUS_LOCKED :
+			pp_diag_set_msg(pp_diag_msg,"locked");
+			ret=WRH_SPLL_LOCKED;
+			break;
+		case HEXP_LOCK_STATUS_UNLOCKED :
+			pp_diag_set_msg(pp_diag_msg,"unlocked");
+			ret=WRH_SPLL_UNLOCKED;
+			break;
+		case HEXP_LOCK_STATUS_RELOCK_ERROR:
+			pp_diag_set_msg(pp_diag_msg,"in fault. Re-locking error.");
+			ret=WRH_SPLL_RELOCK_ERROR;
+			break;
+		default:
+			pp_diag_set_msg(pp_diag_msg,"in an unknown state");
+			ret=WRH_SPLL_UNKWOWN_ERROR;
+			break;
+		}
 	}
-	if (rval != HEXP_LOCK_STATUS_LOCKED) {
-		pp_diag(ppi, time, 2, "PLL not locked(%d)\n",rval);
-		return WRH_SPLL_ERROR; /* FIXME should be WRH_SPLL_NOT_READY */
-	}
-
-	pp_diag(ppi, time, 2, "PLL is locked\n");
-	return WRH_SPLL_READY;
+	pp_diag(ppi, time, 2, "PLL is %s\n",pp_diag_get_msg(pp_diag_msg));
+	return ret;
 }
 
 /* This is a hack, but at least the year is 640bit clean */

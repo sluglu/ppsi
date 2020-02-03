@@ -146,7 +146,7 @@ static Boolean le1_evt_STATE_OK(struct pp_instance *ppi) {
 	case PPS_UNCALIBRATED :
 		pll_state= WRH_OPER()->locking_poll(ppi); /* Get the PPL state */
 		basicDS->isCongruent =
-				basicDS->isRxCoherent= pll_state == WRH_SPLL_READY ? 1 : 0;
+				basicDS->isRxCoherent= pll_state == WRH_SPLL_LOCKED ? 1 : 0;
 		break;
 	case PPS_MASTER :
 		basicDS->isRxCoherent=
@@ -162,7 +162,7 @@ static Boolean le1_evt_STATE_OK(struct pp_instance *ppi) {
 		 * might remain locked. We want to detect this case.
 		 *
 		 * Thus, the condition should be:
-		 * basicDS->isCongruent= pll_state == !WRH_SPLL_READY ? 1 : 0;
+		 * basicDS->isCongruent= pll_state == !WRH_SPLL_LOCKED ? 1 : 0;
 		 */
 		basicDS->isCongruent = 1;
 		break;

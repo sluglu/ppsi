@@ -14,13 +14,15 @@
 #include <ppsi/lib.h>
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data structure */
-#define WRS_PPSI_SHMEM_VERSION 32 /* added HAL_PORT_STATE_RESET to hal */
+#define WRS_PPSI_SHMEM_VERSION 33
 
 /* White Rabbit softpll status values */
-#define WRH_SPLL_OK		0
-#define WRH_SPLL_READY		1
-#define WRH_SPLL_CALIB_NOT_READY	2
-#define WRH_SPLL_ERROR		-1
+#define WRH_SPLL_ERROR		  -1
+#define WRH_SPLL_OK			   0
+#define WRH_SPLL_LOCKED		   1
+#define WRH_SPLL_UNLOCKED  	   2
+#define WRH_SPLL_RELOCK_ERROR  3
+#define WRH_SPLL_UNKWOWN_ERROR 4
 
 /* White Rabbit calibration defines */
 #define WRH_HW_CALIB_TX	1

@@ -28,9 +28,10 @@
 #define HEXP_LOCK_CMD_ENABLE_TRACKING 3
 #define HEXP_LOCK_CMD_RESET 4
 
-#define HEXP_LOCK_STATUS_LOCKED 0
-#define HEXP_LOCK_STATUS_BUSY 1
-#define HEXP_LOCK_STATUS_NONE 2
+#define HEXP_LOCK_STATUS_UNLOCKED 0
+#define HEXP_LOCK_STATUS_LOCKED 1
+#define HEXP_LOCK_STATUS_RELOCK_ERROR 2
+#define HEXP_LOCK_STATUS_ERROR 3
 
 #define HEXP_PPSG_CMD_GET 0
 #define HEXP_PPSG_CMD_ADJUST_PHASE 1
@@ -117,9 +118,6 @@ extern struct minipc_pd __rpcdef_pps_cmd;
 extern struct minipc_pd __rpcdef_port_update_cmd;
 
 /* Prototypes of functions that call on rpc */
-extern int halexp_check_running(void);
-extern int halexp_reset_port(const char *port_name);
-extern int halexp_calibration_cmd(const char *port_name, int command, int on_off);
 extern int halexp_lock_cmd(const char *port_name, int command, int priority);
 extern int halexp_pps_cmd(int cmd, hexp_pps_params_t *params);
 

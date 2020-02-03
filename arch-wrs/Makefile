@@ -81,6 +81,6 @@ $(TARGET): $(TARGET).o
 	$(CC) -Wl,-Map,$(TARGET).map2 -o $@ $(TARGET).o -lrt
 	$(SIZE) $@
 	./arch-wrs/save_size.sh $(SIZE) $@
-	cat $(size_info_file)
+	tail -20 $(size_info_file)
 
 

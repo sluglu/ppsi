@@ -95,10 +95,22 @@ void pp_time_div2(struct pp_time *t)
 }
 
 
-int64_t pp_time_to_picos(struct pp_time *ts)
+int64_t pp_time_to_picos(struct pp_time *t)
 {
-	return ts->secs * PP_PSEC_PER_SEC
-		+ ((ts->scaled_nsecs * 1000 + TIME_ROUNDING_VALUE) >> TIME_FRACBITS);
+	struct pp_time ut;
+	int64_t ret;
+
+	if (t->secs < 0 || (t->secs == 0 && t->scaled_nsecs < 0) ) {
+		ut.scaled_nsecs=-t->scaled_nsecs;
+		ut.secs=-t->secs;
+		ret =-1;
+	} else {
+		ret=1;
+		ut=*t;
+	}
+	ret*= ut.secs * PP_PSEC_PER_SEC
+				+ ((ut.scaled_nsecs * 1000 + TIME_ROUNDING_VALUE) >> TIME_FRACBITS);
+	return ret;
 }
 
 void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t) {

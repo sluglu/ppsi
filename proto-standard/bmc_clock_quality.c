@@ -169,7 +169,6 @@ clockDegradation_t clockDegradation[]= {
  *  # ARB_GM_HOLDOVER(14)   |  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
  *  # ARB_GM_UNLOCKED_A(58) |  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
  *  # ARB_GM_UNLOCKED_B(193)|  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
- *  # FREE_RUNNING(193)     | Unknown| 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
  *  # OTHER                 | Unknown| 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
  *  ################################################################################
  *

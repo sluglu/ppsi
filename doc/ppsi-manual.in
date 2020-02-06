@@ -35,7 +35,7 @@
 
 @setchapternewpage off
 
-@set update-month November 2014
+@set update-month February 2020
 @set release __RELEASE_GIT_ID__
 
 @finalout
@@ -44,7 +44,7 @@
 @title PPSi Manual
 @subtitle @value{update-month} (@value{release})
 @subtitle Documentation about ``PTP Ported to Silicon''
-@author Alessandro Rubini and Aurelio Colosimo for CERN (be-co-ht)
+@author A. Rubini, A.Colosimo and J-C Bau for CERN (be-co-ht)
 @end titlepage
 @headings single
 
@@ -58,7 +58,7 @@
 @top Introduction
 
 PPSi (@sc{ptp} Ported to Silicon) is an application which, in
-its basic operation, implements @sc{ieee} 1588 specification in a way
+its basic operation, implements @sc{ieee} 1588-2020 specification in a way
 that is portable to several architectures, including OS-less ones.
 
 This manual is mainly aimed at developers: people who are working with
@@ -79,7 +79,7 @@ thousands of I/O devices distributed in a network several kilometers
 wide; its software protocol is an extension of @sc{ptp}.  A WR network is
 made up of two devices: the @i{WR Switch} and the @i{WR Node}.  White
 Rabbit is developed at ohwr.org:
-@t{http://www.ohwr.org/projects/white-rabbit}.
+@url{http://www.ohwr.org/project/white-rabbit}.
 
 The WR switch is an 18-ports Gigabit Ethernet switch that runs
 @sc{wr-ptp} as a Linux process, synchronizing each Ethernet link as
@@ -102,10 +102,12 @@ We thank Danilo Sabato for fixing the @i{bare} architectures
 (see @ref{Architectures}).
 
 The home page of the PPSi project and the source repository are:
-@example
-   http://www.ohwr.org/projects/ppsi
-   git://ohwr.org/white-rabbit/ppsi.git
-@end example
+@indentedblock
+   @itemize @bullet
+   @item @url{http://www.ohwr.org/project/ppsi} 
+   @item ssh://git@@ohwr.org:7999/project/ppsi.git;
+   @end itemize
+@end indentedblock
 
 @c ##########################################################################
 @node Status Features and Bugs
@@ -142,7 +144,7 @@ When building PPSi, the user can specify which architecture to build
 for, by selecting it in @t{make menuconfig} or equivalent configuration
 command.  When cross-compiling, you need to tell your cross-compiler
 prefix in the configuration step, or override it at build time
-by passing @t{CROSS_COMPILE=} on the commabnd line.
+by passing @t{CROSS_COMPILE=} on the command line.
 
 The package currently supports the following architectures:
 
@@ -253,7 +255,7 @@ refer to how @i{proto-ext-whiterabbit} is implemented.
 PPSi supports custom implementations of time functions, so you can
 easily port the daemon to your own timing primitives.
 
-The subdirectories named @i{time-sth} are used to implement timing
+The subdirectories named @i{time-xxxx} are used to implement timing
 functions; timing includes the methods that are part of two data
 structures: @i{pp_time_operations} and @i{pp_network_operations}.  The
 former structure deals with getting and setting system time, while the
@@ -261,19 +263,19 @@ latter deals with frame tx and rx. Network operations are concerned
 with timestamping the actual I/O, and that's why they are considered
 part of the ``timing'' of PPSi.
 
-Each architecture defines its own @t{TIME=} choice in the specific
+Each architecture defines its own '@t{TIME=}' choice in the specific
 @t{Makefile}.  The user can override the default by either setting the
 variable on the command line of PPSi, or by setting an environment
 variable if the architecture supports it.  For example, the @i{bare}
-architectures force @t{TIME=bare}, while the @i{unix} architecture
-suggests Unix timing code (@t{TIME?=unix}). The choice for @t{TIME=}
+architectures force '@t{TIME=bare}', while the @i{unix} architecture
+suggests Unix timing code ('@t{TIME?=unix}'). The choice for '@t{TIME=}'
 is not currently selected using Kconfig, because nobody is expected
 to diverge from the default choice for the architecture being built.
 
 If you want to support a different timing engine within the Unix build
-system, you can use ``@t{make TIME=xyz}'' to request building
-the @i{time-xyz} subdirectory.  Please note that the Unix time
-structures are built anyways for @t{CONFIG_ARCH=unix},
+system, you can use '@t{make TIME=xyz}' to request building
+the @i{time-xxxx} subdirectory.  Please note that the Unix time
+structures are built anyways for '@t{CONFIG_ARCH=unix}',
 so you can piggy-back on those
 functions, either within your own methods or by replacing the
 @t{ppi->t_ops} and @t{ppi->n_ops} for the communications links that do
@@ -284,11 +286,11 @@ not include your own hardware support.
 @section Features
 
 This is a summary of current and planned features for the PPSi
-package.  As said, we are working on it these months, so the following
-list me be not up to date with software developments by the time you
+package.  As said, we are still working on it, so the following
+list may be not up to date with software developments by the time you
 read it.
 
-The following list if features doesn't consider known bugs, which are
+The following list of features doesn't consider known bugs, which are
 listed in the following sections. Please consider such bugs transient
 mishaps, as we are working on them right now; anyways, it would be
 unfair to hide them.
@@ -299,9 +301,9 @@ unfair to hide them.
 
 	Each protocol extension should fall back to standard @sc{ptp} when
         it detects that its peers are not able to speak the extended
-        protocol.  We don't plan to support more than one extensions in
-        a single build: it would be just an academic exercise until
-        somebody contributes a new protocol extension to PPSi.
+        protocol. Many extensions are now supported in
+        a single build. In a near future, the new protocol extension L1SYNC
+        used by the High Acurracy (@sc{HA}) profile will be released.
 
 @item Support both hosted and freestanding environments.
 
@@ -318,9 +320,9 @@ unfair to hide them.
 
 @item Support both @sc{udp} and raw Ethernet.
 
-	We already do that. We plan use the multi-link operation to
+	We already do that. We use the multi-link operation to
         support both @sc{udp} and raw Ethernet on the same network
-	interface. Also, we expect to support @sc{udp} in the WR switch,
+		interface. Also, we support @sc{udp} in the WR switch,
         to allow progressive and seamless migration to WR if you already
         support @sc{ptp} in your network with a @sc{udp}-only implementation.
 
@@ -401,31 +403,289 @@ If no configuration file is specified, the program reads the default
 one, which is architecture-specific (thus, the default configuration
 file is processed after all the command line configuration items.  The
 default file name is @t{/etc/ppsi.conf}.  The source tree of PPSi includes
-two example configuration files in its own @t{etc/} subdirectory.
+two example configuration files in its own @t{/etc} subdirectory.
 
-Configuration is made of of global options and port-specific options.
-To configure a port, use @t{port <name>} followed by its options.
+Configuration is made of global options and port-specific options.
+To configure a port, use either @t{port <name>} or  @t{link <name>} 
+followed by its options.
 The parser allocates a new @sc{ptp} state machine for each new port, but
 allows changing configuration of an existing port.  For instance, to
 enable frame diagnostics for a specific port, you can use:
 
 @smallexample
-        ./ppsi -f /etc/ppsi.conf -C "port eth1; diagnostics 02"
+        ./ppsi -f /etc/ppsi.conf -C "port eth1-raw-ptp; diagnostics 02"
 @end smallexample
 
-Each configuration item is made up of a keyword and an optional
-argument.  The argument can be either a number or a string.  The
-parser looks up keywords in three tables: a global table, an
+Each configuration item is made up of a keyword and one or few
+arguments. Many @ref{arg-types,,argument types} are supported by PPSi. 
+The parser looks up keywords in three tables: a global table, an
 architecture-specific table and an extension-specific table.
 Currently, only @i{arch-sim} has specific configuration items.
 
-The list of global configuration items is on show in @t{lib/conf.c},
-as the @t{pp_global_arglines} array.   Future versions of this manual
-may document the keywords, if the time allows it.
+The list of global and port specific configuration items are described 
+in the following section but also in code source files: @t{lib/conf.c} and 
+@t{pp_global_arglines} array.
 
-@b{Note:} most current command-line options are going to be turned into
+@quotation Note
+most current command-line options are going to be turned into
 configuration options. This applies to the priorities, intervals and
 thresholds, as well as the @i{slave-only} flag.
+@end quotation
+
+@c ==========================================================================
+@node PPSi base configuration
+@section PPSi base configuration
+
+As said before, the PPSi configuration is separated into different sections. 
+All keywords belonging to the 'global options' can be defined anywhere in the configuration
+but to increase the readability, we suggest defining them at the beginning.
+
+The 'port-specific' section always begins with the keywork 'port' or 'link'. Then all 
+following 'port-specific' keywords will be associated to this port until 
+a new keyword 'port' or 'link' appears.
+
+@anchor{arg-types}
+An option is a key/value(s) pair separated by at least a space character '@t{key value(s)}'. The '@t{value{s}}' entry
+depends on the option type. Few types are supported by PPSi:
+
+
+@table @code
+@item Int16
+This is a 16 bits integer value in the range from -32 768 to 32 767 
+@item Int32
+This is a 32 bits integer value in the range from -2 147 483 648 to 2 147 483 647
+@item Int64
+This is a 64 bits integer value in the range from -9 223 372 036 854 775 808 to 9 223 372 036 854 775 807
+@item Int16[2]
+This is an array of 2 Int16.
+@item Double
+This is a 64 bit floating point in the range 1.7E +/- 308 (15 digits). 
+A value can be expressed using this two available notations: 
+- E notation: 1.6E-1
+- Decimal notation: 0.16
+@item Boolean
+This is a simple boolean value (True/False). The accepted values for 'True' value are '@t{t/true/1/on/y/yes}'
+and '@t{f/false/0/off/n/no}' for 'False'.
+@item String
+This is free text.
+@item  TextList
+ The option value has to be select in a list of predefined text. For each choice we can also use different way 
+ to refer to the same choice.
+ For example, the selection of the delay mechanism allows 2 choices (peer-to-peer or end-to-end) but for each choice 
+ we are free to use a different text for the selection :
+ @example
+. end-to_end: "request-response","delay","e2e"
+. peer-to-peer: "peer-delay","pdelay","p2p"
+ @end example
+@end table
+
+
+For some options, multiple keyword names can be used ( e.g. "mechanism", "dm"). New keyword names have been added 
+to be more explicit but at the same time old key names have not been suppressed just to keep the backward compatibility.
+Some old keywords will be marked '@i{(deprecated)}', and will be removed in the future.
+
+@heading List of global options
+@table @code
+
+@item @b{clock-class} @i{[Int32]}
+	An attribute defining the TAI traceability, synchronization state and
+	expected performance of the time or frequency distributed by a
+	Boundary Clock or Ordinary Clock.
+
+@item @b{clock-accuracy} @i{[Int32]}
+	An attribute defining the accuracy of the Local Clock (e.g. local
+	oscillator) of a Boundary Clock or Ordinary Clock.
+	
+@item @b{clock-allan-variance}  @i{[Int32]}
+	An attribute defining the stability of the Local Clock of a
+	Boundary Clock or Ordinary Clock.
+
+@item @b{time-source} @i{[Int32]}
+	The source of time used by the grandmaster (or free-running master).
+
+@item @b{domain-number}  @i{[Int32]}
+	A domain consists of one or more PTP devices communicating with each
+	other as defined by the PTP protocol. A domain defines the scope of
+	PTP message communication, state, operations, data sets, and
+	timescale. PTP devices may participate in multiple domains.
+	For more details please refer to the IEEE 1588-2020 standard.
+
+@item @b{priority1}  @i{[Int32]}
+	A user configurable designation that a clock belongs to an ordered
+	set of PTP devices from which a PTP Master is selected.
+	For more details please refer to the IEEE 1588-2020 standard.
+
+@item @b{priority2}  @i{[Int32]}
+	A user configurable designation that provides finer grained ordering
+	among otherwise equivalent PTP devices.
+	For more details please refer to the IEEE 1588-2020 standard.
+
+@item @b{forcePpsGen}  @i{[Boolean]}
+	Configuration of the PPS output. By default, the PPS is generated  
+	only when the clock class is set to 6(Grand master) or to 193(Free Running master.
+	When this option is set, the PPS is always generated.
+
+@item @b{ptpFallbackPpsGen}  @i{[Boolean]}
+	if activated, enables the PPS generation if a slave instance 
+	programmed to use an extension protocol (WR, L1Sync, ...) is falling back
+	to PTP communication only. 
+
+@item @b{ptpPpsThresholdMs}  @i{[Int32]}
+	This option defines the threshold corresponding to the offset from the 
+	master used to start the generation of the PPS. It is  either used by a PTP slave 
+	instance or a instance using a protocol extension but going into the fallback PTP mode 
+	and with the PTP fallback option active. 
+	A 0 value means that the PPS will be not generated for the considered cases. 
+	When the PPS is generated, it can be also disabled when the offset from master becomes greater
+	than the threshold value + 20%.
+	
+@item @b{gmDelayToGenPpsSec} @i{[Int32]}
+	If this option is set to a value greater than 0, it allows the PPS generation 
+	when the device becomes Grand-Master by BMCA. The value represent a delay in seconds to respect before 
+	to start the PPS generation.
+
+@item @b{externalPortConfigurationEnabled}  @i{[Boolean]}
+ This option is used to force the state of all port instances. The BMCA is then disabled
+ in PPSi.
+ When enabled, the port-specific option @t{desiredState} must be defined for each port instance 
+ For more details please refer to the IEEE 1588-2020 (clause 17.6.2)
+
+@item @b{slaveOnly}  @i{[Boolean]}
+  A @t{slaveOnly} Ordinary Clock utilizes the slaveOnly state machine
+  which does not enable transition to MASTER state.
+  This option must not be used when @i{externalPortConfigurationEnabled} is
+  enabled.
+  For more details please refer to the IEEE 1588-2020 (clause 9.2.2.1)
+
+@end table
+
+
+@heading List of port-specific options
+
+@table @code
+  @item @b{port} @i{[String]}
+  @itemx @b{link} @i{[String]}
+  Defines a named port instance. The argument correspond to the instance name.
+  
+	@item @b{iface} @i{[String]}
+  Defines the physical port interface name to use (e.g. "eth0", "wri1", ...)
+  
+	@item  @b{proto} @i{[TextList]}
+  Defines the network transport protocol to use :
+  @example
+. "raw" : Raw Ethernet
+. "udp" : User Datagram Protocol
+  @end example
+	
+  @item @b{extension} @i{[TextList]} @i{(deprecated)} 
+  @itemx @b{profile} @i{[TextList]}
+  Defines the profile to use : 
+  @example
+. "none", "ptp": Default PTP profile
+. "whiterabbit", "wr": White Rabbit profile
+  @end example
+
+  @item @b{mechanism} @i{[TextList]}
+  @itemx @b{dm} @i{[TextList]} 
+  Defines the delay mechanism to use:
+  @example
+. "request-response", "delay", "e2e": end-to-end delay mechanism
+. "peer-delay", "pdelay", "p2p": peer-to-peer delay mechanism
+	@end example
+  
+  @item @b{masterOnly} @i{[Boolean]}
+  If enabled , activates the optional '@i{masterOnly}' feature 
+  (refer to the IEEE 1588-2020 - clause 9.2.2.2).
+  This option cannot be used if the global option '@i{externalPortConfiguration}' is 
+  enabled.
+  If this option is not set, then the standard BMCA algorithm will be used.
+  
+  @item @b{sync-interval} @i{[Int32,Unit=logarithm to the base 2]} @i{(deprecated)} 
+  @itemx @b{logSyncInterval} @i{[Int32,Unit=logarithm to the base 2]} 
+  The mean time interval between transmission of successive
+  Sync messages. 
+  
+  @item @b{announce-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)} 
+  @itemx @b{logAnnounceInterval} @i{[Int32,Unit=logarithm to the base 2]} 
+  The mean time interval between transmissions of successive
+	Announce messages.
+
+  @item @b{in-delay-req-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)} 
+  @itemx @b{logMinDelayReqInterval} @i{[Int32,Unit=logarithm to the base 2]} 
+  The minDelayRequestInterval specifies the minimum permitted
+  mean time interval between successive Delay_Req messages.
+  This option as a meaning only when 'end-to-end' delay mechanism is selected.
+  
+  @item @b{min-pdelay-req-interval}  @i{[Int32,Unit=logarithm to the base 2]} @i{(deprecated)} 
+  @itemx @b{logMinPDelayReqInterval} @i{[Int32,Unit=logarithm to the base 2]}
+  The minPDelayRequestInterval specifies the minimum permitted
+  mean time interval between successive Pdelay_Req messages.
+  This option as a meaning only when 'peer-to-peer' delay mechanism is selected.
+  
+  @item @b{announce-receipt-timeout} @i{[Int32]} @i{(deprecated)} 
+  @itemx @b{announceReceiptTimeout} @i{[Int32]} 
+  The announceReceiptTimeout specifies the number of announceIntervals 
+  that must pass without receipt of an Announce message before the 
+  occurrence of the event ANNOUNCE_RECEIPT_TIMEOUT_EXPIRES.
+  
+  @item @b{asymmetryCorrectionEnable} @i{[Boolean]}
+  When enabled, it tells the servo to calculate and take the delay asymmetry into account.
+  This option can be forced enabled by the profile in use (white rabbit,..). The PTP
+  profile does not use by default this feature.
+    
+  @item @b{constantAsymmetry} @i{[Int64,Unit=picoseconds]}
+  When '@i{asymmetryCorrectionEnable}' feature is used, this option leave the possibility to define 
+  a constant value that will be added to the calculation of the delay asymmetry.
+  
+  @item @b{desiredState} @i{[TextList]}
+  When the option '@i{externalPortConfigurationEnabled}' is enabled, this option indicates
+  the PTP port state to apply :
+@example
+. "initializing": Initializing state
+. "faulty"      : Faulty state
+. "disabled"    : Disabled state
+. "listening"   : Listening state
+. "pre_master"  : Pre-master state
+. "master"      : Master state
+. "passive"     : Passive state
+. "uncalibrated": Uncalibrated state
+. "slave"       : Slave state. During synchronization 
+           with a master, the port instance can 
+           transition to UNCALIBRATED state.
+@end example
+
+  @item @b{egressLatency} @i{[Int64,Unit=picoseconds]}
+  Defines the transmission constant delays.
+  
+  @item @b{ingressLatency} @i{[Int64,Unit=picoseconds]}
+  Defines the reception constant delays.
+   
+  @item @b{delayCoefficient} @i{[Double]} 
+  When the option '@i{asymmetryCorrectionEnable}' is enabled, it defines 
+  the asymmetry alpha delay coefficient. 
+  
+  @item @b{scaledDelayCoefficient} @i{[Int64,Unit=RelativeDifference]]} 
+  When the option '@i{asymmetryCorrectionEnable}' is enabled, it defines 
+  the asymmetry alpha delay coefficient. It overwrites the option 
+  '@i{delayCoefficient}' if set by providing a value expressed with a
+  better resolution. 
+  
+  @item @b{servo-pi}  @i{[Int16[2]]}
+	Change the default PTP servo parameters. The first argument correspond to the 
+  proportionnal coefficient and the second to the integral one.
+  
+  
+	@item @b{diagnostic} @i{[String]}
+  Change the diagnostic level. @xref{Diagnostics,,Diagnostics}.
+  
+@end table
+@c ==========================================================================
+@node Extension specific configuration
+@section Extension specific configuration
+
+@subsection White Rabbit extension
+
+No specific options are needed when the White Rabbit profile is selected. 
 
 @c ==========================================================================
 @node Configuring Faults
@@ -441,7 +701,7 @@ a repeatable dropping sequence.
 
 Dropping transmitted frames is performed by reporting success (and the
 timestamp), while no frame is actually sent.  A diagnostic message
-is generated at @t{frames} level 1, but other than than that nothing
+is generated at @t{frames} level 1, but other than that nothing
 happens.   Actually, @t{arch-wrs} needs to actually send a frame in
 order to get a timestamp back; in this case the program modifies the
 frame, to use a wrong Ethernet type or a wrong UDP port.
@@ -537,7 +797,8 @@ decode IP and UDP headers (in official PPSi no such support is there).
 Another situation where PPSi should deal with vlans directly is when
 you want a port to be master on several vlans at the same time, but
 this is only supported for @i{mandated} masters, at this point in
-time.  A mandated master is a port configured as ``@t{role master}''
+time.  A mandated master is a port configured either as '@t{master}' 
+(externalPortConfiguration enabled) or as '@t{masterOnly}'
 in the configuration file.  If you want to run multiple vlans on the
 same physical ports, without forcing the port to be a mandated master,
 you can create multiple PTP interfaces, one per vlan, all relying on
@@ -630,9 +891,215 @@ CPU overhead, but more administrative work.
 @node PTP Clock Class
 @chapter PTP Clock Class
 
-The clock class value (@t{clockClass}), a field of the ``clock quality''
+The clock class value (@t{clockClass}), a field of the `clock quality'
 structure, can be specified in the configuration file for the architectures
 that support such a file.
+
+@c ==========================================================================
+@node Default device attributes
+@section Default device attributes
+
+If only the clock class is defined in the PPSi configuration these default values will be
+applied to set device attributes.
+
+@table @code
+@item @b{PTP_GM_LOCKED(6)}
+@example 
+ClockQuality.clockAccuracy          = 100ns
+ClockQuality.offsetScaledLogVariance= 0xB900
+timePropertiesDS.timeSource         = GNSS
+timePropertiesDS.ptpTimescale       = TRUE
+timePropertiesDS.frequencyTraceable = TRUE
+timePropertiesDS.timeTraceable      = TRUE
+@end example
+
+@item @b{PTP_GM_HOLDOVER(7)}
+@example 
+ClockQuality.clockAccuracy          = 100ns
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = TRUE
+timePropertiesDS.frequencyTraceable = TRUE
+timePropertiesDS.timeTraceable      = TRUE
+@end example
+
+@item @b{PTP_GM_UNLOCKED_A(52)}
+@example 
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = TRUE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{PTP_GM_UNLOCKED_B(187)}
+@example 
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = TRUE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+ 
+@item @b{ARB_GM_LOCKED(13)}
+@example 
+ClockQuality.clockAccuracy          = 25ns
+ClockQuality.offsetScaledLogVariance= 0xB900
+timePropertiesDS.timeSource         = ATOMIC_CLOCK
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_HOLDOVER(14)}
+@example 
+ClockQuality.clockAccuracy          = 25ns
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_UNLOCKED_A(58)}
+@example 
+ClockQuality.clockAccuracy          = 25ns
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_UNLOCKED_B(193)}
+@example 
+ClockQuality.clockAccuracy          = 25ns
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{Other}
+@example 
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INT_OSC
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+@end table
+
+@c ==========================================================================
+@node Clock class degradation
+@section Clock class degradation
+
+PPSi manage clock class degradation for a set of clock classes and update accordently
+clock and time property field.
+As certain clock and time properties may be set in the PPSi configuration, so when a clock class 
+is degraded, all updated clock and time fields are changed in a way to never set them to a better 
+value than their configured one. In such a case, they will remain unchanged.
+
+The following table show how a clock class is degraded when the PLL is in holdhover or unlocked:
+
+@table @code
+@item @b{PTP_GM_LOCKED(6)} - PLL holdover detected
+@example 
+ClockQuality.clockClass             = PTP_GM_HOLDOVER(7)
+ClockQuality.clockAccuracy          = 100ns
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = TRUE
+timePropertiesDS.frequencyTraceable = TRUE
+timePropertiesDS.timeTraceable      = TRUE
+@end example
+
+@item @b{PTP_GM_LOCKED(6)} - PLL unlocked detected
+@example 
+ClockQuality.clockClass             = PTP_GM_UNLOCKED_B(187)
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = TRUE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{PTP_GM_HOLDOVER(7)}  - PLL unlocked detected
+@example 
+ClockQuality.clockClass             = PTP_GM_UNLOCKED_B(187)
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeTraceable      = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = TRUE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_LOCKED(13)} - PLL holdover detected
+@example 
+ClockQuality.clockClass             = ARB_GM_HOLDOVER(14) 
+ClockQuality.clockAccuracy          = 25ns
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_LOCKED(13) } - PLL unlocked detected
+@example 
+ClockQuality.clockClass             = ARB_GM_UNLOCKED_B(193)
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_HOLDOVER(14)} - PLL holdover detected
+@example 
+ClockQuality.clockClass             = ARB_GM_UNLOCKED_B(193)
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_UNLOCKED_A(58)} - PLL unlocked detected
+@example 
+ClockQuality.clockClass             = ARB_GM_UNLOCKED_A(58) (idem)
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+
+@item @b{ARB_GM_UNLOCKED_B(193)} - PLL holdover detected
+@example 
+ClockQuality.clockClass             = ARB_GM_UNLOCKED_B(193) (idem)
+ClockQuality.clockAccuracy          = Unknown
+ClockQuality.offsetScaledLogVariance= 0xC71D
+timePropertiesDS.timeSource         = INTERNAL_OSCILLATOR
+timePropertiesDS.ptpTimescale       = FALSE
+timePropertiesDS.frequencyTraceable = FALSE
+timePropertiesDS.timeTraceable      = FALSE
+@end example
+@end table
+
+
+@c ==========================================================================
+@node Clock class in a White Rabbit node
+@section Clock class in a White Rabbit node
 
 For the White Rabbit node (@t{arch-wrpc}) the class is defined
 according to build-time constants, set forth in @t{constants.h}.

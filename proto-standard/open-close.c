@@ -108,7 +108,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			def->slaveOnly=FALSE;
 		}
 	}
-
+	def->slaveOnly=is_slaveOnly(def); // Done to take into code optimization in is_slaveOnly() macro
 
 	if ( is_slaveOnly(def) ) {
 		if ( get_numberPorts(def) > 1 ) {

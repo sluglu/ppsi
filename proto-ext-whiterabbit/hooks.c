@@ -233,6 +233,10 @@ static void wr_state_change(struct pp_instance *ppi)
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
+	if (ppi->state == PPS_SLAVE &&  ppi->next_state==PPS_UNCALIBRATED) {
+		pdstate_enable_extension(ppi); // Re-enable the extension
+	}
+
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 
 		// Check leaving state

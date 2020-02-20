@@ -8,8 +8,8 @@
 #include "ptpdump.h"
 
 #include "../arch-wrpc/wrpc.h"
-#include <syscon.h> /* wrpc-sw */
-#include <endpoint.h> /* wrpc-sw */
+#include <dev/syscon.h> /* wrpc-sw */
+#include <dev/endpoint.h> /* wrpc-sw */
 #include <ptpd_netif.h> /* wrpc-sw */
 
 #ifdef CONFIG_ABSCAL

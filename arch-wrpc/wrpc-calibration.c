@@ -5,7 +5,7 @@
  * Released to the public domain
  */
 
-#include <endpoint.h>
+#include <dev/endpoint.h>
 #include <ppsi/ppsi.h>
 #include <softpll_ng.h>
 #include <hal_exports.h>

@@ -6,8 +6,8 @@
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
 #include <ppsi/ppsi.h>
-#include "pps_gen.h" /* in wrpc-sw */
-#include "syscon.h" /* in wrpc-sw */
+#include "dev/pps_gen.h" /* in wrpc-sw */
+#include "dev/syscon.h" /* in wrpc-sw */
 
 static int wrpc_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
 {

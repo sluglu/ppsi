@@ -6,7 +6,7 @@
  */
 #include <ppsi/ppsi.h>
 #include "wrpc.h"
-#include "uart.h" /* wrpc-sw */
+#include "dev/uart.h" /* wrpc-sw */
 
 void pp_puts(const char *s)
 {

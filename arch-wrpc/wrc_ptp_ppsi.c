@@ -13,13 +13,14 @@
 #include <common-fun.h>
 
 /* All of these live in wrpc-sw/include */
-#include "minic.h"
-#include "syscon.h"
-#include "endpoint.h"
+#include "dev/minic.h"
+#include "dev/syscon.h"
+#include "dev/endpoint.h"
+#include "dev/pps_gen.h"
+#include "dev/uart.h"
+#include "dev/rxts_calibrator.h"
+
 #include "softpll_ng.h"
-#include "pps_gen.h"
-#include "uart.h"
-#include "rxts_calibrator.h"
 
 extern int32_t cal_phase_transition;
 

@@ -7,10 +7,10 @@
 
 #include <stdint.h>
 #include <ppsi/ppsi.h>
-#include <pps_gen.h>
+#include <dev/pps_gen.h>
 #include <softpll_ng.h>
 #include "../proto-ext-whiterabbit/wr-constants.h"
-#include <rxts_calibrator.h>
+#include <dev/rxts_calibrator.h>
 
 #include "../include/hw-specific/wrh.h"
 #include "wrpc.h"

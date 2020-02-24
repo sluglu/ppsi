@@ -399,7 +399,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 				data = wrs_shm_follow(head, ppi->ext_data);
 				sprintf(prefix,"ppsi.inst.%d.servo.wr",i);
 				dump_many_fields(&data->servo, wrh_servo_info, ARRAY_SIZE(wrh_servo_info),prefix);
-				dump_many_fields(&data->servo, wr_servo_ext_info, ARRAY_SIZE(wr_servo_ext_info),prefix);
+				dump_many_fields(&data->servo_ext, wr_servo_ext_info, ARRAY_SIZE(wr_servo_ext_info),prefix);
 			}
 #endif
 #if CONFIG_HAS_EXT_L1SYNC == 1

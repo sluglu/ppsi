@@ -229,6 +229,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 		return 0;
 
 	s->delayMM_ps=pp_time_to_picos(&gs->delayMM);
+	s->delayMS_ps=pp_time_to_picos(&gs->delayMS);
 	offsetMS=gs->offsetFromMaster;
 	s->offsetMS_ps=pp_time_to_picos(&offsetMS);
 	s->tracking_enabled = wrh_tracking_enabled;

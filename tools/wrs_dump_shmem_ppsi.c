@@ -339,6 +339,8 @@ struct dump_info wrs_arch_data_info [] = {
 };
 #endif
 
+extern struct dump_info shm_head [5];
+
 int dump_ppsi_mem(struct wrs_shm_head *head)
 {
 	struct pp_globals *ppg;
@@ -355,6 +357,9 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 			head->version, WRS_PPSI_SHMEM_VERSION);
 		return -1;
 	}
+	/* dump shmem header*/
+	dump_many_fields(head, shm_head, ARRAY_SIZE(shm_head),"ppsi.shm");
+
 	ppg = (void *)head + head->data_off;
 	dump_many_fields(ppg, ppg_info, ARRAY_SIZE(ppg_info),"ppsi.globalDS");
 

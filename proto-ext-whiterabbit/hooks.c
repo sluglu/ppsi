@@ -212,7 +212,7 @@ static int wr_bmca_s1( struct pp_instance * ppi,
 		}
 
 		// Update WR parent flags
-		wrp->parentIsWRnode = (wr_flags & WR_NODE_MODE)==NON_WR;
+		wrp->parentIsWRnode = (wr_flags & WR_NODE_MODE)!=NON_WR;
 		wrp->parentWrModeOn = (wr_flags & WR_IS_WR_MODE) != 0;
 		wrp->parentCalibrated =(wr_flags & WR_IS_CALIBRATED) != 0;
 		wrp->parentWrConfig = wr_flags & WR_NODE_MODE;
@@ -233,7 +233,9 @@ static void wr_state_change(struct pp_instance *ppi)
 	
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	if (ppi->state == PPS_SLAVE &&  ppi->next_state==PPS_UNCALIBRATED) {
+	if (ppi->state == PPS_SLAVE &&
+			ppi->next_state==PPS_UNCALIBRATED &&
+			wrp->parentIsWRnode) {
 		pdstate_enable_extension(ppi); // Re-enable the extension
 	}
 

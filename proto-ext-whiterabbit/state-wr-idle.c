@@ -53,7 +53,7 @@ int wr_idle(struct pp_instance *ppi, void *buf, int len, int new_state)
 			} else {
 				wrp->parentDetection=PD_NO_DETECTION;
 			}
-			return 0;
+			delay=0;
 		}
 		else if ( wrp->parentDetection==PD_NOT_WR_PARENT ) {
 			if ( ppi->extState==PP_EXSTATE_ACTIVE ) {

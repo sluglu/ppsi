@@ -10,7 +10,6 @@
 #define __WRPC_H
 
 #include <ppsi/ppsi.h>
-#include <hw/memlayout.h>
 #include <libwr/hal_shmem.h>
 
 /* This part is exactly wrpc-sw::wrc_ptp.h */

@@ -17,7 +17,7 @@
 #include "dev/syscon.h"
 #include "dev/endpoint.h"
 #include "dev/pps_gen.h"
-#include "dev/uart.h"
+#include "dev/console.h"
 #include "dev/rxts_calibrator.h"
 
 #include "softpll_ng.h"
@@ -105,9 +105,6 @@ extern struct pp_ext_hooks  pp_hooks;
 int wrc_ptp_init()
 {
 	struct pp_instance *ppi = &ppi_static;
-
-	sdb_find_devices();
-	uart_init_hw();
 
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);

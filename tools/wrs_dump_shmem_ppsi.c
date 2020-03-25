@@ -178,6 +178,13 @@ struct dump_info wr_servo_ext_info [] = {
 	DUMP_FIELD(time, delta_rxm),
 	DUMP_FIELD(time, delta_txs),
 	DUMP_FIELD(time, delta_rxs),
+	DUMP_FIELD(time, rawT1),
+	DUMP_FIELD(time, rawT2),
+	DUMP_FIELD(time, rawT3),
+	DUMP_FIELD(time, rawT4),
+	DUMP_FIELD(time, rawT5),
+	DUMP_FIELD(time, rawT6),
+	DUMP_FIELD(time, rawDelayMM),
 };
 #endif
 

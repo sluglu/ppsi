@@ -122,6 +122,8 @@ typedef struct wr_servo_ext {
 	struct pp_time delta_rxm;
 	struct pp_time delta_txs;
 	struct pp_time delta_rxs;
+	struct pp_time rawT1, rawT2, rawT3, rawT4, rawT5, rawT6;		/* raw value of timestamps  */
+	struct pp_time rawDelayMM; // Calculation of delayMM with raw values of timestamps
 }wr_servo_ext_t;
 
 

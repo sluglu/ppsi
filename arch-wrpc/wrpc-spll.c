@@ -19,7 +19,7 @@ extern uint32_t cal_phase_transition;
 
 int wrpc_spll_locking_enable(struct pp_instance *ppi)
 {
-	spll_init(SPLL_MODE_SLAVE, 0, 1);
+	spll_init(SPLL_MODE_SLAVE, 0, SPLL_FLAG_ALIGN_PPS);
 	spll_enable_ptracker(0, 1);
 	rxts_calibration_start();
 	return WRH_SPLL_OK;

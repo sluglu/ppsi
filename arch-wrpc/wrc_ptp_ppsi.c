@@ -151,7 +151,7 @@ int wrc_ptp_set_mode(int mode)
 		ppi->role = PPSI_ROLE_MASTER;
 		*class_ptr = PP_PTP_CLASS_GM_LOCKED;
 		*accuracy_ptr = PP_PTP_ACCURACY_GM_LOCKED;
-		spll_init(SPLL_MODE_GRAND_MASTER, 0, 1);
+		spll_init(SPLL_MODE_GRAND_MASTER, 0, SPLL_FLAG_ALIGN_PPS);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_GM;
 		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
@@ -164,7 +164,7 @@ int wrc_ptp_set_mode(int mode)
 		ppi->role = PPSI_ROLE_MASTER;
 		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
 		*accuracy_ptr = PP_PTP_ACCURACY_GM_UNLOCKED;
-		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, 1);
+		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, SPLL_FLAG_ALIGN_PPS);
 		shw_pps_gen_unmask_output(1);
 		lock_timeout = LOCK_TIMEOUT_FM;
 		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
@@ -177,7 +177,7 @@ int wrc_ptp_set_mode(int mode)
 		ppi->role = PPSI_ROLE_SLAVE;
 		*class_ptr = PP_CLASS_SLAVE_ONLY;
 		*accuracy_ptr = PP_ACCURACY_DEFAULT;
-		spll_init(SPLL_MODE_SLAVE, 0, 1);
+		spll_init(SPLL_MODE_SLAVE, 0, SPLL_FLAG_ALIGN_PPS);
 		shw_pps_gen_unmask_output(0);
 		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
 		DSDEF(ppi)->clockQuality.clockAccuracy = PP_ACCURACY_DEFAULT;
@@ -241,7 +241,6 @@ int wrc_ptp_start()
 {
 	struct pp_instance *ppi = &ppi_static;
 
-	pp_printf("PTP start\n");
 	pp_init_globals(&ppg_static, &__pp_default_rt_opts);
 
 	/* Call the state machine. Being it in "Initializing" state, make
@@ -262,7 +261,6 @@ int wrc_ptp_stop()
 	struct pp_instance *ppi = &ppi_static;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
-	pp_printf("PTP stop\n");
 	wrp->ops->enable_timing_output(ppi, 0);
 	/* Moving fiber: forget about this parent (FIXME: shouldn't be here) */
 	wrp->parentWrConfig = wrp->parentWrModeOn = 0;

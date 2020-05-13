@@ -133,52 +133,79 @@ static void wrs_linearize_rx_timestamp(struct pp_time *ts,
 	int32_t dmtd_phase, int cntr_ahead, int transition_point,
 	int clock_period)
 {
-	int trip_lo, trip_hi;
-	int phase;
+	int phase, raw_phase;
+	int nsec_f, nsec_r;
+	int nsec;
 
 	pp_diag(NULL, ext, 3, "linearize  ts %s and phase %i\n",
 		fmt_time(ts), dmtd_phase);
 	pp_diag(NULL, ext, 3, "    (ahead %i tpoint %i, period %i\n",
 		cntr_ahead, transition_point, clock_period);
 
-	phase = clock_period - 1 - dmtd_phase;
+	raw_phase = dmtd_phase;
+	pp_diag(NULL, ext, 3, "    phase now %i\n", raw_phase);
 
-	/* calculate the range within which falling edge timestamp is stable
-	 * (no possible transitions) */
-	trip_lo = transition_point - clock_period / 4;
-	if(trip_lo < 0) trip_lo += clock_period;
+	nsec = ts->scaled_nsecs >> 16;
+	pp_diag(NULL, ext, 3, "NEW nsec=%d, phase=%d\n", nsec, raw_phase);
 
-	trip_hi = transition_point + clock_period / 4;
-	if(trip_hi >= clock_period) trip_hi -= clock_period;
-	pp_diag(NULL, ext, 3, "    phase now %i (tripl %i, triph %i)\n",
-		phase, trip_lo, trip_hi);
+/* The idea is simple: the asynchronous RX timestamp trigger is tagged
+ * by two counters: one counting at the rising clock edge, and the
+ * other on the falling. That means, the rising timestamp is 180
+ * degree in advance wrs to the falling one.
+ */
 
-	if(inside_range(trip_lo, trip_hi, phase))
-	{
-		/* We are within +- 25% range of transition area of
-		 * rising counter. Take the falling edge counter value as the
-		 * "reliable" one. cntr_ahead will be 1 when the rising edge
-		 * counter is 1 tick ahead of the falling edge counter */
+/* Calculate the nanoseconds value for both timestamps. The rising edge one
+   is just the HW register */
+	nsec_r = nsec;
+/* The falling edge TS is the rising - 1 thick
+    if the "rising counter ahead" bit is set. */
+	nsec_f = cntr_ahead ? nsec - (clock_period / 1000) : nsec;
 
-		if (cntr_ahead)
-			ts->scaled_nsecs -= (clock_period / 1000LL) << 16;
-		pp_diag(NULL, ext, 3, "    ts became %s\n", fmt_time(ts));
+/* Adjust the rising edge timestamp phase so that it "jumps" roughly
+   around the point where the counter value changes */
+	int phase_r = raw_phase - transition_point;
+	if(phase_r < 0) /* unwrap negative value */
+		phase_r += clock_period;
 
-		/* check if the phase is before the counter transition value
-		 * and eventually increase the counter by 1 to simulate a
-		 * timestamp transition exactly at s->phase_transition
-		 * DMTD phase value */
-		if(inside_range(trip_lo, transition_point, phase))
-			ts->scaled_nsecs += (clock_period / 1000LL) << 16;
-		pp_diag(NULL, ext, 3, "    ts became %s\n", fmt_time(ts));
+/* Do the same with the phase for the falling edge, but additionally shift
+   it by extra 180 degrees (so that it matches the falling edge counter) */
+	int phase_f = raw_phase - transition_point + (clock_period / 2);
+	if(phase_f < 0)
+		phase_f += clock_period;
+	if(phase_f >= clock_period)
+		phase_f -= clock_period;
 
+/* If we are within +- 25% from the transition in the rising edge counter,
+   pick the falling one */
+	if( phase_r > 3 * clock_period / 4 || phase_r < clock_period / 4 ) {
+		nsec = nsec_f;
+
+		/* The falling edge timestamp is half a cycle later
+		   with respect to the rising one. Add
+		   the extra delay, as rising edge is our reference */
+		phase = phase_f + clock_period / 2;
+		if(phase >= clock_period) /* Handle overflow */
+		{
+			phase -= clock_period;
+			nsec += (clock_period / 1000);
+		}
+		pp_diag(NULL, ext, 3, "    ts pick falling (nsec:%d phase:%d)\n", nsec, phase);
+	} else { /* We are closer to the falling edge counter transition?
+		    Pick the opposite timestamp */
+		nsec  = nsec_r;
+		phase = phase_r;
+		pp_diag(NULL, ext, 3, "    ts pick rising (nsec:%d phase:%d)\n", nsec, phase);
 	}
 
-	phase = phase - transition_point - 1;
-	if (phase  < 0)
-		phase += clock_period;
-	phase = clock_period - 1 - phase;
-	ts->scaled_nsecs += (phase << 16) / 1000;
+	/* In an unlikely case, after all the calculations,
+	   the ns counter may be overflown. */
+	if(nsec >= 1000000000)
+	{
+		nsec -= 1000000000;
+		ts->secs++;
+	}
+	ts->scaled_nsecs = (int64_t)nsec << 16;
+	ts->scaled_nsecs += ((int64_t)phase << 16) / 1000LL;
 	pp_diag(NULL, ext, 3, "    ts final  %s\n", fmt_time(ts));
 }
 

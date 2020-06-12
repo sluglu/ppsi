@@ -177,8 +177,15 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 				ppi->frgn_rec_num = 0;
 				ppi->frgn_rec_best = -1;
 				if (ppg->ebest_idx == ppi->port_idx)
+                                {
 					if( ppi->ext_hooks->servo_reset)
 						(*ppi->ext_hooks->servo_reset)(ppi);
+					/* FIXME: this should be done in a different place and in a nicer way.
+					   This dirty hack was introduce to force re-doing of WR Link Setup
+					   when a link goes down and then up. */
+					if (ppi->ext_data)
+						WRH_SRV(ppi)->doRestart = TRUE;
+                                }
 			}
 		}
 

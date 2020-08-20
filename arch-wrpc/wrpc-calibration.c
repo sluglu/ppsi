@@ -11,6 +11,7 @@
 #include <hal_exports.h>
 #include "wrpc.h"
 #include "../proto-ext-whiterabbit/wr-constants.h"
+#include "board.h"
 
 extern int32_t sfp_alpha;
 
@@ -86,12 +87,12 @@ int wrpc_calibration_pattern_enable(struct pp_instance *ppi,
 				    unsigned int calibrationPattern,
 				    unsigned int calibrationPatternLen)
 {
-	ep_cal_pattern_enable();
+	ep_cal_pattern_enable(&wrc_endpoint_dev);
 	return WR_HW_CALIB_OK;
 }
 
 int wrpc_calibration_pattern_disable(struct pp_instance *ppi)
 {
-	ep_cal_pattern_disable();
+	ep_cal_pattern_disable(&wrc_endpoint_dev);
 	return WR_HW_CALIB_OK;
 }

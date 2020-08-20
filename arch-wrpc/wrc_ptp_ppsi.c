@@ -241,6 +241,8 @@ int wrc_ptp_start()
 {
 	struct pp_instance *ppi = &ppi_static;
 
+	pp_printf("PTP Start!\n");
+
 	pp_init_globals(&ppg_static, &__pp_default_rt_opts);
 
 	/* Call the state machine. Being it in "Initializing" state, make

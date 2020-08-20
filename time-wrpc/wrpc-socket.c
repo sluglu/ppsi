@@ -11,6 +11,7 @@
 #include <dev/syscon.h> /* wrpc-sw */
 #include <dev/endpoint.h> /* wrpc-sw */
 #include <ptpd_netif.h> /* wrpc-sw */
+#include "board.h"
 
 #ifdef CONFIG_ABSCAL
 #define HAS_ABSCAL 1
@@ -90,7 +91,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 		/* WR counts bitslide later, in fixed-delta, so subtract it */
 		t4 = *t;
-		bitslide = ep_get_bitslide();
+		bitslide = ep_get_bitslide(&wrc_endpoint_dev);
 		t_bts.secs = 0;
 		t_bts.scaled_nsecs = (bitslide << 16) / 1000;
 		pp_time_sub(&t4, &t_bts);

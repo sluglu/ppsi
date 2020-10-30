@@ -177,7 +177,7 @@ int wrc_ptp_set_mode(int mode)
 		ppi->role = PPSI_ROLE_SLAVE;
 		*class_ptr = PP_CLASS_SLAVE_ONLY;
 		*accuracy_ptr = PP_ACCURACY_DEFAULT;
-		spll_init(SPLL_MODE_SLAVE, 0, SPLL_FLAG_ALIGN_PPS);
+		/* skip initialization of spll for slave mode */
 		shw_pps_gen_unmask_output(0);
 		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
 		DSDEF(ppi)->clockQuality.clockAccuracy = PP_ACCURACY_DEFAULT;

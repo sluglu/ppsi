@@ -56,7 +56,7 @@ static timePropertiesDS_t timePropertiesDS;
 static struct pp_servo servo;
 
 
-#if CONFIG_EXT_WR == 1
+#if CONFIG_HAS_EXT_WR == 1
 /* WR extension declaration */
 #include "../proto-ext-whiterabbit/wr-api.h"
 #include "../proto-ext-whiterabbit/wr-constants.h"
@@ -110,7 +110,7 @@ int wrc_ptp_init()
 		PPSI_VERSION);
 
 	ppi->ext_hooks =&pp_hooks; /* default value */
-	if ( CONFIG_EXT_WR == 1 ) {
+	if ( CONFIG_HAS_EXT_WR == 1 ) {
 
 		ppi->ext_hooks = &wr_ext_hooks;
 		ppi->ext_data = &wr_ext_data;

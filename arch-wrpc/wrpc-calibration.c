@@ -39,7 +39,7 @@ int wrpc_read_calibration_data(struct pp_instance *ppi,
 					+ state.calib.sfp.delta_tx_ps
 					+ state.calib.delta_tx_board;
 	} else
-		return WR_HW_CALIB_NOT_FOUND;
+		return WRH_HW_CALIB_NOT_FOUND;
 
 	/* check if rx is calibrated,
 	 * if so read data */
@@ -49,9 +49,9 @@ int wrpc_read_calibration_data(struct pp_instance *ppi,
 					+ state.calib.sfp.delta_rx_ps
 					+ state.calib.delta_rx_board;
 	} else
-		return WR_HW_CALIB_NOT_FOUND;
+		return WRH_HW_CALIB_NOT_FOUND;
 
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }
 
 
@@ -59,12 +59,12 @@ int wrpc_read_calibration_data(struct pp_instance *ppi,
 
 int wrpc_calibrating_disable(struct pp_instance *ppi, int txrx)
 {
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }
 
 int wrpc_calibrating_enable(struct pp_instance *ppi, int txrx)
 {
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }
 
 int wrpc_calibrating_poll(struct pp_instance *ppi, int txrx, uint32_t *delta)
@@ -79,7 +79,7 @@ int wrpc_calibrating_poll(struct pp_instance *ppi, int txrx, uint32_t *delta)
 	else
 		*delta = delta_rx;
 
-	return WR_HW_CALIB_READY;
+	return WRH_HW_CALIB_READY;
 }
 
 int wrpc_calibration_pattern_enable(struct pp_instance *ppi,
@@ -88,11 +88,11 @@ int wrpc_calibration_pattern_enable(struct pp_instance *ppi,
 				    unsigned int calibrationPatternLen)
 {
 	ep_cal_pattern_enable(&wrc_endpoint_dev);
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }
 
 int wrpc_calibration_pattern_disable(struct pp_instance *ppi)
 {
 	ep_cal_pattern_disable(&wrc_endpoint_dev);
-	return WR_HW_CALIB_OK;
+	return WRH_HW_CALIB_OK;
 }

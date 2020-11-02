@@ -33,7 +33,7 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
 	locked = spll_check_lock(0); /* both slave and gm mode */
 
 	if (grandmaster)
-		return locked ? WRH_SPLL_READY : WRH_SPLL_ERROR;
+		return locked ? WRH_SPLL_LOCKED : WRH_SPLL_ERROR;
 
 	/* Else, slave: ensure calibration is done */
 	if(!locked) {
@@ -42,11 +42,11 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
 	else if(locked && !t24p_calibrated) {
 		/*run t24p calibration if needed*/
 		if (calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition) < 0)
-			return WRH_SPLL_CALIB_NOT_READY;
+			return WRH_SPLL_UNLOCKED;
 		t24p_calibrated = 1;
 	}
 
-	return locked ? WRH_SPLL_READY : WRH_SPLL_ERROR;
+	return locked ? WRH_SPLL_LOCKED : WRH_SPLL_ERROR;
 }
 
 int wrpc_spll_locking_reset(struct pp_instance *ppi)
@@ -70,10 +70,6 @@ int wrpc_spll_enable_ptracker(struct pp_instance *ppi)
 
 int wrpc_enable_timing_output(struct pp_instance *ppi, int enable)
 {
-	if (enable == WR_DSPOR(ppi)->ppsOutputOn)
-		return WR_SPLL_OK;
-	WR_DSPOR(ppi)->ppsOutputOn = enable;
-
 	shw_pps_gen_enable_output(enable);
 	return WRH_SPLL_OK;
 }

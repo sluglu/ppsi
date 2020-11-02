@@ -112,4 +112,5 @@ struct pp_time_operations wrpc_time_ops = {
 	.adjust_offset = wrpc_time_adjust_offset,
 	.adjust_freq = NULL,
 	.calc_timeout = wrpc_calc_timeout,
+	.enable_timing_output = wrpc_enable_timing_output,
 };

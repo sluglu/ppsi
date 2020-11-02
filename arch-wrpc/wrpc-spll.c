@@ -68,7 +68,7 @@ int wrpc_spll_enable_ptracker(struct pp_instance *ppi)
 	return WRH_SPLL_OK;
 }
 
-int wrpc_enable_timing_output(struct pp_instance *ppi, int enable)
+int wrpc_enable_timing_output(struct pp_globals *ppg, int enable)
 {
 	shw_pps_gen_enable_output(enable);
 	return WRH_SPLL_OK;

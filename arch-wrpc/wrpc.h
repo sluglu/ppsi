@@ -56,14 +56,6 @@ int wrpc_enable_timing_output(struct pp_globals *ppg, int enable);
 int wrpc_read_calibration_data(struct pp_instance *ppi,
 			       uint32_t *deltaTx, uint32_t *deltaRx,
 			       int32_t *fix_alpha, int32_t *clock_period);
-int wrpc_calibrating_disable(struct pp_instance *ppi, int txrx);
-int wrpc_calibrating_enable(struct pp_instance *ppi, int txrx);
-int wrpc_calibrating_poll(struct pp_instance *ppi, int txrx, uint32_t *delta);
-int wrpc_calibration_pattern_enable(struct pp_instance *ppi,
-				    unsigned int calibrationPeriod,
-				    unsigned int calibrationPattern,
-				    unsigned int calibrationPatternLen);
-int wrpc_calibration_pattern_disable(struct pp_instance *ppi);
 int wrpc_get_port_state(struct hal_port_state *port, const char *port_name);
 
 #endif /* __WRPC_H */

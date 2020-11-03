@@ -39,11 +39,6 @@ struct wrh_operations wrh_oper = {
 	.adjust_phase = wrpc_adjust_phase,
 
 	.read_calib_data = wrpc_read_calibration_data,
-	.calib_disable = wrpc_calibrating_disable,
-	.calib_enable = wrpc_calibrating_enable,
-	.calib_poll = wrpc_calibrating_poll,
-	.calib_pattern_enable = wrpc_calibration_pattern_enable,
-	.calib_pattern_disable = wrpc_calibration_pattern_disable,
 };
 
 /*ppi fields*/

@@ -106,7 +106,7 @@ export CFLAGS
 # libraries: see proto-standard/Makefile as an example.
 
 $(TARGET).o: $(OBJ-y)
-	$(LD) --gc-sections --entry=main -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
+	$(LD) --gc-sections -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
 		--start-group $(OBJ-y) --end-group
 
 $(OBJ-y): .config $(wildcard include/ppsi/*.h)

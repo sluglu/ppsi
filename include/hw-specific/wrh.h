@@ -10,7 +10,7 @@
 #define __WRH_H__
 
 #include <stdint.h>
-#include <hal_exports.h>
+
 #include <ppsi/lib.h>
 
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data structure */

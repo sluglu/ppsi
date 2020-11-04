@@ -1,5 +1,5 @@
 
-CFLAGS += -ffreestanding -Os \
+CFLAGS += -ffreestanding \
 	-ffunction-sections -fdata-sections \
 	-mmultiply-enabled -mbarrel-shift-enabled \
 	-Itools -Iproto-standard

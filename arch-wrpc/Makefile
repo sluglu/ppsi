@@ -9,7 +9,8 @@ WRPCSW_ROOT ?= $(CONFIG_WRPCSW_ROOT)
 
 CFLAGS += -I$(WRPCSW_ROOT)/include -I$(WRPCSW_ROOT)/include/std -I$(WRPCSW_ROOT)/softpll
 
-PPSI_O_LDFLAGS = -u wrc_ptp_init
+# TODOA: remove --no-gc-sections
+PPSI_O_LDFLAGS = --no-gc-sections -u wrc_ptp_init
 
 # Let's use the pp_printf we already have in wrpc-sw
 CONFIG_NO_PRINTF = y

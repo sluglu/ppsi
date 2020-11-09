@@ -25,15 +25,12 @@ int wrpc_spll_locking_enable(struct pp_instance *ppi)
 	return WRH_SPLL_OK;
 }
 
-int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster)
+int wrpc_spll_locking_poll(struct pp_instance *ppi)
 {
 	int locked;
 	static int t24p_calibrated = 0;
 
 	locked = spll_check_lock(0); /* both slave and gm mode */
-
-	if (grandmaster)
-		return locked ? WRH_SPLL_LOCKED : WRH_SPLL_ERROR;
 
 	/* Else, slave: ensure calibration is done */
 	if(!locked) {

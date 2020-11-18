@@ -3,14 +3,6 @@
 #include <libwr/shmem.h>
 #include "../proto-standard/common-fun.h"
 
-/* Enable tracking by default. Disabling the tracking is used for demos. */
-static int wr_tracking_enabled = 1;
-
-void wr_servo_enable_tracking(int enable)
-{
-	wr_tracking_enabled = enable;
-}
-
 static inline void _calculate_raw_delayMM(struct pp_instance *ppi,
 		struct pp_time *ta,struct pp_time *tb,
 		struct pp_time *tc,struct pp_time *td  ) {

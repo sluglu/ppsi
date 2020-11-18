@@ -64,7 +64,7 @@ static portDS_t     portDS ;
 static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
 static int start_tics = 0;
 
-static struct pp_globals ppg_static; /* forward declaration */
+struct pp_globals ppg_static; /* forward declaration */
 static unsigned char __tx_buffer[PP_MAX_FRAME_LENGTH];
 static unsigned char __rx_buffer[PP_MAX_FRAME_LENGTH];
 
@@ -84,7 +84,7 @@ struct pp_instance ppi_static = {
 };
 
 /* We now have a structure with all globals, and multiple ppi inside */
-static struct pp_globals ppg_static = {
+struct pp_globals ppg_static = {
 	.pp_instances		= &ppi_static,
 	.servo			= &servo,
 	.defaultDS		= &defaultDS,

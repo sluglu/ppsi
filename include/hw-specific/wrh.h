@@ -147,7 +147,6 @@ static inline  wrh_servo_t *WRH_SRV(struct pp_instance *ppi)
 extern void    wrh_servo_enable_tracking(int enable);
 extern int     wrh_servo_init(struct pp_instance *ppi);
 extern void    wrh_servo_reset(struct pp_instance *ppi);
-extern void    wrh_servo_enable_tracking(int enable);
 extern int     wrh_servo_got_sync(struct pp_instance *ppi);
 extern int     wrh_servo_got_resp(struct pp_instance *ppi);
 extern int     wrh_servo_got_presp(struct pp_instance *ppi);

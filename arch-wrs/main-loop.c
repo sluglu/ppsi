@@ -144,10 +144,10 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 				ppi->iface_name, ppi->link_up ? "up":"down");
 
 			if (ppi->link_up) {
-				TimeInterval scaledBitSlide;
-				RelativeDifference scaledDelayCoefficient;
-				TimeInterval scaledSfpDeltaTx;
-				TimeInterval scaledSfpDeltaRx;
+				TimeInterval scaledBitSlide = 0;
+				RelativeDifference scaledDelayCoefficient = 0;
+				TimeInterval scaledSfpDeltaTx = 0;
+				TimeInterval scaledSfpDeltaRx = 0;
 
 				ppi->state = PPS_INITIALIZING;
 				if ( wrs_read_calibration_data(ppi,NULL,
@@ -155,20 +155,19 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 						&scaledDelayCoefficient,
 						&scaledSfpDeltaTx,
 						&scaledSfpDeltaRx)!= WRH_HW_CALIB_OK ) {
-				      pp_diag(ppi, fsm, 1, "Cannot read bit_slide value values\n");
-				      scaledBitSlide=0;
+					pp_diag(ppi, fsm, 1, "Cannot get calibration values (bitslide, alpha, TX/Rx delays\n");
 				}
 				ppi->timestampCorrectionPortDS.semistaticLatency= scaledBitSlide;
-			    if (scaledDelayCoefficient>=PP_MIN_DELAY_COEFFICIENT_AS_RELDIFF &&
-					  scaledDelayCoefficient<=PP_MAX_DELAY_COEFFICIENT_AS_RELDIFF ) {
-			    	/* Scaled delay coefficient is valid then delta tx and rx also */
-			    	if ( ppi->asymmetryCorrectionPortDS.enable ) {
-			    		ppi->cfg.scaledDelayCoefficient=scaledDelayCoefficient;
-			    		enable_asymmetryCorrection(ppi,TRUE);
-			    	}
-			    	ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps)+scaledSfpDeltaTx;
-			    	ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps)+scaledSfpDeltaRx;
-			    }
+				if (scaledDelayCoefficient>=PP_MIN_DELAY_COEFFICIENT_AS_RELDIFF
+				    && scaledDelayCoefficient<=PP_MAX_DELAY_COEFFICIENT_AS_RELDIFF ) {
+					/* Scaled delay coefficient is valid then delta tx and rx also */
+					if ( ppi->asymmetryCorrectionPortDS.enable ) {
+						ppi->cfg.scaledDelayCoefficient=scaledDelayCoefficient;
+						enable_asymmetryCorrection(ppi,TRUE);
+					}
+					ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps)+scaledSfpDeltaTx;
+					ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps)+scaledSfpDeltaRx;
+				}
 			}
 			else {
 				ppi->next_state = PPS_DISABLED;

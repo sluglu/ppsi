@@ -19,24 +19,29 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len, int new_state)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	wr_servo_ext_t *se =WRE_SRV(ppi);
-	UInteger64 *delta;
+	FixedDelta *delta;
+	TimeInterval ti;
 
 	/* Calculate deltaTx and update servo*/
-	delta=(UInteger64 *)&wrp->deltaTx;
-	*delta= (UInteger64)(ppi->timestampCorrectionPortDS.egressLatency*1000);
+	delta=&wrp->deltaTx;
+	ti = ppi->timestampCorrectionPortDS.egressLatency*1000;
+	delta->scaledPicoseconds.msb = ti >> 32;
+	delta->scaledPicoseconds.lsb = ti & 0xFFFFFFFF;
 	pp_diag(ppi, ext, 1, "deltaTx: msb=0x%x lsb=0x%x\n",
 		wrp->deltaTx.scaledPicoseconds.msb,
 		wrp->deltaTx.scaledPicoseconds.lsb);
-	fixedDelta_to_pp_time(*(struct FixedDelta *)delta,&se->delta_txs);/* Update servo specific data */
+	fixedDelta_to_pp_time(*delta, &se->delta_txs);/* Update servo specific data */
 
 	/* Calculate deltaRx and update servo*/
-	delta=(UInteger64 *)&wrp->deltaRx;
-	*delta=(UInteger64)((ppi->timestampCorrectionPortDS.ingressLatency +
+	delta=&wrp->deltaRx;
+	ti= ((ppi->timestampCorrectionPortDS.ingressLatency +
 				ppi->timestampCorrectionPortDS.semistaticLatency) * 1000);
+	delta->scaledPicoseconds.msb = ti >> 32;
+	delta->scaledPicoseconds.lsb = ti & 0xFFFFFFFF;
 	pp_diag(ppi, ext, 1, "deltaRx: msb=0x%x lsb=0x%x\n",
 		wrp->deltaRx.scaledPicoseconds.msb,
 		wrp->deltaRx.scaledPicoseconds.lsb);
-	fixedDelta_to_pp_time(*(struct FixedDelta *)delta, &se->delta_rxs);/* Update servo specific data */
+	fixedDelta_to_pp_time(*delta, &se->delta_rxs);/* Update servo specific data */
 
 	/* Go to the next state */
 	wrp->next_state = WRS_CALIBRATED;

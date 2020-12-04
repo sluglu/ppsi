@@ -115,8 +115,8 @@ int64_t pp_time_to_picos(struct pp_time *t)
 
 void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t) {
 	/* FixedDelta is expressed in ps*2^16 */
-	uint64_t *v=(uint64_t*)&fd;
-	t->scaled_nsecs=*v/1000L; /* We can do it because scaled_nsecs is also multiply by 2^16 */
+	uint64_t v = ((uint64_t)fd.scaledPicoseconds.msb)<<32 | (uint64_t)fd.scaledPicoseconds.lsb;
+	t->scaled_nsecs=v/1000L; /* We can do it because scaled_nsecs is also multiply by 2^16 */
 	t->secs=0;
 	normalize_pp_time(t);
 }

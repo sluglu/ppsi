@@ -53,9 +53,13 @@ int wrpc_adjust_phase(int32_t phase_ps);
 int wrpc_enable_timing_output(struct pp_globals *ppg, int enable);
 
 /* wrpc-calibration.c */
-int wrpc_read_calibration_data(struct pp_instance *ppi,
-			       uint32_t *deltaTx, uint32_t *deltaRx,
-			       int32_t *fix_alpha, int32_t *clock_period);
+int wrpc_read_calibration_data(
+			       struct pp_instance *ppi,
+			       int32_t *clock_period,
+			       TimeInterval *scaledBitSlide,
+			       RelativeDifference *scaledDelayCoefficient,
+			       TimeInterval *scaledSfpDeltaTx,
+			       TimeInterval *scaledSfpDeltaRx);
 int wrpc_get_port_state(struct hal_port_state *port, const char *port_name);
 
 #endif /* __WRPC_H */

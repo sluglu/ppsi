@@ -47,5 +47,5 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 		WRH_OPER()->locking_enable(ppi);
 	}
 
-	return 100 ;/* 100ms : We check every 100ms if the PLL is locked */
+	return 0; /* 0ms : If needed we yeld in locking_poll during waiting for the PLL to lock */
 }

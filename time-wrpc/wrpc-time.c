@@ -89,6 +89,12 @@ static unsigned long wrpc_calc_timeout(struct pp_instance *ppi, int millisec)
 	return timer_get_tics() + millisec;
 }
 
+static int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state)
+{
+	pp_printf("FIXME: %s not implemented yet\n", __func__);
+	return 0;
+}
+
 struct pp_time_operations wrpc_time_ops = {
 	.get_utc_time = wrpc_time_get_utc_time,
 	.get_utc_offset = wrpc_time_get_utc_offset,
@@ -99,5 +105,6 @@ struct pp_time_operations wrpc_time_ops = {
 	.adjust_offset = wrpc_time_adjust_offset,
 	.adjust_freq = NULL,
 	.calc_timeout = wrpc_calc_timeout,
+	.get_GM_lock_state = wrpc_get_GM_lock_state,
 	.enable_timing_output = wrpc_enable_timing_output,
 };

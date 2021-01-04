@@ -41,6 +41,11 @@ struct wrpc_ethhdr {
 	uint16_t	h_proto;
 } __attribute__((packed));
 
+typedef struct  wrpc_arch_data_t {
+	/* Keep a copy of timing mode for dump */
+	wrh_timing_mode_t timingMode; /* Timing mode: Grand master, Free running,...*/
+} wrpc_arch_data_t;
+
 /* wrpc-spll.c (some should move to time-wrpc/) */
 int wrpc_spll_locking_enable(struct pp_instance *ppi);
 int wrpc_spll_locking_poll(struct pp_instance *ppi);
@@ -61,5 +66,16 @@ int wrpc_read_calibration_data(
 			       TimeInterval *scaledSfpDeltaTx,
 			       TimeInterval *scaledSfpDeltaRx);
 int wrpc_get_port_state(struct hal_port_state *port, const char *port_name);
+
+
+static inline wrpc_arch_data_t *WRPC_ARCH_I(struct pp_instance *ppi)
+{
+	return (wrpc_arch_data_t *) GLBS(ppi)->arch_data;
+}
+
+static inline wrpc_arch_data_t *WRPC_ARCH_G(struct pp_globals *ppg)
+{
+	return (wrpc_arch_data_t *) ppg->arch_data;
+}
 
 #endif /* __WRPC_H */

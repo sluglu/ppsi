@@ -86,7 +86,7 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 
 /*draft P1588_v_29: page 17*/
 /* The scaledRelativeDifference member is the relative difference expressed
- * as a dimensionless fraction and multiplied by 2+^62, with any remaining
+ * as a dimensionless fraction and multiplied by 2^+62, with any remaining
  * fractional part truncated. */
 typedef Integer64 RelativeDifference;
 

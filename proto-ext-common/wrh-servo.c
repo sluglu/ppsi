@@ -365,7 +365,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 
 	}
 
-	gs->servo_locked=gs->state==WRH_TRACK_PHASE;
+	gs->servo_locked = (gs->state==WRH_TRACK_PHASE);
 
 	/* Increase number of servo updates with state different than
 	 * WRH_TRACK_PHASE. (Used by SNMP) */

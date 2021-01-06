@@ -23,7 +23,7 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len, int new_state)
 	TimeInterval ti;
 
 	/* Calculate deltaTx and update servo*/
-	delta=&wrp->deltaTx;
+	delta = &wrp->deltaTx;
 	ti = ppi->timestampCorrectionPortDS.egressLatency*1000;
 	delta->scaledPicoseconds.msb = ti >> 32;
 	delta->scaledPicoseconds.lsb = ti & 0xFFFFFFFF;
@@ -33,7 +33,7 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len, int new_state)
 	fixedDelta_to_pp_time(*delta, &se->delta_txs);/* Update servo specific data */
 
 	/* Calculate deltaRx and update servo*/
-	delta=&wrp->deltaRx;
+	delta = &wrp->deltaRx;
 	ti= ((ppi->timestampCorrectionPortDS.ingressLatency +
 				ppi->timestampCorrectionPortDS.semistaticLatency) * 1000);
 	delta->scaledPicoseconds.msb = ti >> 32;

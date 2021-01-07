@@ -125,6 +125,12 @@ menu "PTP Protocol Options"
 	       default 0 if E2E_ONLY
 	       default 1  
 
+	config LEAP_SECONDS_VAL
+		int "Value of Leap Seconds"
+		depends on ARCH_WRPC
+		default 37
+		help
+		  Difference in seconds between TAI and UTC.
 endmenu
 
 menu "Enabled profiles"

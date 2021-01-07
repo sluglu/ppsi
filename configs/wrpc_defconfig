@@ -25,6 +25,7 @@ CONFIG_E2E=y
 # CONFIG_P2P is not set
 CONFIG_E2E_ONLY=y
 CONFIG_HAS_P2P=0
+CONFIG_LEAP_SECONDS_VAL=37
 
 #
 # Enabled profiles

@@ -123,7 +123,7 @@ int wrc_ptp_init()
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);
 	pp_printf("ppg at %p\n", ppg);
-	ppg->timePropertiesDS->currentUtcOffset = 37; /* FIXME: move to dot-config */
+	ppg->timePropertiesDS->currentUtcOffset = CONFIG_LEAP_SECONDS_VAL;
 
 	/* copy default ppi config */
 	memcpy(&ppi->cfg, &__pp_default_instance_cfg, sizeof(__pp_default_instance_cfg));

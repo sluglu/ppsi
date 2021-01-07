@@ -376,7 +376,7 @@ As of 2013-05 the project suffers from these known bugs:
 
 @itemize
 @item All frames must be sent according to a pseudo-random distribution;
-      this is mostly in place but mut be audited project-wide.
+      this is mostly in place but must be audited project-wide.
 @item We removed @i{peer-delay} support. We plan to add it back, and
       actually move White Rabbit to use @i{peer-delay} @sc{ptp} instead of
       @i{end-to-end} @sc{ptp}.
@@ -445,7 +445,7 @@ following 'port-specific' keywords will be associated to this port until
 a new keyword 'port' or 'link' appears.
 
 @anchor{arg-types}
-An option is a key/value(s) pair separated by at least a space character '@t{key value(s)}'. The '@t{value{s}}' entry
+An option is a key/value(s) pair separated by at least a space character '@t{key value(s)}'. The '@t{value(s)}' entry
 depends on the option type. Few types are supported by PPSi:
 
 

@@ -414,3 +414,24 @@ int wrc_ptp_update()
 	delay_ms = pp_state_machine(ppi, ppi->rx_ptp, i);
 	return 1;
 }
+
+/* this returns whether or not the function did any work */
+int wrc_ptp_bmc_update(void)
+{
+	static int start_tics_bmc;
+
+	if (!ptp_enabled) {
+	    /* ptp disabled */
+	    return 0;
+	}
+
+	/* BMCA must run at least once per announce interval 9.2.6.8 */
+	if (timer_get_tics() - start_tics_bmc < TMO_DEFAULT_BMCA_MS) {
+		/* not yet */
+		return 0;
+	}
+
+	start_tics_bmc = timer_get_tics();
+	bmc_calculate_ebest(ppg);
+	return 1;
+}

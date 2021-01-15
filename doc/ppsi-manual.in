@@ -521,12 +521,12 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 	For more details please refer to the IEEE 1588-2019 standard.
 
 @item @b{forcePpsGen}  @i{[Boolean]}
-	Configuration of the PPS output. By default, the PPS is generated  
-	only when the clock class is set to 6(Grand master) or to 193(Free Running master.
-	When this option is set, the PPS is always generated.
+	Configuration of the PPS output. By default, the PPS is generated all the time
+	only when the clock class is set to 6 (Grand master) or to 193 (Free Running master).
+	When this option is set, the PPS is generated all the time for all clock class.
 
 @item @b{ptpFallbackPpsGen}  @i{[Boolean]}
-	if activated, enables the PPS generation if a slave instance 
+	if activated, enables the PPS generation if a slave instance
 	programmed to use an extension protocol (WR, L1Sync, ...) is falling back
 	to PTP communication only. 
 

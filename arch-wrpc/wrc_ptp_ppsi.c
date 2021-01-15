@@ -435,3 +435,15 @@ int wrc_ptp_bmc_update(void)
 	bmc_calculate_ebest(ppg);
 	return 1;
 }
+
+uint8_t wrc_pps_force(wrpc_pps_force_t action)
+{
+	if (action == pps_force_check) {
+		/* wrpc_pps_force_t is mapped to values forcePpsGen */
+		return GOPTS(ppg)->forcePpsGen;
+	}
+	GOPTS(ppg)->forcePpsGen = action & 1; /* 0 or 1 */
+	/* Disable pps generation if needed; according to forcePpsGen */
+	wrpc_enable_timing_output(ppg, 2);
+	return action & 1;
+}

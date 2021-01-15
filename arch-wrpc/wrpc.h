@@ -46,6 +46,13 @@ typedef struct  wrpc_arch_data_t {
 	wrh_timing_mode_t timingMode; /* Timing mode: Grand master, Free running,...*/
 } wrpc_arch_data_t;
 
+/* values mapped to pp_globals->pp_runtime_opts->forcePpsGen */
+typedef enum {
+	pps_force_off,
+	pps_force_on,
+	pps_force_check
+} wrpc_pps_force_t;
+
 /* wrpc-spll.c (some should move to time-wrpc/) */
 int wrpc_spll_locking_enable(struct pp_instance *ppi);
 int wrpc_spll_locking_poll(struct pp_instance *ppi);
@@ -56,6 +63,7 @@ int wrpc_adjust_in_progress(void);
 int wrpc_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec);
 int wrpc_adjust_phase(int32_t phase_ps);
 int wrpc_enable_timing_output(struct pp_globals *ppg, int enable);
+uint8_t wrc_pps_force(wrpc_pps_force_t action);
 
 /* wrpc-calibration.c */
 int wrpc_read_calibration_data(

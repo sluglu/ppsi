@@ -137,7 +137,7 @@ int wrc_ptp_init()
 	ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
 	ppi->portDS->masterOnly= ppi->cfg.masterOnly; /* can be overridden in pp_init_globals() */
 
-	pp_init_globals(&ppg_static, &__pp_default_rt_opts);	
+	pp_init_globals(&ppg_static, &__pp_default_rt_opts);
 
 	return 0;
 }
@@ -149,15 +149,21 @@ int wrc_ptp_set_mode(int mode)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	typeof(ppg->rt_opts->clock_quality_clockClass) *class_ptr;
 	int error = 0;
-	/*
-	 * We need to change the class in the default options.
-	 * Unfortunately, ppg->rt_opts may be yet unassigned when this runs
-	 */
-	class_ptr = &__pp_default_rt_opts.clock_quality_clockClass;
+
+	class_ptr = &ppg->rt_opts->clock_quality_clockClass;
 
 	ptp_mode = 0;
 
 	wrc_ptp_stop();
+
+	/* clear rt_opts so bmc_set_default_device_attributes can later set it
+	 * according to a set clock class */
+	ppg->rt_opts->clock_quality_clockAccuracy = -1;
+	ppg->rt_opts->clock_quality_offsetScaledLogVariance = -1;
+	ppg->rt_opts->timeSource = -1;
+	ppg->rt_opts->ptpTimeScale = -1;
+	ppg->rt_opts->frequencyTraceable = -1;
+	ppg->rt_opts->timeTraceable = -1;
 
 	switch (mode) {
 	case WRC_MODE_GM:

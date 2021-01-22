@@ -131,7 +131,7 @@ int wrpc_adjust_phase(int32_t phase_ps)
 
 int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state)
 {
-	if (spll_check_lock(0) && wrc_ptp_get_mode() == WRC_MODE_GM)
+	if (spll_check_lock(0))
 	    *state = PP_TIMING_MODE_STATE_LOCKED;
 	else
 	    *state = PP_TIMING_MODE_STATE_UNLOCKED;

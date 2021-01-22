@@ -12,6 +12,9 @@
 #include <ppsi/ppsi.h>
 #include <libwr/hal_shmem.h>
 
+#define LOCK_TIMEOUT_FM (4 * TICS_PER_SECOND)
+#define LOCK_TIMEOUT_GM (60 * TICS_PER_SECOND)
+
 /* This part is exactly wrpc-sw::wrc_ptp.h */
 #define WRC_MODE_UNKNOWN 0
 #define WRC_MODE_GM 1
@@ -42,7 +45,6 @@ struct wrpc_ethhdr {
 } __attribute__((packed));
 
 typedef struct  wrpc_arch_data_t {
-	/* Keep a copy of timing mode for dump */
 	wrh_timing_mode_t timingMode; /* Timing mode: Grand master, Free running,...*/
 } wrpc_arch_data_t;
 
@@ -63,7 +65,11 @@ int wrpc_adjust_in_progress(void);
 int wrpc_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec);
 int wrpc_adjust_phase(int32_t phase_ps);
 int wrpc_enable_timing_output(struct pp_globals *ppg, int enable);
-uint8_t wrc_pps_force(wrpc_pps_force_t action);
+int wrpc_spll_check_lock_with_timeout(int lock_timeout);
+int wrc_ptp_bmc_update(void);
+int wrc_pps_force(wrpc_pps_force_t action);
+int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state);
+
 
 /* wrpc-calibration.c */
 int wrpc_read_calibration_data(

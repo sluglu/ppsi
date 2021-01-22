@@ -23,19 +23,16 @@
 #include "softpll_ng.h"
 
 extern int32_t cal_phase_transition;
-int wrc_set_timing_mode(struct pp_globals * ppg,wrh_timing_mode_t tm);
-int wrc_get_timing_mode_state(struct pp_globals *ppg, wrh_timing_mode_pll_state_t *state);
-int wrc_get_timing_mode(struct pp_globals *ppg,wrh_timing_mode_t *tm);
 
-/* TODO: get rid of ptp_mode, use WRPC_ARCH_G(ppg)->timingMode instead */
+/* TODO: get rid of ptp_mode, use WRPC_ARCH_G(ppg)->timingModeCfg instead */
 int ptp_mode = WRC_MODE_UNKNOWN;
 static int ptp_enabled = 0;
 
 struct wrh_operations wrh_oper = {
-	.locking_enable = wrpc_spll_locking_enable,
+	.locking_enable = wrpc_spll_locking_enable, // entering slave
 	.locking_poll = wrpc_spll_locking_poll,
 	.locking_disable = wrpc_spll_locking_disable,
-	.locking_reset = wrpc_spll_locking_reset,
+	.locking_reset = wrpc_spll_locking_reset,  // entering master, when leaving slave
 	.enable_ptracker = wrpc_spll_enable_ptracker,
 
 	.adjust_in_progress = wrpc_adjust_in_progress,
@@ -44,10 +41,10 @@ struct wrh_operations wrh_oper = {
 
 	.read_calib_data = wrpc_read_calibration_data,
 	
-	/* from wrs */
-	.set_timing_mode = wrc_set_timing_mode,
-	.get_timing_mode = wrc_get_timing_mode,
-	.get_timing_mode_state = wrc_get_timing_mode_state,
+	/* not used */
+	.set_timing_mode = NULL,
+	.get_timing_mode = NULL,
+	.get_timing_mode_state = NULL,
 };
 
 /*ppi fields*/
@@ -122,7 +119,7 @@ int wrc_ptp_init()
 
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);
-	pp_printf("ppg at %p\n", ppg);
+
 	ppg->timePropertiesDS->currentUtcOffset = CONFIG_LEAP_SECONDS_VAL;
 
 	/* copy default ppi config */
@@ -134,58 +131,29 @@ int wrc_ptp_init()
 		ppi->ext_data = &wr_ext_data;
 
 		ppi->portDS->ext_dsport = &wr_dsport;
-// FIXME:		enable_asymmetryCorrection(ppi,TRUE);
 	}
 	/* egressLatency and ingressLatency are overwritten on ptp_start */
-// 	ppi->timestampCorrectionPortDS.egressLatency=picos_to_interval(ppi->cfg.egressLatency_ps);
-// 	ppi->timestampCorrectionPortDS.ingressLatency=picos_to_interval(ppi->cfg.ingressLatency_ps);
 
 	ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
 	ppi->portDS->masterOnly= ppi->cfg.masterOnly; /* can be overridden in pp_init_globals() */
 
 	pp_init_globals(&ppg_static, &__pp_default_rt_opts);	
 
-	pp_printf("Init done\n");
-
 	return 0;
 }
-
-int wrc_set_timing_mode(struct pp_globals * ppg,wrh_timing_mode_t tm)
-{
-	/* pewnie wrc_ptp_set_mode */
-	pp_printf("FIXME: %s not implemented yet\n", __func__);
-}
-
-int wrc_get_timing_mode_state(struct pp_globals *ppg, wrh_timing_mode_pll_state_t *state)
-{
-	pp_printf("FIXME: %s not implemented yet\n", __func__);
-}
-
-int wrc_get_timing_mode(struct pp_globals *ppg,wrh_timing_mode_t *tm)
-{
-	pp_printf("FIXME: %s not implemented yet\n", __func__);
-	*tm = WRH_TM_BOUNDARY_CLOCK;
-	return 0;
-}
-
-#define LOCK_TIMEOUT_FM (4 * TICS_PER_SECOND)
-#define LOCK_TIMEOUT_GM (60 * TICS_PER_SECOND)
 
 int wrc_ptp_set_mode(int mode)
 {
-	uint32_t start_tics, lock_timeout = 0;
 	struct pp_instance *ppi = &ppi_static;
-	struct pp_globals *ppg = ppi->glbs;
+// 	struct pp_globals *ppg = ppi->glbs;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-// 	typeof(ppg->rt_opts->clock_quality.clockClass) *class_ptr;
-// 	typeof(ppg->rt_opts->clock_quality.clockAccuracy) *accuracy_ptr;
+	typeof(ppg->rt_opts->clock_quality_clockClass) *class_ptr;
 	int error = 0;
 	/*
 	 * We need to change the class in the default options.
 	 * Unfortunately, ppg->rt_opts may be yet unassigned when this runs
 	 */
-// 	class_ptr = &__pp_default_rt_opts.clock_quality.clockClass;
-// 	accuracy_ptr = &__pp_default_rt_opts.clock_quality.clockAccuracy;
+	class_ptr = &__pp_default_rt_opts.clock_quality_clockClass;
 
 	ptp_mode = 0;
 
@@ -194,74 +162,47 @@ int wrc_ptp_set_mode(int mode)
 	switch (mode) {
 	case WRC_MODE_GM:
 	case WRC_MODE_ABSCAL: /* absolute calibration, gm-lookalike */
-		wrp->wrConfig = WR_M_ONLY;
-// 		ppi->role = PPSI_ROLE_MASTER;
-// 		*class_ptr = PP_PTP_CLASS_GM_LOCKED;
-// 		*accuracy_ptr = PP_PTP_ACCURACY_GM_LOCKED;
+		/* Can become slave if clock class is degradated due to PLL
+		 * unlocked and the peer on the other side has better clock class */
+		wrp->wrConfig = WR_M_AND_S;
+		WRPC_ARCH_G(ppg)->timingMode = WRH_TM_GRAND_MASTER;
+		*class_ptr = PP_PTP_CLASS_GM_LOCKED;
 		spll_init(SPLL_MODE_GRAND_MASTER, 0, SPLL_FLAG_ALIGN_PPS);
-		shw_pps_gen_unmask_output(1);
-		lock_timeout = LOCK_TIMEOUT_GM;
-// 		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_LOCKED;
-// 		DSDEF(ppi)->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED;
-		bmc_m1(ppi);
+		error = wrpc_spll_check_lock_with_timeout(LOCK_TIMEOUT_GM);
+		/* generate PPS no matter if PLL locked */
+		wrpc_enable_timing_output(ppg, 1);
+
 		break;
 
 	case WRC_MODE_MASTER:
-		wrp->wrConfig = WR_M_ONLY;
-// 		ppi->role = PPSI_ROLE_MASTER;
-// 		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
-// 		*accuracy_ptr = PP_PTP_ACCURACY_GM_UNLOCKED;
+		wrp->wrConfig = WR_M_AND_S;
+		WRPC_ARCH_G(ppg)->timingMode = WRH_TM_FREE_MASTER;
 		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, SPLL_FLAG_ALIGN_PPS);
-		shw_pps_gen_unmask_output(1);
-		lock_timeout = LOCK_TIMEOUT_FM;
-// 		DSDEF(ppi)->clockQuality.clockClass = PP_PTP_CLASS_GM_UNLOCKED;
-// 		DSDEF(ppi)->clockQuality.clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED;
-		bmc_m1(ppi);
+
+		wrpc_enable_timing_output(ppg, 1);
+		*class_ptr = PP_FRUNNING_CLOCK_CLASS;
+		error = wrpc_spll_check_lock_with_timeout(LOCK_TIMEOUT_FM);
+
 		break;
 
 	case WRC_MODE_SLAVE:
 		wrp->wrConfig = WR_S_ONLY;
-		// cfg needed?
-		ppi->externalPortConfigurationPortDS.desiredState = ppi->cfg.desiredState = PPS_SLAVE;
-		ppg->defaultDS->externalPortConfigurationEnabled = 1;
-// 		ppi->role = PPSI_ROLE_SLAVE;
-// // 		*class_ptr = PP_CLASS_SLAVE_ONLY;
-// 		*accuracy_ptr = PP_ACCURACY_DEFAULT;
-		/* skip initialization of spll for slave mode */
-// 		pp_printf("ppsON\n");
-		shw_pps_gen_unmask_output(0);
-// 		shw_pps_gen_unmask_output(1);
-// 		DSDEF(ppi)->clockQuality.clockClass = PP_CLASS_SLAVE_ONLY;
-// 		DSDEF(ppi)->clockQuality.clockAccuracy = PP_ACCURACY_DEFAULT;
+		/* when enter to slave state it will set spll to slave */
+		WRPC_ARCH_G(ppg)->timingMode = WRH_TM_BOUNDARY_CLOCK;
+
+		*class_ptr = PP_CLASS_SLAVE_ONLY;
 		break;
 	}
 
-	start_tics = timer_get_tics();
-
-	pp_printf("Locking PLL");
-// 	TOPS(ppi)->enable_timing_output(ppg,0); /* later, wr_init chooses */
-
-	while (!spll_check_lock(0) && lock_timeout) {
-		spll_update();
-		timer_delay(TICS_PER_SECOND);
-		if (timer_get_tics() - start_tics > lock_timeout) {
-			pp_printf("\nLock timeout.");
-			error = -ETIMEDOUT;
-			break;
-		}
-		pp_printf(".");
-	}
-	pp_printf("\n");
-
-	/* If we can't lock to the atomic/gps, we say it in the class */
-	if (error && mode == WRC_MODE_GM) {
-// 		*class_ptr = PP_PTP_CLASS_GM_UNLOCKED;
-// 		*accuracy_ptr = PP_PTP_ACCURACY_GM_UNLOCKED;
-	}
-
+	/* Update the default attributes depending on the clock class in
+	 * the configuration structure */
+	bmc_set_default_device_attributes(ppg);
+	/* Update defaultDS & timePropertiesDS with configured setting 
+	 * (clockClass,...) */
+	bmc_apply_configured_device_attributes(ppg);
 	ptp_mode = mode;
 	/* Keep a copy of mode for dump */
-	WRPC_ARCH_G(ppg)->timingMode = mode;
+// 	WRPC_ARCH_G(ppg)->timingMode = mode;
 	return error;
 }
 
@@ -274,7 +215,7 @@ int wrc_ptp_sync_mech(int e2e_p2p_qry)
 {
 	struct pp_instance *ppi = &ppi_static;
 	int running;
-	pp_printf("%s set to %d ppi->delayMechanism %d\n", __func__, e2e_p2p_qry, ppi->delayMechanism);
+
 	if (!CONFIG_HAS_P2P)
 		return ppi->delayMechanism;
 
@@ -315,7 +256,6 @@ int wrc_ptp_start()
 	    && scaledDelayCoefficient<=PP_MAX_DELAY_COEFFICIENT_AS_RELDIFF ) {
 		/* Scaled delay coefficient is valid then delta tx and rx also */
 		if ( ppi->asymmetryCorrectionPortDS.enable ) {
-			pp_printf("ppi->asymmetryCorrectionPortDS.enable\n");
 			ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient = ppi->cfg.scaledDelayCoefficient = scaledDelayCoefficient;
 			/* taken from: enable_asymmetryCorrection(ppi,TRUE); */
 			ppi->portDS->delayAsymCoeff=pp_servo_calculateDelayAsymCoefficient(ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient);
@@ -326,12 +266,8 @@ int wrc_ptp_start()
 			picos_to_interval(ppi->cfg.egressLatency_ps) + scaledSfpDeltaTx;
 		ppi->timestampCorrectionPortDS.ingressLatency =
 			picos_to_interval(ppi->cfg.ingressLatency_ps) + scaledSfpDeltaRx;
-		
-		pp_printf("scaledDelayCoefficient ok\n");
 	}
-	else
-	    pp_printf("scaledDelayCoefficient NOK\n");
-	pp_printf("scaledDelayCoefficient %s\n", print64(scaledDelayCoefficient,0));
+
 	/* Call the state machine. Being it in "Initializing" state, make
 	 * ppsi initialize what is necessary */
 	delay_ms = pp_state_machine(ppi, NULL, 0);
@@ -351,7 +287,6 @@ int wrc_ptp_stop()
 	struct pp_instance *ppi = &ppi_static;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
-// 	TOPS(ppi)->enable_timing_output(ppg,0);
 	/* Moving fiber: forget about this parent (FIXME: shouldn't be here) */
 	wrp->parentWrConfig = wrp->parentWrModeOn = 0;
 	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
@@ -366,8 +301,11 @@ int wrc_ptp_stop()
 	pp_leave_current_state(ppi);
 	ppi->n_ops->exit(ppi);
 	
-	if( ppi->ext_hooks->servo_reset)
+	pp_sprintf(ppi->servo->servo_state_name, "LINK_DOWN");
+	if( ppi->ext_hooks->servo_reset) {
 		(*ppi->ext_hooks->servo_reset)(ppi);
+
+	}
 	/* FIXME: this should be done in a different place and in a nicer way.
 	    This dirty hack was introduce to force re-doing of WR Link Setup
 	    when a link goes down and then up. */
@@ -436,7 +374,7 @@ int wrc_ptp_bmc_update(void)
 	return 1;
 }
 
-uint8_t wrc_pps_force(wrpc_pps_force_t action)
+int wrc_pps_force(wrpc_pps_force_t action)
 {
 	if (action == pps_force_check) {
 		/* wrpc_pps_force_t is mapped to values forcePpsGen */

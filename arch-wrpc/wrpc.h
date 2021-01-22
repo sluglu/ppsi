@@ -67,6 +67,7 @@ int wrpc_adjust_phase(int32_t phase_ps);
 int wrpc_enable_timing_output(struct pp_globals *ppg, int enable);
 int wrpc_spll_check_lock_with_timeout(int lock_timeout);
 int wrc_ptp_bmc_update(void);
+int wrc_ptp_link_down(void);
 int wrc_pps_force(wrpc_pps_force_t action);
 int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state);
 

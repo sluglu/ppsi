@@ -316,6 +316,22 @@ int wrc_ptp_stop()
 	return 0;
 }
 
+int wrc_ptp_link_down(void)
+{
+	/* special case, keep PPS on for GM and Master */
+	if (ptp_mode == WRC_MODE_MASTER || ptp_mode == WRC_MODE_GM) {
+		wrpc_enable_timing_output(ppg, 1);
+		/* if spll not in SPLL_MODE_FREE_RUNNING_MASTER/GM,
+		    Can happen if fiber is unplugged between locking spll in slave mode
+		    and entering PP_SLAVE state */
+		if (WRPC_ARCH_G(ppg)->timingMode == WRH_TM_BOUNDARY_CLOCK) {
+			WRPC_ARCH_G(ppg)->timingMode = WRH_TM_FREE_MASTER;
+			spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, SPLL_FLAG_ALIGN_PPS);
+		}
+	}
+	return 0;
+}
+
 int wrc_ptp_run(int start_stop_query)
 {
 	switch(start_stop_query) {

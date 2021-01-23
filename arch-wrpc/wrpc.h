@@ -46,6 +46,8 @@ struct wrpc_ethhdr {
 
 typedef struct  wrpc_arch_data_t {
 	wrh_timing_mode_t timingMode; /* Timing mode: Grand master, Free running,...*/
+	/* Keep a copy of configured mode for dump */
+	int wrpcModeCfg; /* Mode: Grand master, master, slave, abscal */
 } wrpc_arch_data_t;
 
 /* values mapped to pp_globals->pp_runtime_opts->forcePpsGen */

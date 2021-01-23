@@ -94,7 +94,8 @@ struct pp_instance ppi_static = {
 };
 
 struct wrpc_arch_data_t wrpc_arch_data = {
-	.timingMode = WRC_MODE_UNKNOWN
+	.timingMode = WRH_TM_DISABLED,
+	.wrpcModeCfg = WRC_MODE_UNKNOWN
 };
 
 /* We now have a structure with all globals, and multiple ppi inside */
@@ -207,8 +208,10 @@ int wrc_ptp_set_mode(int mode)
 	 * (clockClass,...) */
 	bmc_apply_configured_device_attributes(ppg);
 	ptp_mode = mode;
+
 	/* Keep a copy of mode for dump */
-// 	WRPC_ARCH_G(ppg)->timingMode = mode;
+	WRPC_ARCH_G(ppg)->wrpcModeCfg = mode;
+
 	return error;
 }
 

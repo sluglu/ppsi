@@ -55,7 +55,9 @@ CFLAGS += $(CFLAGS_OPTIMIZATION)
 
 CFLAGS += -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
+ifneq ($(WRPCSW_ROOT),)
 CFLAGS += -I$(WRPCSW_ROOT)
+endif
 
 # to avoid ifdef as much as possible, I use the kernel trick for OBJ variables
 OBJ-y := fsm.o diag.o timeout.o msgtype.o

@@ -9,9 +9,9 @@
 #define __PPSI_PPSI_H__
 #include <generated/autoconf.h>
 
-//#if defined(CONFIG_WRPCSW_ROOT)
+#if defined(CONFIG_WRPCSW_ROOT)
 #include "../../../include/generated/autoconf.h"
-//#endif
+#endif
 
 #include <stdint.h>
 #include <limits.h>

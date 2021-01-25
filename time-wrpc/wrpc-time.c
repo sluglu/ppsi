@@ -10,6 +10,8 @@
 #include "dev/syscon.h" /* in wrpc-sw */
 #include "../arch-wrpc/wrpc.h"
 
+static int utcOffset = CONFIG_LEAP_SECONDS_VAL;
+
 static int wrpc_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
 {
 	/* no UTC time */
@@ -21,17 +23,16 @@ static int wrpc_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minu
 
 static int wrpc_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
-	/* no UTC offset */
 	*leap59 = 0;
 	*leap61 = 0;
-	*offset = 0;
-	return -1;	
+	*offset = utcOffset;
+	return 0;
 }
 
 static int wrpc_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
 {
-	/* no UTC offset */
-	return -1;
+	utcOffset = offset;
+	return 0;
 }
 
 static int wrpc_time_get(struct pp_instance *ppi, struct pp_time *t)

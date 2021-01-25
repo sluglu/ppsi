@@ -72,6 +72,10 @@ int wrc_ptp_bmc_update(void);
 int wrc_ptp_link_down(void);
 int wrc_pps_force(wrpc_pps_force_t action);
 int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state);
+void wrc_ptp_set_leapsec(int leapsec);
+void wrc_ptp_get_leapsec(int *ptp, int *system);
+
+
 
 
 /* wrpc-calibration.c */

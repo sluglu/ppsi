@@ -121,8 +121,6 @@ int wrc_ptp_init()
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);
 
-	ppg->timePropertiesDS->currentUtcOffset = CONFIG_LEAP_SECONDS_VAL;
-
 	/* copy default ppi config */
 	memcpy(&ppi->cfg, &__pp_default_instance_cfg, sizeof(__pp_default_instance_cfg));
 	ppi->ext_hooks =&pp_hooks; /* default value */
@@ -410,3 +408,17 @@ int wrc_pps_force(wrpc_pps_force_t action)
 	wrpc_enable_timing_output(ppg, 2);
 	return action & 1;
 }
+
+void wrc_ptp_set_leapsec(int leapsec)
+{
+	TOPS(INST(ppg, 0))->set_utc_offset(NULL, leapsec, 0, 0);
+}
+
+void wrc_ptp_get_leapsec(int *ptp, int *system)
+{
+	int tmp;
+	*ptp = ppg->timePropertiesDS->currentUtcOffset;
+	TOPS(INST(ppg, 0))->get_utc_offset(NULL, system, &tmp, &tmp);
+	return;
+}
+

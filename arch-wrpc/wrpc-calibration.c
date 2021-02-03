@@ -13,7 +13,7 @@
 #include "../proto-ext-whiterabbit/wr-constants.h"
 #include "board.h"
 
-extern int32_t sfp_alpha;
+extern int64_t sfp_alpha;
 
 int wrpc_read_calibration_data(
 			       struct pp_instance *ppi,

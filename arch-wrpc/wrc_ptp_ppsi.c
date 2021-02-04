@@ -113,6 +113,7 @@ struct pp_globals ppg_static = {
 
 
 extern struct pp_ext_hooks  pp_hooks;
+int wrc_ptp_is_abscal(void);
 
 int wrc_ptp_init()
 {
@@ -422,3 +423,7 @@ void wrc_ptp_get_leapsec(int *ptp, int *system)
 	return;
 }
 
+int wrc_ptp_is_abscal(void)
+{
+	return ptp_mode == WRC_MODE_ABSCAL;
+}

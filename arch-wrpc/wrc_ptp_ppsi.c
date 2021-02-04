@@ -115,7 +115,7 @@ struct pp_globals ppg_static = {
 extern struct pp_ext_hooks  pp_hooks;
 int wrc_ptp_is_abscal(void);
 
-int wrc_ptp_init()
+int wrc_ptp_init(void)
 {
 	struct pp_instance *ppi = &ppi_static;
 
@@ -214,7 +214,7 @@ int wrc_ptp_set_mode(int mode)
 	return error;
 }
 
-int wrc_ptp_get_mode()
+int wrc_ptp_get_mode(void)
 {
 	return ptp_mode;
 }
@@ -240,7 +240,7 @@ int wrc_ptp_sync_mech(int e2e_p2p_qry)
 	}
 }
 
-int wrc_ptp_start()
+int wrc_ptp_start(void)
 {
 	struct pp_instance *ppi = &ppi_static;
 	TimeInterval scaledBitSlide = 0;
@@ -289,7 +289,7 @@ int wrc_ptp_start()
 	return 0;
 }
 
-int wrc_ptp_stop()
+int wrc_ptp_stop(void)
 {
 	pp_printf("PTP Stop!\n");
 	struct pp_instance *ppi = &ppi_static;
@@ -353,7 +353,7 @@ int wrc_ptp_run(int start_stop_query)
 }
 
 /* this returns whether or not the function did any work */
-int wrc_ptp_update()
+int wrc_ptp_update(void)
 {
 	int i;
 	struct pp_instance *ppi = &ppi_static;

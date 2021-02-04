@@ -248,8 +248,6 @@ int wrc_ptp_start(void)
 	TimeInterval scaledSfpDeltaTx = 0;
 	TimeInterval scaledSfpDeltaRx = 0;
 
-	pp_printf("PTP Start!\n");
-
 	/* sfp match was done before so read calibration data */
 
 	if ( wrpc_read_calibration_data(ppi,NULL,
@@ -291,7 +289,6 @@ int wrc_ptp_start(void)
 
 int wrc_ptp_stop(void)
 {
-	pp_printf("PTP Stop!\n");
 	struct pp_instance *ppi = &ppi_static;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 

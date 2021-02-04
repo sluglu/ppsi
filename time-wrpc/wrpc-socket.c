@@ -78,7 +78,9 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		    && (!HAS_ABSCAL || ptp_mode != WRC_MODE_ABSCAL))
 			mark_incorrect(t);
 	}
-
+	/* copy MAC and vlan of a peer to ppi */
+	memcpy(ppi->peer, &addr.mac, ETH_ALEN);
+	ppi->peer_vid = addr.vlan;
 /* wrpc-sw may pass this in USER_CFLAGS, to remove footprint */
 #ifndef CONFIG_NO_PTPDUMP
 	/* The header is separate, so dump payload only */

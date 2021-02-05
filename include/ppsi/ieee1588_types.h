@@ -72,7 +72,7 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 	UInteger32	nanosecondsField;
 } Timestamp;
 
-/** ******************* IEEE1588-2018 **************************************/
+/** ******************* IEEE1588-2019 **************************************/
 #define REL_DIFF_FRACBITS 62
 #define REL_DIFF_FRACBITS_AS_FLOAT 62.0
 #define REL_DIFF_TWO_POW_FRACBITS  ((double)4.611686018427388E18) /* double value returned by pow(2.0,62.0) */
@@ -86,7 +86,7 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 
 /*draft P1588_v_29: page 17*/
 /* The scaledRelativeDifference member is the relative difference expressed
- * as a dimensionless fraction and multiplied by 2+^62, with any remaining
+ * as a dimensionless fraction and multiplied by 2^+62, with any remaining
  * fractional part truncated. */
 typedef Integer64 RelativeDifference;
 
@@ -229,7 +229,7 @@ typedef struct {		/* page 65 */
 	UInteger8	priority2;
 	UInteger8	domainNumber;
 	Boolean		slaveOnly;
-	/** Optional (IEEE1588-2018) */
+	/** Optional (IEEE1588-2019) */
 	Timestamp	currentTime;               /*draft P1588_v_29: page 85*/
 	Boolean		instanceEnable;            /*draft P1588_v_29: page 86*/
 	Boolean	        externalPortConfigurationEnabled; /*draft P1588_v_29: page 86*/
@@ -280,7 +280,7 @@ typedef struct  {			/* page 72 */
 	UInteger4	versionNumber;
 
 	void		*ext_dsport;
-	/** (IEEE1588-2018) */
+	/** (IEEE1588-2019) */
 	Integer8	       logMinPdelayReqInterval;      /*draft P1588_v_29: page 124 */
 	UInteger4	       minorVersionNumber;           /*draft P1588_v_29: page 124 */
 	TimeInterval       delayAsymmetry;               /*draft P1588_v_29: page 124 */
@@ -305,7 +305,7 @@ typedef struct  {	/* page 70 */
 	Enumeration8	timeSource;
 } timePropertiesDS_t;
 
-/** ******************* IEEE1588-2018 **************************************
+/** ******************* IEEE1588-2019 **************************************
  * Adding new optional data sets (DS) defined in clause, only these relevant
  * for HA
  */

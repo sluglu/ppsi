@@ -12,6 +12,9 @@
 #include <ppsi/ppsi.h>
 #include <libwr/hal_shmem.h>
 
+#define LOCK_TIMEOUT_FM (4 * TICS_PER_SECOND)
+#define LOCK_TIMEOUT_GM (60 * TICS_PER_SECOND)
+
 /* This part is exactly wrpc-sw::wrc_ptp.h */
 #define WRC_MODE_UNKNOWN 0
 #define WRC_MODE_GM 1
@@ -41,29 +44,59 @@ struct wrpc_ethhdr {
 	uint16_t	h_proto;
 } __attribute__((packed));
 
+typedef struct  wrpc_arch_data_t {
+	wrh_timing_mode_t timingMode; /* Timing mode: Grand master, Free running,...*/
+	/* Keep a copy of configured mode for dump */
+	int wrpcModeCfg; /* Mode: Grand master, master, slave, abscal */
+} wrpc_arch_data_t;
+
+/* values mapped to pp_globals->pp_runtime_opts->forcePpsGen */
+typedef enum {
+	pps_force_off,
+	pps_force_on,
+	pps_force_check
+} wrpc_pps_force_t;
+
 /* wrpc-spll.c (some should move to time-wrpc/) */
 int wrpc_spll_locking_enable(struct pp_instance *ppi);
-int wrpc_spll_locking_poll(struct pp_instance *ppi, int grandmaster);
+int wrpc_spll_locking_poll(struct pp_instance *ppi);
 int wrpc_spll_locking_disable(struct pp_instance *ppi);
 int wrpc_spll_locking_reset(struct pp_instance *ppi);
 int wrpc_spll_enable_ptracker(struct pp_instance *ppi);
 int wrpc_adjust_in_progress(void);
 int wrpc_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec);
 int wrpc_adjust_phase(int32_t phase_ps);
-int wrpc_enable_timing_output(struct pp_instance *ppi, int *ppsOutputOn, int enable);
+int wrpc_enable_timing_output(struct pp_globals *ppg, int enable);
+int wrpc_spll_check_lock_with_timeout(int lock_timeout);
+int wrc_ptp_bmc_update(void);
+int wrc_ptp_link_down(void);
+int wrc_pps_force(wrpc_pps_force_t action);
+int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state);
+void wrc_ptp_set_leapsec(int leapsec);
+void wrc_ptp_get_leapsec(int *ptp, int *system);
+
+
+
 
 /* wrpc-calibration.c */
-int wrpc_read_calibration_data(struct pp_instance *ppi,
-			       uint32_t *deltaTx, uint32_t *deltaRx,
-			       int32_t *fix_alpha, int32_t *clock_period);
-int wrpc_calibrating_disable(struct pp_instance *ppi, int txrx);
-int wrpc_calibrating_enable(struct pp_instance *ppi, int txrx);
-int wrpc_calibrating_poll(struct pp_instance *ppi, int txrx, uint32_t *delta);
-int wrpc_calibration_pattern_enable(struct pp_instance *ppi,
-				    unsigned int calibrationPeriod,
-				    unsigned int calibrationPattern,
-				    unsigned int calibrationPatternLen);
-int wrpc_calibration_pattern_disable(struct pp_instance *ppi);
+int wrpc_read_calibration_data(
+			       struct pp_instance *ppi,
+			       int32_t *clock_period,
+			       TimeInterval *scaledBitSlide,
+			       RelativeDifference *scaledDelayCoefficient,
+			       TimeInterval *scaledSfpDeltaTx,
+			       TimeInterval *scaledSfpDeltaRx);
 int wrpc_get_port_state(struct hal_port_state *port, const char *port_name);
+
+
+static inline wrpc_arch_data_t *WRPC_ARCH_I(struct pp_instance *ppi)
+{
+	return (wrpc_arch_data_t *) GLBS(ppi)->arch_data;
+}
+
+static inline wrpc_arch_data_t *WRPC_ARCH_G(struct pp_globals *ppg)
+{
+	return (wrpc_arch_data_t *) ppg->arch_data;
+}
 
 #endif /* __WRPC_H */

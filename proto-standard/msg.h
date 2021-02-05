@@ -7,15 +7,13 @@
 #ifndef __MSG_H
 #define __MSG_H
 
-#define htonll(x) ((*(char *)&endianess == 1) ? \
-		htobe64(x)  /* Little endian */ \
-		: \
-		(x))        /* Big endian */
-
-#define ntohll(x) ((*(char *)&endianess == 1) ? \
-		be64toh(x) /* Little endian */ \
-		: \
-		(x))       /* Big endian */
+#if __BYTE_ORDER == __BIG_ENDIAN
+# define htonll(x) (x)
+# define ntohll(x) (x)
+#else
+# define htonll(x) htobe64(x)
+# define ntohll(x) be64toh(x)
+#endif
 
 extern const int endianess; /* use to check endianess */
 

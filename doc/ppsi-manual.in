@@ -58,7 +58,7 @@
 @top Introduction
 
 PPSi (@sc{ptp} Ported to Silicon) is an application which, in
-its basic operation, implements @sc{ieee} 1588-2020 specification in a way
+its basic operation, implements @sc{ieee} 1588-2019 specification in a way
 that is portable to several architectures, including OS-less ones.
 
 This manual is mainly aimed at developers: people who are working with
@@ -376,7 +376,7 @@ As of 2013-05 the project suffers from these known bugs:
 
 @itemize
 @item All frames must be sent according to a pseudo-random distribution;
-      this is mostly in place but mut be audited project-wide.
+      this is mostly in place but must be audited project-wide.
 @item We removed @i{peer-delay} support. We plan to add it back, and
       actually move White Rabbit to use @i{peer-delay} @sc{ptp} instead of
       @i{end-to-end} @sc{ptp}.
@@ -445,7 +445,7 @@ following 'port-specific' keywords will be associated to this port until
 a new keyword 'port' or 'link' appears.
 
 @anchor{arg-types}
-An option is a key/value(s) pair separated by at least a space character '@t{key value(s)}'. The '@t{value{s}}' entry
+An option is a key/value(s) pair separated by at least a space character '@t{key value(s)}'. The '@t{value(s)}' entry
 depends on the option type. Few types are supported by PPSi:
 
 
@@ -508,25 +508,25 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 	other as defined by the PTP protocol. A domain defines the scope of
 	PTP message communication, state, operations, data sets, and
 	timescale. PTP devices may participate in multiple domains.
-	For more details please refer to the IEEE 1588-2020 standard.
+	For more details please refer to the IEEE 1588-2019 standard.
 
 @item @b{priority1}  @i{[Int32]}
 	A user configurable designation that a clock belongs to an ordered
 	set of PTP devices from which a PTP Master is selected.
-	For more details please refer to the IEEE 1588-2020 standard.
+	For more details please refer to the IEEE 1588-2019 standard.
 
 @item @b{priority2}  @i{[Int32]}
 	A user configurable designation that provides finer grained ordering
 	among otherwise equivalent PTP devices.
-	For more details please refer to the IEEE 1588-2020 standard.
+	For more details please refer to the IEEE 1588-2019 standard.
 
 @item @b{forcePpsGen}  @i{[Boolean]}
-	Configuration of the PPS output. By default, the PPS is generated  
-	only when the clock class is set to 6(Grand master) or to 193(Free Running master.
-	When this option is set, the PPS is always generated.
+	Configuration of the PPS output. By default, the PPS is generated all the time
+	only when the clock class is set to 6 (Grand master) or to 193 (Free Running master).
+	When this option is set, the PPS is generated all the time for all clock class.
 
 @item @b{ptpFallbackPpsGen}  @i{[Boolean]}
-	if activated, enables the PPS generation if a slave instance 
+	if activated, enables the PPS generation if a slave instance
 	programmed to use an extension protocol (WR, L1Sync, ...) is falling back
 	to PTP communication only. 
 
@@ -548,14 +548,14 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
  This option is used to force the state of all port instances. The BMCA is then disabled
  in PPSi.
  When enabled, the port-specific option @t{desiredState} must be defined for each port instance 
- For more details please refer to the IEEE 1588-2020 (clause 17.6.2)
+ For more details please refer to the IEEE 1588-2019 (clause 17.6.2)
 
 @item @b{slaveOnly}  @i{[Boolean]}
   A @t{slaveOnly} Ordinary Clock utilizes the slaveOnly state machine
   which does not enable transition to MASTER state.
   This option must not be used when @i{externalPortConfigurationEnabled} is
   enabled.
-  For more details please refer to the IEEE 1588-2020 (clause 9.2.2.1)
+  For more details please refer to the IEEE 1588-2019 (clause 9.2.2.1)
 
 @end table
 
@@ -595,7 +595,7 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
   
   @item @b{masterOnly} @i{[Boolean]}
   If enabled , activates the optional '@i{masterOnly}' feature 
-  (refer to the IEEE 1588-2020 - clause 9.2.2.2).
+  (refer to the IEEE 1588-2019 - clause 9.2.2.2).
   This option cannot be used if the global option '@i{externalPortConfiguration}' is 
   enabled.
   If this option is not set, then the standard BMCA algorithm will be used.

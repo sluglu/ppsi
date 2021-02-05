@@ -31,10 +31,9 @@ int wr_link_on(struct pp_instance *ppi, void *buf, int len, int new_state)
 	 * absolute calibration only exists in arch-wrpc, so far, but
 	 * we can't include wrpc headers, not available in wrs builds
 	 */
-	extern int ptp_mode;
 	extern int ep_get_bitslide(void);
 
-	if (ptp_mode == 4 /* WRC_MODE_ABSCAL */) {
+	if (wrc_ptp_is_abscal() /* WRC_MODE_ABSCAL */) {
 		wrp->next_state = WRS_ABSCAL;
 		/* print header for the serial port stream of stamps */
 		pp_printf("### t4.phase is already corrected for bitslide\n");

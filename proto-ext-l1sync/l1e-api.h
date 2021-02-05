@@ -79,7 +79,7 @@ typedef struct  { /*draft P1588_v_29: page 100 and 333-335 */
 	Boolean		peerIsTxCoherent;
 	Boolean		peerIsRxCoherent;
 	Boolean		peerIsCongruent;
-	/* None compliant members with IEEE1558-2018 */
+	/* None compliant members with IEEE1558-2019 */
 	Enumeration8	next_state;
 } L1SyncBasicPortDS_t;
 

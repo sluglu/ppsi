@@ -115,7 +115,6 @@ void wr_reset_process(struct pp_instance *ppi, wr_role_t role);
 
 /* wr_servo interface */
 int     wr_servo_init(struct pp_instance *ppi);
-void    wr_servo_enable_tracking(int enable);
 
 typedef struct wr_servo_ext {
 	struct pp_time delta_txm;

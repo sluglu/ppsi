@@ -55,7 +55,9 @@ CFLAGS += $(CFLAGS_OPTIMIZATION)
 
 CFLAGS += -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
+ifneq ($(WRPCSW_ROOT),)
 CFLAGS += -I$(WRPCSW_ROOT)
+endif
 
 # to avoid ifdef as much as possible, I use the kernel trick for OBJ variables
 OBJ-y := fsm.o diag.o timeout.o msgtype.o
@@ -104,7 +106,7 @@ export CFLAGS
 # libraries: see proto-standard/Makefile as an example.
 
 $(TARGET).o: $(OBJ-y)
-	$(LD) --gc-sections --entry=main -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
+	$(LD) --gc-sections -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
 		--start-group $(OBJ-y) --end-group
 
 $(OBJ-y): .config $(wildcard include/ppsi/*.h)

@@ -1,5 +1,5 @@
 
-CFLAGS += -ffreestanding -Os \
+CFLAGS += -ffreestanding \
 	-ffunction-sections -fdata-sections \
 	-mmultiply-enabled -mbarrel-shift-enabled \
 	-Itools -Iproto-standard
@@ -9,7 +9,8 @@ WRPCSW_ROOT ?= $(CONFIG_WRPCSW_ROOT)
 
 CFLAGS += -I$(WRPCSW_ROOT)/include -I$(WRPCSW_ROOT)/include/std -I$(WRPCSW_ROOT)/softpll
 
-PPSI_O_LDFLAGS = -u wrc_ptp_init
+# TODOA: remove --no-gc-sections
+PPSI_O_LDFLAGS = --no-gc-sections -u wrc_ptp_init
 
 # Let's use the pp_printf we already have in wrpc-sw
 CONFIG_NO_PRINTF = y
@@ -26,7 +27,6 @@ OBJ-y += \
 	lib/drop.o \
 	lib/div64.o \
 	lib/time-arith.o \
-	lib/iicomm.o
 
 OBJ-$(CONFIG_WRPC_FAULTS) += $A/faults.o
 

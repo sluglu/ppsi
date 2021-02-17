@@ -407,19 +407,6 @@ int wrc_pps_force(wrpc_pps_force_t action)
 	return action & 1;
 }
 
-void wrc_ptp_set_leapsec(int leapsec)
-{
-	TOPS(INST(ppg, 0))->set_utc_offset(NULL, leapsec, 0, 0);
-}
-
-void wrc_ptp_get_leapsec(int *ptp, int *system)
-{
-	int tmp;
-	*ptp = ppg->timePropertiesDS->currentUtcOffset;
-	TOPS(INST(ppg, 0))->get_utc_offset(NULL, system, &tmp, &tmp);
-	return;
-}
-
 int wrc_ptp_is_abscal(void)
 {
 	return ptp_mode == WRC_MODE_ABSCAL;

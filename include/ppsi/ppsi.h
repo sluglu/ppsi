@@ -188,7 +188,7 @@ static inline int is_delayMechanismE2E(struct pp_instance *ppi) {
 }
 
 static inline int is_slaveOnly(defaultDS_t *def) {
-	return CONFIG_HAS_CODEOPT_EPC_ENABLED==0 && def->slaveOnly;
+	return CONFIG_HAS_CODEOPT_SO_FORCE_DISABLED == 0 && CONFIG_HAS_CODEOPT_EPC_ENABLED==0 && def->slaveOnly;
 }
 
 static inline int get_numberPorts(defaultDS_t *def) {

@@ -345,6 +345,15 @@ config 	CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
 		externalPortConfiguration set to false to reduce the footprint.
 		Saves ~1500B on WRPC
 
+config 	CODEOPT_SO_FORCE_DISABLED
+	boolean "Force disabled slaveOnly"
+	depends on CODEOPT_ENABLED
+	default y if ARCH_WRPC
+	default n
+	help
+		Force slaveOnly to false to reduce the footprint.
+		Saves ~650B.
+
 choice 
 	prompt "Exclusive options"
 	
@@ -362,7 +371,7 @@ choice
 	
 	config CODEOPT_SO_ENABLED
 		boolean "Force slaveOnly mode to true"
-		depends on CODEOPT_ENABLED && SINGLE_PORT
+		depends on CODEOPT_ENABLED && SINGLE_PORT && !CODEOPT_SO_FORCE_DISABLED
 		help 
 			slaveOnly is set to true and cannot be changed. 
 			It implies that the number of port instances must be set to 1. 
@@ -458,6 +467,12 @@ config HAS_CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
 	int
 	range 0 1
 	default 1 if CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
+	default 0
+
+config HAS_CODEOPT_SO_FORCE_DISABLED
+	int
+	range 0 1
+	default 1 if CODEOPT_SO_FORCE_DISABLED
 	default 0
 
 config HAS_CODEOPT_EPC_ENABLED

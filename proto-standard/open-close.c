@@ -103,7 +103,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	def->externalPortConfigurationEnabled=pp_rt_opts->externalPortConfigurationEnabled;
 	def->slaveOnly=rt_opts->slaveOnly;
 	if ( is_externalPortConfigurationEnabled(def) ) {
-		if ( def->slaveOnly ) {
+		if (is_slaveOnly(def)) {
 			pp_printf("ppsi: Incompatible configuration: SlaveOnly  and externalPortConfigurationEnabled\n");
 			def->slaveOnly=FALSE;
 		}

@@ -336,6 +336,15 @@ config 	CODEOPT_WRPC_SIZE
 	help
 		Use optimizations specific to WRPC to reduce the footprint.
 
+config 	CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
+	boolean "Remove external port configuration"
+	depends on CODEOPT_ENABLED
+	default y if ARCH_WRPC
+	default n
+	help
+		externalPortConfiguration set to false to reduce the footprint.
+		Saves ~1500B on WRPC
+
 choice 
 	prompt "Exclusive options"
 	
@@ -347,7 +356,7 @@ choice
 	
 	config CODEOPT_EPC_ENABLED 
 		boolean "Force externalPortConfiguration.enable to true"
-		depends on CODEOPT_ENABLED
+		depends on CODEOPT_ENABLED && !CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
 		help 
 			externalPortConfiguration.enable is set to true and cannot be changed
 	
@@ -443,6 +452,12 @@ config HAS_CODEOPT_CODEOPT_WRPC_SIZE
 	int
 	range 0 1
 	default 1 if CODEOPT_WRPC_SIZE
+	default 0
+
+config HAS_CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
+	int
+	range 0 1
+	default 1 if CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
 	default 0
 
 config HAS_CODEOPT_EPC_ENABLED

@@ -174,7 +174,9 @@ static inline struct pp_servo *SRV(struct pp_instance *ppi)
 }
 
 static inline int is_externalPortConfigurationEnabled (defaultDS_t *def) {
-	return CONFIG_HAS_CODEOPT_EPC_ENABLED || def->externalPortConfigurationEnabled;
+	return CONFIG_HAS_CODEOPT_EXT_PORT_CONF_FORCE_DISABLED == 0
+		&& (CONFIG_HAS_CODEOPT_EPC_ENABLED
+		    || def->externalPortConfigurationEnabled);
 }
 
 static inline int is_delayMechanismP2P(struct pp_instance *ppi) {

@@ -329,6 +329,13 @@ config 	CODEOPT_SINGLE_INSTANCE_PER_PORT
 	help 
 		Only one instance per port.
 
+config 	CODEOPT_WRPC_SIZE
+	boolean "Size optimizations specific for WRPC"
+	depends on CODEOPT_ENABLED && ARCH_WRPC
+	default y
+	help
+		Use optimizations specific to WRPC to reduce the footprint.
+
 choice 
 	prompt "Exclusive options"
 	
@@ -430,6 +437,12 @@ config HAS_CODEOPT_SINGLE_INSTANCE_PER_PORT
 	int 
 	range 0 1
 	default 1 if CODEOPT_SINGLE_INSTANCE_PER_PORT
+	default 0
+
+config HAS_CODEOPT_CODEOPT_WRPC_SIZE
+	int
+	range 0 1
+	default 1 if CODEOPT_WRPC_SIZE
 	default 0
 
 config HAS_CODEOPT_EPC_ENABLED

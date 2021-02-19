@@ -23,7 +23,7 @@ int wrpc_read_calibration_data(
 			       TimeInterval *scaledSfpDeltaTx,
 			       TimeInterval *scaledSfpDeltaRx)
 {
-	struct hal_port_state state;
+	struct wrc_port_state state;
 
 	if (wrpc_get_port_state(&state, ppi->iface_name))
 		return WRH_HW_CALIB_NOT_FOUND;
@@ -42,9 +42,7 @@ int wrpc_read_calibration_data(
 	if (scaledSfpDeltaTx) {
 		if (state.calib.tx_calibrated) {
 			*scaledSfpDeltaTx = picos_to_interval(
-						state.calib.delta_tx_phy
-						+ state.calib.sfp.delta_tx_ps
-						+ state.calib.delta_tx_board
+						state.calib.delta_tx_ps
 						);
 		} else
 			return WRH_HW_CALIB_NOT_FOUND;
@@ -55,9 +53,7 @@ int wrpc_read_calibration_data(
 	if (scaledSfpDeltaRx) {
 		if (state.calib.rx_calibrated) {
 			*scaledSfpDeltaRx = picos_to_interval(
-						state.calib.delta_rx_phy
-						+ state.calib.sfp.delta_rx_ps
-						+ state.calib.delta_rx_board
+						state.calib.delta_rx_ps
 						);
 		} else
 			return WRH_HW_CALIB_NOT_FOUND;

@@ -85,7 +85,7 @@ int wrpc_read_calibration_data(
 			       RelativeDifference *scaledDelayCoefficient,
 			       TimeInterval *scaledSfpDeltaTx,
 			       TimeInterval *scaledSfpDeltaRx);
-int wrpc_get_port_state(struct hal_port_state *port, const char *port_name);
+int wrpc_get_port_state(struct wrc_port_state *port, const char *port_name);
 
 
 static inline wrpc_arch_data_t *WRPC_ARCH_I(struct pp_instance *ppi)

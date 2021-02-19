@@ -135,7 +135,6 @@ int wrc_ptp_init(void)
 	/* egressLatency and ingressLatency are overwritten on ptp_start */
 
 	ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
-	ppi->portDS->masterOnly= ppi->cfg.masterOnly; /* can be overridden in pp_init_globals() */
 
 	pp_init_globals(&ppg_static, &__pp_default_rt_opts);
 

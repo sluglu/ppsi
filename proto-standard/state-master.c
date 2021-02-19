@@ -40,7 +40,7 @@ static int master_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	 * Announce messages received on a masterOnly PTP Port shall not be considered
 	 * in the operation of the best master clock algorithm or in the update of data sets.
 	 */
-	if ( ! DSPOR(ppi)->masterOnly) {
+	if (!is_masterOnly(DSPOR(ppi))) {
 		struct pp_frgn_master frgn_master;
 
 		bmc_store_frgn_master(ppi, &frgn_master, buf, len);

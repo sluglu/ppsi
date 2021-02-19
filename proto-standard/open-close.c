@@ -162,7 +162,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			Enumeration8 desiradedState=ppi->cfg.desiredState;
 
 			/* Clause 17.6.5.3 : - Clause 9.2.2 shall not be in effect */
-			if ( ppi->portDS->masterOnly ) {
+			if (is_masterOnly(ppi->portDS)) {
 				/* priority given to externalPortConfigurationEnabled */
 				ppi->portDS->masterOnly=FALSE;
 				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. materOnly set to FALSE\n");

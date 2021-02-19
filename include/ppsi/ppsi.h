@@ -191,6 +191,15 @@ static inline int is_slaveOnly(defaultDS_t *def) {
 	return CONFIG_HAS_CODEOPT_SO_FORCE_DISABLED == 0 && CONFIG_HAS_CODEOPT_EPC_ENABLED==0 && def->slaveOnly;
 }
 
+static inline int is_masterOnly(portDS_t *portDS) {
+#if CONFIG_HAS_CODEOPT_MO_FORCE_DISABLED
+	return 0;
+#else
+	return portDS->masterOnly;
+#endif
+}
+
+
 static inline int get_numberPorts(defaultDS_t *def) {
 	return CONFIG_HAS_CODEOPT_SINGLE_PORT ? 1 : def->numberPorts;
 }

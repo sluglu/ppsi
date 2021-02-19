@@ -354,6 +354,15 @@ config 	CODEOPT_SO_FORCE_DISABLED
 		Force slaveOnly to false to reduce the footprint.
 		Saves ~650B.
 
+config 	CODEOPT_MO_FORCE_DISABLED
+	boolean "Force disabled masterOnly"
+	depends on CODEOPT_ENABLED
+	default y if ARCH_WRPC
+	default n
+	help
+		Force masterOnly to false to reduce the footprint.
+		Saves ~100B.
+
 choice 
 	prompt "Exclusive options"
 	
@@ -473,6 +482,12 @@ config HAS_CODEOPT_SO_FORCE_DISABLED
 	int
 	range 0 1
 	default 1 if CODEOPT_SO_FORCE_DISABLED
+	default 0
+
+config HAS_CODEOPT_MO_FORCE_DISABLED
+	int
+	range 0 1
+	default 1 if CODEOPT_MO_FORCE_DISABLED
 	default 0
 
 config HAS_CODEOPT_EPC_ENABLED

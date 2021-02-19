@@ -622,7 +622,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	bmc_setup_local_frgn_master(ppi, &d0);
 
 
-	if ( ppi->portDS->masterOnly ) {
+	if (is_masterOnly(ppi->portDS)) {
 		/* if there is a better master show these values */
 		if (ppg->ebest_idx >= 0) {
 			/* don't update parent dataset */

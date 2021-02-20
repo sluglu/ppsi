@@ -40,23 +40,13 @@ int wrpc_read_calibration_data(
 	/* check if tx is calibrated,
 	 * if so read data */
 	if (scaledSfpDeltaTx) {
-		if (state.calib.tx_calibrated) {
-			*scaledSfpDeltaTx = picos_to_interval(
-						state.calib.delta_tx_ps
-						);
-		} else
-			return WRH_HW_CALIB_NOT_FOUND;
+		*scaledSfpDeltaTx = picos_to_interval(state.calib.delta_tx_ps);
 	}
 
 	/* check if rx is calibrated,
 	 * if so read data */
 	if (scaledSfpDeltaRx) {
-		if (state.calib.rx_calibrated) {
-			*scaledSfpDeltaRx = picos_to_interval(
-						state.calib.delta_rx_ps
-						);
-		} else
-			return WRH_HW_CALIB_NOT_FOUND;
+		*scaledSfpDeltaRx = picos_to_interval(state.calib.delta_rx_ps);
 	}
 
 	return WRH_HW_CALIB_OK;

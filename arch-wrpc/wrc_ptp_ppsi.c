@@ -249,13 +249,12 @@ int wrc_ptp_start(void)
 
 	/* sfp match was done before so read calibration data */
 
-	if ( wrpc_read_calibration_data(ppi,NULL,
+	wrpc_read_calibration_data(ppi, NULL,
 			&scaledBitSlide,
 			&scaledDelayCoefficient,
 			&scaledSfpDeltaTx,
-			&scaledSfpDeltaRx)!= WRH_HW_CALIB_OK ) {
-		pp_diag(ppi, fsm, 1, "Cannot get calibration values (bitslide, alpha, TX/Rx delays\n");
-	}
+			&scaledSfpDeltaRx);
+
 	ppi->timestampCorrectionPortDS.semistaticLatency = scaledBitSlide;
 	if (scaledDelayCoefficient>=PP_MIN_DELAY_COEFFICIENT_AS_RELDIFF
 	    && scaledDelayCoefficient<=PP_MAX_DELAY_COEFFICIENT_AS_RELDIFF ) {

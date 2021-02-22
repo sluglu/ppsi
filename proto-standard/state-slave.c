@@ -260,6 +260,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 
 		/* Check if the foreign master has changed */
 		if ( DSPAR(ppi)->newGrandmaster ) {
+			char gm_str[26];
 			// New grandmaster detected
 
 			DSPAR(ppi)->newGrandmaster=FALSE; // Clear it
@@ -268,8 +269,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 			ppi->next_state = PPS_UNCALIBRATED;
 
 			Octet *id=DSPAR(ppi)->parentPortIdentity.clockIdentity.id;
-			pp_info("New grandmaster detected: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
-						id[0],id[1],id[2],id[3],id[4],id[5],id[6],id[7]);
+			pp_info("New grandmaster detected: %s\n", format_hex8(gm_str, id));
 		}
 	}
 

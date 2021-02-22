@@ -34,7 +34,7 @@ int wr_m_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 				if (wrMsgId == LOCKED) {
 					wrp->next_state =  WRS_CALIBRATION;
 				} else {
-					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. LOCKED was expected\n",wrMsgId);
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. %s was expected\n",wrMsgId, "LOCKED");
 					wr_handshake_fail(ppi);
 				}
 				return 0;

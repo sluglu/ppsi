@@ -34,7 +34,7 @@ int wr_locked(struct pp_instance *ppi, void *buf, int len, int new_state)
 				if ( wrMsgId == CALIBRATE ) {
 					wrp->next_state=  WRS_RESP_CALIB_REQ;
 				} else {
-					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. CALIBRATE was expected\n",wrMsgId);
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. %s was expected\n",wrMsgId, "CALIBRATE");
 					wr_handshake_fail(ppi);
 				}
 				return 0;

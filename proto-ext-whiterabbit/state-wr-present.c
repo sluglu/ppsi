@@ -36,7 +36,7 @@ int wr_present(struct pp_instance *ppi, void *buf, int len, int new_state)
 				if ( wrMsgId == LOCK  ) {
 					wrp->next_state = WRS_S_LOCK;
 				} else {
-					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. LOCK was expected\n",wrMsgId);
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. %s was expected\n",wrMsgId, "LOCK");
 					wr_handshake_fail(ppi);
 				}
 				return 0;

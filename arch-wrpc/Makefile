@@ -1,8 +1,14 @@
 
+CFLAGS-CPU-LM32  = -mmultiply-enabled -mbarrel-shift-enabled
+CFLAGS-CPU-RISCV = -march=rv32im -mabi=ilp32
+
+# use lm32 if not defined
+CPU_ARCH ?= LM32
+
 CFLAGS += -ffreestanding \
 	-ffunction-sections -fdata-sections \
-	-mmultiply-enabled -mbarrel-shift-enabled \
-	-Itools -Iproto-standard
+	-Itools -Iproto-standard \
+	$(CFLAGS-CPU-$(CPU_ARCH))
 
 # Root of wrpc-sw project
 WRPCSW_ROOT ?= $(CONFIG_WRPCSW_ROOT)

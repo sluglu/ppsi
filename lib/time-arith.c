@@ -271,17 +271,17 @@ char *time_to_string(struct pp_time *t)
 /* Convert TimeInterval to string */
 char *interval_to_string(TimeInterval time)
 {
-	int64_t sign,nanos,picos;
+	int64_t nanos;
+	uint32_t picos;
+	char sign = ' ';
 
 	if ( time<0 && time !=INT64_MIN) {
-		sign=-1;
+		sign='-';
 		time=-time;
-	} else {
-		sign=1;
 	}
 	nanos = time >> TIME_INTERVAL_FRACBITS;
 	picos = (((time & TIME_INTERVAL_FRACMASK) * 1000) + TIME_INTERVAL_ROUNDING_VALUE ) >> TIME_INTERVAL_FRACBITS;
-	pp_sprintf(time_as_string,"%" PRId64 ".%03" PRId64, sign*nanos,picos);
+	pp_sprintf(time_as_string,"%c%" PRId64 ".%03d", sign, nanos, picos);
 	return time_as_string;
 }
 

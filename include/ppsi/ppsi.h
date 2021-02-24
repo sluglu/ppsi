@@ -422,7 +422,7 @@ extern int64_t interval_to_picos(TimeInterval interval);
 extern int is_timestamps_incorrect(struct pp_instance *ppsi, int *err_count, int ts_mask);
 extern char *time_to_string(struct pp_time *t);
 extern char *interval_to_string(TimeInterval time);
-extern char *relative_interval_to_string(TimeInterval time);
+extern char *relative_interval_to_string(RelativeDifference time);
 
 /*
  * The state machine itself is an array of these structures.

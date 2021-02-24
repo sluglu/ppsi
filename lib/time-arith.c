@@ -286,7 +286,7 @@ char *interval_to_string(TimeInterval time)
 }
 
 /* Convert RelativeInterval to string */
-char *relative_interval_to_string(TimeInterval time) {
+char *relative_interval_to_string(RelativeDifference time) {
     int32_t nsecs=time >> REL_DIFF_FRACBITS;
 	uint64_t sub_yocto=0;
     int64_t fraction;

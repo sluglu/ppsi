@@ -285,21 +285,29 @@ char *interval_to_string(TimeInterval time)
 	return time_as_string;
 }
 
-/* Convert RelativeInterval to string */
-char *relative_interval_to_string(RelativeDifference time) {
-    int32_t nsecs=time >> REL_DIFF_FRACBITS;
-	uint64_t sub_yocto=0;
-    int64_t fraction;
-	uint64_t bitWeight=500000000000000000;
+char *relative_interval_to_string(RelativeDifference time)
+{
+	char sign;
+	int32_t nsecs;
+	uint64_t sub_yocto = 0;
+	int64_t fraction;
+	uint64_t bitWeight = 500000000000000000;
 	uint64_t mask;
 
-
-    fraction=time & REL_DIFF_FRACMASK;
-	for (mask=(uint64_t) 1<< (REL_DIFF_FRACBITS-1);mask!=0; mask>>=1 ) {
-		if ( mask & fraction )
-			sub_yocto+=bitWeight;
-		bitWeight/=2;
+	if (time < 0) {
+		time =- time;
+		sign = '-';
+	} else {
+		sign = '+';
 	}
-	pp_sprintf(time_as_string,"%"PRId32".%018"PRIu64, nsecs, sub_yocto);
+
+	nsecs = time >> REL_DIFF_FRACBITS;
+	fraction=time & REL_DIFF_FRACMASK;
+	for (mask = (uint64_t) 1 << (REL_DIFF_FRACBITS - 1); mask != 0; mask >>= 1) {
+		if (mask & fraction)
+			sub_yocto += bitWeight;
+		bitWeight /= 2;
+	}
+	pp_sprintf(time_as_string,"%c%"PRId32".%018Ld", sign, nsecs, sub_yocto);
 	return time_as_string;
 }

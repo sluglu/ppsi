@@ -124,16 +124,17 @@ void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t) {
 void picos_to_pp_time(int64_t picos, struct pp_time *ts)
 {
 	uint64_t sec, nsec;
+	uint64_t picos_u;
 	int sign = (picos < 0 ? -1 : 1);
 
-	picos *= sign;
-	sec=picos/PP_PSEC_PER_SEC;
-	picos-=sec*PP_PSEC_PER_SEC;
-	nsec = picos/1000;
-	picos%=1000;
+	picos_u = picos * sign;
+	sec = picos_u / PP_PSEC_PER_SEC;
+	picos_u -= sec * PP_PSEC_PER_SEC;
+	nsec = picos_u / 1000;
+	picos_u %= 1000;
 
 	ts->scaled_nsecs = nsec << TIME_FRACBITS;
-	ts->scaled_nsecs += ((picos << TIME_FRACBITS)+TIME_ROUNDING_VALUE) / 1000;
+	ts->scaled_nsecs += ((picos_u << TIME_FRACBITS) + TIME_ROUNDING_VALUE)/ 1000;
 	ts->scaled_nsecs *= sign;
 	ts->secs = sec * sign;
 }
@@ -143,9 +144,9 @@ void picos_to_pp_time(int64_t picos, struct pp_time *ts)
 void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
 			  int32_t *ticks, int32_t *picos)
 {
-	int64_t ps, adj_ps;
+	uint64_t ps, adj_ps;
 	int32_t sign=(time->scaled_nsecs<0) ? -1 : 1;
-	int64_t scaled_nsecs=time->scaled_nsecs*sign;
+	uint64_t scaled_nsecs = time->scaled_nsecs * sign;
 
 	if ( clock_period_ps <= 0 ) {
 		pp_error("%s : Invalid clock period %d\n",__func__, clock_period_ps);
@@ -178,11 +179,12 @@ TimeInterval picos_to_interval(int64_t picos)
 	} else {
 
 		int64_t scaled_ns;
+		uint64_t picos_u;
 
 		int sign = (picos < 0 ? -1 : 1);
-		picos *= sign;
-		scaled_ns=(picos/1000) << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
-		scaled_ns+=((picos%1000) << TIME_INTERVAL_FRACBITS)/1000; /* Add picos */
+		picos_u = picos * sign;
+		scaled_ns = (picos_u / 1000) << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
+		scaled_ns += ((picos_u % 1000) << TIME_INTERVAL_FRACBITS) / 1000; /* Add picos */
 
 		return scaled_ns*sign;
 	}

@@ -151,8 +151,9 @@ void bmc_s1(struct pp_instance *ppi,
 	if (prop->ptpTimescale) {
 		ret = TOPS(ppi)->get_utc_time(ppi, &hours, &minutes, &seconds);
 		if (ret) {
+			/* "Could not get UTC time from system, taking received flags\n"; */
 			pp_diag(ppi, bmc, 1, 
-				"Could not get UTC time from system, taking received flags\n");
+				"Could not get UTC %s from system, taking received flags\n", "time");
 			prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
 			prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
 			prop->currentUtcOffset = frgn_master->currentUtcOffset;
@@ -178,8 +179,9 @@ void bmc_s1(struct pp_instance *ppi,
 				} else {
 					ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 					if (ret) {
+						/* "Could not get UTC flags from system, taking received flags\n" */
 						pp_diag(ppi, bmc, 1, 
-							"Could not get UTC flags from system, taking received flags\n");
+							"Could not get UTC %s from system, taking received flags\n", "flags");
 						prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
 						prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
 						prop->currentUtcOffset = frgn_master->currentUtcOffset;
@@ -370,21 +372,21 @@ static int are_qualified(struct pp_instance *ppi,
 
 	/* if B is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b)*/
 	if ( a_is_qualified && !b_is_qualified ) {
-		pp_diag(ppi, bmc, 2, "Dataset B not qualified\n");
+		pp_diag(ppi, bmc, 2, "Dataset %s not qualified\n", "B");
 		*ret=-1;
 		return 0;
 	}
 
 	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
 	if (b_is_qualified && !a_is_qualified) {
-		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
+		pp_diag(ppi, bmc, 2, "Dataset %s not qualified\n", "A");
 		*ret= 1;
 		return 0;
 	}
 
 	/* if both are not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
 	if ( !a_is_qualified && !b_is_qualified ) {
-		pp_diag(ppi, bmc, 2, "Dataset A & B not qualified\n");
+		pp_diag(ppi, bmc, 2, "Dataset %s not qualified\n", "A & B");
 		*ret= 0;
 		return 0;
 	}
@@ -410,33 +412,43 @@ static int bmc_gm_cmp(struct pp_instance *ppi,
 	}
 
 	if (a->grandmasterPriority1 != b->grandmasterPriority1) {
-		pp_diag(ppi, bmc, 3, "Priority1 A: %i, Priority1 B: %i\n",
-			a->grandmasterPriority1, b->grandmasterPriority1);
+		/* "Priority1 A: %i, Priority1 B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"Priority1", a->grandmasterPriority1,
+			"Priority1", b->grandmasterPriority1);
 		return a->grandmasterPriority1 - b->grandmasterPriority1;
 	}
 
 	if (qa->clockClass != qb->clockClass) {
-		pp_diag(ppi, bmc, 3, "ClockClass A: %i, ClockClass B: %i\n",
-			qa->clockClass, qb->clockClass);
+		/* "ClockClass A: %i, ClockClass B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"ClockClass", qa->clockClass,
+			"ClockClass", qb->clockClass);
 		return qa->clockClass - qb->clockClass;
 	}
 
 	if (qa->clockAccuracy != qb->clockAccuracy) {
-		pp_diag(ppi, bmc, 3, "ClockAccuracy A: %i, ClockAccuracy B: %i\n",
-			qa->clockAccuracy, qb->clockAccuracy);
+		/* "ClockAccuracy A: %i, ClockAccuracy B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"ClockAccuracy", qa->clockAccuracy,
+			"ClockAccuracy", qb->clockAccuracy);
 		return qa->clockAccuracy - qb->clockAccuracy;
 	}
 
 	if (qa->offsetScaledLogVariance != qb->offsetScaledLogVariance) {
-		pp_diag(ppi, bmc, 3, "Variance A: %i, Variance B: %i\n",
-			qa->offsetScaledLogVariance, qb->offsetScaledLogVariance);
+		/* "Variance A: %i, Variance B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"Variance", qa->offsetScaledLogVariance,
+			"Variance", qb->offsetScaledLogVariance);
 		return qa->offsetScaledLogVariance
 				- qb->offsetScaledLogVariance;
 	}
 
 	if (a->grandmasterPriority2 != b->grandmasterPriority2) {
-		pp_diag(ppi, bmc, 3, "Priority2 A: %i, Priority2 B: %i\n",
-			a->grandmasterPriority2, b->grandmasterPriority2);
+		/* "Priority2 A: %i, Priority2 B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"Priority2", a->grandmasterPriority2,
+			"Priority2", b->grandmasterPriority2);
 		return a->grandmasterPriority2 - b->grandmasterPriority2;
 	}
 
@@ -869,7 +881,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 		 */
 		if (!bmc_idcmp(&pid->clockIdentity, &DSDEF(ppi)->clockIdentity) &&
 				pid->portNumber==ppi->port_idx) {
-			pp_diag(ppi, bmc, 2, "Announce frame from same port\n");
+			pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "same port");
 			return NULL;
 		}
 		sel = 0;
@@ -893,19 +905,19 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 					&DSDEF(ppi)->clockIdentity)) {
 				cmpres = bmc_pidcmp(pid, &DSPOR(ppi)->portIdentity);
 
-				pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+				pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "this clock");
 
 				if (cmpres < 0) {
-					pp_diag(ppi, bmc, 2, "Announce frame from a better port on this clock\n");
+					pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "a better port on this clock");
 					bmc_p1(ppi);
 					ppi->next_state = PPS_PASSIVE;
 					/* as long as we receive that reset the announce timeout */
 					pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 				} else if (cmpres > 0) {
-					pp_diag(ppi, bmc, 2, "Announce frame from a worse port on this clock\n");
+					pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "a worse port on this clock");
 					return NULL;
 				} else {
-					pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
+					pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "this port");
 					return NULL;
 				}
 			}
@@ -913,7 +925,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 			/* Check if announce from a port from this clock 9.3.2.5 a) */
 			if (!bmc_idcmp(&pid->clockIdentity,
 					&DSDEF(ppi)->clockIdentity)) {
-				pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+				pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "this clock");
 				return NULL;
 			}
 		}
@@ -921,7 +933,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 		/* Check if announce has steps removed larger than 255 9.3.2.5 d) */
 		if (frgn_master->stepsRemoved >= 255) {
 			pp_diag(ppi, bmc, 2, "Announce frame steps removed"
-				"larger or equal 255: %i\n",
+				" larger or equal 255: %i\n",
 				frgn_master->stepsRemoved);
 			return NULL;
 		}
@@ -1058,7 +1070,7 @@ static void bmc_remove_foreign_master(struct pp_instance *ppi, int frg_master_id
 void bmc_flush_erbest(struct pp_instance *ppi)
 {
 	if ( ppi->frgn_rec_best!=-1 && ppi->frgn_rec_best<ppi->frgn_rec_num ) {
-		pp_diag(ppi, bmc, 1, "Aged out ErBest foreign master %i/%i\n",
+		pp_diag(ppi, bmc, 1, "Aged out %sforeign master %i/%i\n", "ErBest ",
 			ppi->frgn_rec_best, ppi->frgn_rec_num);
 		bmc_remove_foreign_master(ppi,ppi->frgn_rec_best);
 	}
@@ -1079,7 +1091,7 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 		if ( !is_ebest(GLBS(ppi),frgn_master) ) {
 			if ( (UInteger32)(now-frgn_master->lastAnnounceMsgMs)> ppi->frgn_master_time_window_ms ) {
 				// Remove age out
-				pp_diag(ppi, bmc, 1, "Aged out foreign master %i/%i\n",
+				pp_diag(ppi, bmc, 1, "Aged out %sforeign master %i/%i\n", "",
 						i, ppi->frgn_rec_num);
 				bmc_remove_foreign_master(ppi,i);
 				continue;

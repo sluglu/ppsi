@@ -96,8 +96,9 @@ int pp_lib_may_issue_announce(struct pp_instance *ppi)
 	if (prop->ptpTimescale) {
 		ret = TOPS(ppi)->get_utc_time(ppi, &hours, &minutes, &seconds);
 		if (ret) {
+			/* "Could not get UTC time from system, taking received flags\n" */
 			pp_diag(ppi, frames, 1, 
-				"Could not get UTC time from system, taking received flags\n");
+				"Could not get UTC %s from system, taking received flags\n", "time");
 		} else {
 			/* for 2 announce intervals after midnight, get the offset from the system */
 			if ((hours == 00) && (minutes == 00) && 

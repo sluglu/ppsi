@@ -415,6 +415,7 @@ static void dump_payload(char *prefix, void *pl, int len)
 			break;
 		case PPM_SIGNALING :
 			donelen += l1sync_dump_tlv(prefix, pl + donelen, n);
+			donelen += wr_dump_tlv(prefix, pl + donelen, n);
 			break;
 		default :
 			goto out;

@@ -135,7 +135,6 @@ int wrc_ptp_init(void)
 	/* egressLatency and ingressLatency are overwritten on ptp_start */
 
 	ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
-	ppi->portDS->masterOnly= ppi->cfg.masterOnly; /* can be overridden in pp_init_globals() */
 
 	pp_init_globals(&ppg_static, &__pp_default_rt_opts);
 
@@ -250,13 +249,12 @@ int wrc_ptp_start(void)
 
 	/* sfp match was done before so read calibration data */
 
-	if ( wrpc_read_calibration_data(ppi,NULL,
+	wrpc_read_calibration_data(ppi, NULL,
 			&scaledBitSlide,
 			&scaledDelayCoefficient,
 			&scaledSfpDeltaTx,
-			&scaledSfpDeltaRx)!= WRH_HW_CALIB_OK ) {
-		pp_diag(ppi, fsm, 1, "Cannot get calibration values (bitslide, alpha, TX/Rx delays\n");
-	}
+			&scaledSfpDeltaRx);
+
 	ppi->timestampCorrectionPortDS.semistaticLatency = scaledBitSlide;
 	if (scaledDelayCoefficient>=PP_MIN_DELAY_COEFFICIENT_AS_RELDIFF
 	    && scaledDelayCoefficient<=PP_MAX_DELAY_COEFFICIENT_AS_RELDIFF ) {
@@ -405,19 +403,6 @@ int wrc_pps_force(wrpc_pps_force_t action)
 	/* Disable pps generation if needed; according to forcePpsGen */
 	wrpc_enable_timing_output(ppg, 2);
 	return action & 1;
-}
-
-void wrc_ptp_set_leapsec(int leapsec)
-{
-	TOPS(INST(ppg, 0))->set_utc_offset(NULL, leapsec, 0, 0);
-}
-
-void wrc_ptp_get_leapsec(int *ptp, int *system)
-{
-	int tmp;
-	*ptp = ppg->timePropertiesDS->currentUtcOffset;
-	TOPS(INST(ppg, 0))->get_utc_offset(NULL, system, &tmp, &tmp);
-	return;
 }
 
 int wrc_ptp_is_abscal(void)

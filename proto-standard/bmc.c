@@ -16,11 +16,6 @@
 #define FFB_TTRA	0x10
 #define FFB_FTRA	0x20
 
-/* String to save space in diag messages */
-#define fmt_clock_identity_id_A_B "%sId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x,\n" \
-			                         "%sId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n"
-#define fmt_clock_identity_id     "%s: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x.%04x\n"
-
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
 void bmc_m1(struct pp_instance *ppi)
 {
@@ -156,8 +151,9 @@ void bmc_s1(struct pp_instance *ppi,
 	if (prop->ptpTimescale) {
 		ret = TOPS(ppi)->get_utc_time(ppi, &hours, &minutes, &seconds);
 		if (ret) {
+			/* "Could not get UTC time from system, taking received flags\n"; */
 			pp_diag(ppi, bmc, 1, 
-				"Could not get UTC time from system, taking received flags\n");
+				"Could not get UTC %s from system, taking received flags\n", "time");
 			prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
 			prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
 			prop->currentUtcOffset = frgn_master->currentUtcOffset;
@@ -183,8 +179,9 @@ void bmc_s1(struct pp_instance *ppi,
 				} else {
 					ret = TOPS(ppi)->get_utc_offset(ppi, &offset, &leap59, &leap61);
 					if (ret) {
+						/* "Could not get UTC flags from system, taking received flags\n" */
 						pp_diag(ppi, bmc, 1, 
-							"Could not get UTC flags from system, taking received flags\n");
+							"Could not get UTC %s from system, taking received flags\n", "flags");
 						prop->leap59 = ((frgn_master->flagField[1] & FFB_LI59) != 0);
 						prop->leap61 = ((frgn_master->flagField[1] & FFB_LI61) != 0);
 						prop->currentUtcOffset = frgn_master->currentUtcOffset;
@@ -375,21 +372,21 @@ static int are_qualified(struct pp_instance *ppi,
 
 	/* if B is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b)*/
 	if ( a_is_qualified && !b_is_qualified ) {
-		pp_diag(ppi, bmc, 2, "Dataset B not qualified\n");
+		pp_diag(ppi, bmc, 2, "Dataset %s not qualified\n", "B");
 		*ret=-1;
 		return 0;
 	}
 
 	/* if A is not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
 	if (b_is_qualified && !a_is_qualified) {
-		pp_diag(ppi, bmc, 2, "Dataset A not qualified\n");
+		pp_diag(ppi, bmc, 2, "Dataset %s not qualified\n", "A");
 		*ret= 1;
 		return 0;
 	}
 
 	/* if both are not qualified  9.3.2.5 c) & 9.3.2.3 a) & b) */
 	if ( !a_is_qualified && !b_is_qualified ) {
-		pp_diag(ppi, bmc, 2, "Dataset A & B not qualified\n");
+		pp_diag(ppi, bmc, 2, "Dataset %s not qualified\n", "A & B");
 		*ret= 0;
 		return 0;
 	}
@@ -405,6 +402,7 @@ static int bmc_gm_cmp(struct pp_instance *ppi,
 	int ret;
 	struct ClockQuality *qa = &a->grandmasterClockQuality;
 	struct ClockQuality *qb = &b->grandmasterClockQuality;
+	char clkid_str[26];
 
 	/* bmc_gm_cmp is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
@@ -414,47 +412,52 @@ static int bmc_gm_cmp(struct pp_instance *ppi,
 	}
 
 	if (a->grandmasterPriority1 != b->grandmasterPriority1) {
-		pp_diag(ppi, bmc, 3, "Priority1 A: %i, Priority1 B: %i\n",
-			a->grandmasterPriority1, b->grandmasterPriority1);
+		/* "Priority1 A: %i, Priority1 B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"Priority1", a->grandmasterPriority1,
+			"Priority1", b->grandmasterPriority1);
 		return a->grandmasterPriority1 - b->grandmasterPriority1;
 	}
 
 	if (qa->clockClass != qb->clockClass) {
-		pp_diag(ppi, bmc, 3, "ClockClass A: %i, ClockClass B: %i\n",
-			qa->clockClass, qb->clockClass);
+		/* "ClockClass A: %i, ClockClass B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"ClockClass", qa->clockClass,
+			"ClockClass", qb->clockClass);
 		return qa->clockClass - qb->clockClass;
 	}
 
 	if (qa->clockAccuracy != qb->clockAccuracy) {
-		pp_diag(ppi, bmc, 3, "ClockAccuracy A: %i, ClockAccuracy B: %i\n",
-			qa->clockAccuracy, qb->clockAccuracy);
+		/* "ClockAccuracy A: %i, ClockAccuracy B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"ClockAccuracy", qa->clockAccuracy,
+			"ClockAccuracy", qb->clockAccuracy);
 		return qa->clockAccuracy - qb->clockAccuracy;
 	}
 
 	if (qa->offsetScaledLogVariance != qb->offsetScaledLogVariance) {
-		pp_diag(ppi, bmc, 3, "Variance A: %i, Variance B: %i\n",
-			qa->offsetScaledLogVariance, qb->offsetScaledLogVariance);
+		/* "Variance A: %i, Variance B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"Variance", qa->offsetScaledLogVariance,
+			"Variance", qb->offsetScaledLogVariance);
 		return qa->offsetScaledLogVariance
 				- qb->offsetScaledLogVariance;
 	}
 
 	if (a->grandmasterPriority2 != b->grandmasterPriority2) {
-		pp_diag(ppi, bmc, 3, "Priority2 A: %i, Priority2 B: %i\n",
-			a->grandmasterPriority2, b->grandmasterPriority2);
+		/* "Priority2 A: %i, Priority2 B: %i\n", */
+		pp_diag(ppi, bmc, 3, "%s A: %i, %s B: %i\n",
+			"Priority2", a->grandmasterPriority2,
+			"Priority2", b->grandmasterPriority2);
 		return a->grandmasterPriority2 - b->grandmasterPriority2;
 	}
 
-	pp_diag(ppi, bmc, 3, "GmId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
-			a->grandmasterIdentity.id[0], a->grandmasterIdentity.id[1],
-			a->grandmasterIdentity.id[2], a->grandmasterIdentity.id[3],
-			a->grandmasterIdentity.id[4], a->grandmasterIdentity.id[5],
-			a->grandmasterIdentity.id[6], a->grandmasterIdentity.id[7]);
+	pp_diag(ppi, bmc, 3, "GmId A: %s\n",
+		format_hex8(clkid_str, a->grandmasterIdentity.id));
 
-	pp_diag(ppi, bmc, 3, "GmId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
-		b->grandmasterIdentity.id[0], b->grandmasterIdentity.id[1],
-		b->grandmasterIdentity.id[2], b->grandmasterIdentity.id[3],
-		b->grandmasterIdentity.id[4], b->grandmasterIdentity.id[5],
-		b->grandmasterIdentity.id[6], b->grandmasterIdentity.id[7]);
+	pp_diag(ppi, bmc, 3, "GmId B: %s\n",
+		format_hex8(clkid_str, b->grandmasterIdentity.id));
+
 	return bmc_idcmp(&a->grandmasterIdentity, &b->grandmasterIdentity);
 }
 
@@ -469,6 +472,8 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 	struct PortIdentity *pidrxa = &a->receivePortIdentity;
 	struct PortIdentity *pidrxb = &b->receivePortIdentity;
 	int diff;
+	char clkida_str[26];
+	char clkidb_str[26];
 
 	/* bmc_topology_cmp is called several times, so report only at level 2
 	 */
@@ -509,37 +514,25 @@ static int bmc_topology_cmp(struct pp_instance *ppi,
 	/* stepsRemoved is equal, compare identities */
 	diff = bmc_pidcmp(pidtxa, pidtxb);
 	if (diff) {
-		pp_diag(ppi, bmc, 3, fmt_clock_identity_id_A_B,
+		pp_diag(ppi, bmc, 3, "%sId A: %s.%04x,\n%sId B: %s.%04x\n",
 			"Tx",
-			pidtxa->clockIdentity.id[0], pidtxa->clockIdentity.id[1],
-			pidtxa->clockIdentity.id[2], pidtxa->clockIdentity.id[3],
-			pidtxa->clockIdentity.id[4], pidtxa->clockIdentity.id[5],
-			pidtxa->clockIdentity.id[6], pidtxa->clockIdentity.id[7],
+			format_hex8(clkida_str, pidtxa->clockIdentity.id),
 			pidtxa->portNumber,
 			"Tx",
-			pidtxb->clockIdentity.id[0], pidtxb->clockIdentity.id[1],
-			pidtxb->clockIdentity.id[2], pidtxb->clockIdentity.id[3],
-			pidtxb->clockIdentity.id[4], pidtxb->clockIdentity.id[5],
-			pidtxb->clockIdentity.id[6], pidtxb->clockIdentity.id[7],
+			format_hex8(clkidb_str, pidtxb->clockIdentity.id),
 			pidtxb->portNumber);
 		return diff;
 	}
 
 	/* sourcePortIdentity is equal, compare receive port identites, which
 	 * is the last decision maker, which has to be different */
-	pp_diag(ppi, bmc, 3, fmt_clock_identity_id_A_B,
+	pp_diag(ppi, bmc, 3, "%sId A: %s.%04x,\n%sId B: %s.%04x\n",
 		"Rx",
-		pidrxa->clockIdentity.id[0], pidrxa->clockIdentity.id[1],
-		pidrxa->clockIdentity.id[2], pidrxa->clockIdentity.id[3],
-		pidrxa->clockIdentity.id[4], pidrxa->clockIdentity.id[5],
-		pidrxa->clockIdentity.id[6], pidrxa->clockIdentity.id[7],
-		pidrxa->portNumber,
+		format_hex8(clkida_str, pidtxa->clockIdentity.id),
+		pidtxa->portNumber,
 		"Rx",
-		pidrxb->clockIdentity.id[0], pidrxb->clockIdentity.id[1],
-		pidrxb->clockIdentity.id[2], pidrxb->clockIdentity.id[3],
-		pidrxb->clockIdentity.id[4], pidrxb->clockIdentity.id[5],
-		pidrxb->clockIdentity.id[6], pidrxb->clockIdentity.id[7],
-		pidrxb->portNumber);
+		format_hex8(clkidb_str, pidtxb->clockIdentity.id),
+		pidtxb->portNumber);
 	return bmc_pidcmp(pidrxa, pidrxb);
 }
 
@@ -553,19 +546,14 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
+	char clkid_str[26];
 	/* dataset_cmp is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
-	pp_diag(ppi, bmc, 3, "portId A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
-			a->sourcePortIdentity.clockIdentity.id[0], a->sourcePortIdentity.clockIdentity.id[1],
-			a->sourcePortIdentity.clockIdentity.id[2], a->sourcePortIdentity.clockIdentity.id[3],
-			a->sourcePortIdentity.clockIdentity.id[4], a->sourcePortIdentity.clockIdentity.id[5],
-			a->sourcePortIdentity.clockIdentity.id[6], a->sourcePortIdentity.clockIdentity.id[7]);
+	pp_diag(ppi, bmc, 3, "portId A: %s\n",
+		format_hex8(clkid_str, a->sourcePortIdentity.clockIdentity.id));
 
-	pp_diag(ppi, bmc, 3, "portId B: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n",
-		b->sourcePortIdentity.clockIdentity.id[0], b->sourcePortIdentity.clockIdentity.id[1],
-		b->sourcePortIdentity.clockIdentity.id[2], b->sourcePortIdentity.clockIdentity.id[3],
-		b->sourcePortIdentity.clockIdentity.id[4], b->sourcePortIdentity.clockIdentity.id[5],
-		b->sourcePortIdentity.clockIdentity.id[6], b->sourcePortIdentity.clockIdentity.id[7]);
+	pp_diag(ppi, bmc, 3, "portId B: %s\n",
+		format_hex8(clkid_str, b->sourcePortIdentity.clockIdentity.id));
 
 	if (!bmc_idcmp(&a->grandmasterIdentity, &b->grandmasterIdentity)) {
 		/* Check topology */
@@ -622,7 +610,7 @@ static int bmc_state_decision(struct pp_instance *ppi)
 	bmc_setup_local_frgn_master(ppi, &d0);
 
 
-	if ( ppi->portDS->masterOnly ) {
+	if (is_masterOnly(ppi->portDS)) {
 		/* if there is a better master show these values */
 		if (ppg->ebest_idx >= 0) {
 			/* don't update parent dataset */
@@ -870,6 +858,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 	int sel;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	struct PortIdentity *pid = &hdr->sourcePortIdentity;
+	char clkid_str[26];
 
 	pp_diag(ppi, bmc, 2, "%s\n", __func__);
 
@@ -877,12 +866,9 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 	assert(ppi->state != PPS_FAULTY, "Should not be called when state is FAULTY\n");
 	assert(ppi->state != PPS_INITIALIZING, "Should not be called when state is INITIALIZING\n");
 
-	pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+	pp_diag(ppi, bmc, 3, "%s: %s.%04x\n",
 		"Foreign Master Port Id",
-		pid->clockIdentity.id[0], pid->clockIdentity.id[1],
-		pid->clockIdentity.id[2], pid->clockIdentity.id[3],
-		pid->clockIdentity.id[4], pid->clockIdentity.id[5],
-		pid->clockIdentity.id[6], pid->clockIdentity.id[7],
+		format_hex8(clkid_str, pid->clockIdentity.id),
 		pid->portNumber);
 
 	if (is_externalPortConfigurationEnabled(DSDEF(ppi)) ) {
@@ -895,7 +881,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 		 */
 		if (!bmc_idcmp(&pid->clockIdentity, &DSDEF(ppi)->clockIdentity) &&
 				pid->portNumber==ppi->port_idx) {
-			pp_diag(ppi, bmc, 2, "Announce frame from same port\n");
+			pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "same port");
 			return NULL;
 		}
 		sel = 0;
@@ -919,19 +905,19 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 					&DSDEF(ppi)->clockIdentity)) {
 				cmpres = bmc_pidcmp(pid, &DSPOR(ppi)->portIdentity);
 
-				pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+				pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "this clock");
 
 				if (cmpres < 0) {
-					pp_diag(ppi, bmc, 2, "Announce frame from a better port on this clock\n");
+					pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "a better port on this clock");
 					bmc_p1(ppi);
 					ppi->next_state = PPS_PASSIVE;
 					/* as long as we receive that reset the announce timeout */
 					pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
 				} else if (cmpres > 0) {
-					pp_diag(ppi, bmc, 2, "Announce frame from a worse port on this clock\n");
+					pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "a worse port on this clock");
 					return NULL;
 				} else {
-					pp_diag(ppi, bmc, 2, "Announce frame from this port\n");
+					pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "this port");
 					return NULL;
 				}
 			}
@@ -939,7 +925,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 			/* Check if announce from a port from this clock 9.3.2.5 a) */
 			if (!bmc_idcmp(&pid->clockIdentity,
 					&DSDEF(ppi)->clockIdentity)) {
-				pp_diag(ppi, bmc, 2, "Announce frame from this clock\n");
+				pp_diag(ppi, bmc, 2, "Announce frame from %s\n", "this clock");
 				return NULL;
 			}
 		}
@@ -947,7 +933,7 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 		/* Check if announce has steps removed larger than 255 9.3.2.5 d) */
 		if (frgn_master->stepsRemoved >= 255) {
 			pp_diag(ppi, bmc, 2, "Announce frame steps removed"
-				"larger or equal 255: %i\n",
+				" larger or equal 255: %i\n",
 				frgn_master->stepsRemoved);
 			return NULL;
 		}
@@ -1084,7 +1070,7 @@ static void bmc_remove_foreign_master(struct pp_instance *ppi, int frg_master_id
 void bmc_flush_erbest(struct pp_instance *ppi)
 {
 	if ( ppi->frgn_rec_best!=-1 && ppi->frgn_rec_best<ppi->frgn_rec_num ) {
-		pp_diag(ppi, bmc, 1, "Aged out ErBest foreign master %i/%i\n",
+		pp_diag(ppi, bmc, 1, "Aged out %sforeign master %i/%i\n", "ErBest ",
 			ppi->frgn_rec_best, ppi->frgn_rec_num);
 		bmc_remove_foreign_master(ppi,ppi->frgn_rec_best);
 	}
@@ -1105,7 +1091,7 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 		if ( !is_ebest(GLBS(ppi),frgn_master) ) {
 			if ( (UInteger32)(now-frgn_master->lastAnnounceMsgMs)> ppi->frgn_master_time_window_ms ) {
 				// Remove age out
-				pp_diag(ppi, bmc, 1, "Aged out foreign master %i/%i\n",
+				pp_diag(ppi, bmc, 1, "Aged out %sforeign master %i/%i\n", "",
 						i, ppi->frgn_rec_num);
 				bmc_remove_foreign_master(ppi,i);
 				continue;
@@ -1133,6 +1119,7 @@ static int bmc_check_frgn_master(struct pp_instance *ppi)
 {
 	int i;
 	struct PortIdentity *pid;
+	char clkid_str[26];
 
 	if (ppi->frgn_rec_num > 0) {
 		for (i =0; i < ppi->frgn_rec_num; i++) {
@@ -1143,12 +1130,9 @@ static int bmc_check_frgn_master(struct pp_instance *ppi)
 				if(0 > bmc_pidcmp(&ppi->frgn_master[i].sourcePortIdentity,
 						&DSPOR(ppi)->portIdentity)) {
 					pid = &ppi->frgn_master[i].sourcePortIdentity;
-					pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+					pp_diag(ppi, bmc, 3, "%s: %s.%04x\n",
 					   "Better Master on same Clock Port Id",
-						pid->clockIdentity.id[0], pid->clockIdentity.id[1],
-						pid->clockIdentity.id[2], pid->clockIdentity.id[3],
-						pid->clockIdentity.id[4], pid->clockIdentity.id[5],
-						pid->clockIdentity.id[6], pid->clockIdentity.id[7],
+						format_hex8(clkid_str, pid->clockIdentity.id),
 						pid->portNumber);
 					return 1;
 				}
@@ -1192,6 +1176,7 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 	struct pp_frgn_master *frgn_master;
 	PortIdentity *frgn_master_pid;
 	int j, best;
+	char clkid_str[26];
 
 	/* if link is down clear foreign master table */
 	if ((!ppi->link_up) && (ppi->frgn_rec_num > 0))
@@ -1220,12 +1205,9 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 						ppi->frgn_rec_num);
 
 					frgn_master_pid = &frgn_master[best].sourcePortIdentity;
-					pp_diag(ppi, bmc, 3, fmt_clock_identity_id,
+					pp_diag(ppi, bmc, 3, "%s: %s.%04x\n",
 						"SourcePortId",
-						frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
-						frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
-						frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
-						frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
+						format_hex8(clkid_str, frgn_master_pid->clockIdentity.id),
 						frgn_master_pid->portNumber);
 				} else
 					best=-1;
@@ -1257,6 +1239,7 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 	int i, best=-1;
 	struct pp_instance *ppi_best;
 	PortIdentity *frgn_master_pid;
+	char clkid_str[26];
 
 	/* bmc_update_ebest is called several times, so report only at
 	 * level 2 */
@@ -1288,12 +1271,9 @@ static void bmc_update_ebest(struct pp_globals *ppg)
 		pp_diag(ppi_best, bmc, 1, "Best foreign master is at port "
 			"%i\n", (best+1));
 		frgn_master_pid = &ppi_best->frgn_master[ppi_best->frgn_rec_best].sourcePortIdentity;
-		pp_diag(ppi_best, bmc, 3, fmt_clock_identity_id,
+		pp_diag(ppi_best, bmc, 3, "%s: %s.%04x\n",
 			"SourcePortId",
-			frgn_master_pid->clockIdentity.id[0], frgn_master_pid->clockIdentity.id[1],
-			frgn_master_pid->clockIdentity.id[2], frgn_master_pid->clockIdentity.id[3],
-			frgn_master_pid->clockIdentity.id[4], frgn_master_pid->clockIdentity.id[5],
-			frgn_master_pid->clockIdentity.id[6], frgn_master_pid->clockIdentity.id[7],
+			format_hex8(clkid_str, frgn_master_pid->clockIdentity.id),
 			frgn_master_pid->portNumber);
 	}
 	if (ppg->ebest_idx != best) {

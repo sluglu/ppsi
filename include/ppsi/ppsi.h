@@ -174,7 +174,9 @@ static inline struct pp_servo *SRV(struct pp_instance *ppi)
 }
 
 static inline int is_externalPortConfigurationEnabled (defaultDS_t *def) {
-	return CONFIG_HAS_CODEOPT_EPC_ENABLED || def->externalPortConfigurationEnabled;
+	return CONFIG_HAS_CODEOPT_EXT_PORT_CONF_FORCE_DISABLED == 0
+		&& (CONFIG_HAS_CODEOPT_EPC_ENABLED
+		    || def->externalPortConfigurationEnabled);
 }
 
 static inline int is_delayMechanismP2P(struct pp_instance *ppi) {
@@ -186,8 +188,17 @@ static inline int is_delayMechanismE2E(struct pp_instance *ppi) {
 }
 
 static inline int is_slaveOnly(defaultDS_t *def) {
-	return CONFIG_HAS_CODEOPT_EPC_ENABLED==0 && def->slaveOnly;
+	return CONFIG_HAS_CODEOPT_SO_FORCE_DISABLED == 0 && CONFIG_HAS_CODEOPT_EPC_ENABLED==0 && def->slaveOnly;
 }
+
+static inline int is_masterOnly(portDS_t *portDS) {
+#if CONFIG_HAS_CODEOPT_MO_FORCE_DISABLED
+	return 0;
+#else
+	return portDS->masterOnly;
+#endif
+}
+
 
 static inline int get_numberPorts(defaultDS_t *def) {
 	return CONFIG_HAS_CODEOPT_SINGLE_PORT ? 1 : def->numberPorts;
@@ -411,7 +422,7 @@ extern int64_t interval_to_picos(TimeInterval interval);
 extern int is_timestamps_incorrect(struct pp_instance *ppsi, int *err_count, int ts_mask);
 extern char *time_to_string(struct pp_time *t);
 extern char *interval_to_string(TimeInterval time);
-extern char *relative_interval_to_string(TimeInterval time);
+extern char *relative_interval_to_string(RelativeDifference time);
 
 /*
  * The state machine itself is an array of these structures.

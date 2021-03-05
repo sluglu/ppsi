@@ -109,6 +109,10 @@ $(TARGET).o: $(OBJ-y)
 	$(LD) --gc-sections -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
 		--start-group $(OBJ-y) --end-group
 
+$(TARGET).a: $(OBJ-y)
+	$(AR) rc $@ $(OBJ-y)
+
+
 $(OBJ-y): .config $(wildcard include/ppsi/*.h)
 
 # Finally, "make clean" is expected to work

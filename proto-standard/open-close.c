@@ -103,7 +103,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	def->externalPortConfigurationEnabled=pp_rt_opts->externalPortConfigurationEnabled;
 	def->slaveOnly=rt_opts->slaveOnly;
 	if ( is_externalPortConfigurationEnabled(def) ) {
-		if ( def->slaveOnly ) {
+		if (is_slaveOnly(def)) {
 			pp_printf("ppsi: Incompatible configuration: SlaveOnly  and externalPortConfigurationEnabled\n");
 			def->slaveOnly=FALSE;
 		}
@@ -162,7 +162,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			Enumeration8 desiradedState=ppi->cfg.desiredState;
 
 			/* Clause 17.6.5.3 : - Clause 9.2.2 shall not be in effect */
-			if ( ppi->portDS->masterOnly ) {
+			if (is_masterOnly(ppi->portDS)) {
 				/* priority given to externalPortConfigurationEnabled */
 				ppi->portDS->masterOnly=FALSE;
 				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. materOnly set to FALSE\n");

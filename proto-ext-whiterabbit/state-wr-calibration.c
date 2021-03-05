@@ -27,7 +27,7 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len, int new_state)
 	ti = ppi->timestampCorrectionPortDS.egressLatency*1000;
 	delta->scaledPicoseconds.msb = ti >> 32;
 	delta->scaledPicoseconds.lsb = ti & 0xFFFFFFFF;
-	pp_diag(ppi, ext, 1, "deltaTx: msb=0x%x lsb=0x%x\n",
+	pp_diag(ppi, ext, 1, "%s: msb=0x%x lsb=0x%x\n", "deltaTx",
 		wrp->deltaTx.scaledPicoseconds.msb,
 		wrp->deltaTx.scaledPicoseconds.lsb);
 	fixedDelta_to_pp_time(*delta, &se->delta_txs);/* Update servo specific data */
@@ -38,7 +38,7 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len, int new_state)
 				ppi->timestampCorrectionPortDS.semistaticLatency) * 1000);
 	delta->scaledPicoseconds.msb = ti >> 32;
 	delta->scaledPicoseconds.lsb = ti & 0xFFFFFFFF;
-	pp_diag(ppi, ext, 1, "deltaRx: msb=0x%x lsb=0x%x\n",
+	pp_diag(ppi, ext, 1, "%s: msb=0x%x lsb=0x%x\n", "deltaRx",
 		wrp->deltaRx.scaledPicoseconds.msb,
 		wrp->deltaRx.scaledPicoseconds.lsb);
 	fixedDelta_to_pp_time(*delta, &se->delta_rxs);/* Update servo specific data */

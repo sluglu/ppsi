@@ -57,6 +57,7 @@ typedef enum {
 	pps_force_check
 } wrpc_pps_force_t;
 
+extern struct pp_globals *ppg;
 /* wrpc-spll.c (some should move to time-wrpc/) */
 int wrpc_spll_locking_enable(struct pp_instance *ppi);
 int wrpc_spll_locking_poll(struct pp_instance *ppi);
@@ -72,8 +73,6 @@ int wrc_ptp_bmc_update(void);
 int wrc_ptp_link_down(void);
 int wrc_pps_force(wrpc_pps_force_t action);
 int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state);
-void wrc_ptp_set_leapsec(int leapsec);
-void wrc_ptp_get_leapsec(int *ptp, int *system);
 
 
 
@@ -86,7 +85,7 @@ int wrpc_read_calibration_data(
 			       RelativeDifference *scaledDelayCoefficient,
 			       TimeInterval *scaledSfpDeltaTx,
 			       TimeInterval *scaledSfpDeltaRx);
-int wrpc_get_port_state(struct hal_port_state *port, const char *port_name);
+int wrpc_get_port_state(struct wrc_port_state *port, const char *port_name);
 
 
 static inline wrpc_arch_data_t *WRPC_ARCH_I(struct pp_instance *ppi)
@@ -99,4 +98,16 @@ static inline wrpc_arch_data_t *WRPC_ARCH_G(struct pp_globals *ppg)
 	return (wrpc_arch_data_t *) ppg->arch_data;
 }
 
+static inline void wrc_ptp_get_leapsec(int *ptp, int *system)
+{
+	int tmp;
+	*ptp = ppg->timePropertiesDS->currentUtcOffset;
+	TOPS(INST(ppg, 0))->get_utc_offset(NULL, system, &tmp, &tmp);
+	return;
+}
+
+static inline void wrc_ptp_set_leapsec(int leapsec)
+{
+	TOPS(INST(ppg, 0))->set_utc_offset(NULL, leapsec, 0, 0);
+}
 #endif /* __WRPC_H */

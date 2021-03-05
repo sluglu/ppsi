@@ -15,4 +15,7 @@ extern int atoi(const char *s);
 
 extern uint32_t __div64_32(uint64_t *n, uint32_t base);
 
+extern char *format_hex8(char *s, const unsigned char *mac);
+extern char *format_mac(char *s, const unsigned char *mac);
+
 #endif /* __PPSI_LIB_H__ */

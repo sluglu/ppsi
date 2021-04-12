@@ -112,7 +112,7 @@ menu "PTP Protocol Options"
 	config E2E_ONLY
 		boolean "Avoid building P2P code"
 		depends on E2E
-		default y if E2E && (ARCH_BARE_I386 || ARCH_BARE_X86_64)
+		default y if E2E && (ARCH_BARE_I386 || ARCH_BARE_X86_64 || ARCH_WRPC)
 		help
 		  If you choose E2E above, P2P is built anyways,
 		  and you can choose at runtime what to run.

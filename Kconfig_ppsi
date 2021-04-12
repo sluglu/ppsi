@@ -135,11 +135,11 @@ menu "Enabled profiles"
 
 	config PROFILE_WR
 		bool "WhiteRabbit"
-		default y if ARCH_WRS
+		default y if ARCH_WRS || ARCH_WRPC
 
 	config PROFILE_HA
 		bool "HighAccuracy"
-		default y if ARCH_WRS || ARCH_WRPC
+		default y if ARCH_WRS
 
 	config PROFILE_CUSTOM
 		bool "Custom"

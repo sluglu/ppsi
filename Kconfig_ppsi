@@ -1,6 +1,7 @@
 
 choice
 	prompt "Architecture to build for"
+	depends on !WRPC_PPSI
 
 config ARCH_UNIX
 	bool "Unix (Linux and likely other systems)"

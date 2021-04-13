@@ -5,8 +5,8 @@ choice
 
 config ARCH_UNIX
 	bool "Unix (Linux and likely other systems)"
-	select HAS_VLAN
-	select HAS_MULTIPLE_VLAN
+	select ARCH_SUPPORT_VLAN
+	select ARCH_SUPPORT_MULTIPLE_VLAN
 	help
 	  ARCH=unix supports standard Unix system calls, although
 	  the code most likely includes some Linux dependencies.
@@ -33,7 +33,7 @@ config ARCH_BARE_X86_64
 
 config ARCH_WRPC
 	bool "White Rabbit PTP Core (WR Node)"
-	select HAS_VLAN
+	select ARCH_SUPPORT_VLAN
 	help
 	  Build PPSi for use in the WRPC environment (SPEC card or similar
 	  one).  This is a freestanding build, without operating system.
@@ -41,8 +41,8 @@ config ARCH_WRPC
 
 config ARCH_WRS
 	bool "White Rabbit Switch"
-	select HAS_VLAN
-	select HAS_MULTIPLE_VLAN
+	select ARCH_SUPPORT_VLAN
+	select ARCH_SUPPORT_MULTIPLE_VLAN
 	help
 	  Build PPSi for use in the WR switch. The computer is a standard
 	  ARM-Linux host with hardware timestamping and internal PLLs
@@ -189,18 +189,33 @@ config HAS_PROFILE_CUSTOM
 	default 1 if PROFILE_CUSTOM 
 	default 0 
 
-menu VLAN
+#default to y if WRPC and VLAN support is enabled in WRPC's Kconfig
+config PPSI_VLAN
+	bool
+	default y if WRPC_PPSI && VLAN
+
+
+config ARCH_SUPPORT_MULTIPLE_VLAN
+	bool
+
+# I want a number, to be used without ifdef
+config VLAN_ARRAY_SIZE
+       int
+       default 0 if !PPSI_VLAN
+       default 1 if !ARCH_SUPPORT_MULTIPLE_VLAN
+       default MAX_VLANS_PER_PORT
 
 # Vlan support: not all architectures have it, so this is set by them
-config HAS_VLAN
+config ARCH_SUPPORT_VLAN
 	bool
 
-config HAS_MULTIPLE_VLAN
-	bool
+menu "VLAN"
+	depends on !WRPC_PPSI
 
-config VLAN
+
+config PPSI_VLAN
 	bool "Enable VLAN support for raw Ethernet"
-	depends on HAS_VLAN || HAS_MULTIPLE_VLAN
+	depends on (ARCH_SUPPORT_VLAN || ARCH_SUPPORT_MULTIPLE_VLAN)
 	default y
 	help
 	  PPSI is able to directly emit and receive tagged frames,
@@ -218,7 +233,7 @@ config VLAN
 
 config MAX_VLANS_PER_PORT
 	int "Maximum number of VLANs per port"
-	depends on HAS_MULTIPLE_VLAN
+	depends on ARCH_SUPPORT_MULTIPLE_VLAN
 	default 32
 	help
 	  This configuration option is mainly used to support
@@ -226,12 +241,6 @@ config MAX_VLANS_PER_PORT
 	  microcontroller-class architectures.  Hosted builds
 	  feature a bigger default, because they have no size constraints.
 	  
-# I want a number, to be used without ifdef
-config VLAN_ARRAY_SIZE
-       int
-       default 0 if !VLAN
-       default 1 if !HAS_MULTIPLE_VLAN
-       default MAX_VLANS_PER_PORT
 
 
 endmenu
@@ -525,4 +534,3 @@ config HAS_PPSI_ASSERT
 	range 0 1
 	default 1 if PPSI_ASSERT
 	default 0
-  

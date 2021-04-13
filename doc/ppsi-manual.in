@@ -819,7 +819,7 @@ code, in the following way.
 
 @itemize @bullet
    @item Each architecture states, in @t{Kconfig}, whether it supports
-   vlans (@t{HAS_VLAN}) and multiple vlans (@t{HAS_MULTIPLE_VLAN}).
+   vlans (@t{SUPPORT_VLAN}) and multiple vlans (@t{SUPPORT_MULTIPLE_VLAN}).
 
    @item The configuration parser (@t{lib/conf.c}) accepts a @t{vlan}
    keyword, specifying one or more vlans. If several, they are

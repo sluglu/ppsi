@@ -87,11 +87,6 @@ config ARCH_LDFLAGS
        default "-m elf_x86_64" if ARCH_BARE_X86_64
        default ""
 
-config WRPCSW_ROOT
-       string "Source location of wrpc-sw"
-       depends on ARCH_WRPC
-       default "../wrpc-sw"
-
 menu "Options" 
 
 menu "PTP Protocol Options"

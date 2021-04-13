@@ -10,9 +10,7 @@ CFLAGS += -ffreestanding \
 	-Itools -Iproto-standard \
 	$(CFLAGS-CPU-$(CPU_ARCH))
 
-# Root of wrpc-sw project
-WRPCSW_ROOT ?= $(CONFIG_WRPCSW_ROOT)
-
+# WRPCSW_ROOT shall be defined in the env by WRPC's Makefile
 CFLAGS += -I$(WRPCSW_ROOT)/include -I$(WRPCSW_ROOT)/include/std -I$(WRPCSW_ROOT)/softpll
 
 # TODOA: remove --no-gc-sections

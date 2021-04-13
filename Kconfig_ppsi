@@ -72,6 +72,7 @@ config ARCH
 	
 config CROSS_COMPILE
        string "Cross compiler prefix"
+       depends on !WRPC_PPSI
        default "/opt/gcc-lm32/bin/lm32-elf-" if ARCH_IS_WRPC=1
        default "/opt/arm-wrswitch/bin/arm-linux-" if ARCH_WRS
        default ""

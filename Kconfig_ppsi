@@ -65,14 +65,14 @@ config ARCH
        default "unix" if ARCH_UNIX
        default "bare-i386" if ARCH_BARE_I386
        default "bare-x86-64" if ARCH_BARE_X86_64
-       default "wrpc" if ARCH_WRPC
+       default "wrpc" if ARCH_IS_WRPC=1
        default "wrs" if ARCH_WRS
        default "sim" if ARCH_SIMULATOR
 
 	
 config CROSS_COMPILE
        string "Cross compiler prefix"
-       default "/opt/gcc-lm32/bin/lm32-elf-" if ARCH_WRPC
+       default "/opt/gcc-lm32/bin/lm32-elf-" if ARCH_IS_WRPC=1
        default "/opt/arm-wrswitch/bin/arm-linux-" if ARCH_WRS
        default ""
 
@@ -108,7 +108,7 @@ menu "PTP Protocol Options"
 	config E2E_ONLY
 		boolean "Avoid building P2P code"
 		depends on E2E
-		default y if E2E && (ARCH_BARE_I386 || ARCH_BARE_X86_64 || ARCH_WRPC)
+		default y if E2E && (ARCH_BARE_I386 || ARCH_BARE_X86_64 || ARCH_IS_WRPC=1)
 		help
 		  If you choose E2E above, P2P is built anyways,
 		  and you can choose at runtime what to run.
@@ -121,7 +121,7 @@ menu "PTP Protocol Options"
 
 	config LEAP_SECONDS_VAL
 		int "Value of Leap Seconds"
-		depends on ARCH_WRPC
+		depends on ARCH_IS_WRPC=1
 		default 37
 		help
 		  Difference in seconds between TAI and UTC.
@@ -131,7 +131,7 @@ menu "Enabled profiles"
 
 	config PROFILE_WR
 		bool "WhiteRabbit"
-		default y if ARCH_WRS || ARCH_WRPC
+		default y if ARCH_WRS || ARCH_IS_WRPC=1
 
 	config PROFILE_HA
 		bool "HighAccuracy"
@@ -258,7 +258,7 @@ config PPSI_ASSERT
 config NR_FOREIGN_RECORDS 
 	int "Size of foreignMasterDS data set"
 	range 1 20
-	default 1 if ARCH_WRPC
+	default 1 if ARCH_IS_WRPC=1
 	default 5 
 	help 
 		Size of foreignMasterDS data set (Clause 9.3.2.4.5).
@@ -273,7 +273,7 @@ config SINGLE_FMASTER
 config NR_PORTS 
 	int "Number of ports"
 	range 1 64
-	default 1 if ARCH_WRPC
+	default 1 if ARCH_IS_WRPC=1
 	default 18 if ARCH_WRS
 	default 64
 	help 
@@ -282,7 +282,7 @@ config NR_PORTS
 config NR_INSTANCES_PER_PORT 
 	int "Max instances per port"
 	range 1 64
-	default 1 if ARCH_WRPC
+	default 1 if ARCH_IS_WRPC=1
 	default 2 if ARCH_WRS
 	default 1
 	help 
@@ -334,7 +334,7 @@ config 	CODEOPT_SINGLE_INSTANCE_PER_PORT
 
 config 	CODEOPT_WRPC_SIZE
 	boolean "Size optimizations specific for WRPC"
-	depends on CODEOPT_ENABLED && ARCH_WRPC
+	depends on CODEOPT_ENABLED && ARCH_IS_WRPC=1
 	default y
 	help
 		Use optimizations specific to WRPC to reduce the footprint.
@@ -342,7 +342,7 @@ config 	CODEOPT_WRPC_SIZE
 config 	CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
 	boolean "Remove external port configuration"
 	depends on CODEOPT_ENABLED
-	default y if ARCH_WRPC
+	default y if ARCH_IS_WRPC=1
 	default n
 	help
 		externalPortConfiguration set to false to reduce the footprint.
@@ -351,7 +351,7 @@ config 	CODEOPT_EXT_PORT_CONF_FORCE_DISABLED
 config 	CODEOPT_SO_FORCE_DISABLED
 	boolean "Force disabled slaveOnly"
 	depends on CODEOPT_ENABLED
-	default y if ARCH_WRPC
+	default y if ARCH_IS_WRPC=1
 	default n
 	help
 		Force slaveOnly to false to reduce the footprint.
@@ -360,7 +360,7 @@ config 	CODEOPT_SO_FORCE_DISABLED
 config 	CODEOPT_MO_FORCE_DISABLED
 	boolean "Force disabled masterOnly"
 	depends on CODEOPT_ENABLED
-	default y if ARCH_WRPC
+	default y if ARCH_IS_WRPC=1
 	default n
 	help
 		Force masterOnly to false to reduce the footprint.
@@ -421,9 +421,9 @@ endchoice
 
 config OPTIMIZATION
 	string
-	default "-Os -ggdb" if OPTIMIZATION_SIZE_SPEED && ARCH_WRPC
+	default "-Os -ggdb" if OPTIMIZATION_SIZE_SPEED && ARCH_IS_WRPC=1
 	default "-Os -ggdb" if OPTIMIZATION_SIZE_SPEED
-	default "-O2 -ggdb" if OPTIMIZATION_SPEED && ARCH_WRPC
+	default "-O2 -ggdb" if OPTIMIZATION_SPEED && ARCH_IS_WRPC=1
 	default "-O2 -ggdb" if OPTIMIZATION_SPEED
 	default "-Og -ggdb" if OPTIMIZATION_DEBUGGING
 	default "-ggdb" if OPTIMIZATION_NONE_DEBUGGING
@@ -526,7 +526,7 @@ config ARCH_IS_WRS
 config ARCH_IS_WRPC
 	int 
 	range 0 1
-	default 1 if ARCH_WRPC
+	default 1 if ARCH_WRPC || WRPC_PPSI
 	default 0
 	
 config HAS_PPSI_ASSERT

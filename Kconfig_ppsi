@@ -398,7 +398,8 @@ endmenu
 
 choice
 	prompt "Compilation optimization"
-    
+	depends on !WRPC_PPSI
+
     config OPTIMIZATION_SPEED
         boolean "Execution time (-O2)"
         help

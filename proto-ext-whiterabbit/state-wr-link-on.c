@@ -27,6 +27,7 @@ int wr_link_on(struct pp_instance *ppi, void *buf, int len, int new_state)
 	wrp->next_state=WRS_IDLE;
 
 #ifdef CONFIG_ABSCAL
+#include "wrc_ptp.h"
 	/*
 	 * absolute calibration only exists in arch-wrpc, so far, but
 	 * we can't include wrpc headers, not available in wrs builds

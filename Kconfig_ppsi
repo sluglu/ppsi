@@ -423,9 +423,7 @@ endchoice
 
 config OPTIMIZATION
 	string
-	default "-Os -ggdb" if OPTIMIZATION_SIZE_SPEED && ARCH_IS_WRPC=1
-	default "-Os -ggdb" if OPTIMIZATION_SIZE_SPEED
-	default "-O2 -ggdb" if OPTIMIZATION_SPEED && ARCH_IS_WRPC=1
+	default "-Os -ggdb" if OPTIMIZATION_SIZE_SPEED || ARCH_IS_WRPC=1
 	default "-O2 -ggdb" if OPTIMIZATION_SPEED
 	default "-Og -ggdb" if OPTIMIZATION_DEBUGGING
 	default "-ggdb" if OPTIMIZATION_NONE_DEBUGGING

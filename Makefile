@@ -128,7 +128,7 @@ distclean: clean
 # Explicit rule for $(CURDIR)/.config
 # needed since -include XXX triggers build for XXX
 $(CURDIR)/$(MAINSW_ROOT)/.config:
-	echo "Keep this dummy comment"
+	@#Keep this dummy comment
 
 # following targets from Makefile.kconfig
 silentoldconfig:

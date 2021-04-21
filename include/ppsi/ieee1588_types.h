@@ -424,11 +424,11 @@ enum ENTimeSource {
 
 /* Enumeration Delay mechanism (table 21, page 126) */
 enum ENDelayMechanism {
-	E2E		      = 1,
-	P2P		      = 2,
-	COMMON_P2P    = 3,
-	SPECIAL       = 4,
-	NO_MECHANISM  = 0xFE
+	MECH_E2E		= 1,
+	MECH_P2P		= 2,
+	MECH_COMMON_P2P		= 3,
+	MECH_SPECIAL		= 4,
+	MECH_NO_MECHANISM	= 0xFE
 };
 
 /* clockAccuracy enumeration (table 5) */

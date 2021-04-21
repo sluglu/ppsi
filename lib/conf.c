@@ -310,9 +310,9 @@ static struct pp_argname arg_profile[] = {
 	{},
 };
 static struct pp_argname arg_delayMechanism[] = {
-	{"request-response delay e2e", E2E},
+	{"request-response delay e2e", MECH_E2E},
 #if CONFIG_HAS_P2P
-	{"peer-delay pdelay p2p", P2P},
+	{"peer-delay pdelay p2p", MECH_P2P},
 #endif
 	{},
 };

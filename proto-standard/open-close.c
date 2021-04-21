@@ -40,7 +40,7 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 /* These parameters can be then overwritten with the config file ppsi.conf */
 struct pp_instance_cfg __pp_default_instance_cfg = {
 		.profile=PPSI_PROFILE_PTP,
-		.delayMechanism=E2E,
+		.delayMechanism = MECH_E2E,
 		.announce_interval=PP_DEFAULT_ANNOUNCE_INTERVAL,
 		.announce_receipt_timeout=PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT,
 		.sync_interval=PP_DEFAULT_SYNC_INTERVAL,

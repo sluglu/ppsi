@@ -176,11 +176,11 @@ static inline int is_externalPortConfigurationEnabled (defaultDS_t *def) {
 }
 
 static inline int is_delayMechanismP2P(struct pp_instance *ppi) {
-	return CONFIG_HAS_P2P && ppi->delayMechanism == P2P;
+	return CONFIG_HAS_P2P && ppi->delayMechanism == MECH_P2P;
 }
 
 static inline int is_delayMechanismE2E(struct pp_instance *ppi) {
-	return CONFIG_HAS_P2P==0 || ppi->delayMechanism == E2E;
+	return CONFIG_HAS_P2P==0 || ppi->delayMechanism == MECH_E2E;
 }
 
 static inline int is_slaveOnly(defaultDS_t *def) {

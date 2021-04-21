@@ -83,7 +83,7 @@ struct pp_instance ppi_static = {
 	.t_ops			= &wrpc_time_ops,
 	.vlans_array_len	= CONFIG_VLAN_ARRAY_SIZE,
 	.proto			= PP_DEFAULT_PROTO,
-	.delayMechanism		= E2E, /* until changed by cfg */
+	.delayMechanism		= MECH_E2E, /* until changed by cfg */
 	.iface_name		= "wr0",
 	.port_name		= "wr0",
 	.__tx_buffer		= __tx_buffer,
@@ -227,8 +227,8 @@ int wrc_ptp_sync_mech(int e2e_p2p_qry)
 		return ppi->delayMechanism;
 
 	switch(e2e_p2p_qry) {
-	case E2E:
-	case P2P:
+	case MECH_E2E:
+	case MECH_P2P:
 		running = wrc_ptp_run(-1);
 		wrc_ptp_run(0);
 		ppi->delayMechanism = e2e_p2p_qry;

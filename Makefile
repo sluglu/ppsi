@@ -56,9 +56,9 @@ export CFLAGS_OPTIMIZATION:= ${shell echo $(CONFIG_OPTIMIZATION)}
 
 CFLAGS += $(CFLAGS_OPTIMIZATION)
 
-CFLAGS += -Iinclude -fno-common
 CFLAGS += -I$(MAINSW_ROOT)
 CFLAGS += -I$(MAINSW_ROOT)/include
+CFLAGS += -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
 
 # to avoid ifdef as much as possible, I use the kernel trick for OBJ variables

@@ -125,9 +125,9 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_ms
 	struct wr_sockaddr addr;
 	struct pp_time *t = &ppi->last_snt_time;
 	int is_pdelay = mf->is_pdelay;
-	static const uint8_t macaddr[2][ETH_ALEN] = {
-		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
-		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
+	static const uint8_t macaddr[MECH_MAX_SUPPORTED + 1][ETH_ALEN] = {
+		[MECH_E2E] = PP_MCAST_MACADDRESS,
+		[MECH_P2P] = PP_PDELAY_MACADDRESS,
 	};
 
 	/*

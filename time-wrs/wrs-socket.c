@@ -497,9 +497,9 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,
 	};
-	static const uint8_t macaddr[2][ETH_ALEN] = {
-		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
-		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
+	static const uint8_t macaddr[MECH_MAX_SUPPORTED + 1][ETH_ALEN] = {
+		[MECH_E2E] = PP_MCAST_MACADDRESS,
+		[MECH_P2P] = PP_PDELAY_MACADDRESS,
 	};
 	struct wrs_socket *s;
 	int ret, fd, drop;

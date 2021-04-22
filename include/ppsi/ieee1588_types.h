@@ -426,6 +426,7 @@ enum ENTimeSource {
 enum ENDelayMechanism {
 	MECH_E2E		= 1,
 	MECH_P2P		= 2,
+	MECH_MAX_SUPPORTED	= 2,
 	MECH_COMMON_P2P		= 3,
 	MECH_SPECIAL		= 4,
 	MECH_NO_MECHANISM	= 0xFE

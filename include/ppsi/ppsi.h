@@ -59,7 +59,7 @@ struct pp_msgtype_info {
 	pp_std_messages msg_type;
 	uint16_t msglen;
 	unsigned char chtype;
-	unsigned char is_pdelay;
+	unsigned char delay_mechanism;
 	unsigned char controlField;		/* Table 23 */
 	unsigned char logMessageInterval;	/* Table 24, see defines */
 

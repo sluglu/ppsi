@@ -492,7 +492,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 	struct pp_vlanhdr *vhdr = pkt;
 	struct pp_channel *ch = ppi->ch + chtype;
 	struct pp_time *t = &ppi->last_snt_time;
-	int is_pdelay = mf->is_pdelay;
+	int delay_mechanism = mf->delay_mechanism;
 	static uint16_t udpport[] = {
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,
@@ -524,7 +524,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 		if (drop)
 			hdr->h_proto++;
 
-		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
+		memcpy(hdr->h_dest, macaddr[delay_mechanism], ETH_ALEN);
 		memcpy(hdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
@@ -555,7 +555,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 		if (drop)
 			hdr->h_proto++;
 
-		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
+		memcpy(hdr->h_dest, macaddr[delay_mechanism], ETH_ALEN);
 		memcpy(vhdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
@@ -583,7 +583,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 		fd = ppi->ch[chtype].fd;
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(udpport[chtype]);
-		addr.sin_addr.s_addr = ppi->mcast_addr[is_pdelay];
+		addr.sin_addr.s_addr = ppi->mcast_addr[delay_mechanism];
 		if (drop)
 			addr.sin_port = 3200;
 		ret = sendto(fd, pkt, len, 0, (struct sockaddr *)&addr,

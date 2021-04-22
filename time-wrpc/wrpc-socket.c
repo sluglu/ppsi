@@ -124,7 +124,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_ms
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
 	struct pp_time *t = &ppi->last_snt_time;
-	int is_pdelay = mf->is_pdelay;
+	int delay_mechanism = mf->delay_mechanism;
 	static const uint8_t macaddr[MECH_MAX_SUPPORTED + 1][ETH_ALEN] = {
 		[MECH_E2E] = PP_MCAST_MACADDRESS,
 		[MECH_P2P] = PP_PDELAY_MACADDRESS,
@@ -141,7 +141,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_ms
 	sock = ppi->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = htons(ETH_P_1588);
-	memcpy(&addr.mac, macaddr[is_pdelay], sizeof(mac_addr_t));
+	memcpy(&addr.mac, macaddr[delay_mechanism], sizeof(mac_addr_t));
 	if (CONFIG_HAS_WRPC_FAULTS && drop) {
 		addr.ethertype = 1;
 		addr.mac[0] = 0x22; /* pfilter uses mac; drop for nodes too */

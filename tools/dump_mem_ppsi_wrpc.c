@@ -1,6 +1,6 @@
 #include <sys/types.h>
 #include <ppsi/ppsi.h>
-#include <softpll_ng.h>
+#include <stdio.h>
 
 #include <wrpc.h>
 
@@ -350,3 +350,146 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_HEADER("end"),
 
 };
+
+void dump_mem_ppsi_wrpc(void *mapaddr, unsigned long ppg_off)
+{
+	unsigned long ppi_off, servo_off, ds_off, arch_data_offset, tmp_off;
+	char *prefix;
+
+	prefix = "ppsi.globalDS";
+	if (!ppg_off) {
+		printf("%s not found\n", prefix);
+		/* global structure not found, can't do more, return */
+		return;
+	}
+
+	/* print ppg first */
+	printf("%s at 0x%lx\n", prefix, ppg_off);
+	dump_many_fields(mapaddr + ppg_off, "pp_globals", prefix);
+
+	arch_data_offset = wrpc_get_pointer(mapaddr + ppg_off,
+					"pp_globals", "arch_data");
+	if (arch_data_offset) {
+		prefix = "ppsi.arch_data";
+		printf("%s at 0x%lx\n", prefix, arch_data_offset);
+		dump_many_fields(mapaddr + arch_data_offset, "wrpc_arch_data_t",
+				 prefix);
+	}
+	
+	ds_off = ppg_off;
+
+	/* dump global data sets */
+	tmp_off = wrpc_get_pointer(mapaddr + ds_off, "pp_globals", "defaultDS");
+	if (tmp_off) {
+		prefix = "ppsi.defaultDS";
+		printf("%s at 0x%lx\n", prefix, tmp_off);
+		dump_many_fields(mapaddr + tmp_off, "defaultDS_t", prefix);
+	}
+
+	tmp_off = wrpc_get_pointer(mapaddr + ds_off, "pp_globals", "currentDS");
+	if (tmp_off) {
+		prefix = "ppsi.currentDS";
+		printf("%s at 0x%lx\n", prefix, tmp_off);
+		dump_many_fields(mapaddr + tmp_off, "currentDS_t", prefix);
+	}
+
+	tmp_off = wrpc_get_pointer(mapaddr + ds_off, "pp_globals", "parentDS");
+	if (tmp_off) {
+		prefix = "ppsi.parentDS";
+		printf("%s at 0x%lx\n", prefix, tmp_off);
+		dump_many_fields(mapaddr + tmp_off, "parentDS_t", prefix);
+	}
+
+	tmp_off = wrpc_get_pointer(mapaddr + ds_off, "pp_globals",
+				   "timePropertiesDS");
+	if (tmp_off) {
+		prefix = "ppsi.timePropertiesDS";
+		printf("%s at 0x%lx\n", prefix, tmp_off);
+		dump_many_fields(mapaddr + tmp_off, "timePropertiesDS_t",
+				 prefix);
+	}
+
+	/* dump instance's data sets */
+	ppi_off = wrpc_get_pointer(mapaddr + ppg_off, "pp_globals",
+				   "pp_instances");
+
+	if (ppi_off) {
+		int protocol_extension;
+		unsigned long portds_off;
+		unsigned long frgn_m_off;
+		int frgn_rec_num;
+		int frgn_m_i;
+		char buff[50];
+		prefix = "ppsi.inst.0";
+		printf("%s at 0x%lx\n", prefix, ppi_off);
+		dump_many_fields(mapaddr + ppi_off, "pp_instance", prefix);
+
+		/* FIXME: support multiple servo */
+		servo_off = wrpc_get_pointer(mapaddr + ppi_off,
+			    "pp_instance", "servo");
+		if (servo_off) {
+			prefix = "ppsi.inst.0.servo";
+			printf("%s at 0x%lx\n", prefix, servo_off);
+			dump_many_fields(mapaddr + servo_off, "pp_servo",
+					 prefix);
+		}
+
+		/* dump foreign masters */
+		frgn_rec_num = wrpc_get_16(mapaddr + ppi_off + wrpc_get_offset("pp_instance", "frgn_rec_num"));
+		frgn_m_off = ppi_off + wrpc_get_offset("pp_instance", "frgn_master");
+
+		prefix = "ppsi.inst.0.frgn_master";
+		printf("%s at 0x%lx\n", prefix, frgn_m_off);
+
+		for (frgn_m_i = 0; frgn_m_i < frgn_rec_num && frgn_m_i < PP_NR_FOREIGN_RECORDS; frgn_m_i++) {
+			snprintf(buff , sizeof(buff), "ppsi.inst.0.frgn_master.%i", frgn_m_i);
+			dump_many_fields(mapaddr + frgn_m_off + frgn_m_i * sizeof(struct pp_frgn_master),
+					 "pp_frgn_master", buff);
+		}
+
+		protocol_extension = wrpc_get_i32(mapaddr + ppi_off + wrpc_get_offset("pp_instance", "protocol_extension"));
+#if CONFIG_HAS_EXT_WR == 1
+		if ( protocol_extension == PPSI_EXT_WR) {
+			unsigned long ext_data_off;
+			unsigned long ext_data_servo_off;
+			unsigned long ext_data_servo_ext_off;
+
+			ext_data_off = wrpc_get_pointer(mapaddr + ppi_off,
+						"pp_instance", "ext_data");
+			ext_data_servo_off = wrpc_get_offset("wr_data", "servo"); /* should be 0, but check it anyway */
+			ext_data_servo_ext_off = wrpc_get_offset("wr_data", "servo_ext");
+
+			printf("ppsi.inst.0.ext_date at 0x%lx\n", ext_data_off);
+			prefix = "ppsi.inst.0.servo.wr";
+			printf("%s at 0x%lx\n", prefix, ext_data_off + ext_data_servo_off);
+			dump_many_fields(mapaddr + ext_data_off + ext_data_servo_off, "wrh_servo_t", prefix);
+			prefix = "ppsi.inst.0.servo_ext.wr";
+			printf("%s at 0x%lx\n", prefix, ext_data_off + ext_data_servo_ext_off);
+			dump_many_fields(mapaddr + ext_data_off + ext_data_servo_ext_off, "wr_servo_ext_t", prefix);
+		}
+#endif
+		/* FIXME: support multiple servo */
+		portds_off = wrpc_get_pointer(mapaddr + ppi_off, "pp_instance",
+					      "portDS");
+		if (portds_off) {
+			prefix = "ppsi.inst.0.portDS";
+			printf("%s at 0x%lx\n", prefix, portds_off);
+			dump_many_fields(mapaddr + portds_off, "portDS_t",
+					 prefix);
+		}
+#if CONFIG_HAS_EXT_WR == 1
+		if ( protocol_extension == PPSI_EXT_WR) {
+			unsigned long ext_dsport_off;
+
+			ext_dsport_off = wrpc_get_pointer(mapaddr + portds_off,
+						"portDS_t", "ext_dsport");
+			if (ext_dsport_off) {
+				prefix = "ppsi.inst.0.wrportDS";
+				printf("%s at 0x%lx\n", prefix, ext_dsport_off);
+				dump_many_fields(mapaddr + ext_dsport_off,
+						 "wr_dsport", prefix);
+			}
+		}
+#endif
+	}
+}

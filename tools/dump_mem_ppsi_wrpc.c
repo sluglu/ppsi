@@ -296,7 +296,7 @@ struct dump_info  dump_ppsi_info[] = {
 
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct pp_frgn_master
-	DUMP_HEADER("pp_frgn_master"),
+	DUMP_HEADER_SIZE("pp_frgn_master", sizeof(struct pp_frgn_master)),
 	DUMP_FIELD(PortIdentity, sourcePortIdentity),
 	DUMP_FIELD(PortIdentity, receivePortIdentity),
 	DUMP_FIELD(ClockQuality, grandmasterClockQuality),
@@ -419,6 +419,7 @@ void dump_mem_ppsi_wrpc(void *mapaddr, unsigned long ppg_off)
 		int protocol_extension;
 		unsigned long portds_off;
 		unsigned long frgn_m_off;
+		unsigned long frgn_master_struct_size;
 		int frgn_rec_num;
 		int frgn_m_i;
 		char buff[50];
@@ -443,9 +444,11 @@ void dump_mem_ppsi_wrpc(void *mapaddr, unsigned long ppg_off)
 		prefix = "ppsi.inst.0.frgn_master";
 		printf("%s at 0x%lx\n", prefix, frgn_m_off);
 
+		frgn_master_struct_size = wrpc_get_struct_size("pp_frgn_master");
+
 		for (frgn_m_i = 0; frgn_m_i < frgn_rec_num && frgn_m_i < PP_NR_FOREIGN_RECORDS; frgn_m_i++) {
 			snprintf(buff , sizeof(buff), "ppsi.inst.0.frgn_master.%i", frgn_m_i);
-			dump_many_fields(mapaddr + frgn_m_off + frgn_m_i * sizeof(struct pp_frgn_master),
+			dump_many_fields(mapaddr + frgn_m_off + frgn_m_i * frgn_master_struct_size,
 					 "pp_frgn_master", buff);
 		}
 

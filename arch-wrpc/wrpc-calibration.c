@@ -13,8 +13,6 @@
 #include "../proto-ext-whiterabbit/wr-constants.h"
 #include "board.h"
 
-extern int64_t sfp_alpha;
-
 int wrpc_read_calibration_data(
 			       struct pp_instance *ppi,
 			       int32_t *clock_period,
@@ -29,7 +27,7 @@ int wrpc_read_calibration_data(
 		return WRH_HW_CALIB_NOT_FOUND;
 
 	if (scaledDelayCoefficient)
-		*scaledDelayCoefficient= (RelativeDifference) sfp_alpha;
+		*scaledDelayCoefficient = (RelativeDifference) state.calib.alpha;
 
 	if (scaledBitSlide)
 		*scaledBitSlide = picos_to_interval((int64_t)state.calib.bitslide_ps);

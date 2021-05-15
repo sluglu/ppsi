@@ -645,7 +645,7 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 		break;
 
 	case dump_type_RelativeDifference:
-		printf("%15s, ", relativeDifferenceToString(*rd, buf));
+		printf("%15s, ", relativeDifferenceToString(wrpc_get_64(rd), buf));
 		printf("raw:  %15lld\n", wrpc_get_64(p));
 		break;
 

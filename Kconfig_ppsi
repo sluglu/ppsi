@@ -438,6 +438,13 @@ config FAULT_INJECTION_MECHANISM
 	  The same mechanisms are available in the wr switch, through
 	  the configuration file.
 
+config NO_PTPDUMP
+	boolean "Disable dump of ptp payload"
+	depends on WRPC_PPSI
+	default n
+	help
+	  Disable dump of ptp payload used by verbose command.
+
 config HAS_FAULT_INJECTION_MECHANISM
 	int
 	range 0 1

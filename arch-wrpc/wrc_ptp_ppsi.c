@@ -409,3 +409,84 @@ int wrc_ptp_is_abscal(void)
 {
 	return ptp_mode == WRC_MODE_ABSCAL;
 }
+
+/* lm32'S compiler does not remove strings used in the function if
+ * the function is optimized out. So if the option is not used don't include
+ * the nbot optimized out strings in functions wrpc_ptp_set*. Ugly but can be
+ * repoved when LM32's support is dropped. */
+#if defined CONFIG_CMD_PTP_ADV && defined CONFIG_ARCH_LM32
+static int assign_ptp_param(char *name, int *param, int value, int min, int max)
+{
+	int running;
+
+	if (value == -1) {
+		pp_printf("%s = %d\n", name, *param);
+		return 0;
+	}
+
+	if (value < min || value > max) {
+		/* value out of range */
+		return -EINVAL;
+	}
+
+	running = wrc_ptp_run(-1);
+	wrc_ptp_run(0);
+	*param = value;
+	/* copy updated parameters from rt_opts */
+	bmc_apply_configured_device_attributes(ppg);
+	wrc_ptp_run(running);
+	return 0;
+}
+
+int wrc_ptp_set_prio1(int prio1)
+{
+	return assign_ptp_param("prio1", &__pp_default_rt_opts.priority1,
+				prio1, PP_MIN_PRIORITY1, PP_MAX_PRIORITY1);
+}
+
+int wrc_ptp_set_prio2(int prio2)
+{
+	return assign_ptp_param("prio2", &__pp_default_rt_opts.priority2,
+				prio2, PP_MIN_PRIORITY2, PP_MAX_PRIORITY2);
+}
+
+int wrc_ptp_set_domain_number(int domain)
+{
+	return assign_ptp_param("domain", &__pp_default_rt_opts.domainNumber,
+				domain, PP_MIN_DOMAIN_NUMBER,
+				PP_MAX_DOMAIN_NUMBER);
+}
+
+int wrc_ptp_set_clock_class(int clock_class)
+{
+	return assign_ptp_param("clock class",
+				&__pp_default_rt_opts.clock_quality_clockClass,
+				clock_class, PP_MIN_CLOCK_CLASS,
+				PP_MAX_CLOCK_CLASS);
+}
+
+int wrc_ptp_set_clock_accuracy(int clock_accuracy)
+{
+	return assign_ptp_param("clock accuracy",
+				&__pp_default_rt_opts.clock_quality_clockAccuracy,
+				clock_accuracy, PP_MIN_CLOCK_ACCURACY,
+				PP_MAX_CLOCK_ACCURACY);
+}
+
+int wrc_ptp_set_clock_allan_variance(int clock_allan_variance)
+{
+	return assign_ptp_param("clock allan variance",
+				&__pp_default_rt_opts.clock_quality_offsetScaledLogVariance,
+				clock_allan_variance, PP_MIN_CLOCK_VARIANCE,
+				PP_MAX_CLOCK_VARIANCE);
+}
+
+int wrc_ptp_set_time_source(int time_source)
+{
+	return assign_ptp_param("time source",
+				&__pp_default_rt_opts.timeSource,
+				time_source, PP_MIN_TIME_SOURCE,
+				PP_MAX_TIME_SOURCE);
+}
+
+#endif

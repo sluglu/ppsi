@@ -35,6 +35,33 @@ struct dump_info  dump_ppsi_info[] = {
 
 
 #undef DUMP_STRUCT
+#define DUMP_STRUCT struct pp_runtime_opts /* Horrible typedef */
+	DUMP_HEADER("pp_runtime_opts"),
+	DUMP_FIELD(uint32_t, updated_fields_mask),
+	DUMP_FIELD(int, clock_quality_clockClass),                 // ClockQuality.clockClass
+	DUMP_FIELD(int, clock_quality_clockAccuracy),              // ClockQuality.clockAccuracy
+	DUMP_FIELD(int, clock_quality_offsetScaledLogVariance),    // ClockQuality.offsetScaledLogVariance
+	DUMP_FIELD(int, timeSource),                               // timePropertiesDS_t.timeSource
+	DUMP_FIELD(yes_no_Boolean, ptpTimeScale),                         // timePropertiesDS_t.timeScale
+	DUMP_FIELD(yes_no_Boolean, frequencyTraceable),                   // timePropertiesDS_t.frequencyTraceable
+	DUMP_FIELD(yes_no_Boolean, timeTraceable),                        // timePropertiesDS_t.timeTraceable
+	DUMP_FIELD(Integer32, ttl),
+	DUMP_FIELD(int, flags),		/* see below */
+	DUMP_FIELD(Integer16, ap),
+	DUMP_FIELD(Integer16, ai),
+	DUMP_FIELD(Integer16, s),
+	DUMP_FIELD(int, priority1),
+	DUMP_FIELD(int, priority2),
+	DUMP_FIELD(int, domainNumber),
+	DUMP_FIELD(int, ptpPpsThresholdMs),
+	DUMP_FIELD(int, gmDelayToGenPpsSec),
+	DUMP_FIELD(yes_no_Boolean, externalPortConfigurationEnabled),
+	DUMP_FIELD(yes_no_Boolean, slaveOnly),
+	DUMP_FIELD(yes_no_Boolean, forcePpsGen),
+	DUMP_FIELD(yes_no_Boolean, ptpFallbackPpsGen),
+	DUMP_FIELD(pointer, arch_opts),
+
+#undef DUMP_STRUCT
 #define DUMP_STRUCT defaultDS_t /* Horrible typedef */
 
 	DUMP_HEADER("defaultDS_t"),
@@ -382,6 +409,13 @@ void dump_mem_ppsi_wrpc(void *mapaddr, unsigned long ppg_off)
 	ds_off = ppg_off;
 
 	/* dump global data sets */
+	tmp_off = wrpc_get_pointer(mapaddr + ds_off, "pp_globals", "rt_opts");
+	if (tmp_off) {
+		prefix = "ppsi.rt_opts";
+		printf("%s at 0x%lx\n", prefix, tmp_off);
+		dump_many_fields(mapaddr + tmp_off, "pp_runtime_opts", prefix);
+	}
+
 	tmp_off = wrpc_get_pointer(mapaddr + ds_off, "pp_globals", "defaultDS");
 	if (tmp_off) {
 		prefix = "ppsi.defaultDS";

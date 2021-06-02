@@ -120,6 +120,90 @@ menu "PTP Protocol Options"
 	       default 0 if E2E_ONLY
 	       default 1  
 
+	config PTP_OVERWRITE_BASIC_ATTRIBUTES
+		boolean "Overwrite default PTP basic attributes (domain, priority)"
+		depends on WRPC_PPSI
+		default FALSE
+		help
+		  This option allows to overwrite the default values like:
+		  - priority1
+		  - priority2
+		  - domain number
+		  On WRPC if a proper option is enabled, these parameters can be changed
+		  in runtime (still require restart of PPSI).
+
+	if PTP_OVERWRITE_BASIC_ATTRIBUTES
+	config PTP_OPT_DOMAIN_NUMBER
+		int "domain-number"
+		default 0
+		range 0 255
+		help
+		  A domain consists of one or more PTP devices communicating with each
+		  other as defined by the PTP protocol. A domain defines the scope of
+		  PTP message communication, state, operations, data sets, and
+		  timescale. PTP devices may participate in multiple domains.
+		  For more details please refer to the IEEE 1588-2019 standard.
+
+	config PTP_OPT_PRIORITY1
+		int "priority1"
+		default "128"
+		range 0 255
+		help
+		  A user configurable designation that a clock belongs to an ordered
+		  set of PTP devices from which a PTP Master is selected.
+		  For more details please refer to the IEEE 1588-2019 standard
+
+	config PTP_OPT_PRIORITY2
+		int "priority2"
+		default "128"
+		range 0 255
+		help
+		  A user configurable designation that provides finer grained ordering
+		  among otherwise equivalent PTP devices.
+		  For more details please refer to the IEEE 1588-2019 standard
+	endif
+
+	config PTP_OPT_OVERWRITE_ATTRIBUTES
+		boolean "Overwrite default PTP device attributes (class, accuracy, etc)"
+		default FALSE
+		help
+		  This option allows to overwrite the default value depending 
+		  of the timing mode for the clock accuracy, the clock Allan variance.
+		  On WRPC if a proper option is enabled, these parameters can be changed
+		  in runtime (still require restart of PPSI).
+
+	if PTP_OPT_OVERWRITE_ATTRIBUTES
+
+	config PTP_OPT_CLOCK_ACCURACY
+		int "clock-accuracy"
+		default -1
+		range -1 255
+		help
+		  An attribute defining the accuracy of the Local Clock (e.g. local
+		  oscillator) of a Boundary Clock or Ordinary Clock.
+		  Set to -1 to use the default value.
+		  For more details please refer to the IEEE 1588-2019 standard.
+
+	config PTP_OPT_CLOCK_ALLAN_VARIANCE
+		int "clock-allan-variance/offsetScaledLogVariance"
+		default -1
+		range -1 65535
+		help
+		  An attribute defining the stability of the Local Clock of a
+		  Boundary Clock or Ordinary Clock.
+		  Set to -1 to use the default value.
+		  For more details please refer to the IEEE 1588-2019 standard.
+	
+	config PTP_OPT_TIME_SOURCE
+		int "time-source"
+		default -1
+		range -1 255
+		help
+		  This information-only attribute indicates the source of time used
+		  by the grandmaster (or free-running master).
+		
+	endif
+
 	config LEAP_SECONDS_VAL
 		int "Value of Leap Seconds"
 		depends on ARCH_IS_WRPC=1

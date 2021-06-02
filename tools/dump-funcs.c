@@ -6,9 +6,9 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include "ptpdump.h"
 #include <ppsi/ieee1588_types.h> /* from ../include */
 #include "decent_types.h"
-#include "ptpdump.h"
 #include <ppsi/lib.h>
 
 #define WR_MODE_ON_MASK 0x8

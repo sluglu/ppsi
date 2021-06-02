@@ -157,9 +157,9 @@ int wrc_ptp_set_mode(int mode)
 
 	/* clear rt_opts so bmc_set_default_device_attributes can later set it
 	 * according to a set clock class */
-	ppg->rt_opts->clock_quality_clockAccuracy = -1;
-	ppg->rt_opts->clock_quality_offsetScaledLogVariance = -1;
-	ppg->rt_opts->timeSource = -1;
+	ppg->rt_opts->clock_quality_clockAccuracy = CONFIG_PTP_OPT_CLOCK_ACCURACY;
+	ppg->rt_opts->clock_quality_offsetScaledLogVariance = CONFIG_PTP_OPT_CLOCK_ALLAN_VARIANCE;
+	ppg->rt_opts->timeSource = CONFIG_PTP_OPT_TIME_SOURCE;
 	ppg->rt_opts->ptpTimeScale = -1;
 	ppg->rt_opts->frequencyTraceable = -1;
 	ppg->rt_opts->timeTraceable = -1;

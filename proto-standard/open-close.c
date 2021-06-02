@@ -13,9 +13,9 @@
  */
 struct pp_runtime_opts __pp_default_rt_opts = {
 	.clock_quality_clockClass = PP_CLASS_DEFAULT,
-	.clock_quality_clockAccuracy = -1, // Not defined
-	.clock_quality_offsetScaledLogVariance = -1, // Not defined
-	.timeSource = -1, // Not defined
+	.clock_quality_clockAccuracy = CONFIG_PTP_OPT_CLOCK_ACCURACY, // Not defined
+	.clock_quality_offsetScaledLogVariance = CONFIG_PTP_OPT_CLOCK_ALLAN_VARIANCE, // Not defined
+	.timeSource = CONFIG_PTP_OPT_TIME_SOURCE, // Not defined
 	.ptpTimeScale=-1, // Not defined
 	.frequencyTraceable=-1, // Not defined
 	.timeTraceable=-1, // Not defined

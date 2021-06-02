@@ -139,10 +139,6 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 
 	}
 
-	def->priority1 = rt_opts->priority1;
-	def->priority2 = rt_opts->priority2;
-	def->domainNumber = rt_opts->domainNumber;
-
 	for (i = 0; i < get_numberPorts(def); i++) {
 		struct pp_instance *ppi = INST(ppg, i);
 

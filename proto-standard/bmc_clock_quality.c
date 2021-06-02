@@ -381,5 +381,9 @@ void bmc_apply_configured_device_attributes(struct pp_globals *ppg) {
 	tpDS->frequencyTraceable=rt_opts->frequencyTraceable;
 	tpDS->timeTraceable=rt_opts->timeTraceable;
 
+	defDS->priority1 = rt_opts->priority1;
+	defDS->priority2 = rt_opts->priority2;
+	defDS->domainNumber = rt_opts->domainNumber;
+
 }
 

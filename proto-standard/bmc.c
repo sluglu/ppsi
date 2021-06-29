@@ -969,9 +969,8 @@ struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi,  struct pp_
 				if (hdr->sequenceId == (ppi->frgn_master[i].sequenceId + 1)) {
 					unsigned long now=TOPS(ppi)->calc_timeout(ppi, 0);
 
-					frgn_master->qualified=
-								(UInteger32)(now-frgn_master->lastAnnounceMsgMs)
-									<= ppi->frgn_master_time_window_ms;
+					frgn_master->qualified = time_before_eq(now,
+						frgn_master->lastAnnounceMsgMs + ppi->frgn_master_time_window_ms);
 					frgn_master->lastAnnounceMsgMs=now;
 				}
 				/* already in Foreign master data set, update info */
@@ -1103,7 +1102,7 @@ static void bmc_age_frgn_master(struct pp_instance *ppi)
 
 		/* get qualification */
 		if ( !is_ebest(GLBS(ppi),frgn_master) ) {
-			if ( (UInteger32)(now-frgn_master->lastAnnounceMsgMs)> ppi->frgn_master_time_window_ms ) {
+			if (time_after(now, frgn_master->lastAnnounceMsgMs + ppi->frgn_master_time_window_ms)) {
 				// Remove age out
 				pp_diag(ppi, bmc, 1, "Aged out foreign master %i/%i\n",
 						i, ppi->frgn_rec_num);

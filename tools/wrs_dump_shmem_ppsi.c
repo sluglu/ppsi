@@ -285,6 +285,7 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(time, last_snt_time),
 	DUMP_FIELD(UInteger16, frgn_rec_num),
 	DUMP_FIELD(Integer16,  frgn_rec_best),
+	DUMP_FIELD(UInteger32, frgn_master_time_window_ms),
 	DUMP_FIELD(pointer,frgn_master),
 	DUMP_FIELD(pointer, portDS),
 	DUMP_FIELD(Boolean,asymmetryCorrectionPortDS.enable),

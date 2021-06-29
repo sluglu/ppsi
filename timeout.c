@@ -273,10 +273,8 @@ int pp_next_delay_1(struct pp_instance *ppi, int i1)
 {
 	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,i1);
 	unsigned long now = TOPS(ppi)->calc_timeout(ppi, 0);
-	signed long r1;
 
-	r1 = tmoCnt->tmo - now;
-	return r1 < 0 ? 0 : r1;
+	return time_before(tmoCnt->tmo, now) ? 0 : tmoCnt->tmo - now;
 }
 
 int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2)
@@ -284,13 +282,22 @@ int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2)
 	timeOutInstCnt_t *tmoCnt1= __pp_get_counter(ppi,i1);
 	timeOutInstCnt_t *tmoCnt2= __pp_get_counter(ppi,i2);
 	unsigned long now = TOPS(ppi)->calc_timeout(ppi, 0);
-	signed long r1, r2;
+	unsigned long tmo_min;
 
-	r1 = tmoCnt1->tmo - now;
-	r2 = tmoCnt2->tmo - now;
-	if (r2 < r1)
-		r1 = r2;
-	return r1 < 0 ? 0 : r1;
+	tmo_min = tmoCnt1->tmo;
+
+	/* write to tmo_min timeout which is earlier */
+	if (time_after(tmo_min, tmoCnt2->tmo))
+		tmo_min = tmoCnt2->tmo;
+
+	/* check if the earlier timeout already passed */
+	if (time_before(now, tmo_min)) {
+		/* not passed return left ms */
+		return tmo_min - now;
+	}
+
+	/* the earliest timeout already passed */
+	return 0;
 }
 
 int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3)
@@ -299,14 +306,23 @@ int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3)
 	timeOutInstCnt_t *tmoCnt2= __pp_get_counter(ppi,i2);
 	timeOutInstCnt_t *tmoCnt3= __pp_get_counter(ppi,i3);
 	unsigned long now = TOPS(ppi)->calc_timeout(ppi, 0);
-	signed long r1, r2, r3;
+	unsigned long tmo_min;
 
-	r1 =  tmoCnt1->tmo - now;
-	r2 =  tmoCnt2->tmo  - now;
-	r3 =  tmoCnt3->tmo  - now;
-	if (r2 < r1)
-		r1 = r2;
-	if (r3 < r1)
-		r1 = r3;
-	return r1 < 0 ? 0 : r1;
+	tmo_min = tmoCnt1->tmo;
+
+	/* write to tmo_min timeout which is earlier */
+	if (time_after(tmo_min, tmoCnt2->tmo))
+		tmo_min = tmoCnt2->tmo;
+
+	if (time_after(tmo_min, tmoCnt3->tmo))
+		tmo_min = tmoCnt3->tmo;
+
+	/* check if the earliest timeout already passed */
+	if (time_before(now, tmo_min)) {
+		/* not passed, return left ms */
+		return tmo_min - now;
+	}
+
+	/* the earliest timeout already passed */
+	return 0;
 }

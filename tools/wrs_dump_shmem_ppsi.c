@@ -297,7 +297,7 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.semistaticLatency),
 	DUMP_FIELD(Enumeration8,externalPortConfigurationPortDS.desiredState),
 
-	//DUMP_FIELD(unsigned long timeouts[__PP_TO_ARRAY_SIZE]),
+	//DUMP_FIELD(unsigned long tmo_cfg[PP_TO_COUNT]), /* dump separately */
 	DUMP_FIELD(UInteger16, recv_sync_sequence_id),
 	//DUMP_FIELD(UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]),
 	DUMP_FIELD_SIZE(bina, received_ptp_header, sizeof(MsgHeader)),
@@ -318,6 +318,14 @@ struct dump_info ppi_info [] = {
 
 	DUMP_FIELD(unsigned_long, ptp_tx_count),
 	DUMP_FIELD(unsigned_long, ptp_rx_count),
+};
+
+#undef DUMP_STRUCT
+#define DUMP_STRUCT timeOutInstCnt_t
+struct dump_info timeouts_info [] = {
+	DUMP_FIELD(int, which_rand),
+	DUMP_FIELD(int, initValueMs),
+	DUMP_FIELD(unsigned_long, tmo),
 };
 
 #if CONFIG_HAS_EXT_WR == 1
@@ -428,6 +436,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 
 	for (i = 0; i < ppg->nlinks; i++) {
 		struct pp_instance * ppi= pp_instances+i;
+		int tmo_i;
 
 		sprintf(prefix,"ppsi.inst.%d.info",i);
 		dump_many_fields(ppi, ppi_info, ARRAY_SIZE(ppi_info),prefix);
@@ -440,6 +449,11 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 				sprintf(prefix,"ppsi.inst.%d.frgn_master[%d]",i,fm);
 				dump_many_fields( &ppi->frgn_master[fm], dsfm_info, ARRAY_SIZE(dsfm_info),prefix);
 			}
+		}
+
+		for (tmo_i = 0; tmo_i < PP_TO_COUNT; tmo_i++) {
+				sprintf(prefix,"ppsi.inst.%d.tmo_cfgx[%d]", i, tmo_i);
+				dump_many_fields(&ppi->tmo_cfg[tmo_i], timeouts_info, ARRAY_SIZE(timeouts_info), prefix);
 		}
 
 #if CONFIG_HAS_EXT_L1SYNC == 1

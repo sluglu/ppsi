@@ -222,3 +222,27 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+
+char *format_hex(char *s, const unsigned char *mac, int cnt)
+{
+	int i;
+	*s = '\0';
+	for (i = 0; i < cnt; i++) {
+		sprintf(s, "%s%02x:", s, mac[i]);
+	}
+
+	/* remove last colon */
+	s[cnt * 3 - 1] = '\0'; /* cnt * strlen("FF:") - 1 */
+	return s;
+}
+
+char *format_hex8(char *s, const unsigned char *mac)
+{
+	return format_hex(s, mac, 8);
+}
+
+char *format_mac(char *s, const unsigned char *mac)
+{
+	format_hex(s, mac, 6);
+	return s;
+}

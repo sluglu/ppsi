@@ -3,14 +3,17 @@
 #
 
 # We are now Kconfig-based
--include $(CURDIR)/.config
+WRPCSW_ROOT?=.
+# Root of the main software, for now used only by WRPC. For other make it a
+# current directory (".")
+MAINSW_ROOT=$(WRPCSW_ROOT)
+-include $(CURDIR)/$(MAINSW_ROOT)/.config
 
 # We still accept command-line choices like we used to do.
 # Also, we must remove the quotes from these Kconfig values
 PROTO_EXTS ?= $(patsubst "%",%,$(CONFIG_EXTENSIONS))
 ARCH ?= $(patsubst "%",%,$(CONFIG_ARCH))
 CROSS_COMPILE ?= $(patsubst "%",%,$(CONFIG_CROSS_COMPILE))
-WRPCSW_ROOT ?= $(patsubst "%",%,$(CONFIG_WRPCSW_ROOT))
 
 # For "make config" to work, we need a valid ARCH
 ifeq ($(ARCH),)
@@ -53,6 +56,8 @@ export CFLAGS_OPTIMIZATION:= ${shell echo $(CONFIG_OPTIMIZATION)}
 
 CFLAGS += $(CFLAGS_OPTIMIZATION)
 
+CFLAGS += -I$(MAINSW_ROOT)
+CFLAGS += -I$(MAINSW_ROOT)/include
 CFLAGS += -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
 
@@ -103,10 +108,14 @@ export CFLAGS
 # libraries: see proto-standard/Makefile as an example.
 
 $(TARGET).o: $(OBJ-y)
-	$(LD) --gc-sections --entry=main -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
+	$(LD) --gc-sections -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
 		--start-group $(OBJ-y) --end-group
 
-$(OBJ-y): .config $(wildcard include/ppsi/*.h)
+$(TARGET).a: $(OBJ-y)
+	$(AR) rc $@ $(OBJ-y)
+
+
+$(OBJ-y): $(MAINSW_ROOT)/.config $(wildcard include/ppsi/*.h)
 
 # Finally, "make clean" is expected to work
 clean::
@@ -118,8 +127,8 @@ distclean: clean
 
 # Explicit rule for $(CURDIR)/.config
 # needed since -include XXX triggers build for XXX
-$(CURDIR)/.config:
-	@# Keep this dummy comment
+$(CURDIR)/$(MAINSW_ROOT)/.config:
+	@#Keep this dummy comment
 
 # following targets from Makefile.kconfig
 silentoldconfig:
@@ -136,4 +145,5 @@ defconfig:
 	@echo "Using unix_defconfig"
 	@$(MAKE) -f Makefile.kconfig unix_defconfig
 
-.config: silentoldconfig
+# "$(MAINSW_ROOT)/.config", when MAINSW_ROOT is "."
+./.config .config: silentoldconfig

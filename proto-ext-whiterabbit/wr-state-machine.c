@@ -27,7 +27,7 @@ static wr_state_machine_t wr_state_actions[] ={
 			.action=wr_present,
 		},
 		[WRS_M_LOCK]{
-			.name="wr_m_lock",
+			.name="wr-m-lock",
 			.action=wr_m_lock,
 		},
 		[WRS_S_LOCK]{

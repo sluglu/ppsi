@@ -57,7 +57,7 @@ static int wr_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 	   ){
 		WR_DSPOR(ppi)->wrConfig = WR_S_ONLY;
 	} else {
-		WR_DSPOR(ppi)->wrConfig = ( ppi->portDS->masterOnly ||
+		WR_DSPOR(ppi)->wrConfig = (is_masterOnly(ppi->portDS) ||
 				( is_externalPortConfigurationEnabled(DSDEF(ppi)) &&
 						ppi->externalPortConfigurationPortDS.desiredState==PPS_MASTER)) ?
 								WR_M_ONLY :

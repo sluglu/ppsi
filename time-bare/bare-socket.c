@@ -29,16 +29,16 @@ static int bare_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	struct bare_ethhdr *hdr = pkt;
 	struct pp_time *t = &ppi->last_snt_time;
-	static const uint8_t macaddr[2][ETH_ALEN] = {
-		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
-		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
+	static const uint8_t macaddr[MECH_MAX_SUPPORTED + 1][ETH_ALEN] = {
+		[MECH_E2E] = PP_MCAST_MACADDRESS,
+		[MECH_P2P] = PP_PDELAY_MACADDRESS,
 	};
-	int is_pdelay = mf->is_pdelay;
+	int delay_mechanism = mf->delay_mechanism;
 	int ret;
 
 	hdr->h_proto = htons(ETH_P_1588);
 
-	memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
+	memcpy(hdr->h_dest, macaddr[delay_mechanism], ETH_ALEN);
 
 	/* raw socket implementation always uses gen socket */
 	memcpy(hdr->h_source, ppi->ch[PP_NP_GEN].addr, 6);

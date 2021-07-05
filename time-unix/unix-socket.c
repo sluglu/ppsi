@@ -185,14 +185,14 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 	struct pp_vlanhdr *vhdr = pkt;
 	struct pp_channel *ch = ppi->ch + chtype;
 	struct pp_time *t = &ppi->last_snt_time;
-	int is_pdelay =  mf->is_pdelay;
+	int delay_mechanism =  mf->delay_mechanism;
 	static const uint16_t udpport[] = {
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,
 	};
-	static const uint8_t macaddr[2][ETH_ALEN] = {
-		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
-		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
+	static const uint8_t macaddr[MECH_MAX_SUPPORTED + 1][ETH_ALEN] = {
+		[MECH_E2E] = PP_MCAST_MACADDRESS,
+		[MECH_P2P] = PP_PDELAY_MACADDRESS,
 	};
 	int ret;
 
@@ -209,7 +209,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 		ch = ppi->ch + PP_NP_GEN;
 		hdr->h_proto = htons(ETH_P_1588);
 
-		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
+		memcpy(hdr->h_dest, macaddr[delay_mechanism], ETH_ALEN);
 		memcpy(hdr->h_source, ch->addr, ETH_ALEN);
 
 		TOPS(ppi)->get(ppi, t);
@@ -234,7 +234,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 		vhdr->h_tci = htons(ppi->peer_vid); /* prio is 0 */
 		vhdr->h_tpid = htons(0x8100);
 
-		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
+		memcpy(hdr->h_dest, macaddr[delay_mechanism], ETH_ALEN);
 		memcpy(vhdr->h_source, ch->addr, ETH_ALEN);
 
 		TOPS(ppi)->get(ppi, t);
@@ -254,7 +254,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg
 	case PPSI_PROTO_UDP:
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(udpport[chtype]);
-		addr.sin_addr.s_addr = ppi->mcast_addr[is_pdelay];
+		addr.sin_addr.s_addr = ppi->mcast_addr[delay_mechanism];
 
 		TOPS(ppi)->get(ppi, t);
 
@@ -422,7 +422,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	context = addr_str; errno = EINVAL;
 	if (!inet_aton(addr_str, &net_addr))
 		goto err_out;
-	ppi->mcast_addr[PP_E2E_MECH] = net_addr.s_addr;
+	ppi->mcast_addr[MECH_E2E] = net_addr.s_addr;
 
 	/* multicast sends only on specified interface */
 	imr.imr_multiaddr.s_addr = net_addr.s_addr;
@@ -446,7 +446,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	errno = EINVAL;
 	if (!inet_aton(addr_str, &net_addr))
 		goto err_out;
-	ppi->mcast_addr[PP_P2P_MECH] = net_addr.s_addr;
+	ppi->mcast_addr[MECH_P2P] = net_addr.s_addr;
 	imr.imr_multiaddr.s_addr = net_addr.s_addr;
 
 	/* join multicast group (for receiving) on specified interface */
@@ -564,17 +564,17 @@ static int unix_net_exit(struct pp_instance *ppi)
 
 			/* Close General Multicast */
 			imr.imr_interface.s_addr = htonl(INADDR_ANY);
-			imr.imr_multiaddr.s_addr = ppi->mcast_addr[0];
+			imr.imr_multiaddr.s_addr = ppi->mcast_addr[MECH_E2E];
 			setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
 				   &imr, sizeof(struct ip_mreq));
-			imr.imr_multiaddr.s_addr = ppi->mcast_addr[1];
+			imr.imr_multiaddr.s_addr = ppi->mcast_addr[MECH_P2P];
 			setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
 				   &imr, sizeof(struct ip_mreq));
 			close(fd);
 
 			ppi->ch[i].fd = -1;
 		}
-		ppi->mcast_addr[0] = ppi->mcast_addr[1] = 0;
+		ppi->mcast_addr[MECH_E2E] = ppi->mcast_addr[MECH_P2P] = 0;
 		return 0;
 
 	default:

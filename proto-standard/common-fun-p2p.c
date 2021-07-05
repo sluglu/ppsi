@@ -43,7 +43,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, void *buf,
 	int e = 0;
 
 	/* if not in P2P mode, just return */
-	if (ppi->delayMechanism != P2P)
+	if (ppi->delayMechanism != MECH_P2P)
 		return 0;
 	
 	msg_unpack_pdelay_resp(buf, &resp);
@@ -120,7 +120,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	int e = 0;
 
 	/* if not in P2P mode, just return */
-	if (ppi->delayMechanism != P2P)
+	if (ppi->delayMechanism != MECH_P2P)
 		return 0;
 	
 	msg_unpack_pdelay_resp_follow_up(buf, &respFllw);
@@ -166,7 +166,7 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
 	int e = 0;
 
 	/* if not in P2P mode, just return */
-	if (ppi->delayMechanism != P2P)
+	if (ppi->delayMechanism != MECH_P2P)
 		return 0;
 	
 	if (is_ext_hook_available(ppi,handle_preq))
@@ -185,7 +185,7 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, void *buf,
  */
 void update_meanDelay(struct pp_instance *ppi, TimeInterval meanDelay) {
 	/* clause 11.4.2.d.f : the <meanLinkDelay> shall be stored ... for the P2P port in the PTP SLAVE state in currentDS.meanDelay.*/
-	if ( ppi->delayMechanism==P2P ) {
+	if (ppi->delayMechanism == MECH_P2P) {
 		DSPOR(ppi)->meanLinkDelay=meanDelay;
 		if ( ppi->state != PPS_SLAVE )
 			return;

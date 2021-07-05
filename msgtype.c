@@ -2,43 +2,43 @@
 
 /*
  * PP_NP_GEN/EVT is the event or general message. It selects the socket etc
- * PP_P2P_MECH is used to select a destination address for pdelay frames.
+ * P2P is used to select a destination address for pdelay frames.
  * the numeric 0..5 is the "controlField" (magic ptpV1 numbers in byte 32).
  * PP_LOG is the kind of logInterval to put in byte 33.
  */
 struct pp_msgtype_info pp_msgtype_info[] = {
 	[PPM_SYNC_FMT] = {
 		PPM_SYNC, PP_SYNC_LENGTH,
-		PP_NP_EVT, PP_E2E_MECH,  0, PP_LOG_SYNC },
+		PP_NP_EVT, MECH_E2E,  0, PP_LOG_SYNC },
 	[PPM_DELAY_REQ_FMT] = {
 			PPM_DELAY_REQ, PP_DELAY_REQ_LENGTH,
-		PP_NP_EVT, PP_E2E_MECH, 1, 0x7f },
+		PP_NP_EVT, MECH_E2E, 1, 0x7f },
 	[PPM_PDELAY_REQ_FMT] = {
 			PPM_PDELAY_REQ,PP_PDELAY_REQ_LENGTH,
-		PP_NP_EVT, PP_P2P_MECH, 5, 0x7f },
+		PP_NP_EVT, MECH_P2P, 5, 0x7f },
 	[PPM_PDELAY_RESP_FMT] = {
 			PPM_PDELAY_RESP, PP_PDELAY_RESP_LENGTH,
-		PP_NP_EVT, PP_P2P_MECH, 5, 0x7f },
+		PP_NP_EVT, MECH_P2P, 5, 0x7f },
 	[PPM_FOLLOW_UP_FMT] = {
 			PPM_FOLLOW_UP, PP_FOLLOW_UP_LENGTH,
-		PP_NP_GEN, PP_E2E_MECH, 2, PP_LOG_SYNC },
+		PP_NP_GEN, MECH_E2E, 2, PP_LOG_SYNC },
 	[PPM_DELAY_RESP_FMT] = {
 			PPM_DELAY_RESP, PP_DELAY_RESP_LENGTH,
-		PP_NP_GEN, PP_E2E_MECH, 3, PP_LOG_REQUEST },
+		PP_NP_GEN, MECH_E2E, 3, PP_LOG_REQUEST },
 	[PPM_PDELAY_R_FUP_FMT] = {
 			PPM_PDELAY_R_FUP, PP_PDELAY_RESP_FOLLOW_UP_LENGTH,
-		PP_NP_GEN, PP_P2P_MECH, 5, 0x7f },
+		PP_NP_GEN, MECH_P2P, 5, 0x7f },
 	[PPM_ANNOUNCE_FMT] = {
 			PPM_ANNOUNCE, PP_ANNOUNCE_LENGTH,
-		PP_NP_GEN, PP_E2E_MECH, 5, PP_LOG_ANNOUNCE},
+		PP_NP_GEN, MECH_E2E, 5, PP_LOG_ANNOUNCE},
 	[PPM_SIGNALING_FMT] = {
 			PPM_SIGNALING, -1,
-		PP_NP_GEN, PP_E2E_MECH, 5, 0x7f},
+		PP_NP_GEN, MECH_E2E, 5, 0x7f},
 	[PPM_SIGNALING_NO_FWD_FMT] = {
 			PPM_SIGNALING, -1,
-			PP_NP_GEN, PP_P2P_MECH, 5, 0x7f},
+			PP_NP_GEN, MECH_P2P, 5, 0x7f},
 /* We don't use management, or not in the table-driven code */
-	[PPM_MANAGEMENT_FMT] = { PPM_MANAGEMENT, -1, PP_NP_GEN, PP_E2E_MECH, 4, 0x7f},
+	[PPM_MANAGEMENT_FMT] = { PPM_MANAGEMENT, -1, PP_NP_GEN, MECH_E2E, 4, 0x7f},
 };
 
 char  *pp_msgtype_name[] = {

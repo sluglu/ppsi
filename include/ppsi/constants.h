@@ -126,7 +126,7 @@
 /* Free running master */
 #define PP_FRUNNING_CLOCK_CLASS         PP_ARB_CLASS_GM_UNLOCKED_B
 #define PP_FRUNNING_CLOCK_VARIANCE      PP_ARB_VARIANCE_GM_UNLOCKED
-#define PP_FRUNNING_CLOCK_ACCURACY		PP_ARB_ACCURACY_GM_UNLOCKED
+#define PP_FRUNNING_CLOCK_ACCURACY	PP_ARB_ACCURACY_GM_UNLOCKED_B
 
 #define PP_NR_FOREIGN_RECORDS           CONFIG_NR_FOREIGN_RECORDS	  /* Clause 9.3.2.4.5 */
 #define PP_FOREIGN_MASTER_TIME_WINDOW	4
@@ -169,9 +169,6 @@
 
 #define PP_MCAST_MACADDRESS		"\x01\x1B\x19\x00\x00\x00"
 #define PP_PDELAY_MACADDRESS		"\x01\x80\xC2\x00\x00\x0E"
-
-#define PP_E2E_MECH     0
-#define PP_P2P_MECH     1
 
 #include <arch/constants.h> /* architectures may override the defaults */
 

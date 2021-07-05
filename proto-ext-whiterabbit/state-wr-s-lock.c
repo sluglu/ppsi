@@ -33,7 +33,7 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 			if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 				WRH_OPER()->locking_disable(ppi);
 				if ( rms==0 ) {
-					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					pp_diag(ppi, time, 1, "timeout expired: %s\n", WR_TMO_NAME);
 					wr_handshake_fail(ppi);
 					return 0; /* non-wr already */
 				}
@@ -47,5 +47,5 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 		WRH_OPER()->locking_enable(ppi);
 	}
 
-	return 100 ;/* 100ms : We check every 100ms if the PLL is locked */
+	return 0; /* 0ms : If needed we yeld in locking_poll during waiting for the PLL to lock */
 }

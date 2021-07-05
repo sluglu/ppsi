@@ -9,12 +9,13 @@
 #ifndef __WRH_H__
 #define __WRH_H__
 
-#include <stdint.h>
-#include <hal_exports.h>
-#include <ppsi/lib.h>
-
 /* Please increment WRS_PPSI_SHMEM_VERSION if you change any exported data structure */
-#define WRS_PPSI_SHMEM_VERSION 33
+#define WRS_PPSI_SHMEM_VERSION 34
+
+/* Don't include the Following when this file is included in assembler. */
+#ifndef __ASSEMBLY__
+#include <stdint.h>
+#include <ppsi/lib.h>
 
 /* White Rabbit softpll status values */
 #define WRH_SPLL_ERROR		  -1
@@ -146,11 +147,12 @@ static inline  wrh_servo_t *WRH_SRV(struct pp_instance *ppi)
 extern void    wrh_servo_enable_tracking(int enable);
 extern int     wrh_servo_init(struct pp_instance *ppi);
 extern void    wrh_servo_reset(struct pp_instance *ppi);
-extern void    wrh_servo_enable_tracking(int enable);
 extern int     wrh_servo_got_sync(struct pp_instance *ppi);
 extern int     wrh_servo_got_resp(struct pp_instance *ppi);
 extern int     wrh_servo_got_presp(struct pp_instance *ppi);
 extern int     wrh_update_correction_values(struct pp_instance *ppi);
 
+
+#endif /* __ASSEMBLY__ */
 #endif /* __WRH_H__ */
 

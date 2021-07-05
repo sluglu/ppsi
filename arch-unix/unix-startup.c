@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 		ppi = INST(ppg, i);
 		ppi->proto = PP_DEFAULT_PROTO;
 		ppi->role = PP_DEFAULT_ROLE;
-		ppi->delayMechanism = E2E;
+		ppi->delayMechanism = MECH_E2E;
 	}
 
 	/* Set offset here, so config parsing can override it */

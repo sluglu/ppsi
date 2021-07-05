@@ -8,9 +8,10 @@
 #include "ptpdump.h"
 
 #include "../arch-wrpc/wrpc.h"
-#include <syscon.h> /* wrpc-sw */
-#include <endpoint.h> /* wrpc-sw */
+#include <dev/syscon.h> /* wrpc-sw */
+#include <dev/endpoint.h> /* wrpc-sw */
 #include <ptpd_netif.h> /* wrpc-sw */
+#include "board.h"
 
 #ifdef CONFIG_ABSCAL
 #define HAS_ABSCAL 1
@@ -77,7 +78,9 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		    && (!HAS_ABSCAL || ptp_mode != WRC_MODE_ABSCAL))
 			mark_incorrect(t);
 	}
-
+	/* copy MAC and vlan of a peer to ppi */
+	memcpy(ppi->peer, &addr.mac, ETH_ALEN);
+	ppi->peer_vid = addr.vlan;
 /* wrpc-sw may pass this in USER_CFLAGS, to remove footprint */
 #ifndef CONFIG_NO_PTPDUMP
 	/* The header is separate, so dump payload only */
@@ -90,7 +93,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 		/* WR counts bitslide later, in fixed-delta, so subtract it */
 		t4 = *t;
-		bitslide = ep_get_bitslide();
+		bitslide = ep_get_bitslide(&wrc_endpoint_dev);
 		t_bts.secs = 0;
 		t_bts.scaled_nsecs = (bitslide << 16) / 1000;
 		pp_time_sub(&t4, &t_bts);
@@ -121,10 +124,10 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_ms
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
 	struct pp_time *t = &ppi->last_snt_time;
-	int is_pdelay = mf->is_pdelay;
-	static const uint8_t macaddr[2][ETH_ALEN] = {
-		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
-		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
+	int delay_mechanism = mf->delay_mechanism;
+	static const uint8_t macaddr[MECH_MAX_SUPPORTED + 1][ETH_ALEN] = {
+		[MECH_E2E] = PP_MCAST_MACADDRESS,
+		[MECH_P2P] = PP_PDELAY_MACADDRESS,
 	};
 
 	/*
@@ -138,7 +141,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_ms
 	sock = ppi->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = htons(ETH_P_1588);
-	memcpy(&addr.mac, macaddr[is_pdelay], sizeof(mac_addr_t));
+	memcpy(&addr.mac, macaddr[delay_mechanism], sizeof(mac_addr_t));
 	if (CONFIG_HAS_WRPC_FAULTS && drop) {
 		addr.ethertype = 1;
 		addr.mac[0] = 0x22; /* pfilter uses mac; drop for nodes too */

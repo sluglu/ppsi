@@ -29,6 +29,8 @@ enum dump_type_ppsi {
 	dump_type_TimeInterval,
 	dump_type_RelativeDifference,
 	dump_type_FixedDelta,
+	dump_type_Timestamp,
+	dump_type_scaledPicoseconds,
 
 	/* and this is ours */
 	dump_type_yes_no_Boolean,

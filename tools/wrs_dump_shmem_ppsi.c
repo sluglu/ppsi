@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>
+#include "dump-info_ppsi.h"
 #include "wrs_dump_shmem.h"
-
 
 /* map for fields of ppsi structures */
 #undef DUMP_STRUCT
@@ -354,6 +354,130 @@ struct dump_info wrs_arch_data_info [] = {
 	DUMP_FIELD(int,gmUnlockErr)
 };
 #endif
+
+int dump_one_field_type_ppsi_wrs(int type, int size, void *p)
+{
+	int i;
+
+	switch(type) {
+	case dump_type_yes_no_Boolean:
+	case dump_type_ppi_state:
+	case dump_type_ppi_state_Enumeration8:
+	case dump_type_wr_config:
+	case dump_type_wr_config_Enumeration8:
+	case dump_type_wr_role:
+	case dump_type_wr_role_Enumeration8:
+	case dump_type_pp_pdstate:
+	case dump_type_exstate:
+	case dump_type_pp_servo_flag:
+	case dump_type_pp_servo_state:
+	case dump_type_wr_state:
+	case dump_type_ppi_profile:
+	case dump_type_ppi_proto:
+	case dump_type_ppi_flag:
+		if (size == 1)
+			i = *(uint8_t *)p;
+		else if (size == 2)
+			i = *(uint16_t *)(p);
+		else
+			i = *(uint32_t *)(p);
+		break;
+	default:
+		i = 0;
+	}
+
+	return i;
+}
+
+void dump_one_field_ppsi_wrs(int type, int size, void *p, int i)
+{
+	struct pp_time *t = p;
+	struct PortIdentity *pi = p;
+	struct ClockQuality *cq = p;
+	TimeInterval *ti=p;
+	RelativeDifference *rd=p;
+	char buf[128];
+	char *char_p;
+	Timestamp *ts=p;
+
+	/* check the size of Boolean, which is declared as Enum */
+	if (type == dump_type_Boolean) {
+		switch(size) {
+		case 1:
+			type = dump_type_UInteger8;
+			break;
+		case 2:
+			type = dump_type_UInteger16;
+			break;
+		case 4:
+		default:
+			type = dump_type_UInteger32;
+			break;
+		}
+	}
+
+	switch(type) {
+	case dump_type_UInteger64:
+		printf("%lld\n", *(unsigned long long *)p);
+		break;
+	case dump_type_Integer64:
+		printf("%lld\n", *(long long *)p);
+		break;
+	case dump_type_Integer32:
+		printf("%i\n", *(int *)p);
+		break;
+	case dump_type_UInteger32:
+		printf("%u\n", *(uint32_t *)p);
+		break;
+	case dump_type_UInteger8:
+	case dump_type_Integer8:
+	case dump_type_Enumeration8:
+	case dump_type_Boolean:
+		printf("%i\n", *(unsigned char *)p);
+		break;
+	case dump_type_UInteger4:
+		printf("%i\n", *(unsigned char *)p & 0xF);
+		break;
+	case dump_type_UInteger16:
+		printf("%i\n", *(unsigned short *)p);
+		break;
+	case dump_type_Integer16:
+		printf("%i\n", *(short *)p);
+		break;
+	case dump_type_Timestamp:
+		printf("%s\n",timestampToString(ts,buf));
+		break;
+
+	case dump_type_TimeInterval:
+		printf("%s\n",timeIntervalToString(*ti,buf));
+		break;
+
+	case dump_type_RelativeDifference:
+		printf("%s\n",relativeDifferenceToString(*rd,buf));
+		break;
+	case dump_type_ClockIdentity: /* Same as binary */
+		for (i = 0; i < sizeof(ClockIdentity); i++)
+			printf("%02x%c", ((unsigned char *)p)[i],
+			       i == sizeof(ClockIdentity) - 1 ? '\n' : ':');
+		break;
+
+	case dump_type_PortIdentity: /* Same as above plus port */
+		for (i = 0; i < sizeof(ClockIdentity); i++)
+			printf("%02x%c", ((unsigned char *)p)[i],
+			       i == sizeof(ClockIdentity) - 1 ? '.' : ':');
+		printf("%04x (%i)\n", pi->portNumber, pi->portNumber);
+		break;
+
+	case dump_type_ClockQuality:
+		printf("class=%i, accuracy=0x%02x (%i), logvariance=%i\n",
+		       cq->clockClass, cq->clockAccuracy, cq->clockAccuracy,
+		       cq->offsetScaledLogVariance);
+		break;
+	case dump_type_scaledPicoseconds:
+		printf("%lld\n", (*(unsigned long long *)p)>>16);
+		break;
+	}
+}
 
 extern struct dump_info shm_head [5];
 

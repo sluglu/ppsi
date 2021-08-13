@@ -74,3 +74,4 @@ typedef wr_state_t     wr_state;
 typedef int            ppi_profile;
 typedef int            ppi_proto;
 typedef unsigned char  ppi_flag;
+typedef FixedDelta     scaledPicoseconds;

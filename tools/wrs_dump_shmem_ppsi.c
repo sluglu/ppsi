@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>
+#include <time_lib.h>
 #include "dump-info_ppsi.h"
 #include "wrs_dump_shmem.h"
 
@@ -18,7 +19,10 @@ struct dump_info ppg_info [] = {
 	DUMP_FIELD(int, ebest_updated),
 	DUMP_FIELD(int, nlinks),
 	DUMP_FIELD(int, max_links),
-	// DUMP_FIELD(struct pp_globals_cfg cfg),
+	/* substructure pp_globals_cfg */
+	DUMP_FIELD(int, cfg.cfg_items),
+	DUMP_FIELD(int, cfg.cur_ppi_n),
+	
 	DUMP_FIELD(int, rxdrop),
 	DUMP_FIELD(int, txdrop),
 	DUMP_FIELD(pointer, arch_data),
@@ -35,10 +39,10 @@ struct dump_info dsd_info [] = {
 	DUMP_FIELD(UInteger8, priority1),
 	DUMP_FIELD(UInteger8, priority2),
 	DUMP_FIELD(UInteger8, domainNumber),
-	DUMP_FIELD(Boolean, slaveOnly),
-	DUMP_FIELD(Timestamp,	currentTime),
-	DUMP_FIELD(Boolean,	instanceEnable),
-	DUMP_FIELD(Boolean, externalPortConfigurationEnabled),
+	DUMP_FIELD(yes_no_Boolean, slaveOnly),
+	DUMP_FIELD(Timestamp, currentTime),
+	DUMP_FIELD(yes_no_Boolean, instanceEnable),
+	DUMP_FIELD(yes_no_Boolean, externalPortConfigurationEnabled),
 	DUMP_FIELD(Enumeration8, maxStepsRemoved),
 	DUMP_FIELD(Enumeration8, SdoId),
 	DUMP_FIELD(Enumeration8, instanceType),
@@ -63,26 +67,26 @@ struct dump_info dsp_info [] = {
 	DUMP_FIELD(ClockQuality, grandmasterClockQuality),
 	DUMP_FIELD(UInteger8, grandmasterPriority1),
 	DUMP_FIELD(UInteger8, grandmasterPriority2),
-	DUMP_FIELD(UInteger8, newGrandmaster),
+	DUMP_FIELD(yes_no_Boolean, newGrandmaster),
 };
 
 #undef DUMP_STRUCT
 #define DUMP_STRUCT timePropertiesDS_t /* Horrible typedef */
 struct dump_info dstp_info [] = {
 	DUMP_FIELD(Integer16, currentUtcOffset),
-	DUMP_FIELD(Boolean, currentUtcOffsetValid),
-	DUMP_FIELD(Boolean, leap59),
-	DUMP_FIELD(Boolean, leap61),
-	DUMP_FIELD(Boolean, timeTraceable),
-	DUMP_FIELD(Boolean, frequencyTraceable),
-	DUMP_FIELD(Boolean, ptpTimescale),
+	DUMP_FIELD(yes_no_Boolean, currentUtcOffsetValid),
+	DUMP_FIELD(yes_no_Boolean, leap59),
+	DUMP_FIELD(yes_no_Boolean, leap61),
+	DUMP_FIELD(yes_no_Boolean, timeTraceable),
+	DUMP_FIELD(yes_no_Boolean, frequencyTraceable),
+	DUMP_FIELD(yes_no_Boolean, ptpTimescale),
 	DUMP_FIELD(Enumeration8, timeSource),
 };
 
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct pp_servo
 struct dump_info servo_state_info [] = {
-	DUMP_FIELD(int , state),
+	DUMP_FIELD(pp_servo_state , state),
 	DUMP_FIELD(time, delayMM),
 	DUMP_FIELD(time, delayMS),
 	DUMP_FIELD(long_long, obs_drift),
@@ -91,7 +95,7 @@ struct dump_info servo_state_info [] = {
 	DUMP_FIELD(Integer64, mpd_fltr.s_exp),
 	DUMP_FIELD(time, meanDelay),
 	DUMP_FIELD(time, offsetFromMaster),
-	DUMP_FIELD(unsigned_long,      flags),
+	DUMP_FIELD(pp_servo_flag,      flags),
 	DUMP_FIELD(time, update_time),
 	DUMP_FIELD(UInteger32, update_count),
 	DUMP_FIELD(time, t1),
@@ -101,7 +105,8 @@ struct dump_info servo_state_info [] = {
 	DUMP_FIELD(time, t5),
 	DUMP_FIELD(time, t6),
 	DUMP_FIELD_SIZE(char, servo_state_name,32),
-	DUMP_FIELD(int,       servo_locked),
+	DUMP_FIELD(yes_no, servo_locked),
+	DUMP_FIELD(yes_no, got_sync),
 };
 
 #if CONFIG_HAS_EXT_L1SYNC || CONFIG_HAS_EXT_WR
@@ -203,8 +208,8 @@ struct dump_info portDS_info [] = {
 	DUMP_FIELD(UInteger4, minorVersionNumber),
 	DUMP_FIELD(TimeInterval, delayAsymmetry),
 	DUMP_FIELD(RelativeDifference, delayAsymCoeff),
-	DUMP_FIELD(Boolean, portEnable),
-	DUMP_FIELD(Boolean, masterOnly)
+	DUMP_FIELD(yes_no_Boolean, portEnable),
+	DUMP_FIELD(yes_no_Boolean, masterOnly)
 };
 
 #undef DUMP_STRUCT
@@ -221,28 +226,28 @@ struct dump_info dsfm_info [] = {
 	DUMP_FIELD(UInteger16, sequenceId),
 	DUMP_FIELD(UInteger16, stepsRemoved),
 	DUMP_FIELD(Integer16, currentUtcOffset),
-	DUMP_FIELD(Boolean, qualified),
+	DUMP_FIELD(yes_no_Boolean, qualified),
 	DUMP_FIELD(unsigned_long, lastAnnounceMsgMs),
 };
 
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct pp_instance
 struct dump_info ppi_info [] = {
-	DUMP_FIELD(int, state),
-	DUMP_FIELD(int, next_state),
+	DUMP_FIELD(ppi_state, state),
+	DUMP_FIELD(ppi_state, next_state),
 	DUMP_FIELD(int, next_delay),
-	DUMP_FIELD(int, is_new_state),
-	DUMP_FIELD(int,extState),
-	DUMP_FIELD(int,pdstate),
+	DUMP_FIELD(yes_no, is_new_state),
+	DUMP_FIELD(exstate,extState),
+	DUMP_FIELD(pp_pdstate,pdstate),
 	DUMP_FIELD(pointer, arch_data),
 	DUMP_FIELD(pointer, ext_data),
-	DUMP_FIELD(int, protocol_extension),
+	DUMP_FIELD(protocol_extension, protocol_extension),
 	DUMP_FIELD(pointer, ext_hooks),
 	DUMP_FIELD(pointer, servo),		/* FIXME: follow this */
 	DUMP_FIELD(unsigned_long, d_flags),
-	DUMP_FIELD(unsigned_char, flags),
-	DUMP_FIELD(int, proto),
-	DUMP_FIELD(int, delayMechanism),
+	DUMP_FIELD(ppi_flag, flags),
+	DUMP_FIELD(ppi_proto, proto),
+	DUMP_FIELD(delay_mechanism, delayMechanism),
 	DUMP_FIELD(pointer, glbs),
 	DUMP_FIELD(pointer, n_ops),
 	DUMP_FIELD(pointer, t_ops),
@@ -258,14 +263,15 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(pointer, ch[0].custom),
 	DUMP_FIELD(pointer, ch[0].arch_data),
 	DUMP_FIELD_SIZE(bina, ch[0].addr, 6),
-	DUMP_FIELD(int, ch[0].pkt_present),
+	DUMP_FIELD(yes_no, ch[0].pkt_present),
 	DUMP_FIELD(int, ch[1].fd),
 	DUMP_FIELD(pointer, ch[1].custom),
 	DUMP_FIELD(pointer, ch[1].arch_data),
 	DUMP_FIELD_SIZE(bina, ch[1].addr, 6),
-	DUMP_FIELD(int, ch[1].pkt_present),
+	DUMP_FIELD(yes_no, ch[1].pkt_present),
 
-	DUMP_FIELD(ip_address, mcast_addr),
+	DUMP_FIELD(ip_address, mcast_addr[0]),
+	DUMP_FIELD(ip_address, mcast_addr[1]),
 	DUMP_FIELD(int, tx_offset),
 	DUMP_FIELD(int, rx_offset),
 	DUMP_FIELD_SIZE(bina, peer, 6),
@@ -288,20 +294,20 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(UInteger32, frgn_master_time_window_ms),
 	DUMP_FIELD(pointer,frgn_master),
 	DUMP_FIELD(pointer, portDS),
-	DUMP_FIELD(Boolean,asymmetryCorrectionPortDS.enable),
+	DUMP_FIELD(yes_no_Boolean,asymmetryCorrectionPortDS.enable),
 	DUMP_FIELD(TimeInterval,asymmetryCorrectionPortDS.constantAsymmetry),
 	DUMP_FIELD(RelativeDifference,asymmetryCorrectionPortDS.scaledDelayCoefficient),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.egressLatency),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.ingressLatency),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.messageTimestampPointLatency),
 	DUMP_FIELD(TimeInterval,timestampCorrectionPortDS.semistaticLatency),
-	DUMP_FIELD(Enumeration8,externalPortConfigurationPortDS.desiredState),
+	DUMP_FIELD(ppi_state_Enumeration8,externalPortConfigurationPortDS.desiredState),
 
 	//DUMP_FIELD(unsigned long tmo_cfg[PP_TO_COUNT]), /* dump separately */
 	DUMP_FIELD(UInteger16, recv_sync_sequence_id),
 	//DUMP_FIELD(UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]),
 	DUMP_FIELD_SIZE(bina, received_ptp_header, sizeof(MsgHeader)),
-	DUMP_FIELD(Boolean, link_up),
+	DUMP_FIELD(yes_no_Boolean, link_up),
 
 	DUMP_FIELD_SIZE(pointer, iface_name,16),
 	DUMP_FIELD_SIZE(pointer, port_name,16),
@@ -314,7 +320,8 @@ struct dump_info ppi_info [] = {
 	/* sub structure */
 	DUMP_FIELD_SIZE(char, cfg.port_name, 16),
 	DUMP_FIELD_SIZE(char, cfg.iface_name, 16),
-	DUMP_FIELD(int, cfg.profile),
+	DUMP_FIELD(ppi_profile, cfg.profile),
+	DUMP_FIELD(delay_mechanism, cfg.delayMechanism),
 
 	DUMP_FIELD(unsigned_long, ptp_tx_count),
 	DUMP_FIELD(unsigned_long, ptp_rx_count),
@@ -332,9 +339,10 @@ struct dump_info timeouts_info [] = {
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct wr_dsport
 struct dump_info wr_ext_portDS_info [] = {
-	DUMP_FIELD(int,state),
-	DUMP_FIELD(Boolean,wrModeOn),
-	DUMP_FIELD(Boolean,parentWrModeOn),
+	DUMP_FIELD(wr_state,state),
+	DUMP_FIELD(wr_state, next_state),
+	DUMP_FIELD(yes_no_Boolean, wrModeOn),
+	DUMP_FIELD(yes_no_Boolean, parentWrModeOn),
 	DUMP_FIELD(scaledPicoseconds, deltaTx),
 	DUMP_FIELD(scaledPicoseconds, deltaRx),
 	DUMP_FIELD(UInteger16, otherNodeCalSendPattern),
@@ -342,6 +350,9 @@ struct dump_info wr_ext_portDS_info [] = {
 	DUMP_FIELD(UInteger32, otherNodeCalPeriod),
 	DUMP_FIELD(scaledPicoseconds, otherNodeDeltaTx),
 	DUMP_FIELD(scaledPicoseconds, otherNodeDeltaRx),
+	DUMP_FIELD(wr_config_Enumeration8, wrConfig),
+	DUMP_FIELD(wr_config_Enumeration8, parentWrConfig),
+	DUMP_FIELD(wr_role_Enumeration8, wrMode),
 };
 #endif
 
@@ -349,11 +360,13 @@ struct dump_info wr_ext_portDS_info [] = {
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct wrs_arch_data_t
 struct dump_info wrs_arch_data_info [] = {
-	DUMP_FIELD(int,timingMode),
+	DUMP_FIELD(timing_mode,timingMode),
 	DUMP_FIELD(int,timingModeLockingState),
 	DUMP_FIELD(int,gmUnlockErr)
 };
 #endif
+
+void print_str(char *s);
 
 int dump_one_field_type_ppsi_wrs(int type, int size, void *p)
 {
@@ -388,6 +401,12 @@ int dump_one_field_type_ppsi_wrs(int type, int size, void *p)
 
 	return i;
 }
+
+/* create fancy macro to shorten the switch statements, assign val as a string to p */
+#define ENUM_TO_P_IN_CASE(val, p) \
+				case val: \
+				    p = #val;\
+				    break;
 
 void dump_one_field_ppsi_wrs(int type, int size, void *p, int i)
 {
@@ -449,11 +468,36 @@ void dump_one_field_ppsi_wrs(int type, int size, void *p, int i)
 		break;
 
 	case dump_type_TimeInterval:
-		printf("%s\n",timeIntervalToString(*ti,buf));
+		printf("%15s, ", timeIntervalToString(*ti, buf));
+		printf("raw:  %15lld\n", *(unsigned long long *)p);
+		break;
+	case dump_type_yes_no_Boolean:
+		printf("%d", i);
+		if (i == 0)
+			print_str("no");
+		else if (i == 1)
+			print_str("yes");
+		else
+			print_str("unknown");
+		printf("\n");
 		break;
 
+	case dump_type_pp_time:
+	{
+		struct pp_time localt;
+		localt.secs = t->secs;
+		localt.scaled_nsecs = t->scaled_nsecs;
+
+		printf("correct %i: %25s rawps: 0x%04x\n",
+		       !is_incorrect(&localt),
+		       timeToString(&localt,buf),
+		       (int)(localt.scaled_nsecs & 0xffff)
+		      );
+		break;
+	}
 	case dump_type_RelativeDifference:
-		printf("%s\n",relativeDifferenceToString(*rd,buf));
+		printf("%15s, ", relativeDifferenceToString(*rd, buf));
+		printf("raw:  %15lld\n", *(unsigned long long *)p);
 		break;
 	case dump_type_ClockIdentity: /* Same as binary */
 		for (i = 0; i < sizeof(ClockIdentity); i++)
@@ -475,6 +519,226 @@ void dump_one_field_ppsi_wrs(int type, int size, void *p, int i)
 		break;
 	case dump_type_scaledPicoseconds:
 		printf("%lld\n", (*(unsigned long long *)p)>>16);
+		break;
+
+
+	case dump_type_delay_mechanism:
+		i = *(uint32_t *)p;
+		switch(i) {
+		ENUM_TO_P_IN_CASE(MECH_E2E, char_p);
+		ENUM_TO_P_IN_CASE(MECH_P2P, char_p);
+		ENUM_TO_P_IN_CASE(MECH_COMMON_P2P, char_p);
+		ENUM_TO_P_IN_CASE(MECH_SPECIAL, char_p);
+		ENUM_TO_P_IN_CASE(MECH_NO_MECHANISM, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_protocol_extension:
+		i = *(uint32_t *)p;
+		switch(i) {
+		ENUM_TO_P_IN_CASE(PPSI_EXT_NONE, char_p);
+		ENUM_TO_P_IN_CASE(PPSI_EXT_WR, char_p);
+		ENUM_TO_P_IN_CASE(PPSI_EXT_L1S, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_timing_mode:
+		i = *(uint32_t *)p;
+		switch(i) {
+		ENUM_TO_P_IN_CASE(WRH_TM_GRAND_MASTER, char_p);
+		ENUM_TO_P_IN_CASE(WRH_TM_FREE_MASTER, char_p);
+		ENUM_TO_P_IN_CASE(WRH_TM_BOUNDARY_CLOCK, char_p);
+		ENUM_TO_P_IN_CASE(WRH_TM_DISABLED, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_ppi_state:
+	case dump_type_ppi_state_Enumeration8:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(PPS_END_OF_TABLE, char_p);
+		ENUM_TO_P_IN_CASE(PPS_INITIALIZING, char_p);
+		ENUM_TO_P_IN_CASE(PPS_FAULTY, char_p);
+		ENUM_TO_P_IN_CASE(PPS_DISABLED, char_p);
+		ENUM_TO_P_IN_CASE(PPS_LISTENING, char_p);
+		ENUM_TO_P_IN_CASE(PPS_PRE_MASTER, char_p);
+		ENUM_TO_P_IN_CASE(PPS_MASTER, char_p);
+		ENUM_TO_P_IN_CASE(PPS_PASSIVE, char_p);
+		ENUM_TO_P_IN_CASE(PPS_UNCALIBRATED, char_p);
+		ENUM_TO_P_IN_CASE(PPS_SLAVE, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_wr_config:
+	case dump_type_wr_config_Enumeration8:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(NON_WR, char_p);
+		ENUM_TO_P_IN_CASE(WR_M_ONLY, char_p);
+		ENUM_TO_P_IN_CASE(WR_S_ONLY, char_p);
+		ENUM_TO_P_IN_CASE(WR_M_AND_S, char_p);
+		ENUM_TO_P_IN_CASE(WR_MODE_AUTO, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_wr_role:
+	case dump_type_wr_role_Enumeration8:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(WR_ROLE_NONE, char_p);
+		ENUM_TO_P_IN_CASE(WR_MASTER, char_p);
+		ENUM_TO_P_IN_CASE(WR_SLAVE, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_pp_pdstate:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(PP_PDSTATE_NONE, char_p);
+		ENUM_TO_P_IN_CASE(PP_PDSTATE_WAIT_MSG, char_p);
+		ENUM_TO_P_IN_CASE(PP_PDSTATE_PDETECTION, char_p);
+		ENUM_TO_P_IN_CASE(PP_PDSTATE_PDETECTED, char_p);
+		ENUM_TO_P_IN_CASE(PP_PDSTATE_FAILURE, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_exstate:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(PP_EXSTATE_DISABLE, char_p);
+		ENUM_TO_P_IN_CASE(PP_EXSTATE_ACTIVE, char_p);
+		ENUM_TO_P_IN_CASE(PP_EXSTATE_PTP, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_pp_servo_flag:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(PP_SERVO_FLAG_VALID, char_p);
+		ENUM_TO_P_IN_CASE(PP_SERVO_FLAG_WAIT_HW, char_p);
+		ENUM_TO_P_IN_CASE(PP_SERVO_FLAG_VALID | PP_SERVO_FLAG_WAIT_HW, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_pp_servo_state:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(WRH_UNINITIALIZED, char_p);
+		ENUM_TO_P_IN_CASE(WRH_SYNC_TAI, char_p);
+		ENUM_TO_P_IN_CASE(WRH_SYNC_NSEC, char_p);
+		ENUM_TO_P_IN_CASE(WRH_SYNC_PHASE, char_p);
+		ENUM_TO_P_IN_CASE(WRH_TRACK_PHASE, char_p);
+		ENUM_TO_P_IN_CASE(WRH_WAIT_OFFSET_STABLE, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_wr_state:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(WRS_IDLE, char_p);
+		ENUM_TO_P_IN_CASE(WRS_PRESENT, char_p);
+		ENUM_TO_P_IN_CASE(WRS_S_LOCK, char_p);
+		ENUM_TO_P_IN_CASE(WRS_M_LOCK, char_p);
+		ENUM_TO_P_IN_CASE(WRS_LOCKED, char_p);
+		ENUM_TO_P_IN_CASE(WRS_CALIBRATION, char_p);
+		ENUM_TO_P_IN_CASE(WRS_CALIBRATED, char_p);
+		ENUM_TO_P_IN_CASE(WRS_RESP_CALIB_REQ, char_p);
+		ENUM_TO_P_IN_CASE(WRS_WR_LINK_ON, char_p);
+		ENUM_TO_P_IN_CASE(WRS_ABSCAL, char_p);
+		ENUM_TO_P_IN_CASE(WRS_MAX_STATES, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_ppi_profile:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(PPSI_PROFILE_PTP, char_p);
+		ENUM_TO_P_IN_CASE(PPSI_PROFILE_WR, char_p);
+		ENUM_TO_P_IN_CASE(PPSI_PROFILE_HA, char_p);
+		ENUM_TO_P_IN_CASE(PPSI_PROFILE_CUSTOM, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_ppi_proto:
+		switch(i) {
+		ENUM_TO_P_IN_CASE(PPSI_PROTO_RAW, char_p);
+		ENUM_TO_P_IN_CASE(PPSI_PROTO_UDP, char_p);
+		ENUM_TO_P_IN_CASE(PPSI_PROTO_VLAN, char_p);
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
+		break;
+
+	case dump_type_ppi_flag:
+		switch(i) {
+		case 0:
+			char_p = "None";
+			break;
+		ENUM_TO_P_IN_CASE(PPI_FLAG_WAITING_FOR_F_UP, char_p);
+		ENUM_TO_P_IN_CASE(PPI_FLAG_WAITING_FOR_RF_UP, char_p);
+		case PPI_FLAGS_WAITING:
+		    char_p = "PPI_FLAG_WAITING_FOR_F_UP | PPI_FLAG_WAITING_FOR_RF_UP";
+		    break;
+		default:
+			char_p = "Unknown";
+		}
+		printf("%d", i);
+		print_str(char_p);
+		printf("\n");
 		break;
 	}
 }

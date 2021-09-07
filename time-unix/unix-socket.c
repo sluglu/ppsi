@@ -601,10 +601,6 @@ static int unix_net_check_packet(struct pp_globals *ppg, int delay_ms)
 		arch_data->tv.tv_usec = (delay_ms % 1000) * 1000;
 	}
 
-	/* Detect general timeout with no needs for select stuff */
-	if ((arch_data->tv.tv_sec == 0) && (arch_data->tv.tv_usec == 0))
-		return 0;
-
 	FD_ZERO(&set);
 
 	for (j = 0; j < ppg->nlinks; j++) {

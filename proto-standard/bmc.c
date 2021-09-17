@@ -850,6 +850,7 @@ void bmc_store_frgn_master(struct pp_instance *ppi,
 	frgn_master->qualified=
 			frgn_master->lastAnnounceMsgMs=0;
 	memcpy(frgn_master->ext_specific,ann.ext_specific,sizeof(frgn_master->ext_specific));
+	memcpy(frgn_master->peer_mac, ppi->peer, sizeof(ppi->peer));
 }
 
 
@@ -1222,6 +1223,11 @@ static void bmc_update_erbest_inst(struct pp_instance *ppi) {
 		ppi->frgn_rec_best = -1;
 	}
 
+	/* Store MAC of a peer */
+	if (ppi->frgn_rec_best >= 0)
+		memcpy(&ppi->activePeer,
+		       &ppi->frgn_master[ppi->frgn_rec_best].peer_mac,
+		       sizeof(ppi->activePeer));
 }
 
 /* Find Erbest, 9.3.2.2 */

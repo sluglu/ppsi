@@ -95,6 +95,7 @@ struct pp_frgn_master {
 	unsigned long lastAnnounceMsgMs; // Last time in ms when the announce message was received
 	/* used by extension */
 	UInteger16      ext_specific[4]; /* Extension specific. Must be  UInteger16 to align it in the structure*/
+	unsigned char peer_mac[6];
 };
 
 /*

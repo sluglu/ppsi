@@ -228,6 +228,7 @@ struct dump_info dsfm_info [] = {
 	DUMP_FIELD(Integer16, currentUtcOffset),
 	DUMP_FIELD(yes_no_Boolean, qualified),
 	DUMP_FIELD(unsigned_long, lastAnnounceMsgMs),
+	DUMP_FIELD_SIZE(bina, peer_mac, 6),
 };
 
 #undef DUMP_STRUCT

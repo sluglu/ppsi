@@ -310,6 +310,7 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(Integer16, currentUtcOffset),
 	DUMP_FIELD(yes_no_Boolean, qualified),
 	DUMP_FIELD(unsigned_long, lastAnnounceMsgMs),
+	DUMP_FIELD_SIZE(bina, peer_mac, 6),
 
 #if CONFIG_HAS_EXT_WR == 1
 #undef DUMP_STRUCT

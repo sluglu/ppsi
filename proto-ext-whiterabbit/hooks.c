@@ -333,6 +333,14 @@ static int wr_extension_state_changed( struct pp_instance * ppi) {
 	return 0;
 }
 
+static int wr_new_slave (struct pp_instance *ppi, void *buf, int len) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
+		wr_servo_init(ppi);
+	}
+	return 0;
+}
+
+
 struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
@@ -342,6 +350,7 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.handle_followup = wr_handle_followup,
 	.ready_for_slave = wr_ready_for_slave,
 	.run_ext_state_machine = wr_run_state_machine,
+	.new_slave = wr_new_slave,
 #if CONFIG_HAS_P2P
 	.handle_presp = wr_handle_presp,
 #endif

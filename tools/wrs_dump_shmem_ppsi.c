@@ -354,6 +354,8 @@ struct dump_info wr_ext_portDS_info [] = {
 	DUMP_FIELD(wr_config_Enumeration8, wrConfig),
 	DUMP_FIELD(wr_config_Enumeration8, parentWrConfig),
 	DUMP_FIELD(wr_role_Enumeration8, wrMode),
+	DUMP_FIELD(PortIdentity, parentAnnPortIdentity),
+	DUMP_FIELD(UInteger16, parentAnnSequenceId),
 };
 #endif
 

@@ -2,16 +2,10 @@
 #define __ARCH_H__
 #include <assert.h> /* wrpc-sw includes assert already */
 
-/* Architecture-specific defines, included by top-level stuff */
-
-#ifndef htons /* If we build as host process, we have them LE already */
-#  define htons(x)      (x)
-#  define htonl(x)      (x)
-
-#  define ntohs htons
-#  define ntohl htonl
+/* don't include for host tools */
+#ifndef BUILD_HOST
+#include <endianness.h>
 #endif
-
 
 #define abs(x) ((x >= 0) ? x : -x)
 #endif /* __ARCH_H__ */

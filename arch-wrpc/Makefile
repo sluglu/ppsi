@@ -1,6 +1,8 @@
+# use compressed instructions for RISCV
+USE-COMP-INSTR-$(CONFIG_RISCV_COMP_INSTR) = c
 
 CFLAGS-CPU-LM32  = -mmultiply-enabled -mbarrel-shift-enabled
-CFLAGS-CPU-RISCV = -march=rv32im -mabi=ilp32
+CFLAGS-CPU-RISCV = -march=rv32im$(USE-COMP-INSTR-y) -mabi=ilp32
 
 # use lm32 if not defined
 CPU_ARCH ?= LM32

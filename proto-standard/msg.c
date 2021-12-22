@@ -10,8 +10,6 @@
 #include "common-fun.h"
 #include "msg.h"
 
-const int endianess=1; /* use to check endianess */
-
 /* return 1 if the frame is from the current master, else 0 */
 int msg_from_current_master(struct pp_instance *ppi)
 {

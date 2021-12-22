@@ -7,15 +7,6 @@
 #ifndef __MSG_H
 #define __MSG_H
 
-#if __BYTE_ORDER == __BIG_ENDIAN
-# define htonll(x) (x)
-# define ntohll(x) (x)
-#else
-# define htonll(x) htobe64(x)
-# define ntohll(x) be64toh(x)
-#endif
-
-extern const int endianess; /* use to check endianess */
 
 extern int msg_unpack_header(struct pp_instance *ppi, void *buf, int len);
 extern void msg_init_header(struct pp_instance *ppi, void *buf);

@@ -10,47 +10,6 @@
 #include <ppsi/ppsi.h>
 #include "../proto-standard/common-fun.h"
 
-/*
- * WR way to handle little/big endianness
- * FIXME: check whether htons would be ok
- */
-/* put 16 bit word in big endianess (from little endianess) */
-static inline void put_be16(void *ptr, UInteger16 x)
-{
-	*(unsigned char *)(ptr++) = (x >> 8) & 0xff;
-	*(unsigned char *)(ptr++) = (x) & 0xff;
-}
-/* put 32 bit word in big endianess (from little endianess) */
-static inline void put_be32(void *ptr, UInteger32 x)
-{
-	*(unsigned char *)(ptr++) = (x >> 24) & 0xff;
-	*(unsigned char *)(ptr++) = (x >> 16) & 0xff;
-	*(unsigned char *)(ptr++) = (x >> 8) & 0xff;
-	*(unsigned char *)(ptr++) = (x) & 0xff;
-}
-
-/* gets 32 bit word from big endianness (to little endianness) */
-static inline UInteger32 get_be32(void *ptr)
-{
-	UInteger32 res = 0x0;
-
-	res = res | ((*(unsigned char *)(ptr++) << 24) & 0xFF000000);
-	res = res | ((*(unsigned char *)(ptr++) << 16) & 0x00FF0000);
-	res = res | ((*(unsigned char *)(ptr++) << 8 ) & 0x0000FF00);
-	res = res | ((*(unsigned char *)(ptr++) << 0 ) & 0x000000FF);
-	return res;
-}
-
-/* gets 16 bit word from big endianess (to little endianess) */
-static inline UInteger16 get_be16(void *ptr)
-{
-	UInteger16 res = 0x0;
-
-	res = res | ((*(unsigned char *)(ptr++) << 8 ) & 0xFF00);
-	res = res | ((*(unsigned char *)(ptr++) << 0 ) & 0x000FF);
-	return res;
-}
-
 /* Pack White rabbit message in the suffix of PTP announce message */
 void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 {
@@ -91,7 +50,7 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann, UInteger16 *wrFlags
 	UInteger16 tlv_versionNumber;
 	UInteger16 tlv_wrMessageID;
 
-	tlv_type = (UInteger16)get_be16(buf+64);
+	tlv_type = ntohs(*(UInteger16 *)(buf + 64));
 	tlv_organizationID = ntohs(*(UInteger16 *)(buf+68)) << 8;
 	tlv_organizationID = ntohs(*(UInteger16 *)(buf+70)) >> 8
 		| tlv_organizationID;
@@ -106,7 +65,7 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann, UInteger16 *wrFlags
 		tlv_magicNumber == WR_TLV_MAGIC_NUMBER &&
 		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
 		tlv_wrMessageID == ANN_SUFIX) {
-		*wrFlags= (UInteger16)get_be16(buf+76);
+		*wrFlags= ntohs(*(UInteger16 *)(buf + 76));
 	} else
 		*wrFlags = 0;
 }
@@ -131,7 +90,8 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	/* target portIdentity */
 	memcpy((buf+34), &DSPAR(ppi)->parentPortIdentity.clockIdentity,
 		PP_CLOCK_IDENTITY_LENGTH);
-	put_be16(buf + 42, DSPAR(ppi)->parentPortIdentity.portNumber);
+	*(UInteger16 *)(buf + 42) =
+			    htons(DSPAR(ppi)->parentPortIdentity.portNumber);
 
 	/* WR TLV */
 	*(UInteger16 *)(buf+44) = htons(TLV_TYPE_ORG_EXTENSION);
@@ -147,24 +107,34 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	switch (wr_msg_id) {
 	case CALIBRATE:
 		if (wrp->calibrated) {
-			put_be16(buf+56,
-				 (WR_DSPOR(ppi)->calRetry | 0x0000));
+			*(UInteger16 *)(buf + 56) =
+				    htons(WR_DSPOR(ppi)->calRetry | 0x0000);
 		} else {
-			put_be16(buf+56,
-				 (WR_DSPOR(ppi)->calRetry | 0x0100));
+			*(UInteger16 *)(buf + 56) =
+				    htons(WR_DSPOR(ppi)->calRetry | 0x0100);
 		}
-		put_be32(buf+58, WR_DSPOR(ppi)->calPeriod);
+
+		/* calPeriod in a frame crosses a word boundary,
+		   split it into two parts */
+		*(UInteger16 *)(buf + 58) =
+				    htonl(WR_DSPOR(ppi)->calPeriod) & 0xFFFF;
+		*(UInteger16 *)(buf + 60) =
+				    htonl(WR_DSPOR(ppi)->calPeriod) >> 16;
 		len = 14;
 		break;
 
 	case CALIBRATED:
 		/* delta TX */
-		put_be32(buf+56, wrp->deltaTx.scaledPicoseconds.msb);
-		put_be32(buf+60, wrp->deltaTx.scaledPicoseconds.lsb);
+		*(UInteger32 *)(buf + 56) =
+				    htonl(wrp->deltaTx.scaledPicoseconds.msb);
+		*(UInteger32 *)(buf + 60) =
+				    htonl(wrp->deltaTx.scaledPicoseconds.lsb);
 
 		/* delta RX */
-		put_be32(buf+64, wrp->deltaRx.scaledPicoseconds.msb);
-		put_be32(buf+68, wrp->deltaRx.scaledPicoseconds.lsb);
+		*(UInteger32 *)(buf + 64) =
+				    htonl(wrp->deltaRx.scaledPicoseconds.msb);
+		*(UInteger32 *)(buf + 68) =
+				    htonl(wrp->deltaRx.scaledPicoseconds.lsb);
 		len = 24;
 		break;
 
@@ -174,7 +144,8 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 		break;
 	}
 	/* header len */
-	put_be16(buf + 2, WR_SIGNALING_MSG_BASE_LENGTH + len);
+	*(UInteger16 *)(buf + 2) = htons(WR_SIGNALING_MSG_BASE_LENGTH + len);
+
 	/* TLV len */
 	*(Integer16 *)(buf+46) = htons(len);
 
@@ -196,9 +167,10 @@ int msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 
 	memcpy(&wrsig_msg->targetPortIdentity.clockIdentity, (buf + 34),
 	       PP_CLOCK_IDENTITY_LENGTH);
-	wrsig_msg->targetPortIdentity.portNumber = (UInteger16)get_be16(buf+42);
+	wrsig_msg->targetPortIdentity.portNumber =
+					    ntohs(*(UInteger16 *)(buf + 42));
 
-	tlv_type           = (UInteger16)get_be16(buf + 44);
+	tlv_type           = ntohs(*(UInteger16 *)(buf + 44));
 	tlv_organizationID = ntohs(*(UInteger16 *)(buf + 48)) << 8;
 	tlv_organizationID = ntohs(*(UInteger16 *)(buf + 50)) >> 8
 				| tlv_organizationID;
@@ -244,29 +216,35 @@ int msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 	switch (wr_msg_id) {
 	case CALIBRATE:
 		wrp->otherNodeCalSendPattern =
-			0x00FF & (get_be16(buf+56) >> 8);
+			0x00FF & (ntohs(*(UInteger16 *)(buf + 56)) >> 8);
 		wrp->otherNodeCalRetry =
-			0x00FF & get_be16(buf+56);
-		wrp->otherNodeCalPeriod = get_be32(buf+58);
+			0x00FF & ntohs(*(UInteger16 *)(buf + 56));
 
-		pp_diag(ppi, frames, 1, "otherNodeCalPeriod "
-			"from frame = 0x%x | stored = 0x%x \n", get_be32(buf+58),
-			 WR_DSPOR(ppi)->otherNodeCalPeriod);
+		/* OtherNodeCalPeriod in a frame crosses a word boundary,
+		   split it into two parts */
+		WR_DSPOR(ppi)->otherNodeCalPeriod =
+					    ntohs(*(UInteger16 *)(buf + 60));
+		WR_DSPOR(ppi)->otherNodeCalPeriod <<= 16;
+		WR_DSPOR(ppi)->otherNodeCalPeriod |=
+					    ntohs(*(UInteger16 *)(buf + 58));
+
+		pp_diag(ppi, frames, 1, "otherNodeCalPeriod 0x%x\n",
+			WR_DSPOR(ppi)->otherNodeCalPeriod);
 
 		break;
 
 	case CALIBRATED:
 		/* delta TX */
 		wrp->otherNodeDeltaTx.scaledPicoseconds.msb =
-			get_be32(buf+56);
+					    ntohl(*(UInteger32 *)(buf + 56));
 		wrp->otherNodeDeltaTx.scaledPicoseconds.lsb =
-			get_be32(buf+60);
+					    ntohl(*(UInteger32 *)(buf + 60));
 
 		/* delta RX */
 		wrp->otherNodeDeltaRx.scaledPicoseconds.msb =
-			get_be32(buf+64);
+					    ntohl(*(UInteger32 *)(buf + 64));
 		wrp->otherNodeDeltaRx.scaledPicoseconds.lsb =
-			get_be32(buf+68);
+					    ntohl(*(UInteger32 *)(buf + 68));
 		break;
 
 	default:

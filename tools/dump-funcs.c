@@ -334,9 +334,9 @@ static void dump_payload(char *prefix, void *pl, int len)
 	       ntohs(h->messageLength), h->domainNumber);
 	printf("%sFLAGS: 0x%02x%02x (correction 0x%08x:%08x %08u)\n",
 	       prefix, (unsigned) h->flagField[0],(unsigned) h->flagField[1],
-	       ntohl(*(int *)cfptr),
-	       ntohl(*(int *)(cfptr + 4)),
-	       ntohl(*(int *)(cfptr + 4)));
+	       (int) ntohl(*(int *)cfptr),
+	       (int) ntohl(*(int *)(cfptr + 4)),
+	       (int) ntohl(*(int *)(cfptr + 4)));
 	dump_1port(prefix, "PORT: ", h->sourcePortIdentity);
 	printf("%sREST: seq %i, ctrl %i, log-interval %i\n", prefix,
 	       ntohs(h->sequenceId), h->controlField, h->logMessageInterval);

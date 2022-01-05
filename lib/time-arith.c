@@ -283,7 +283,7 @@ char *interval_to_string(TimeInterval time)
 	}
 	nanos = time >> TIME_INTERVAL_FRACBITS;
 	picos = (((time & TIME_INTERVAL_FRACMASK) * 1000) + TIME_INTERVAL_ROUNDING_VALUE ) >> TIME_INTERVAL_FRACBITS;
-	pp_sprintf(time_as_string,"%c%" PRId64 ".%03d", sign, nanos, picos);
+	pp_sprintf(time_as_string, "%c%" PRId64 ".%03d", sign, nanos, (unsigned int) picos);
 	return time_as_string;
 }
 
@@ -310,6 +310,6 @@ char *relative_interval_to_string(RelativeDifference time)
 			sub_yocto += bitWeight;
 		bitWeight /= 2;
 	}
-	pp_sprintf(time_as_string,"%c%"PRId32".%018Ld", sign, nsecs, sub_yocto);
+	pp_sprintf(time_as_string,"%c%"PRId32".%018Ld", sign, (int) nsecs, sub_yocto);
 	return time_as_string;
 }

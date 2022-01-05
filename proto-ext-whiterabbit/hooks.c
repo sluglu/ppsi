@@ -118,7 +118,7 @@ static int wr_handle_followup(struct pp_instance *ppi)
 	return wr_sync_followup(ppi);
 }
 
-static int wr_handle_presp(struct pp_instance *ppi)
+__attribute__((unused)) static int wr_handle_presp(struct pp_instance *ppi)
 {
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		wr_servo_got_presp(ppi);

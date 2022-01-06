@@ -410,11 +410,11 @@ int wrc_ptp_is_abscal(void)
 	return ptp_mode == WRC_MODE_ABSCAL;
 }
 
-/* lm32'S compiler does not remove strings used in the function if
+/* lm32's compiler does not remove strings used in the function if
  * the function is optimized out. So if the option is not used don't include
- * the nbot optimized out strings in functions wrpc_ptp_set*. Ugly but can be
+ * (the not optimized out strings in) functions wrpc_ptp_set*. Ugly but can be
  * repoved when LM32's support is dropped. */
-#if defined CONFIG_CMD_PTP_ADV && defined CONFIG_ARCH_LM32
+#if (defined CONFIG_CMD_PTP_ADV && defined CONFIG_ARCH_LM32) || defined CONFIG_ARCH_RISCV
 static int assign_ptp_param(char *name, int *param, int value, int min, int max)
 {
 	int running;

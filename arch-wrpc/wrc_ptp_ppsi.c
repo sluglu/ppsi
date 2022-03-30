@@ -356,8 +356,14 @@ int wrc_ptp_update(void)
 	if (!ptp_enabled)
 		return 0;
 
-	i = __recv_and_count(ppi, ppi->rx_frame, PP_MAX_FRAME_LENGTH - 4,
-			     &ppi->last_rcv_time);
+	if (ppi->state != PPS_INITIALIZING) {
+		/* Try to receive only after initialization (which initialize
+		   the socket too */
+		i = __recv_and_count(ppi, ppi->rx_frame, PP_MAX_FRAME_LENGTH - 4,
+				     &ppi->last_rcv_time);
+	}
+	else
+		i = 0;
 
 	if ((!i) && (timer_get_tics() - start_tics < delay_ms))
 		return 0;

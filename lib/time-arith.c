@@ -116,7 +116,8 @@ int64_t pp_time_to_picos(struct pp_time *t)
 void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t) {
 	/* FixedDelta is expressed in ps*2^16 */
 	uint64_t v = ((uint64_t)fd.scaledPicoseconds.msb)<<32 | (uint64_t)fd.scaledPicoseconds.lsb;
-	t->scaled_nsecs=v/1000L; /* We can do it because scaled_nsecs is also multiply by 2^16 */
+	__div64_32(&v,1000);
+	t->scaled_nsecs=v; /* We can do it because scaled_nsecs is also multiply by 2^16 */
 	t->secs=0;
 	normalize_pp_time(t);
 }
@@ -125,16 +126,20 @@ void picos_to_pp_time(int64_t picos, struct pp_time *ts)
 {
 	uint64_t sec, nsec;
 	uint64_t picos_u;
+	uint64_t t;
 	int sign = (picos < 0 ? -1 : 1);
 
 	picos_u = picos * sign;
-	sec = picos_u / PP_PSEC_PER_SEC;
-	picos_u -= sec * PP_PSEC_PER_SEC;
-	nsec = picos_u / 1000;
-	picos_u %= 1000;
+
+	nsec = picos_u;
+	picos_u = __div64_32(&nsec, 1000);
+	sec = nsec;
+	nsec = __div64_32(&sec, PP_NSEC_PER_SEC);
 
 	ts->scaled_nsecs = nsec << TIME_FRACBITS;
-	ts->scaled_nsecs += ((picos_u << TIME_FRACBITS) + TIME_ROUNDING_VALUE)/ 1000;
+	t = (picos_u << TIME_FRACBITS) + TIME_ROUNDING_VALUE;
+	__div64_32(&t, 1000);
+	ts->scaled_nsecs += t;
 	ts->scaled_nsecs *= sign;
 	ts->secs = sec * sign;
 }
@@ -153,9 +158,12 @@ void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,
 		return;
 	}
 	ps = (scaled_nsecs * 1000L+TIME_INTERVAL_ROUNDING_VALUE) >> TIME_INTERVAL_FRACBITS; /* now picoseconds 0..999 -- positive*/
-	adj_ps=ps - ps%clock_period_ps;
+	adj_ps = ps;
+	__div64_32(&adj_ps, clock_period_ps);
+	adj_ps *= clock_period_ps;
 	*picos=(int32_t)(ps-adj_ps)*sign;
-	*ticks = (int32_t)(adj_ps/1000)*sign;
+	__div64_32(&adj_ps,1000);
+	*ticks = (int32_t)(adj_ps)*sign;
 }
 
 
@@ -180,11 +188,14 @@ TimeInterval picos_to_interval(int64_t picos)
 
 		int64_t scaled_ns;
 		uint64_t picos_u;
+		uint64_t ns_u;
 
 		int sign = (picos < 0 ? -1 : 1);
 		picos_u = picos * sign;
-		scaled_ns = (picos_u / 1000) << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
-		scaled_ns += ((picos_u % 1000) << TIME_INTERVAL_FRACBITS) / 1000; /* Add picos */
+		ns_u = picos_u;
+		picos_u = __div64_32(&ns_u, 1000);
+		scaled_ns = ns_u << TIME_INTERVAL_FRACBITS; /* Calculate nanos */
+		scaled_ns += ((uint32_t)picos_u << TIME_INTERVAL_FRACBITS) / 1000; /* Add picos */
 
 		return scaled_ns*sign;
 	}

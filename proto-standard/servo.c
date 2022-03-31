@@ -297,7 +297,12 @@ int pp_servo_calculate_delays(struct pp_instance *ppi) {
 }
 
 static void control_timing_output(struct pp_instance *ppi) {
-	int offsetFromMasterUs=(int)(pp_time_to_picos(&SRV(ppi)->offsetFromMaster)/(int64_t)1000000);
+	uint64_t offsetPs = pp_time_to_picos(&SRV(ppi)->offsetFromMaster);
+	int offsetFromMasterUs;
+
+	__div64_32(&offsetPs, 1000000);
+	offsetFromMasterUs = offsetPs;
+
 	int ptpPpsThresholdUs=OPTS(ppi)->ptpPpsThresholdMs*1000;
 
 	/* activate timing output if abs(offsetFromMasterMs)<ptpPpsThreshold */

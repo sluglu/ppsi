@@ -33,6 +33,10 @@ STRIP           = $(CROSS_COMPILE)strip
 OBJCOPY         = $(CROSS_COMPILE)objcopy
 OBJDUMP         = $(CROSS_COMPILE)objdump
 
+ifeq ($(CONFIG_LTO),y)
+AR              = $(CROSS_COMPILE)gcc-ar
+endif
+
 # To cross-build bare stuff (x86-64 under i386 and vice versa). We need this:
 LD := $(LD) $(shell echo $(CONFIG_ARCH_LDFLAGS))
 CC := $(CC) $(shell echo $(CONFIG_ARCH_CFLAGS))
@@ -49,7 +53,7 @@ all: $(TARGET).o
 
 # CFLAGS to use. Both this Makefile (later) and app-makefile may grow CFLAGS
 CFLAGS = $(USER_CFLAGS)
-CFLAGS += -Wall -Wstrict-prototypes -Wmissing-prototypes
+CFLAGS += -Wall -Wstrict-prototypes -Wmissing-prototypes -Werror
 CFLAGS += -ffunction-sections -fdata-sections
 
 export CFLAGS_OPTIMIZATION:= ${shell echo $(CONFIG_OPTIMIZATION)}

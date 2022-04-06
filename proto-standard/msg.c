@@ -63,14 +63,14 @@ void msg_init_header(struct pp_instance *ppi, void *buf)
 }
 
 /* set the sequence id in the buffer and update the stored one */
-void __msg_set_seq_id(struct pp_instance *ppi, struct pp_msgtype_info *mf) {
+void __msg_set_seq_id(struct pp_instance *ppi, const struct pp_msgtype_info *mf) {
 	void *buf = ppi->tx_ptp;
 	ppi->sent_seq[mf->msg_type]++;
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[mf->msg_type]); /* SequenceId */
 }
 
 /* Helper used by all "msg_pack" below */
-int __msg_pack_header(struct pp_instance *ppi, struct pp_msgtype_info *msg_fmt)
+int __msg_pack_header(struct pp_instance *ppi, const struct pp_msgtype_info *msg_fmt)
 {
 	void *buf = ppi->tx_ptp;
 	int len, log;
@@ -103,7 +103,7 @@ static int __msg_pack_signaling(struct pp_instance *ppi,enum pp_msg_format msg_f
 {
 	void *buf = ppi->tx_ptp;
 	int len;
-	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 
 	if (msg_fmt >=PPM_MSG_FMT_MAX)
 		return 0;
@@ -156,7 +156,7 @@ int msg_pack_sync(struct pp_instance *ppi, struct pp_time *orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_SYNC_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_SYNC_FMT;
 	int len= __msg_pack_header(ppi, mf);
 
 	/* Header */
@@ -212,7 +212,7 @@ static int msg_pack_announce(struct pp_instance *ppi)
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_ANNOUNCE_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_ANNOUNCE_FMT;
 	int len= __msg_pack_header(ppi, mf);
 
 	/* Header */
@@ -271,7 +271,7 @@ static int msg_pack_follow_up(struct pp_instance *ppi,
 			       struct pp_time *prec_orig_tstamp)
 {
 	void *buf = ppi->tx_ptp;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_FOLLOW_UP_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_FOLLOW_UP_FMT;
 	int len= __msg_pack_header(ppi, mf);
 
 	/* Header */
@@ -301,7 +301,7 @@ static int msg_pack_delay_req(struct pp_instance *ppi,
 			       struct pp_time *now)
 {
 	void *buf = ppi->tx_ptp;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_REQ_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_REQ_FMT;
 	int len= __msg_pack_header(ppi, mf);
 	Integer64 correction_field;
 
@@ -328,7 +328,7 @@ static int msg_pack_delay_resp(struct pp_instance *ppi,
 			 MsgHeader *hdr, struct pp_time *rcv_tstamp)
 {
 	void *buf = ppi->tx_ptp;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_RESP_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_DELAY_RESP_FMT;
 	int len= __msg_pack_header(ppi, mf);
 	Integer64 correction_field, sub_ns;
 

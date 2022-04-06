@@ -13,7 +13,7 @@
 #define TIMEOUT_MIN_VALUE_MS  (1000>>-(TIMEOUT_MIN_LOG_VALUE))
 
 typedef struct  {
-	char *name; /* if name==NULL then the counter is considered as free */
+	const char *name; /* if name==NULL then the counter is considered as free */
 	int ctrlFlag;
 } timeOutConfig_t;
 

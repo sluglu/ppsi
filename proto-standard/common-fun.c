@@ -128,7 +128,7 @@ int st_com_handle_signaling(struct pp_instance *ppi, void *buf, int len)
 
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype,enum pp_msg_format msg_fmt)
 {
-	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	struct pp_time *t = &ppi->last_snt_time;
 	TimeInterval adjust;
 	int ret;

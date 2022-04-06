@@ -118,7 +118,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_msg_format msg_fmt)
 {
-	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	int snt, drop;
 	struct wrpc_socket *sock;
 	struct wr_timestamp wr_ts;

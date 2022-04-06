@@ -85,8 +85,8 @@ enum pp_msg_format {
 	PPM_MSG_FMT_MAX
 };
 
-extern struct pp_msgtype_info pp_msgtype_info[];
-extern char  *pp_msgtype_name[];
+extern const struct pp_msgtype_info pp_msgtype_info[];
+extern const char  * const pp_msgtype_name[];
 
 /* Helpers for the fsm (fsm-lib.c) */
 extern int pp_lib_may_issue_sync(struct pp_instance *ppi);

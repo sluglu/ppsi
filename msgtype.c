@@ -6,7 +6,7 @@
  * the numeric 0..5 is the "controlField" (magic ptpV1 numbers in byte 32).
  * PP_LOG is the kind of logInterval to put in byte 33.
  */
-struct pp_msgtype_info pp_msgtype_info[] = {
+const struct pp_msgtype_info pp_msgtype_info[] = {
 	[PPM_SYNC_FMT] = {
 		PPM_SYNC, PP_SYNC_LENGTH,
 		PP_NP_EVT, MECH_E2E,  0, PP_LOG_SYNC },
@@ -41,7 +41,7 @@ struct pp_msgtype_info pp_msgtype_info[] = {
 	[PPM_MANAGEMENT_FMT] = { PPM_MANAGEMENT, -1, PP_NP_GEN, MECH_E2E, 4, 0x7f},
 };
 
-char  *pp_msgtype_name[] = {
+const char  * const pp_msgtype_name[] = {
 	[PPM_SYNC] = "sync",
 	[PPM_DELAY_REQ] = "delay_req",
 	[PPM_PDELAY_REQ] = "pdelay_req",

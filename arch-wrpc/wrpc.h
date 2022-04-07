@@ -117,4 +117,8 @@ static inline void wrc_ptp_set_leapsec(int leapsec)
 {
 	TOPS(INST(ppg, 0))->set_utc_offset(NULL, leapsec, 0, 0);
 }
+
+extern struct pp_globals ppg_static;
+extern struct pp_instance ppi_static;
+
 #endif /* __WRPC_H */

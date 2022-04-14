@@ -155,6 +155,11 @@ int wrc_ptp_set_mode(int mode)
 
 	wrc_ptp_stop();
 
+#if defined(CONFIG_TARGET_SPEC7)
+    // proper clock sources must be selected before pll lock!
+    board_pre_pll_lock(mode);
+#endif
+
 	/* clear rt_opts so bmc_set_default_device_attributes can later set it
 	 * according to a set clock class */
 	ppg->rt_opts->clock_quality_clockAccuracy = CONFIG_PTP_OPT_CLOCK_ACCURACY;

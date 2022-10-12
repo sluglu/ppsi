@@ -217,7 +217,7 @@ typedef enum {
 struct pp_instance {
 	int state;
 	int next_state, next_delay, is_new_state; /* set by state processing */
-	struct pp_state_table_item *current_state_item;
+	const struct pp_state_table_item *current_state_item;
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
 	int protocol_extension; /* PPSI_EXT_NONE, PPSI_EXT_WR, PPSI_EXT_L1S */

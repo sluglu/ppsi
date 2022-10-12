@@ -11,7 +11,7 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #endif
 
-static char *thing_name[] = {
+static const char * const thing_name[] = {
 	[pp_dt_fsm]	= "diag-fsm",
 	[pp_dt_time]	= "diag-time",
 	[pp_dt_frames]	= "diag-frames",
@@ -23,10 +23,10 @@ static char *thing_name[] = {
 
 
 void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
-		      int level, char *fmt, ...)
+	       int level, const char *fmt, ...)
 {
 	va_list args;
-	char *name;
+	const char *name;
 
 	if (!__PP_DIAG_ALLOW(ppi, th, level))
 		return;

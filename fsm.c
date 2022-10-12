@@ -13,7 +13,7 @@ unsigned long pp_global_d_flags; /* This is the only "global" file in ppsi */
  * explicit timing in the fsm enter/stay/leave messages,
  * while there's no need to add times to all diagnostic messages
  */
-static void pp_fsm_printf(struct pp_instance *ppi, char *fmt, ...)
+static void pp_fsm_printf(struct pp_instance *ppi, const char *fmt, ...)
 {
 	va_list args;
 	struct pp_time t;
@@ -43,7 +43,7 @@ enum {
 	STATE_LEAVE
 };
 
-static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
+static void pp_diag_fsm(struct pp_instance *ppi, const char *name, int sequence,
 			int len)
 {
 	if (sequence == STATE_ENTER) {
@@ -62,10 +62,10 @@ static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
 		      name, ppi->next_state);
 }
 
-static struct pp_state_table_item *
+static const struct pp_state_table_item *
 get_current_state_table_item(struct pp_instance *ppi)
 {
-	struct pp_state_table_item *ip = ppi->current_state_item;
+	const struct pp_state_table_item *ip = ppi->current_state_item;
 
 	/* Avoid searching if we already know where we are */
 	ppi->is_new_state = 0;
@@ -82,9 +82,9 @@ get_current_state_table_item(struct pp_instance *ppi)
 	return NULL;
 }
 
-char *get_state_as_string(struct pp_instance *ppi, int state) {
+const char *get_state_as_string(struct pp_instance *ppi, int state) {
 	static char *def="INVALID";
-	struct pp_state_table_item *ip = ppi->current_state_item;
+	const struct pp_state_table_item *ip = ppi->current_state_item;
 
 	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE; ip++)
 		if (ip->state == state) {
@@ -234,7 +234,7 @@ static int fsm_unpack_verify_frame(struct pp_instance *ppi,
 
 int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 {
-	struct pp_state_table_item *ip;
+	const struct pp_state_table_item *ip;
 	struct pp_time *t = &ppi->last_rcv_time;
 	int state, err = 0;
 	int msgtype;

@@ -63,7 +63,7 @@ extern unsigned long pp_global_d_flags; /* Supplement ppi-specific ones */
 
 /* The function it is better external, since it is variadic */
 extern void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
-		      int level, char *fmt, ...)
+		      int level, const char *fmt, ...)
 	__attribute__((format(printf, 4, 5)));
 
 /* Now, *still* use PPSI_NO_DIAG as an escape route to kill all diag code */

@@ -429,14 +429,14 @@ typedef int pp_action(struct pp_instance *ppi, void *buf, int len);
 
 struct pp_state_table_item {
 	int state;
-	char *name;
+	const char *name;
 	pp_action *f1;
 };
 
-extern struct pp_state_table_item pp_state_table[]; /* 0-terminated */
+extern const struct pp_state_table_item pp_state_table[]; /* 0-terminated */
 
 /* Convert current state as a string value */
-char *get_state_as_string(struct pp_instance *ppi, int state);
+const char *get_state_as_string(struct pp_instance *ppi, int state);
 
 /* Standard state-machine functions */
 extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,

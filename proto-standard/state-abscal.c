@@ -22,22 +22,28 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
  * This is using a software loop during the last 10ms in order to get
  * right after the pps event
  */
-#define WR_TMO_NAME "WR_ABSCAL"
+#define WR_TMO_NAME "PP_ABSCAL"
 
-int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
+int pp_abscal(struct pp_instance *ppi, void *buf, int plen)
 {
 	struct pp_time t;
-	int len, i;
+	int len;
 
-	if (new_state) {
+	if (ppi->is_new_state) {
 		/* add 1s to be enough in the future, the first time */
-		pp_timeout_set_rename(ppi, wrTmoIdx, 990 + next_pps_ms(ppi, &t),WR_TMO_NAME);
-		return 0;
+		pp_timeout_set_rename(ppi, PP_TO_SYNC_SEND, 990 + next_pps_ms(ppi, &t),WR_TMO_NAME);
+		ppi->bmca_execute = 0;
+		/* print header for the serial port stream of stamps */
+		pp_printf("### t4.phase is already corrected for bitslide\n");
+		pp_printf("t1:                     t4:                  "
+			  "bitslide: %d\n", 0 /* ep_get_bitslide() */);
+		pp_printf("      sec.       ns.pha       sec.       ns.pha\n");
 	}
+	else if (pp_timeout(ppi, PP_TO_SYNC_SEND)) {
+		uint64_t secs;
 
-	i = next_pps_ms(ppi, &t) - 10;
-	if (pp_timeout(ppi, wrTmoIdx)) {
-		uint64_t secs = t.secs;
+		next_pps_ms(ppi, &t);
+		secs = t.secs;
 
 		TOPS(ppi)->enable_timing_output(GLBS(ppi), 1);
 
@@ -51,9 +57,9 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 		__send_and_log(ppi, len, PP_NP_EVT, PPM_SYNC_FMT);
 
 		/* And again next second */
-		pp_timeout_set(ppi, wrTmoIdx, next_pps_ms(ppi, &t) - 10);
-		return  next_pps_ms(ppi, &t) - 10;
+		pp_timeout_set(ppi, PP_TO_SYNC_SEND, next_pps_ms(ppi, &t) - 10);
 	}
-	/* no timeout: wait according to next_pps_ms calculated earlier */
-	return  i > 0 ? i : 0;
+
+	ppi->next_delay = pp_next_delay_1(ppi, PP_TO_SYNC_SEND);
+	return  0;
 }

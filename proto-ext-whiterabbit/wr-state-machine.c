@@ -54,12 +54,6 @@ static wr_state_machine_t wr_state_actions[] ={
 			.name="wr-link-on",
 			.action=wr_link_on,
 		},
-#ifdef CONFIG_ABSCAL
-		[WRS_ABSCAL]{
-			.name="absolute-calibration",
-			.action=wr_abscal,
-		},
-#endif
 };
 
 /*

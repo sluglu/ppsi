@@ -100,7 +100,6 @@ typedef enum {
 	WRS_CALIBRATED,
 	WRS_RESP_CALIB_REQ,
 	WRS_WR_LINK_ON,
-	WRS_ABSCAL,
 	WRS_MAX_STATES,
 	wr_state_t_ForceToIntSize = INT_MAX
 }wr_state_t;

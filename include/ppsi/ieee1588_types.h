@@ -368,7 +368,12 @@ typedef enum  {
 	PPS_PASSIVE,
 	PPS_UNCALIBRATED,
 	PPS_SLAVE,
+#ifdef CONFIG_ABSCAL
+	PPS_ABSCAL,  /* not standard */
+	PPS_LAST_STATE=PPS_ABSCAL
+#else
 	PPS_LAST_STATE=PPS_SLAVE
+#endif
 }pp_std_states;
 
 typedef enum  {

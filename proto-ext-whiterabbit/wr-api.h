@@ -100,7 +100,6 @@ int wr_calibration(struct pp_instance *ppi, void *buf, int len,int new_state);
 int wr_calibrated(struct pp_instance *ppi, void *buf, int len,int new_state);
 int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len,int new_state);
 int wr_link_on(struct pp_instance *ppi, void *buf, int len,int new_state);
-int wr_abscal(struct pp_instance *ppi, void *buf, int len,int new_state);
 int wr_idle(struct pp_instance *ppi, void *buf, int len, int new_state);
 int wr_run_state_machine(struct pp_instance *ppi, void *buf, int len);
 

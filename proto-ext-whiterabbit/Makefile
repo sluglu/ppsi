@@ -16,5 +16,3 @@ OBJ-y += $D/hooks.o \
 	$D/wr-msg.o \
 	$D/wr-servo.o \
 	$D/wr-state-machine.o
- 
-OBJ-$(CONFIG_ABSCAL) += $D/state-wr-abscal.o

@@ -872,7 +872,6 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 		ENUM_TO_P_IN_CASE(WRS_CALIBRATED, char_p);
 		ENUM_TO_P_IN_CASE(WRS_RESP_CALIB_REQ, char_p);
 		ENUM_TO_P_IN_CASE(WRS_WR_LINK_ON, char_p);
-		ENUM_TO_P_IN_CASE(WRS_ABSCAL, char_p);
 		ENUM_TO_P_IN_CASE(WRS_MAX_STATES, char_p);
 		default:
 			char_p = "Unknown";

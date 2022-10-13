@@ -388,7 +388,7 @@ int wrc_ptp_bmc_update(void)
 {
 	static int start_tics_bmc;
 
-	if (!ptp_enabled) {
+	if (!ptp_enabled || wrc_ptp_is_abscal()) {
 	    /* ptp disabled */
 	    return 0;
 	}

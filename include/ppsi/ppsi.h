@@ -441,7 +441,7 @@ const char *get_state_as_string(struct pp_instance *ppi, int state);
 /* Standard state-machine functions */
 extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
 		 pp_master, pp_passive, pp_uncalibrated,
-		 pp_slave, pp_pclock;
+		 pp_slave, pp_pclock, pp_abscal;
 
 /* Enforce a state change */
 extern int pp_leave_current_state(struct pp_instance *ppi);

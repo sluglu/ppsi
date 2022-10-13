@@ -136,6 +136,13 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 
 	msg_init_header(ppi, ppi->tx_ptp); /* This is used for all tx */
 	
+#ifdef CONFIG_ABSCAL
+	/* absolute calibration only exists in arch-wrpc, so far */
+	extern int ptp_mode;
+	if (ptp_mode == 4 /* WRC_MODE_ABSCAL */)
+		ppi->next_state = PPS_ABSCAL;
+	else
+#endif
 	if (is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 		/* Clause 17.6.5.2 : the member portDS.portState shall be set to
 		 * the value of the member externalPortConfigurationPortDS.desiredState
@@ -157,12 +164,6 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	else
 		ppi->next_state = PPS_LISTENING;
 
-#ifdef CONFIG_ABSCAL
-	/* absolute calibration only exists in arch-wrpc, so far */
-	extern int ptp_mode;
-	if (ptp_mode == 4 /* WRC_MODE_ABSCAL */)
-		ppi->next_state = WRS_WR_LINK_ON;
-#endif
 
 	return 0;
 

@@ -21,3 +21,5 @@ OBJ-y += $D/fsm-table.o \
 	$D/servo.o \
 	$D/hooks.o \
 	$D/open-close.o
+
+OBJ-$(CONFIG_ABSCAL) += $D/state-abscal.o

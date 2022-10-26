@@ -98,27 +98,23 @@ implementation used in WR, running both standard @sc{ptp} and
 The algorithm and computation routines regarding the basic @sc{ieee} 1588
 are derived from the @i{PTPd} project, v.2.1.0 (see AUTHORS for details
 about copyright); but as of March 2013 very little remains of the original
-code base.  In addition to the basic feature set we inherited from @i{PTPd},
-we support raw Ethernet frames (@t{ETH_P_1588}), according to Annex F of the
-@sc{ieee} 1588 and support for protocol extensions.
+code base.  In addition to the basic feature set the project inherited from
+@i{PTPd}, the PPSI supports raw Ethernet frames (@t{ETH_P_1588}),
+according to Annex F of the @sc{ieee} 1588 and support for protocol extensions.
 
-We thank Danilo Sabato for fixing the @i{bare} architectures
+Authors thank Danilo Sabato for fixing the @i{bare} architectures
 (see @ref{Architectures}).
 
 The home page of the PPSi project and the source repository are:
-@indentedblock
-   @itemize @bullet
-   @item @url{https://www.ohwr.org/project/ppsi}
-   @item ssh://git@@ohwr.org:7999/project/ppsi.git
-   @end itemize
-@end indentedblock
+
+@url{https://www.ohwr.org/project/ppsi}
 
 @c ##########################################################################
 @node Status Features and Bugs
 @chapter Status, Features, Bugs
 
 This document tries to summarize the status of
-the project, but we are working a lot on the package,
+the project, but the development is still being done on the package,
 so information here may be slightly out of date with respect to code.
 
 The software package is designed to be modular: each of architectures,
@@ -129,8 +125,8 @@ protocols and timing engine
 @node Build-time Configuration
 @section Build-time Configuration
 
-After release 2013.11 we added to PPSi the Kconfig configuration
-engine.  Configuration is now performed by running ``@t{make
+PPSi uses the Kconfig configuration
+engine.  Configuration is performed by running ``@t{make
 menuconfig}'' or equivalent command.
 
 A number of ready-to use configuration files are distributed in the
@@ -146,8 +142,8 @@ running the standard @sc{ptp} version 2 protocol.
 
 When building PPSi, the user can specify which architecture to build
 for, by selecting it in @t{make menuconfig} or equivalent configuration
-command.  When cross-compiling, you need to tell your cross-compiler
-prefix in the configuration step, or override it at build time
+command.  When cross-compiling, it is need to tell cross-compiler
+a prefix in the configuration step, or override it at build time
 by passing @t{CROSS_COMPILE=} on the command line.
 
 The package currently supports the following architectures:
@@ -160,8 +156,8 @@ The package currently supports the following architectures:
         environment.  The architecture is usually tested over the Linux
         kernel using the standard GNU libraries. Most of the code relies
         on standard @sc{posix} conventions, so this architecture most
-        likely works on @sc{bsd} and other variants as well. We may
-        change naming accordingly, after identifying the weak
+        likely works on @sc{bsd} and other variants as well. In the future
+        the name may change accordingly, after identifying the weak
         (i.e. unportable) points.  This architecture supports the standard
         protocol on both @sc{udp} and raw Ethernet, also both at the
         same time thanks to the per-link split of I/O methods.
@@ -174,17 +170,17 @@ The package currently supports the following architectures:
         separate architecture, even if the switch itself is a Linux
         system running on an ARM processor.  The switch is a complex
         system, with several daemons cooperating through an IPC
-        and share memory mechanisms: the standard main loop for a 
+        and shared memory mechanisms: the standard main loop for a 
         standalone Unix daemon
         doesn't apply to the WR switch, and modelling it as a
-        separate architecture is the simplest and cleanest approach,
-        in our opinion (even if it leads to some code duplication).
+        separate architecture is the simplest and cleanest approach
+        (even if it leads to some code duplication).
         The architectures relies on @i{time-wrs}.
 
 @item wrpc
 
 	The @i{White Rabbit PTP Core} architecture is a port of PPSi to
-        run on our I/O devices inside a Field Programmable Gate Array 
+        run on I/O devices. inside a Field Programmable Gate Array
         (FPGA) chip. The @i{wrpc} is a ``@i{core}'', i.e. a
         logic block, that runs in WR-capable I/O cards. Most such cards
         are developed as open hardware on @i{ohwr.org}; examples are
@@ -202,13 +198,13 @@ The package currently supports the following architectures:
         to simulate a master and a slave exchanging ptp frames.
         Arch-specific configuration options are implemented in
         @i{arch-sim/sim-conf.c}. Use of the simulator is briefly
-        descibed in @ref{Configuring the Simulator}.
+        described in @ref{Configuring the Simulator}.
 
 @item bare-i386
 
 	This architecture uses system calls towards the Linux kernel but
         does not rely on standard libraries.  The port only supports
-        raw Ethernet frames and is thought to be a validation for our
+        raw Ethernet frames and is thought to be a validation for
         @i{freestanding} ports.  The process built as @i{bare-i386}
         runs on conventional x86 Linux hosts and demonstrates that
         PPSi works properly with no added dependencies on external
@@ -225,9 +221,9 @@ The package currently supports the following architectures:
 
 @end table
 
-We plan, over time, to support microcontrollers (a beta version for
-ARM7 is working, and we are considering Cortex-M) and @i{bare-arm} (to
-be tested on the WR switch).
+@c We plan, over time, to support microcontrollers (a beta version for
+@c ARM7 is working, and we are considering Cortex-M) and @i{bare-arm} (to
+@c be tested on the WR switch).
 
 @c ==========================================================================
 @node Protocols
@@ -235,19 +231,25 @@ be tested on the WR switch).
 
 At build time, the user can select the standard protocol (selected by
 default by most architectures) or an extension.
-The code base includes two extensions: 
+The code base includes three extensions:
 @indentedblock
   @itemize @bullet
   @item White Rabbit (WR) - specified in "White Rabbit Specification", v2.0:
   
   @url{http://white-rabbit.web.cern.ch/documents/WhiteRabbitSpec.v2.0.pdf},
-  @item Layer 1 Syntonization (L1Sync) - specified in Annex O of @sc{ieee} 1588-2019.
+  @item Layer 1 Syntonization (L1Sync, a.k.a. High Accuracy) - the experimental
+        implementation of a profile specified in Annex L of @sc{ieee} 1588-2019.
+  @item @i{Custom} - the experimental profile that allows free access to all
+         options and attributes
   @end itemize
 @end indentedblock
 White Rabbit extension is the default choice when building for one of the 
-WR architectures. Nothing in PPSi
-prevents our fellow developers to support their own @i{ptp} extension
-using PPSi.
+WR architectures.
+ 
+The selection of the used extension (or standard PTP) is done in run-time by
+a proper configuration.
+
+PPSi can be easily expanded with a support of a new @i{ptp} profile.
 
 Each extension lives in a subdirectory called @t{proto-ext-}@i{name}.
 Source files in that directory may override the implementation for the
@@ -258,18 +260,17 @@ To simplify writing extensions, the @i{proto-standard}
 functions already provide @i{hooks} so the extension itself can provide
 callbacks while still using the basic @sc{ptp} engine.
 The set of callbacks is currently based on the needs of
-WR and L1Sync, but we are willing to accept patches to provide more hooks as
-needed.
+WR and L1Sync, but it can be easily expanded if more hooks are needed.
 
-If you plan to write your own protocol extension within PPSi, please
-refer to how @i{proto-ext-whiterabbit} is implemented.
+The implementation of @i{proto-ext-whiterabbit} can act as a good reference
+for future implementations of protocol extension.
 
 @c ==========================================================================
 @node Time Functions and Network Operations
 @section Time Functions and Network Operations
 
-PPSi supports custom implementations of time functions, so you can
-easily port the daemon to your own timing primitives.
+PPSi supports custom implementations of time functions, so it can
+easily port the daemon to a new timing primitives.
 
 The subdirectories named @i{time-xxxx} are used to implement timing
 functions; timing includes the methods that are part of two data
@@ -288,28 +289,21 @@ suggests Unix timing code ('@t{TIME?=unix}'). The choice for '@t{TIME=}'
 is not currently selected using Kconfig, because nobody is expected
 to diverge from the default choice for the architecture being built.
 
-If you want to support a different timing engine within the Unix build
-system, you can use '@t{make TIME=xyz}' to request building
+To support a different timing engine within the Unix build
+system, '@t{make TIME=xyz}' can be used to request building
 the @i{time-xxxx} subdirectory.  Please note that the Unix time
 structures are built anyways for '@t{CONFIG_ARCH=unix}',
-so you can piggy-back on those
-functions, either within your own methods or by replacing the
+so it can piggy-back on those
+functions, either within own methods or by replacing the
 @t{ppi->t_ops} and @t{ppi->n_ops} for the communications links that do
-not include your own hardware support.
+not include the hardware support.
 
 @c ==========================================================================
 @node Features
 @section Features
 
 This is a summary of current and planned features for the PPSi
-package.  As said, we are continuously improving  it, so the following
-list may be not up to date with software developments by the time you
-read it.
-
-The following list of features doesn't consider known bugs, which are
-listed in the following sections. Please consider such bugs transient
-mishaps, as we are working on them right now; anyways, it would be
-unfair to hide them.
+package.
 
 @table @r
 
@@ -319,13 +313,13 @@ unfair to hide them.
         it detects that its peers are not able to speak the extended
         protocol. Many extensions are now supported in
         a single build. In a near future, the new protocol extension L1SYNC
-        used by the High Acurracy (@sc{HA}) profile will be released.
+        used by the High Accuracy (@sc{HA}) profile will be released.
 
 @item Support both hosted and freestanding environments.
 
-	This is already supported, though we still lack a microcontroller
-        implementation, and our only freestanding environment is @i{wrpc},
-        running on an LM32 processor.
+	This is already supported, though PPSi still lacks a microcontroller
+        implementation, and the only freestanding environment is @i{wrpc},
+        running on an LM32 or RISCV soft-processor.
 
 @item Support multi-PTP link operation.
 
@@ -337,82 +331,90 @@ unfair to hide them.
 
 @item Support both @sc{udp} and raw Ethernet.
 
-	We already do that. We use the multi-PTP link operation to
+	PPSi uses the multi PTP-link operation to
         support both @sc{udp} and raw Ethernet on the same network
-        interface (physical port). We added support of @sc{udp} in the WR switch
-        to allow progressive and seamless migration to WR if you already
-        support @sc{ptp} in your network with a @sc{udp}-only implementation.
+	interface (physical port). PPSi supports @sc{udp} in the WR switch,
+        to allow progressive and seamless migration to WR network of devices
+        that already support @sc{ptp} with a @sc{udp}-only implementation.
 
 @item Support fall-back master links.
 
-	This is needed for WR, and is being worked on.
-        We need to track more than one master in order to switch over
+        This feature is only partly implemented. With the help of BMCA it is
+        possible to track more than one master (other are passive).
+        However, the reconfiguration takes number of seconds.
+        The tracking of more than one master with a switch over
         from one to the other within a few milliseconds and with no
-        time glitches.
+        time glitches is not available now.
 
 @item Support hardware timestamping where available.
 
-	Hardware timestamping is supported in WR devices. 
-	This is not yet implemented for the generic protocol, but we
-        plan to add at least @i{time-linux-tstamp} soon.
-
-@item Support @sc{bsd} specifics.
-
-	Unfortunately the @i{hosted} part of the packages is slightly
-        too much Linux-dependent.  We plan to support the @sc{bsd}
-        variants as well, hoping to get interest and patches from some
-        @sc{bsd} developer.
+	Hardware timestamping is supported in WR devices.
+	However, This is not yet implemented for the generic protocol.
 
 @item Allow architectures to state their capabilities.
 
-	Currently the command-line arguments are a an all-or-nothing thing.
+	Currently the command-line arguments are an all-or-nothing thing.
         But, for example, @i{bare} architectures don't support
         @sc{udp} and other architectures may not support raw Ethernet.
-        We plan to allow architectures to state their capabilities to
+        It is planed to allow architectures to state their capabilities to
         report proper errors when the user tries to set up unimplemented
         configurations.
 
 @item Support run-time enable/disable of diagnostics.
 
-	We want to allow run-time modification of diagnostics flags
-        with a per-link granularity.  Currently we have configuration-based
+	It is planned to allow run-time modification of diagnostics flags
+        with a per-link granularity.  Currently there are configuration-based
         per-link diagnostic flags and global diagnostic
-        flags that can be changed
+        flags. Only some architectures allows that it can be changed
         at run time (for example, arch-wrpc offers that through a shell
-        command). We think this feature is useful
-        when you run more than a pair of interfaces and have problems
-	on some of the links but not all of them.
+        command). It is believed that this feature is useful
+        for systems with more than a pair of interfaces and have problems
+        on some of the links but not all of them.
 
-@item Runtime re-configuratin
+@item Access of internal structures in run-time
+
+        PPSi keeps almost all of its internal data in shared memory.
+        Thanks to this the internal state can be exported and monitored by
+        external tools. For example SNMP agent implemented on WR Switch uses
+        this mechanism to provide monitoring data for external tools.
+        The dumps of PPSi's memory (of live or crashed process) can be used to
+        investigate the internal state. There are tools,
+        @t{wrs_dump_shmem} (for WR Switch) and @t{wrpc-dump} (for WR Node) that
+        can translate binary dumps into user-friendly text form.
+        PPSi increases a special counter before and after each write to
+        the shared memory increases, which can ensure the data consistency.
+
+@item Runtime re-configuration
 
 	Currently, the configuration of PPSi is provided at startup and
-	it cannot be changed. It would be very useful to be able to 
+	only some parameters on a limited number of architectures (WR node)
+	can be changed. It would be very useful to be able to
 	change some of the @sc{ptp} and extensions configuration without
-	the need of restarting PPSi (and resynchronizing). Such runtime 
+	the need of restarting PPSi (and resynchronizing). Such runtime
 	re-configuration could include ClockClass priority, packet rate
-	or enable/allowed extensions. Implementing runtime reconfiguration
-	ins on our todo list.
+	or enable/allowed extensions. Implementing full run-time reconfiguration
+	is on project's todo list.
 
 
 @end table
 
 
 @c ==========================================================================
-@node Bugs
-@section Bugs
-
-As of 2013-05 the project suffers from these known bugs:
-
-@itemize
-@item All frames must be sent according to a pseudo-random distribution;
-      this is mostly in place but must be audited project-wide.
-@item We removed @i{peer-delay} support. We plan to add it back, and
-      actually move White Rabbit to use @i{peer-delay} @sc{ptp} instead of
-      @i{end-to-end} @sc{ptp}.
-@item The servo for standard-@sc{ptp} must be audited. We are doing
-      it now using  @i{arch-sim} support,
-@item @sc{udp} over @sc{IPV6} is not yet supported.
-@end itemize
+@c @node Bugs
+@c @section Bugs
+@c 
+@c As of 2013-05 the project suffers from these known bugs:
+@c 
+@c @itemize
+@c @item All frames must be sent according to a pseudo-random distribution;
+@c       this is mostly in place but must be audited project-wide.
+@c @item We removed @i{peer-delay} support. We plan to add it back, and
+@c       actually move White Rabbit to use @i{peer-delay} @sc{ptp} instead of
+@c       @i{end-to-end} @sc{ptp}.
+@c @item The servo for standard-@sc{ptp} must be audited. We are doing
+@c       it now using  @i{arch-sim} support,
+@c @item @sc{udp} over @sc{IPV6} is not yet supported.
+@c @end itemize
 
 @c ##########################################################################
 @node Configuration
@@ -430,16 +432,17 @@ semicolon as a separator.
 
 If no configuration file is specified, the program reads the default
 one, which is architecture-specific (thus, the default configuration
-file is processed after all the command line configuration items).  The
+file is processed after all the command line configuration items; to change
+the order use explicitly the @t{-f} parameter).  The
 default file name is @t{/etc/ppsi.conf}.  The source tree of PPSi includes
 two example configuration files in its own @t{/etc} subdirectory.
 
 Configuration is made of global options and port-specific options.
 To configure a port, use either @t{port <name>} or  @t{link <name>} 
 followed by its options.
-The parser allocates a new @sc{ptp} state machine for each new port, but
+The parser allocates a new @sc{ptp} instance for each new port, but
 allows changing configuration of an existing port.  For instance, to
-enable frame diagnostics for a specific port, you can use:
+enable frame diagnostics for a specific port, the following command can be used:
 
 @smallexample
         ./ppsi -f /etc/ppsi.conf -C "port eth1-raw-ptp; diagnostics 02"
@@ -452,29 +455,25 @@ architecture-specific table and an extension-specific table.
 Currently, only @i{arch-sim} has specific configuration items.
 
 The list of global and port specific configuration items are described 
-in the following section but also in code source files: @t{lib/conf.c} and 
+in the following section but also in code source file @t{lib/conf.c} and
 @t{pp_global_arglines} array.
 
-@quotation Note
-most current command-line options are going to be turned into
-configuration options. This applies to the priorities, intervals and
-thresholds, as well as the @i{slave-only} flag.
-@end quotation
 
 @c ==========================================================================
 @node PPSi base configuration
 @section PPSi base configuration
 
-As said before, the PPSi configuration is separated into different sections. 
-All keywords belonging to the 'global options' can be defined anywhere in the configuration
-but to increase the readability, we suggest defining them at the beginning.
+The PPSi configuration is separated into different sections.
+All keywords belonging to the 'global options' can be defined anywhere in
+the configuration, but to increase the readability, it is suggested to define
+them at the beginning.
 
-The 'port-specific' section always begins with the keywork 'port' or 'link'. Then all 
+The 'port-specific' section always begins with the keyword 'port' or 'link'. Then all 
 following 'port-specific' keywords will be associated to this port until 
 a new keyword 'port' or 'link' appears.
 
 @anchor{arg-types}
-An option is a key/value(s) pair separated by at least a space character, e.g.: '@t{key value(s)}'. The '@t{value{s}}' entry
+An option is a key/value(s) pair separated by at least a space character, e.g.: '@t{key value(s)}'. The '@t{value(s)}' entry
 depends on the option type. The following value types are supported by PPSi:
 
 
@@ -499,8 +498,10 @@ and '@t{f/false/0/off/n/no}' for 'False'.
 This is free text.
 @item  TextList
  This is a list of predefined choices specified with predefined text. 
-For each choice, we can use more than one predefined text.
- For example, the selection of the delay mechanism allows 2 predefined choices (peer-to-peer or end-to-end) but for each choice we are free to use a number of different texts for the selection:
+For each choice, it can use more than one predefined text.
+ For example, the selection of the delay mechanism allows two predefined
+ choices (peer-to-peer or end-to-end), but for each choice it is possible to
+ use a number of different texts for the selection:
  @example
 end-to_end: "request-response","delay","e2e"
 peer-to-peer: "peer-delay","pdelay","p2p"
@@ -618,6 +619,7 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
   @example
 . "none", "ptp": Default PTP profile
 . "whiterabbit", "wr": White Rabbit profile
+. "highaccuracy", "ha": High Accuracy profile
   @end example
 
   @item @b{mechanism} @i{[TextList]}
@@ -629,7 +631,7 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 	@end example
   
   @item @b{masterOnly} @i{[Boolean]}
-  If enabled , it enables the optional '@i{masterOnly}' feature 
+  If enabled , activates the optional '@i{masterOnly}' feature 
   (refer to the IEEE 1588-2019 - clause 9.2.2.2).
   This option cannot be used if the global option '@i{externalPortConfiguration}' is 
   enabled.
@@ -645,7 +647,7 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
   The mean time interval between transmissions of successive
 	Announce messages. For more details please refer to the IEEE 1588 standard.
 
-  @item @b{in-delay-req-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)} 
+  @item @b{min-delay-req-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)} 
   @itemx @b{logMinDelayReqInterval} @i{[Int32,Unit=logarithm to the base 2]} 
   The minDelayRequestInterval specifies the minimum permitted
   mean time interval between successive Delay_Req messages.
@@ -669,13 +671,13 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
   @item @b{asymmetryCorrectionEnable} @i{[Boolean]}
   When enabled, this feature calculates delay asymmetry which is then used in the
   computation of offset from master in the PTP servo.
-  This feature is obligatorily enabled in some profiles when used (e.g. White Rabbit,..). 
-  In the Default PTP Profile, this feature is not used by default. 
+  This feature is obligatorily enabled in some profiles when used (e.g. White Rabbit,..).
+  In the Default PTP Profile, this feature is not used by default.
   For more details please refer to the IEEE 15882-2019 standard.
     
   @item @b{constantAsymmetry} @i{[Int64,Unit=picoseconds]}
   When '@i{asymmetryCorrectionEnable}' feature is used, this parameter allows fine-adjustment
-  of the calculated delay asymmetry. The provided value of @i{constantAsymmetry} 
+  of the calculated delay asymmetry. The provided value of @i{constantAsymmetry}
   will be added to the calculation of the delay asymmetry.
   For more details please refer to the IEEE 15882-2019 standard.
   
@@ -691,9 +693,9 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 . "master"      : Master state
 . "passive"     : Passive state
 . "uncalibrated": Uncalibrated state
-. "slave"       : Slave state. During synchronization 
-           with a master, the port instance can 
-           transition to UNCALIBRATED state.
+. "slave"       : Slave state. During synchronization
+                  with a master, the port instance can
+                  transition to UNCALIBRATED state.
 @end example
 
   @item @b{egressLatency} @i{[Int64,Unit=picoseconds]}
@@ -719,14 +721,17 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
   For more details please refer to the IEEE 15882-2019 standard.
   
   @item @b{servo-pi}  @i{[Int16[2]]}
-  If set, it overrides the default PTP servo parameters. 
-  The first argument correspond to the 
-  proportionnal coefficient and the second to the integral one.
+  If set, it overrides the default PTP servo parameters.
+  The first argument correspond to the
+  proportional coefficient and the second to the integral one.
   
   
-	@item @b{diagnostic} @i{[String]}
-  Change the diagnostic level. @xref{Diagnostics,,Diagnostics}.
-  
+@item @b{diagnostic} @i{[String]}
+        Change the diagnostic level. @xref{Diagnostics,,Diagnostics}.
+
+@item @b{vlan} @i{[String]}
+        Specify vlans. @xref{VLAN Support,,VLAN Support}.
+
 @end table
 @c ==========================================================================
 @node Extension-specific configuration
@@ -750,7 +755,7 @@ a repeatable dropping sequence.
 Dropping of transmitted frames is performed by reporting success (and the
 timestamp), while no frame is actually sent.  A diagnostic message
 is generated at @t{frames} level 1, but other than that nothing
-happens.   In fact, @t{arch-wrs} needs to actually send a frame in
+happens.   Please note that @t{arch-wrs} needs to actually send a frame in
 order to get a timestamp back; in this case the program modifies the
 frame, to use a wrong Ethernet type or a wrong UDP port.
 
@@ -784,15 +789,15 @@ before starting the daemon.
 @node Configuring the Simulator
 @section Configuring the Simulator
 
-To run the PPSi simulator you need to rely on diagnostics and specific
+To run the PPSi simulator it is need to rely on diagnostics and specific
 configuration items.  The configuration items are defined in
 @i{arch-sim/sim-conf.c} and are not individually documented here at
 this point.
 
-After building with ``@t{make sim_defconfig}'', you can look at how
+After building with ``@t{make sim_defconfig}'', it can be checked how
 PPSi behaves in different situation. For example, to see how the servo
-works with default parameters you can activate servo messages at level
-2, and only look at the offset from master:
+works with default parameters activate servo messages at level
+2, and only display the offset from master:
 
 @smallexample
    ./ppsi -d 0002 | grep 'Offset from master'
@@ -806,9 +811,9 @@ The simulator runs by default for one hour of simulated time (in a
 fraction of a second of running time), and the initial offset from
 master to slave is 0.9 seconds.
 
-To pass configuration options, you can use the @t{-C} command line option.
-So, for example, to start with 0.1 seconds of offset and 1000 ns of
-transmission jitter, you can run PPSi as follows:
+To pass configuration options, @t{-C} command line option can be used.
+For example, to start with 0.1 seconds of offset and 1000 ns of
+transmission jitter:
 
 @smallexample
    ./ppsi -d 0002 -C "sim_init_master_time .1; sim_jit_ns 1000"
@@ -839,30 +844,30 @@ both raw Ethernet and UDP can be used.
 Freestanding architectures, like the WR PTP Core (@t{arch-wrpc}) can't
 rely on the underlying Operating System, so the daemon must read and
 write vlan Ethernet headers by itself -- in this situation UDP is not
-supported, unless your own architecture's network operations build and
+supported, unless an architecture's network operations build and
 decode IP and UDP headers (in official PPSi no such support is there).
 
 Another situation where PPSi should deal with vlans directly is when
-you want a port to be master on several vlans at the same time, but
+a port it to be a master on several vlans at the same time, but
 this is only supported for @i{mandated} masters, at this point in
 time.  A mandated master is a port configured either as '@t{master}' 
 (externalPortConfiguration enabled) or as '@t{masterOnly}'
-in the configuration file.  If you want to run multiple vlans on the
+in the configuration file.  To run multiple vlans on the
 same physical port, without forcing the port to be a mandated master,
-you can create multiple PTP interfaces, one per vlan, all relying on
+create multiple PTP interfaces, one per vlan, all relying on
 the same physical port (or different OS-specific vlan ports).
 
-When running a fully-PTP network in end-to-end mode, you won't usually
+When running a fully-PTP network in end-to-end mode, it won't usually
 need to configure multiple vlans on a single port. In particular, this
 never happens in a White Rabbit network, because each link connects
 two WR-PTP devices, without any non-compliant switches in the middle.
-However, if you have
-transparent clocks or normal switches, you may want to behave
-as a master for the whole network connected to your port, which may
+However, for
+transparent clocks or normal switches, it is possible to have
+a master for the whole network connected to a given port, which may
 be split in several vlans. Clearly this only applies to a @i{trunk}
-port in your PTP switch or workstation.
+port in PTP switch or workstation.
 
-To support this we rely on @i{Kconfig} and architecture-specific
+The support of VLANs rely on @i{Kconfig} and architecture-specific
 code, in the following way.
 
 @itemize @bullet
@@ -882,8 +887,8 @@ code, in the following way.
 @end itemize
 
 When only one vlan is specified, the network operations for the
-architecture are responsible: they must do the right thing. Currently,
-@t{wrpc} builds and decodes Ethernet frames (FIXME: NOT YET), ignoring
+architecture are responsible to handle it in a proper way. Currently,
+@t{wrpc} builds and decodes Ethernet frames, ignoring
 any received frame not belonging to the proper vlan. Code for @t{wrs} and
 @t{unix} handles a single vlan like multiple ones (NOTE: 
 automatically creating the vlan-specific interface was considered, but that
@@ -900,27 +905,27 @@ other vlans, as well as non-PTP frames, are ignored.
 
 Because of the @t{ETH_P_ALL} binding, a multiple-vlan master port will
 receive all the non-PTP traffic that flows on the interface. Please be
-warned that this may increase the load on your PPSi process.  With the
+warned that this may increase the load on the PPSi process.  With the
 current release of the White Rabbit Switch this is not a problem,
 because the switching core routes only PTP frames to the CPU. This
 applies to single-vlan ports, because PPSi is not creating the
-Linux-specific interface to have the kernel select traffic for us.
+Linux-specific interface to have the kernel select traffic.
 
 @c ==========================================================================
 @node Note about vlans in Linux
 @section Note about vlans in Linux
 
 The choices described above depend on how vlans work in Linux (the
-architecture we use in the White Rabbit Switch, and the one we support
+architecture that is used in the White Rabbit Switch, and the one supported
 in @t{arch-unix}).
 
 If a packet socket is bound to a specific Ethernet protocol (for
 example, the PTP Ethernet type, 0x88f7), on a generic Ethernet port
 like @t{eth0}, it receives all frames for that @i{ethertype}, whether
-or not they are tagged on the wire.  To our knowledge there is no way,
-in this situation, to tell whether the frame was tagged, and which tag
+or not they are tagged on the wire.  To authors' knowledge in this situation,
+it is not possible to tell whether the frame was tagged, and which tag
 were there if any.  Only traffic to vlan-specific ports, like
-@t{eth0.20}, is guaranteed to belong to vlan 20 (i.e. a double-tagged
+@t{eth0.20}, is guaranteed to belong to vlan 20 (or a double-tagged
 frame, whose external tag is 20).
 
 Only a socket bound to all @i{ethertypes} (i.e. @t{ETH_P_ALL}) is able
@@ -928,11 +933,11 @@ to receive auxiliary metadata that reports whether the frame was
 tagged and which tag it was carrying.
 
 The behavior above depends on how hardware acceleration for tags work,
-and even if it is suboptimal for this use case, we don't know about
+and even if it is suboptimal for this use case, authors don't know about
 alternatives. Thus, a PPSi port configured for vlan frames, is bound
 to the base ethernet port, but it must receive all @i{ethertypes}.
 
-If this is not ok for your configuration, you can create your own
+If this is not ok for an configuration, it is advised to create a new
 vlan-aware Linux port and bind to it. It works correctly with smaller
 CPU overhead, but more administrative work.
 
@@ -941,8 +946,10 @@ CPU overhead, but more administrative work.
 @chapter PTP Clock Class
 
 The clock class value (@t{clockClass}), a field of the `clock quality'
-structure defined by the IEEE1588 standad, can be specified in the 
-configuration file for the architectures that support such a file.
+structure defined by the IEEE1588 standard, can be specified in
+the configuration file for the architectures
+that support such a file (e.g. White Rabbit Switch) or be set in run-time (e.g.
+White Rabbit Node).
 
 @c ==========================================================================
 @node Default device attributes
@@ -1166,9 +1173,7 @@ a clock that may be a slave of another clock.
 @node Diagnostics
 @chapter Diagnostics
 
-During development of PPSi, diagnostic support used several
-techniques, but finally we converged on the one described here, that
-is here to stay.  The idea is that we need to add verbosity
+The PPSi verbosity can be controlled
 per-feature and per-port.  This fine-grained control is expected to be
 important while developing features or while diagnosing problems on
 new architectures.
@@ -1187,8 +1192,8 @@ macros use the logical OR of both flags, so developers can activate
 diagnostics on either a single link or globally.
 
 The diagnostic flags are split into topics (called @i{things}). For
-each diagnostic thing the header defines a few bits; so we can have
-diagnostic levels for each of them, but we suggest using only level 1
+each diagnostic thing the header defines a few bits; there is
+diagnostic levels for each of them, but it is suggested to use only level 1
 and 2 -- the rationale is in the header itself.
 
 The @i{things} currently defined are:
@@ -1235,8 +1240,8 @@ of the @i{pp_diag} function:
 @end example
 
 The function acts like @i{printf}, with the leading arguments @t{ppi},
-@t{thing} (which is one of the names fsm, time, frames, servo, bmc,
-ext) and @t{level}, which should be 1 or 2. For example, the code
+@t{thing} (which is one of the names @i{fsm}, @i{time}, @i{frames}, @i{servo},
+@i{bmc}, @i{ext}) and @t{level}, which should be 1 or 2. For example, the code
 setting system time includes this diagnostic line:
 
 @example
@@ -1244,9 +1249,9 @@ setting system time includes this diagnostic line:
             tp.tv_sec, tp.tv_nsec);
 @end example
 
-Finally, if you need to shrink the size of your binary file, you can
-build PPSi with no diagnostic code at all (i.e., the compiler won't
-even generate the function calls), you can define @t{PPSI_NO_DIAG} in
+Finally, to shrink the size of binary file, PPSi can be
+build with no diagnostic code at all (i.e., the compiler won't
+even generate the function calls), in this case define @t{PPSI_NO_DIAG} in
 @t{CFLAGS} while building.  This can be achieved by setting
 @t{USER_CFLAGS}:
 
@@ -1259,12 +1264,12 @@ commented.
 
 
 @c ==========================================================================
-@node Older Diagnostics
-@section Older Diagnostics
-
-We introduced the diagnostic macros described above at the beginning
-of March 2013.  Earlier code used a less-structured approach, which
-has later been removed. If you used @t{PP_PRINTF}, it's gone by now.
+@c @node Older Diagnostics
+@c @section Older Diagnostics
+@c 
+@c We introduced the diagnostic macros described above at the beginning
+@c of March 2013.  Earlier code used a less-structured approach, which
+@c has later been removed. If you used @t{PP_PRINTF}, it's gone by now.
 
 @c ==========================================================================
 @node Printf
@@ -1278,15 +1283,16 @@ in its own subdirectory.  Please check @i{pp_printf/README} for more
 details about the size of this implementation and the different
 implementation choices.
 
-By avoiding calls to the real @i{printf} function we allow the PPSi
-code base to be built for freestanding implementations without ugly
-@t{#ifdef} tricks in the code.  Please note that @i{pp_printf} and
+By avoiding calls to the real @i{printf} function
+the code base can be built for freestanding implementations without ugly
+@t{#ifdef} tricks in the code.
+Please note that @i{pp_printf} and
 @i{printf} can coexist: for example the hosted version of PPSi links
 with the standard library without any problem; in that case
 @i{pp_printf} relies on @i{fputs} to write to @i{stdout}.
 
-If your run-time environment already includes an implementation
-of @i{pp_printf}, you can build with @t{CONFIG_NO_PRINTF} set. For
+If a run-time environment already includes an implementation
+of @i{pp_printf}, it can build with @t{CONFIG_NO_PRINTF} set. For
 example:
 
 @example
@@ -1295,18 +1301,11 @@ example:
 
 The resulting @t{ppsi.o} will include undefined references to the
 @t{pp_printf} symbol, which must be provided externally.  This is how
-we build for @i{arch-wrpc}, which already includes its own
-implementation if @i{pp_printf}.  In that specific situation we still
-link the @i{libc} provided by the compiler, but we don't want to lift
+the build for @i{arch-wrpc} is done, which already includes its own
+implementation of @i{pp_printf}.  In that specific situation
+the @i{libc} is provided by the compiler, but it is not using
 its own @i{printf} which would bring in most of @i{newlib} and would
-overflow our available RAM by a huge amount.
-
-If your freestanding environment provides a @i{printf} that you want
-to use, and which is not called @i{pp_printf}, you may use the
-@t{PROVIDE} keyword in your linker script.  You can find an example in
-the @i{wrpc-sw} package, which maps @i{mprintf} to @i{pp_printf} at
-link time, in order to accept external code that calls @i{mprintf},
-which we don't provide any more.
+overflow the available RAM by a huge amount.
 
 @c ##########################################################################
 @node Tools
@@ -1390,8 +1389,8 @@ refers to a parallel port.  When passed a pathname, the program assumes
 it is a serial port and it toggles the DTR and RTS modem control signals
 (on pins 4 and 7 of the DB9 male connector).
 
-By setting the @t{VERBOSE} environment variable you ask the program
-to report how late it was before and after generating the rising
+By setting the @t{VERBOSE} environment variable the program
+reports how late it was before and after generating the rising
 edge:
 
 @example
@@ -1405,7 +1404,7 @@ edge:
 
 @t{pps-out} can be used to verify on a scope the level of
 synchronization of two or more computers, but please note that the
-user-space software-only approach shows some jitter; on my systems the
+user-space software-only approach shows some jitter; on example systems the
 delay is usually a few microseconds, up to around a dozen (in general,
 use of the parallel port has less delay and less jitter). In any case
 this offers a second source to check what NTP or @sc{ptp} daemons report.
@@ -1437,9 +1436,8 @@ that are bigger than 0.5ms, to avoid excessive reporting of false
 positives that are simply due to process latencies induced by the
 system workload.
 
-By running this program you can see the effect of @i{tools/jmptime},
-or the insertion of a leap second (which is why this program was written
-in June 2012).
+By running this program the user can see the effect of @i{tools/jmptime},
+or the insertion of a leap second.
 
 For example, this is what @i{chktime} reports when running
 ``@t{jmptime .002}''. The program doesn't need superuser privileges:
@@ -1465,11 +1463,11 @@ Adjustments requested by this program cannot be reported by
 than half a millisecond, because the change in clock speed affects
 both @t{CLOCK_REALTIME} and @t{CLOCK_MONOTONIC}.
 
-You can see adjustment in one host by comparing with the time of another
-host, for example using @i{tools/mtp}, described next.
+The adjustment can be seen in one host by comparing with the time of another
+host, for example using @i{tools/mtp}, described in the next section.
 
-The following example shows how on my host the kernel adjusts the time by
-15ms every 30s (i.e. 0.05%):
+The following example shows how on an example host the kernel adjusts the time
+by 15ms every 30s (i.e. 0.05%):
 
 @example
    # ./tools/adjtime .15; sleep 30; ./tools/adjtime 0
@@ -1489,7 +1487,7 @@ being used in the core PPSi program).  It is meant to check adjustment
 and get acquainted with the involved values.
 
 The numerical argument of the system call is parts-per-million scaled
-by 16 bits. So for example half @i{ppm} is passed as 32768.
+by 16 bits. For example half @i{ppm} is passed as 32768.
 
 The following are example uses of the program on an ntp-driven host:
 
@@ -1509,20 +1507,21 @@ The following are example uses of the program on an ntp-driven host:
 @node mtp
 @section mtp
 
-The directory @i{tools/mtp} includes a few example programs written for
+The directory @i{tools/mtp} includes a few example programs written by
+Alessandro for
 an article about time synchronization. MTP means ``mini time protocol'';
 it uses the T1, T2, T3, T4 idea to report the time difference between
 two hosts.  The program comes in two flavors: UDP and raw Ethernet.
 
-To run a listening server on one host, you can run the program in
+To run a listening server on one host, run the program in
 @i{listen} mode:
 
 @example
    tornado% ./tools/mtp/mtp_udp -l
 @end example
 
-On the other host, you can run the client that reports the time
-difference it measures, you can pass either an IP address or an host
+On the other host, run the client that reports the time
+difference it measures, pass either an IP address or an host
 name:
 
 @example
@@ -1530,8 +1529,8 @@ name:
   0: rtt  0.000459000   delta   0.099351500
 @end example
 
-You can continuously monitor the difference by running the program in a
-loop:
+It is possible to continuously monitor the difference by running the program in
+a loop:
 
 @example
    morgana% while true; do ./tools/mtp/mtp_udp tornado; sleep 0.1; done
@@ -1549,7 +1548,7 @@ The @i{MAKEALL} script, in the top-level directory of PPSi builds the
 program for all known configurations, picking them from @t{configs/}.
 Developers are urged to run it
 before committing each patch, to ensure they are not breaking the
-program for configurations they are not using. 
+program for configurations they are not using.
 It may happen, however, that some developers experience errors or
 warnings that others didn't notice, because of differences in compiler
 version or library versions.
@@ -1584,8 +1583,8 @@ whatever it needs. Similarly, @t{CROSS_COMPILE} may be set by sub-Makefiles
 but please let the environment override it (as no custom pathnames
 should be edited before building and the pristine package can be used).
 
-The basic state machine is in @i{./fsm.c}. It's a simple file released in
-the public domain as we'd like the idea to be reused and the code
+The basic state machine is in @i{./fsm.c}. It is a simple file released in
+the public domain as authors would like the idea to be reused and the code
 itself is not worth copylefting -- even thought the file is not completely
 independent from PPSi itself.
 
@@ -1623,22 +1622,22 @@ if they are known to be all used in the final binary or of it uses
 @chapter Licensing
 
 The code is licensed according to the GNU LGPL, version 2.1 or later.
-Some files are individually released to the public domain, when we
-think they are especially simple or generic.
+Some files are individually released to the public domain, when authors
+thought they are especially simple or generic.
 
 Both the full and the partial printf code is distributed according to
 the GPL-2, as it comes from the Linux kernel.  This means that any
-code using our diagnostics fall under the GPL requirements; you may
-compile and use the diagnostic code internally with your own
-proprietary code but you can't distribute binaries with diagnostics
-without the complete source code and associated rights. You may avoid
-the GPL requirements by using different printf implementations; if so
-we'd love to have them contributed back in the package.
+code using PPSi's diagnostics fall under the GPL requirements; one may
+compile and use the diagnostic code internally with own
+proprietary code but it can not distribute binaries with diagnostics
+without the complete source code and associated rights. One may avoid
+the GPL requirements by using different printf implementations; in such case
+please contribute back this into the package.
 
 The same issue about the GPL license applies to the @i{div64_32}
-function.  We need this implementation in our @i{wrpc} code base
-because the default @i{libgcc} division is very big, and we are always
-tight with our in-FPGA memory space.
+function.  This implementation is needed in @i{wrpc} code base
+because the default @i{libgcc} division is very big, and @i{wrpc} is always
+tight with in-FPGA memory space.
 
 For binaries without diagnostic code and the size-optimized division,
 the LGPL applies, as detailed below.
@@ -1648,9 +1647,9 @@ For licensing purposes, any `arch-name' or `time-name' subdirectory
 themselves" (quoting the LPGL text).
 
 Code in the directories provided here is all LGPL, and
-you may add your own drop-in subdirectories. The LGPL requirements for
+one may add own drop-in subdirectories. The LGPL requirements for
 source distribution and associated permissions won't apply to any such
-subdirectory that you may add, even if technically such code is not
+subdirectory that might be added, even if technically such code is not
 linked as a library.
 
 @c ##########################################################################
@@ -1698,17 +1697,12 @@ The command:
      ./ppsi --help
 @end example
 
-will print help about command line options (we also support the
+will print help about command line options (it also support the
 question-mark like the original ptp, but it's a bad choice because it
 is a shell wildcard that should be escaped).  Actually, all multi-char
-options will print the help at this point in time, because we only
-support since-char options; we don't want to rely on @i{getopt} which
-is not available for all architectures, nor we want to implement
-complex parsing.
-
-@b{Note:} most current command-line options are going to be turned into
-configuration options. This applies to the priorities, intervals and
-thresholds, as well as the @i{slave-only} flag.
+options will print the help at this point in time, because only
+since-char options are supported. It is intended to avoid dependency on
+@i{getopt} which is not available for all architectures.
 
 For standard operation, simply run @t{./ppsi} with no options. It will
 work like the PTPd executable, with the automatic choice of
@@ -1730,16 +1724,17 @@ a list of the other ones please see the help message.
 	Pass a single configuration item, or several of them using
         the semicolon as separator. See @ref{Configuration} for details.
 
-@item -d
+@item -d <string>
 
 	Diagnostics. This options receives the string of diagnostic
         levels for  fsm, time, frames, servo, bmc, extension (in that order).
         See @ref{Diagnostic Macros} for details.
 
-@item -e
+@item -t
+	Do not adjust the system clock.
 
-	Run in Ethernet mode (by default PPSi uses UDP if the architecture
-        supports it).
+@item -w NUMBER
+	specify meanDelay filter stiffness.
 
 @item -g
 

@@ -35,7 +35,7 @@
 
 @setchapternewpage off
 
-@set update-month February 2020
+@set update-month October 2022
 @set release __RELEASE_GIT_ID__
 
 @finalout
@@ -44,7 +44,7 @@
 @title PPSi Manual
 @subtitle @value{update-month} (@value{release})
 @subtitle Documentation about ``PTP Ported to Silicon''
-@author A. Rubini, A.Colosimo and J-C Bau for CERN (be-co-ht)
+@author A. Rubini, A.Colosimo, A.Wujek, J-C Bau for CERN
 @end titlepage
 @headings single
 

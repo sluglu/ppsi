@@ -222,7 +222,7 @@ int64_t interval_to_picos(TimeInterval interval)
  */
 static int is_timestamp_incorrect(struct pp_instance *ppsi, int ts_mask)
 {
-	static int ts_ppsi_offset[6]={
+	static const unsigned short ts_ppsi_offset[6]={
 			offsetof(struct pp_instance,t1),
 			offsetof(struct pp_instance,t2),
 			offsetof(struct pp_instance,t3),

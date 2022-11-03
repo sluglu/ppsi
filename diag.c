@@ -12,13 +12,13 @@
 #endif
 
 static const char * const thing_name[] = {
-	[pp_dt_fsm]	= "diag-fsm",
-	[pp_dt_time]	= "diag-time",
-	[pp_dt_frames]	= "diag-frames",
-	[pp_dt_servo]	= "diag-servo",
-	[pp_dt_bmc]	= "diag-bmc",
-	[pp_dt_ext]	= "diag-extension",
-	[pp_dt_config]	= "diag-config",
+	[pp_dt_fsm]	= "fsm",
+	[pp_dt_time]	= "time",
+	[pp_dt_frames]	= "frames",
+	[pp_dt_servo]	= "servo",
+	[pp_dt_bmc]	= "bmc",
+	[pp_dt_ext]	= "extension",
+	[pp_dt_config]	= "config",
 };
 
 
@@ -41,10 +41,9 @@ void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
 			TOPS(ppi)->get_utc_time(ppi, &hours, &minutes, &seconds);
 		else
 			hours=minutes=seconds=0;
-		pp_printf("%02d:%02d:%02d %s-%i-%s: ", hours, minutes,seconds,thing_name[th], level, name);
-	} else {
-		pp_printf("%s-%i-%s: ", thing_name[th], level, name);
+		pp_printf("%02d:%02d:%02d ", hours, minutes,seconds);
 	}
+	pp_printf("diag-%s-%i-%s: ", thing_name[th], level, name);
 	va_start(args, fmt);
 	pp_vprintf(fmt, args);
 	va_end(args);

@@ -150,7 +150,7 @@ static inline timePropertiesDS_t *GDSPRO(struct pp_globals *ppg)
 	return ppg->timePropertiesDS;
 }
 
-static inline struct pp_time_operations *TOPS(struct pp_instance *ppi) {
+static inline const struct pp_time_operations *TOPS(struct pp_instance *ppi) {
 	return ppi->t_ops;
 }
 
@@ -258,10 +258,10 @@ struct pp_network_operations {
 };
 
 /* This is the struct pp_network_operations to be provided by time- dir */
-extern struct pp_network_operations DEFAULT_NET_OPS;
+extern const struct pp_network_operations DEFAULT_NET_OPS;
 
 /* These can be liked and used as fallback by a different timing engine */
-extern struct pp_network_operations unix_net_ops;
+extern const struct pp_network_operations unix_net_ops;
 
 /*
  * Time operations, like network operations above, are encapsulated.
@@ -288,10 +288,10 @@ struct pp_time_operations {
 #include "timeout_prot.h"
 
 /* This is the struct pp_time_operations to be provided by time- dir */
-extern struct pp_time_operations DEFAULT_TIME_OPS;
+extern const struct pp_time_operations DEFAULT_TIME_OPS;
 
 /* These can be liked and used as fallback by a different timing engine */
-extern struct pp_time_operations unix_time_ops;
+extern const struct pp_time_operations unix_time_ops;
 
 
 /* FIXME this define is no more used; check whether it should be

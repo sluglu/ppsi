@@ -81,9 +81,9 @@ struct wrh_operations {
 	int (*set_timing_mode)(struct pp_globals *, wrh_timing_mode_t tm);
 };
 
-extern struct wrh_operations wrh_oper;
+extern const struct wrh_operations wrh_oper;
 
-static inline struct wrh_operations *WRH_OPER(void)
+static inline const struct wrh_operations *WRH_OPER(void)
 {
 	return &wrh_oper;
 }

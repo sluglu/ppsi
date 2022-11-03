@@ -348,7 +348,7 @@ static int wr_new_slave (struct pp_instance *ppi, void *buf, int len) {
 }
 
 
-struct pp_ext_hooks wr_ext_hooks = {
+const struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
 	.handle_resp = wr_handle_resp,

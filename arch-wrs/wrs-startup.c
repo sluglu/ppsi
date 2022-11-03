@@ -32,7 +32,7 @@
 
 #define WRSW_HAL_TIMEOUT 2000000 /* us */
 
-struct wrh_operations wrh_oper = {
+const struct wrh_operations wrh_oper = {
 	.locking_enable = wrs_locking_enable,
 	.locking_poll = wrs_locking_poll,
 	.locking_disable = wrs_locking_disable,

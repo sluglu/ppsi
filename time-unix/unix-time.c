@@ -280,7 +280,7 @@ static unsigned long unix_calc_timeout(struct pp_instance *ppi, int millisec)
 	return now_ms + millisec;
 }
 
-struct pp_time_operations unix_time_ops = {
+const struct pp_time_operations unix_time_ops = {
 	.get_utc_time = unix_time_get_utc_time,
 	.get_utc_offset = unix_time_get_utc_offset,
 	.set_utc_offset = unix_time_set_utc_offset,

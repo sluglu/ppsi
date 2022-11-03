@@ -40,8 +40,8 @@ int wrc_ptp_run(int start_stop_qry);
 int wrc_ptp_update(void);
 /* End of wrc-ptp.h */
 
-extern struct pp_network_operations wrpc_net_ops;
-extern struct pp_time_operations wrpc_time_ops;
+extern const struct pp_network_operations wrpc_net_ops;
+extern const struct pp_time_operations wrpc_time_ops;
 
 /* other network stuff, bah.... */
 

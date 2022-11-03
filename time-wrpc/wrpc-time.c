@@ -90,7 +90,7 @@ static unsigned long wrpc_calc_timeout(struct pp_instance *ppi, int millisec)
 	return timer_get_tics() + millisec;
 }
 
-struct pp_time_operations wrpc_time_ops = {
+const struct pp_time_operations wrpc_time_ops = {
 	.get_utc_time = wrpc_time_get_utc_time,
 	.get_utc_offset = wrpc_time_get_utc_offset,
 	.set_utc_offset = wrpc_time_set_utc_offset,

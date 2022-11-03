@@ -197,7 +197,7 @@ static int wrpc_net_init(struct pp_instance *ppi)
 
 }
 
-struct pp_network_operations wrpc_net_ops = {
+const struct pp_network_operations wrpc_net_ops = {
 	.init = wrpc_net_init,
 	.exit = wrpc_net_exit,
 	.recv = wrpc_net_recv,

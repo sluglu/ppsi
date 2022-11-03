@@ -54,7 +54,7 @@ struct pp_runtime_opts {
 
 /* We need globally-accessible structures with preset defaults */
 extern struct pp_runtime_opts __pp_default_rt_opts;
-extern struct pp_instance_cfg __pp_default_instance_cfg;
+extern const struct pp_instance_cfg __pp_default_instance_cfg;
 /*
  * Communication channel. Is the abstraction of a unix socket, so that
  * this struct is platform independent
@@ -221,7 +221,7 @@ struct pp_instance {
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
 	int protocol_extension; /* PPSI_EXT_NONE, PPSI_EXT_WR, PPSI_EXT_L1S */
-	struct pp_ext_hooks *ext_hooks; /* if protocol ext needs it */
+	const struct pp_ext_hooks *ext_hooks; /* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
 	unsigned char flags;		/* protocol flags (see below) */
 	int	proto;			/* same as in config file */
@@ -231,8 +231,8 @@ struct pp_instance {
 	struct pp_globals *glbs;
 
 	/* Operations that may be different in each instance */
-	struct pp_network_operations *n_ops;
-	struct pp_time_operations *t_ops;
+	const struct pp_network_operations *n_ops;
+	const struct pp_time_operations *t_ops;
 
 	/*
 	 * The buffer for this fsm are allocated. Then we need two

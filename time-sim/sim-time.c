@@ -142,7 +142,7 @@ static unsigned long sim_calc_timeout(struct pp_instance *ppi, int millisec)
 	return millisec + SIM_PPI_ARCH(ppi)->time.current_ns / 1000LL / 1000LL;
 }
 
-struct pp_time_operations sim_time_ops = {
+const struct pp_time_operations sim_time_ops = {
 	.get_utc_time = sim_time_get_utc_time,
 	.get_utc_offset = sim_time_get_utc_offset,
 	.set_utc_offset = sim_time_set_utc_offset,

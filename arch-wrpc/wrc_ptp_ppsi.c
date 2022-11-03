@@ -28,7 +28,7 @@ extern int32_t cal_phase_transition;
 int ptp_mode = WRC_MODE_UNKNOWN;
 static int ptp_enabled = 0;
 
-struct wrh_operations wrh_oper = {
+const struct wrh_operations wrh_oper = {
 	.locking_enable = wrpc_spll_locking_enable, // entering slave
 	.locking_poll = wrpc_spll_locking_poll,
 	.locking_disable = wrpc_spll_locking_disable,

@@ -485,7 +485,7 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 
 static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_format msg_fmt)
 {
-	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	int chtype = mf->chtype;
 	struct sockaddr_in addr;
 	struct ethhdr *hdr = pkt;
@@ -723,7 +723,7 @@ static int wrs_net_check_packet(struct pp_globals *ppg, int delay_ms)
 	return unix_net_ops.check_packet(ppg, delay_ms);
 }
 
-struct pp_network_operations wrs_net_ops = {
+const struct pp_network_operations wrs_net_ops = {
 	.init = wrs_net_init,
 	.exit = wrs_net_exit,
 	.recv = wrs_net_recv,

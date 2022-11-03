@@ -38,7 +38,7 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 
 /* Default values used to fill configurable parameters associated to each instance */
 /* These parameters can be then overwritten with the config file ppsi.conf */
-struct pp_instance_cfg __pp_default_instance_cfg = {
+const struct pp_instance_cfg __pp_default_instance_cfg = {
 		.profile=PPSI_PROFILE_PTP,
 		.delayMechanism = MECH_E2E,
 		.announce_interval=PP_DEFAULT_ANNOUNCE_INTERVAL,

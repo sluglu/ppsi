@@ -597,7 +597,7 @@ static int wrs_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t 
 }
 
 
-struct pp_time_operations wrs_time_ops = {
+const struct pp_time_operations wrs_time_ops = {
 	.get_utc_time = wrs_time_get_utc_time,
 	.get_utc_offset = wrs_time_get_utc_offset,
 	.set_utc_offset = wrs_time_set_utc_offset,

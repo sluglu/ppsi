@@ -163,7 +163,7 @@ static int sim_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 static int sim_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_format msg_fmt)
 {
-	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	int chtype = mf->chtype;
 	struct pp_time *t = &ppi->last_snt_time;
 	struct sim_ppi_arch_data *data = SIM_PPI_ARCH(ppi);
@@ -317,7 +317,7 @@ static int sim_net_init(struct pp_instance *ppi)
 	return 0;
 }
 
-struct pp_network_operations sim_net_ops = {
+const struct pp_network_operations sim_net_ops = {
 	.init = sim_net_init,
 	.exit = sim_net_exit,
 	.recv = sim_net_recv,

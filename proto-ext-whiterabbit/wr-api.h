@@ -136,7 +136,7 @@ static inline  struct wr_servo_ext *WRE_SRV(struct pp_instance *ppi)
 	return &((struct wr_data *)ppi->ext_data)->servo_ext;
 }
 
-extern struct pp_ext_hooks wr_ext_hooks;
+extern const struct pp_ext_hooks wr_ext_hooks;
 extern int wrTmoIdx;
 
 /* Servo routines */

@@ -178,7 +178,7 @@ static int unix_net_recv(struct pp_instance *ppi, void *pkt, int len,
 
 static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_format msg_fmt)
 {
-	struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + msg_fmt;
 	int chtype = mf->chtype;
 	struct sockaddr_in addr;
 	struct ethhdr *hdr = pkt;
@@ -652,7 +652,7 @@ static int unix_net_check_packet(struct pp_globals *ppg, int delay_ms)
 	return ret;
 }
 
-struct pp_network_operations unix_net_ops = {
+const struct pp_network_operations unix_net_ops = {
 	.init = unix_net_init,
 	.exit = unix_net_exit,
 	.recv = unix_net_recv,

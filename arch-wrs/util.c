@@ -6,8 +6,6 @@
 #include <libwr/util.h>
 #include <arpa/inet.h> /* for ntohl */
 
-const int endianess=1; /* use to check endianess */
-
 static int loops_per_msec = -1;
 
 /* Calculate how many loops per millisecond we make in this CPU */

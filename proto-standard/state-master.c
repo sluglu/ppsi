@@ -13,7 +13,7 @@ static int master_handle_delay_request(struct pp_instance *ppi,
 				       void *buf, int len);
 static int master_handle_announce(struct pp_instance *ppi, void *buf, int len);
 
-static pp_action *actions[] = {
+static pp_action * const actions[] = {
 	[PPM_SYNC]		= 0,
 	[PPM_DELAY_REQ]		= master_handle_delay_request,
 #if CONFIG_HAS_P2P

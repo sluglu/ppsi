@@ -12,8 +12,8 @@
 
 static int listening_handle_announce(struct pp_instance *ppi, void *buf, int len);
 
-static pp_action *actions[] = {
-	[PPM_SYNC]			= 0,
+static pp_action * const actions[] = {
+	[PPM_SYNC]		= 0,
 	[PPM_DELAY_REQ]		= 0,
 #if CONFIG_HAS_P2P
 	[PPM_PDELAY_REQ]	= st_com_peer_handle_preq,
@@ -23,7 +23,7 @@ static pp_action *actions[] = {
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
 	[PPM_ANNOUNCE]		= listening_handle_announce,
-	[PPM_SIGNALING]	    = st_com_handle_signaling,
+	[PPM_SIGNALING]		= st_com_handle_signaling,
 };
 
 static int listening_handle_announce(struct pp_instance *ppi, void *buf, int len) {

@@ -11,7 +11,7 @@
 
 static int passive_handle_announce(struct pp_instance *ppi, void *buf, int len);
 
-static pp_action *actions[] = {
+static pp_action * const actions[] = {
 	[PPM_SYNC]		= 0,
 	[PPM_DELAY_REQ]		= 0,
 #if CONFIG_HAS_P2P

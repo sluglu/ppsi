@@ -31,7 +31,6 @@
 #define PP_DEFAULT_CONFIGFILE			"/etc/ppsi.conf"
 
 #define PP_DEFAULT_FLAGS			0
-#define PP_DEFAULT_ROLE				PPSI_ROLE_AUTO
 #define PP_DEFAULT_PROTO			PPSI_PROTO_UDP /* overridden by arch */
 #define PP_DEFAULT_AP				10
 #define PP_DEFAULT_AI				1000

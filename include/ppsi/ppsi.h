@@ -312,10 +312,6 @@ extern int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv);
 #define PPSI_PROTO_UDP		1
 #define PPSI_PROTO_VLAN		2	/* Actually: vlan over raw eth */
 
-#define PPSI_ROLE_AUTO		0
-#define PPSI_ROLE_MASTER	1
-#define PPSI_ROLE_SLAVE		2
-
 /* Define the PPSI extensions */
 #define PPSI_EXT_NONE	0
 #define PPSI_EXT_WR		1   /* WR extension */ 

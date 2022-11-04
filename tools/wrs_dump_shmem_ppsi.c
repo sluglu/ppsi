@@ -32,7 +32,6 @@ struct dump_info ppg_info [] = {
 #undef DUMP_STRUCT
 #define DUMP_STRUCT defaultDS_t /* Horrible typedef */
 struct dump_info dsd_info [] = {
-	DUMP_FIELD(Boolean, twoStepFlag),
 	DUMP_FIELD(ClockIdentity, clockIdentity),
 	DUMP_FIELD(UInteger16, numberPorts),
 	DUMP_FIELD(ClockQuality, clockQuality),
@@ -44,7 +43,6 @@ struct dump_info dsd_info [] = {
 	DUMP_FIELD(yes_no_Boolean, instanceEnable),
 	DUMP_FIELD(yes_no_Boolean, externalPortConfigurationEnabled),
 	DUMP_FIELD(Enumeration8, maxStepsRemoved),
-	DUMP_FIELD(Enumeration8, SdoId),
 	DUMP_FIELD(Enumeration8, instanceType),
 };
 

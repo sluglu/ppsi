@@ -217,9 +217,8 @@ typedef struct {
 } MsgManagement;
 
 /* Default Data Set */
-typedef struct {		/* page 65 */
+typedef struct {		/* 1588-2019 8.2.1.1, page 113 */
 	/* Static */
-	Boolean		twoStepFlag;
 	ClockIdentity	clockIdentity;
 	UInteger16	numberPorts;
 	/* Dynamic */
@@ -230,12 +229,11 @@ typedef struct {		/* page 65 */
 	UInteger8	domainNumber;
 	Boolean		slaveOnly;
 	/** Optional (IEEE1588-2019) */
-	Timestamp	currentTime;               /*draft P1588_v_29: page 85*/
-	Boolean		instanceEnable;            /*draft P1588_v_29: page 86*/
-	Boolean	        externalPortConfigurationEnabled; /*draft P1588_v_29: page 86*/
-	Enumeration8	maxStepsRemoved;           /*draft P1588_v_29: page 86 (bug)*/
-	Enumeration8	SdoId;                     /*draft P1588_v_29: page 86 (bug)*/
-	Enumeration8	instanceType;              /*draft P1588_v_29: page 86 */
+	Timestamp	currentTime;               /* 1588-2019 8.2.1.5.1 */
+	Boolean		instanceEnable;            /* 1588-2019 8.2.1.5.2 */
+	Boolean	        externalPortConfigurationEnabled; /* 1588-2019 8.2.1.5.3 */
+	Enumeration8	maxStepsRemoved;           /* 1588-2019 8.2.1.5.4 */
+	Enumeration8	instanceType;              /* 1588-2019 8.2.1.5.5 */
 	/** *********************** */
 } defaultDS_t;
 

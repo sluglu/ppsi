@@ -65,7 +65,6 @@ struct dump_info  dump_ppsi_info[] = {
 #define DUMP_STRUCT defaultDS_t /* Horrible typedef */
 
 	DUMP_HEADER("defaultDS_t"),
-	DUMP_FIELD(Boolean, twoStepFlag),
 	DUMP_FIELD(ClockIdentity, clockIdentity),
 	DUMP_FIELD(UInteger16, numberPorts),
 	DUMP_FIELD(ClockQuality, clockQuality),
@@ -79,7 +78,6 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(yes_no_Boolean, instanceEnable),
 	DUMP_FIELD(yes_no_Boolean, externalPortConfigurationEnabled),
 	DUMP_FIELD(Enumeration8, maxStepsRemoved),
-	DUMP_FIELD(Enumeration8, SdoId),
 	DUMP_FIELD(Enumeration8, instanceType),
 
 

@@ -81,8 +81,6 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	defaultDS_t *def = ppg->defaultDS;
 	struct pp_runtime_opts *rt_opts;
 
-	def->twoStepFlag = TRUE;
-
 	/* if ppg->nlinks == 0, let's assume that the 'pp_links style'
 	 * configuration was not used, so we have 1 port */
 	def->numberPorts = ppg->nlinks > 0 ? ppg->nlinks : 1;

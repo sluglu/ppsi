@@ -27,7 +27,7 @@
  *  In this case, we will leave it unchanged.
  */
 
-clockDegradation_t clockDegradation[]= {
+static clockDegradation_t clockDegradation[]= {
 		// PP_PTP_CLASS_GM_LOCKED
 		{
 			.clockClass=PP_PTP_CLASS_GM_LOCKED,
@@ -175,7 +175,7 @@ clockDegradation_t clockDegradation[]= {
  *  ################################################################################
  *
  */
-defaultDeviceAttributes_t defaultDeviceAttributes[] = {
+static const defaultDeviceAttributes_t defaultDeviceAttributes[] = {
 		{ .clockClass =	PP_PTP_CLASS_GM_LOCKED,
 		  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED,
 		  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_LOCKED,
@@ -342,7 +342,7 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 
 
 void bmc_set_default_device_attributes (struct pp_globals *ppg) {
-	defaultDeviceAttributes_t *pDef=defaultDeviceAttributes;
+	const defaultDeviceAttributes_t *pDef=defaultDeviceAttributes;
 	struct pp_runtime_opts *rt_opts=ppg->rt_opts;
 	int clockClass=rt_opts->clock_quality_clockClass;
 

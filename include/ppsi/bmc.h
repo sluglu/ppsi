@@ -50,7 +50,6 @@ typedef struct {
 
 /* These structures can be patched to change the default behavior */
 extern deviceAttributesDegradation_t deviceAttributesDegradation[];
-extern defaultDeviceAttributes_t defaultDeviceAttributes[];
 
 extern void bmc_set_default_device_attributes (struct pp_globals *ppg);
 extern void bmc_update_clock_quality(struct pp_globals *ppg);

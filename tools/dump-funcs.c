@@ -169,7 +169,8 @@ static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 	/* the field includes 6 bytes of the header, ecludes 4 of them. Bah! */
 	int explen = ntohs(tlv->len) + 4;
 
-	if ( CONFIG_HAS_PROFILE_WR ) {
+#ifdef CONFIG_PROFILE_WR
+	{
 		static char *wr_message_name[] = {
 		    "SLAVE_PRESENT",
 		    "LOCK",
@@ -283,8 +284,11 @@ static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 			}
 		}
 		return explen;
-	} else
+	}
+#else
 		return explen > totallen ? totallen : explen;
+#endif
+
 }
 
 static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)

@@ -281,6 +281,14 @@ static unsigned long unix_calc_timeout(struct pp_instance *ppi, int millisec)
 	return now_ms + millisec;
 }
 
+static int unix_get_GM_lock_state(struct pp_globals *ppg,
+				  pp_timing_mode_state_t *state)
+{
+	*state = PP_TIMING_MODE_STATE_LOCKED;
+	return 0;
+
+}
+
 static int unix_enable_timing_output(struct pp_globals *ppg, int enable)
 {
 	static int prev_enable = 0;
@@ -307,5 +315,6 @@ struct pp_time_operations unix_time_ops = {
 	.adjust_freq = unix_time_adjust_freq,
 	.init_servo = unix_time_init_servo,
 	.calc_timeout = unix_calc_timeout,
+	.get_GM_lock_state = unix_get_GM_lock_state,
 	.enable_timing_output = unix_enable_timing_output
 };

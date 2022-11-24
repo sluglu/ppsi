@@ -20,7 +20,7 @@ static int msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 {
 	void *buf = ppi->tx_ptp;
 	int len;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_R_FUP_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_R_FUP_FMT;
 
 	len= __msg_pack_header(ppi, mf);
 
@@ -62,7 +62,7 @@ static int msg_pack_pdelay_req(struct pp_instance *ppi,
 				struct pp_time *now)
 {
 	void *buf = ppi->tx_ptp;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_REQ_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_REQ_FMT;
 	int len= __msg_pack_header(ppi, mf);
 	Integer64 correction_field;
 
@@ -88,7 +88,7 @@ static int msg_pack_pdelay_resp(struct pp_instance *ppi,
 {
 	void *buf = ppi->tx_ptp;
 	UInteger8 *flags8 = buf + 6;;
-	struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_RESP_FMT;
+	const struct pp_msgtype_info *mf = pp_msgtype_info + PPM_PDELAY_RESP_FMT;
 	int len= __msg_pack_header(ppi, mf);
 	Integer64 correction_field, sub_ns;
 

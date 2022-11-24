@@ -156,11 +156,11 @@ int wrh_servo_got_resp(struct pp_instance *ppi)
 	int ret;
 	static int errcount=0;
 
-	if ( !gs->got_sync )
+	if (!gs->got_sync)
 		return 0; /* t1 & t2 not available yet */
 	gs->got_sync=0;
 
-	if ( is_timestamps_incorrect(ppi,&errcount,0xC /* mask=t3&t4 */)  )
+	if (is_timestamp_incorrect_thres(ppi,&errcount,0xC /* mask=t3&t4 */))
 		return 0;
 
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
@@ -181,7 +181,7 @@ int wrh_servo_got_presp(struct pp_instance *ppi)
 	struct pp_servo *gs=SRV(ppi);
 	static int errcount=0;
 
-	if ( is_timestamps_incorrect(ppi,&errcount,0x3C /* mask=&t3&t4&t5&t6 */)  )
+	if (is_timestamp_incorrect_thres(ppi,&errcount,0x3C /* t3,t4,t5,t6 */))
 		return 0;
 
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);

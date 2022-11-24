@@ -188,7 +188,7 @@ static int calculate_p2p_delayMM(struct pp_instance *ppi) {
 	struct pp_time mtime, stime; /* Avoid modifying stamps in place*/
 	static int errcount;
 
-	if ( is_timestamps_incorrect(ppi,&errcount, 0x3C /* mask=t3&t4&t5&t6*/))
+	if (is_timestamp_incorrect_thres(ppi,&errcount, 0x3C /* t3,t4,t5,t6*/))
 		return 0; /* Error. Invalid timestamps */
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 2)) {
@@ -214,7 +214,7 @@ static int calculate_e2e_delayMM(struct pp_instance *ppi) {
 	struct pp_time mtime, stime; /* Avoid modifying stamps in place*/
 	static int errcount;
 
-	if ( is_timestamps_incorrect(ppi,&errcount, 0xF /* mask=t1&t2&t3&t4*/))
+	if (is_timestamp_incorrect_thres(ppi, &errcount, 0xF /* t1,t2,t3,t4 */))
 		return 0; /* Error. Invalid timestamps */
 
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 2)) {
@@ -243,7 +243,7 @@ int pp_servo_calculate_delays(struct pp_instance *ppi) {
 	int ret;
 
 	/* t1/t2 needed by both P2P and E2E calculation */
-	if ( is_timestamps_incorrect(ppi,&errcount, 0x3 /* mask=t1&t2 */))
+	if (is_timestamp_incorrect_thres(ppi, &errcount, 0x3 /* t1,t2 */))
 		return 0; /* Error. Invalid timestamps */
 
 	ret= is_delayMechanismP2P(ppi) ?
@@ -356,9 +356,8 @@ int pp_servo_got_resp(struct pp_instance *ppi, int allowTimingOutput)
 	servo->got_sync=0;  /* reseted for next time */
 
 
-	if ( is_timestamps_incorrect(ppi,&errcount,0xC /* mask=t3&t4 */)  ) {
+	if (is_timestamp_incorrect_thres(ppi, &errcount, 0xC /* t3,t4 */))
 		return 0;
-	}
 
 	shmem_lock(); /* Share memory locked */
 
@@ -382,7 +381,7 @@ int pp_servo_got_presp(struct pp_instance *ppi)
 	struct pp_servo * servo = SRV(ppi);
 	static int errcount=0;
 
-	if ( is_timestamps_incorrect(ppi,&errcount,0x3C /* mask=&t3&t4&t5&t6 */)  )
+	if (is_timestamp_incorrect_thres(ppi, &errcount, 0x3C /* t3-t6 */))
 		return 0;
 
 	shmem_lock(); /* Share memory locked */

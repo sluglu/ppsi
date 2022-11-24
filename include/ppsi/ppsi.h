@@ -415,10 +415,12 @@ extern int64_t pp_time_to_picos(struct pp_time *ts);
 extern void picos_to_pp_time(int64_t picos, struct pp_time *ts);
 extern void pp_time_hardwarize(struct pp_time *time, int clock_period_ps,int32_t *ticks, int32_t *picos);
 extern int64_t interval_to_picos(TimeInterval interval);
-extern int is_timestamps_incorrect(struct pp_instance *ppsi, int *err_count, int ts_mask);
+
 extern char *time_to_string(struct pp_time *t);
 extern char *interval_to_string(TimeInterval time);
 extern char *relative_interval_to_string(RelativeDifference time);
+
+int is_timestamp_incorrect_thres(struct pp_instance *ppsi, int *err_count, int ts_mask);
 
 /*
  * The state machine itself is an array of these structures.

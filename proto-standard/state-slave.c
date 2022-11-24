@@ -69,7 +69,7 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 		pp_time_add(&ppi->t1, &hdr->cField);
 		ppi->syncCF = 0;
 		/* t1 & t2 are saved in the instance. Check if they are correct */
-		if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
+		if (is_timestamp_incorrect_thres(ppi,&errcount,3 /* t1,t2 */))
 			return 0;
 
 		/* Call the extension; it may do it all and ask to return */
@@ -119,10 +119,10 @@ static int slave_handle_followup(struct pp_instance *ppi, void *buf,
 	pp_time_add(&ppi->t1, &hdr->cField);
 	ppi->syncCF = hdr->cField.scaled_nsecs; /* for diag about TC */
 	/* t1 & t2 are saved in the instance. Check if they are correct */
-	if ( is_timestamps_incorrect(ppi,&errcount,3 /* mask=t1&t2 */)  )
+	if (is_timestamp_incorrect_thres(ppi,&errcount,3 /* t1,t2 */))
 		return 0;
 	/* Call the extension; it may do it all and ask to return */
-	if (is_ext_hook_available(ppi,handle_followup) ){
+	if (is_ext_hook_available(ppi,handle_followup)) {
 		int ret = ppi->ext_hooks->handle_followup(ppi);
 		if (ret == 1)
 			return 0;

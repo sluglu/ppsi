@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <float.h>
 #include <math.h>
+#include <unistd.h>
 
 static unsigned long unix_calc_timeout(void)
 {

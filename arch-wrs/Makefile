@@ -49,7 +49,7 @@ $(arch-spec-o) : $(libwr_headers_in_ppsi)
 
 $(libwr_headers_in_ppsi):
 	@f=$(notdir $@); \
-	echo "Creating symbolic link to $$f";\
+	echo "Creating symbolic link to include/libwr/$$f";\
 	ln -sf ../../../../libwr/include/libwr/$$f  $@
 
 export size_db_file:=size_wrs_db.txt

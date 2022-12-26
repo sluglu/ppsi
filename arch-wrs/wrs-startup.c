@@ -22,7 +22,6 @@
 #include <signal.h>
 
 #include <minipc.h>
-#include <hal_exports.h>
 
 #include <ppsi/ppsi.h>
 #include <ppsi-wrs.h>

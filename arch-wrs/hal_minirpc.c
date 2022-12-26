@@ -1,41 +1,8 @@
-#ifndef __HAL_EXPORTS_C
-#define __HAL_EXPORTS_C
-
 #include <minipc.h>
-#include <hal_exports.h>
+#include <hal_exports.h> /* for exported structs/function protos */
 
 
 /* Export structures, shared by server and client for argument matching */
-
-struct minipc_pd __rpcdef_check_running = {
-	.name = "check_running",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_END,
-		 },
-};
-
-//int halexp_reset_port(const char *port_name);
-struct minipc_pd __rpcdef_reset_port = {
-	.name = "reset_port",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRING, char *),
-		 MINIPC_ARG_END,
-		 },
-};
-
-//int halexp_calibration_cmd(const char *port_name, int command, int on_off);
-struct minipc_pd __rpcdef_calibration_cmd = {
-	.name = "calibration_cmd",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-	.args = {
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRING, char *),
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
-		 MINIPC_ARG_END,
-		 },
-};
 
 //int halexp_lock_cmd(const char *port_name, int command, int priority);
 struct minipc_pd __rpcdef_lock_cmd = {
@@ -61,7 +28,7 @@ struct minipc_pd __rpcdef_pps_cmd = {
 };
 
 //int halexp_info_cmd(hexp_info_params_t *params);
-struct minipc_pd __rpcdef_port_update_cmd = {
+struct minipc_pd __rpcdef_port_info_cmd = {
 	.name = "info_cmd",
 	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
 	.args = {
@@ -70,4 +37,13 @@ struct minipc_pd __rpcdef_port_update_cmd = {
 		 },
 };
 
-#endif
+//int halexp_sfp_tx_cmd(int cmd, int port);
+struct minipc_pd __rpcdef_sfp_tx_cmd = {
+	.name = "sfp_tx_cmd",
+	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
+	.args = {
+		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
+		 MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
+		 MINIPC_ARG_END,
+		 },
+};

@@ -70,7 +70,7 @@ int wrs_update_port_info(struct pp_globals *ppg) {
 			}
 		}
 	}
-	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_port_update_cmd,
+	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_port_info_cmd,
 			&rval, &infos);
 
 	if (ret < 0)

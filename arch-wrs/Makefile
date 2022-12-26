@@ -36,18 +36,18 @@ arch-spec-o = $(patsubst %.c,%.o,$(arch-spec-c))
 OBJ-y += $(arch-spec-o)
 
 # build symbolic links for libwr
-hal_headers = hal_shmem.h \
+libwr_headers = hal_shmem.h \
 	generic_fsm.h\
 	sfp_lib.h\
 	util.h\
 	shmem.h	\
 	timeout.h
 
-hal_headers_in_ppsi= $(addprefix $A/include/libwr/,$(hal_headers))
+libwr_headers_in_ppsi= $(addprefix $A/include/libwr/,$(libwr_headers))
 
-$(arch-spec-o) : $(hal_headers_in_ppsi)
+$(arch-spec-o) : $(libwr_headers_in_ppsi)
 
-$(hal_headers_in_ppsi):
+$(libwr_headers_in_ppsi):
 	@f=$(notdir $@); \
 	echo "Creating symbolic link to $$f";\
 	ln -sf ../../../../libwr/include/libwr/$$f  $@
@@ -77,7 +77,7 @@ OBJ-y += $(MINIPC_LIB)
 all: $(TARGET)
 
 clean::
-	rm -f $(hal_headers_in_ppsi)
+	rm -f $(libwr_headers_in_ppsi)
 
 # to build the target, we need -lstd again, in case we call functions that
 # were not selected yet (e.g., pp_init_globals() ).

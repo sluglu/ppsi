@@ -52,6 +52,18 @@ $(libwr_headers_in_ppsi):
 	echo "Creating symbolic link to include/libwr/$$f";\
 	ln -sf ../../../../libwr/include/libwr/$$f  $@
 
+# build symbolic links for source files in libwr
+libwr_source = hal_minirpc.c
+
+libwr_source_in_ppsi= $(addprefix $A,/$(libwr_source))
+
+$(arch-spec-o) : $(libwr_source_in_ppsi)
+
+$(libwr_source_in_ppsi):
+	@f=$(notdir $@); \
+	echo "Creating symbolic link to $$f";\
+	ln -sf ../../libwr/$$f  $@
+
 # build symbolic links for userspace files from wrs
 wrs_userspace_headers = hal_exports.h
 
@@ -90,7 +102,10 @@ OBJ-y += $(MINIPC_LIB)
 all: $(TARGET)
 
 clean::
-	rm -f $(libwr_headers_in_ppsi) $(wrs_userspace_headers_in_ppsi)
+	rm -f \
+		$(libwr_headers_in_ppsi) \
+		$(libwr_source_in_ppsi) \
+		$(wrs_userspace_headers_in_ppsi)
 
 # to build the target, we need -lstd again, in case we call functions that
 # were not selected yet (e.g., pp_init_globals() ).

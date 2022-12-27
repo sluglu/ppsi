@@ -25,7 +25,8 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-C CONFIG_ITEM", "set configuration options as stated in CONFIG_ITEM\n\t"
 		"CONFIG_ITEM must be a valid config string, enclosed by \" \""},
 	{"-f FILE", "read configuration file"},
-	{"-d STRING", "diagnostic level (see diag-macros.h)"},
+	{"-d STRING", "diagnostic level (see diag-macros.h)\n\t"
+		"FSM, Time, Frames, Servo, BMC, Extension, Configuration"},
 	CMD_LINE_SEPARATOR,
 	{"-t", "do not adjust the system clock"},
 	{"-w NUMBER", "specify meanDelay filter stiffness"},

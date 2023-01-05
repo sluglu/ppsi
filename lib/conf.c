@@ -455,7 +455,8 @@ static int word_in_list(char *word, char *list) {
 	char *next,*curr;
 
 	if ( strlen(list) > sizeof(listCopy)-1) {
-		pp_error("%s: List string too big (%d)\n", __func__, strlen(list));
+		pp_error("%s: List string too big (%u)\n", __func__,
+			 (unsigned)strlen(list));
 		return 0;
 	}
 	strcpy(listCopy, list);

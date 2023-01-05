@@ -159,7 +159,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			if (is_masterOnly(ppi->portDS)) {
 				/* priority given to externalPortConfigurationEnabled */
 				ppi->portDS->masterOnly=FALSE;
-				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. materOnly set to FALSE\n");
+				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=masterOnly=TRUE. masterOnly set to FALSE\n");
 			}
 			ppi->externalPortConfigurationPortDS.desiredState =desiradedState ;
 			isSlavePresent|=desiradedState==PPS_SLAVE || desiradedState==PPS_UNCALIBRATED;

@@ -11,7 +11,7 @@
 
 #include <minipc.h>
 #include <hw-specific/wrh.h>
-#include <libwr/shmem.h>
+#include "libwr/shmem.h"
 #include <libwr/hal_shmem.h>
 #include <ppsi/timeout_def.h>
 

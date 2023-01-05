@@ -9,6 +9,6 @@ static 	void state_change(struct pp_instance *ppi) {
 			TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
 	}
 }
-struct pp_ext_hooks pp_hooks={
+struct pp_ext_hooks const pp_hooks={
 		.state_change = state_change
 };

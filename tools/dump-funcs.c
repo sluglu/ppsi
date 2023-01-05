@@ -8,6 +8,7 @@
 #include <string.h>
 #include "ptpdump.h"
 #include <ppsi/ieee1588_types.h> /* from ../include */
+#include "../proto-ext-whiterabbit/wr-constants.h"
 #include "decent_types.h"
 #include <ppsi/lib.h>
 

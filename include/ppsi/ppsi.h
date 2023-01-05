@@ -342,7 +342,6 @@ extern void bmc_p1(struct pp_instance *ppi);
 extern void bmc_p2(struct pp_instance *ppi);
 extern int bmc_idcmp(struct ClockIdentity *a, struct ClockIdentity *b);
 extern int bmc_pidcmp(struct PortIdentity *a, struct PortIdentity *b);
-extern int bmc(struct pp_globals *ppg);
 extern void bmc_store_frgn_master(struct pp_instance *ppi, 
 		       struct pp_frgn_master *frgn_master, void *buf, int len);
 extern struct pp_frgn_master * bmc_add_frgn_master(struct pp_instance *ppi, struct pp_frgn_master *frgn_master);

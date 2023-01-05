@@ -90,7 +90,7 @@ struct sim_ppi_arch_data {
 	/* Data sets */
 	defaultDS_t *defaultDS;
 	currentDS_t *currentDS;
-	[parentDS_t *parentDS;
+	parentDS_t *parentDS;
 	timePropertiesDS_t *timePropertiesDS;
 	/* other pp_instance, used in net ops */
 	struct pp_instance *other_ppi;

@@ -64,15 +64,18 @@ void sim_main_loop(struct pp_globals *ppg)
 		 * would affect port state again
 		 */
 		if (ppg->ebest_updated) {
+			bmc_calculate_ebest(ppg);
+#if 0
 			for (j = 0; j < ppg->nlinks; j++) {
 				int new_state;
 				struct pp_instance *ppi = INST(ppg ,j);
-				new_state = bmc(ppi);
+				new_state = bmc(ppg);
 				if (new_state != ppi->state) {
 					ppi->state = new_state;
 					ppi->is_new_state = 1;
 				}
 			}
+#endif
 			ppg->ebest_updated = 0;
 		}
 

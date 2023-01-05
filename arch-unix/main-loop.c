@@ -73,7 +73,7 @@ void unix_main_loop(struct pp_globals *ppg)
 			for (j = 0; j < ppg->nlinks; j++) {
 				int new_state;
 				struct pp_instance *ppi = INST(ppg, j);
-				new_state = bmc(ppi);
+				new_state = bmc(ppg);
 				if (new_state != ppi->state) {
 					ppi->state = new_state;
 					ppi->is_new_state = 1;

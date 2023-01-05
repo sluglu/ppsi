@@ -50,7 +50,6 @@ int main(int argc, char **argv)
 	ppg->currentDS = &currentDS;
 	ppg->parentDS = &parentDS;
 	ppg->timePropertiesDS = &timePropertiesDS;
-	ppg->servo = &servo;
 	ppg->rt_opts = &__pp_default_rt_opts;
 
 	/* We are hosted, so we can allocate */
@@ -67,7 +66,6 @@ int main(int argc, char **argv)
 	for (i = 0; i < ppg->max_links; i++) {
 		ppi = INST(ppg, i);
 		ppi->proto = PP_DEFAULT_PROTO;
-		ppi->role = PP_DEFAULT_ROLE;
 		ppi->delayMechanism = MECH_E2E;
 	}
 
@@ -89,7 +87,7 @@ int main(int argc, char **argv)
 		ppi = INST(ppg, i);
 		ppi->ch[PP_NP_EVT].fd = -1;
 		ppi->ch[PP_NP_GEN].fd = -1;
-
+		ppi->servo = &servo;
 		ppi->glbs = ppg;
 		ppi->vlans_array_len = CONFIG_VLAN_ARRAY_SIZE,
 		ppi->iface_name = ppi->cfg.iface_name;

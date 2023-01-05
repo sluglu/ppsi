@@ -11,30 +11,32 @@
 #include "ppsi-sim.h"
 
 static struct pp_runtime_opts sim_master_rt_opts = {
-	.clock_quality = {
+/*	.clock_quality = {
 			.clockClass = PP_PTP_CLASS_GM_LOCKED,
 			.clockAccuracy = PP_ACCURACY_DEFAULT,
 			.offsetScaledLogVariance = PP_VARIANCE_DEFAULT,
 	},
-	.flags =		PP_DEFAULT_FLAGS,
+*/
+        .flags =		PP_DEFAULT_FLAGS,
 	.ap =			PP_DEFAULT_AP,
 	.ai =			PP_DEFAULT_AI,
 	.s =			PP_DEFAULT_DELAY_S,
-	.logAnnounceInterval =	PP_DEFAULT_ANNOUNCE_INTERVAL,
+/*	.logAnnounceInterval =	PP_DEFAULT_ANNOUNCE_INTERVAL,
 	.logSyncInterval =		PP_DEFAULT_SYNC_INTERVAL,
+*/
 	.priority1 =		PP_DEFAULT_PRIORITY1,
 	.priority2 =		PP_DEFAULT_PRIORITY2,
 	.domainNumber =	PP_DEFAULT_DOMAIN_NUMBER,
 	.ttl =			PP_DEFAULT_TTL,
 };
 
-extern struct pp_ext_hooks pp_hooks;
+extern struct pp_ext_hooks const pp_hooks;
 
 /*
- * In arch-sim we use two pp_instaces in the same pp_globals to represent
+ * In arch-sim we use two pp_instances in the same pp_globals to represent
  * two different machines. This means *completely differnt* machines, with
  * their own Data Sets. Given we can't put more all the different Data Sets
- * in the same ppg, we stored them in the ppi->arch_data of every istance.
+ * in the same ppg, we stored them in the ppi->arch_data of every instance.
  * This function is used to set the inner Data Sets pointer of the ppg to
  * point to the Data Sets related to the pp_instange passed as argument
  */
@@ -46,7 +48,7 @@ int sim_set_global_DS(struct pp_instance *ppi)
 	ppi->glbs->currentDS = data->currentDS;
 	ppi->glbs->parentDS = data->parentDS;
 	ppi->glbs->timePropertiesDS = data->timePropertiesDS;
-	ppi->glbs->servo = data->servo;
+//	ppi->glbs->servo = data->servo;
 	ppi->glbs->rt_opts = data->rt_opts;
 
 	return 0;
@@ -67,8 +69,7 @@ static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 	data->defaultDS = calloc(1, sizeof(*data->defaultDS));
 	data->currentDS = calloc(1, sizeof(*data->currentDS));
 	data->parentDS = calloc(1, sizeof(*data->parentDS));
-	data->timePropertiesDS = calloc(1,
-				sizeof(*data->timePropertiesDS));
+	data->timePropertiesDS = calloc(1, sizeof(*data->timePropertiesDS));
 	data->servo = calloc(1, sizeof(*data->servo));
 	if ((!data->defaultDS) ||
 			(!data->currentDS) ||
@@ -122,7 +123,7 @@ int main(int argc, char **argv)
 	 */
 	sim_set_global_DS(pp_sim_get_master(ppg));
 	pp_config_string(ppg, strdup("port SIM_MASTER; iface MASTER;"
-					"proto udp; role master;"
+					"proto udp;"
 					"sim_iter_max 10000;"
 					"sim_init_master_time .9;"));
 
@@ -135,7 +136,7 @@ int main(int argc, char **argv)
 		pp_config_file(ppg, 0, PP_DEFAULT_CONFIGFILE);
 	if (ppg->cfg.cfg_items == 0)
 		pp_config_string(ppg, strdup("port SIM_SLAVE; iface SLAVE;"
-						"proto udp; role slave;"));
+						"proto udp;"));
 
 	for (i = 0; i < ppg->nlinks; i++) {
 		ppi = INST(ppg, i);

@@ -1,8 +1,10 @@
-
 # All files are under A (short for ARCH): I'm lazy
 A := arch-$(ARCH)
 
 CFLAGS += -Itools -Iproto-standard
+
+# needed for --gc-sections option of ld
+PPSI_O_LDFLAGS = --entry=main
 
 OBJ-y += $A/sim-startup.o \
 	$A/main-loop.o \
@@ -13,7 +15,8 @@ OBJ-y += $A/sim-startup.o \
 	lib/dump-funcs.o \
 	lib/libc-functions.o \
 	lib/assert.o \
-	lib/div64.o
+	lib/div64.o \
+	lib/time-arith.o
 
 # Support only "sim" time operations
 TIME := sim

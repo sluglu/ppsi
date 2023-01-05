@@ -70,11 +70,13 @@ static int sim_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap
 	return -1;
 }
 
+#if 0
 static int sim_time_get_servo_state(struct pp_instance *ppi, int *state)
 {
 	*state = PP_SERVO_UNKNOWN;
 	return 0;
 }
+#endif
 
 static int sim_time_get(struct pp_instance *ppi, struct pp_time *t)
 {
@@ -146,7 +148,7 @@ const struct pp_time_operations sim_time_ops = {
 	.get_utc_time = sim_time_get_utc_time,
 	.get_utc_offset = sim_time_get_utc_offset,
 	.set_utc_offset = sim_time_set_utc_offset,
-	.get_servo_state = sim_time_get_servo_state,
+	//	.get_servo_state = sim_time_get_servo_state,
 	.get = sim_time_get,
 	.set = sim_time_set,
 	.adjust = sim_time_adjust,

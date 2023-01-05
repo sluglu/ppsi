@@ -417,7 +417,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 		goto err_out;
 
 	/* Init General multicast IP address */
-	memcpy(addr_str, PP_DEFAULT_DOMAIN_ADDRESS, INET_ADDRSTRLEN);
+	strcpy(addr_str, PP_DEFAULT_DOMAIN_ADDRESS);
 
 	context = addr_str; errno = EINVAL;
 	if (!inet_aton(addr_str, &net_addr))
@@ -440,7 +440,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 		goto err_out;
 
 	/* Init Peer multicast IP address */
-	memcpy(addr_str, PP_PDELAY_DOMAIN_ADDRESS, INET_ADDRSTRLEN);
+	strcpy(addr_str, PP_PDELAY_DOMAIN_ADDRESS);
 
 	context = addr_str;
 	errno = EINVAL;

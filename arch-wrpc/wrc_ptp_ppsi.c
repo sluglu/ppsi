@@ -355,7 +355,8 @@ int wrc_ptp_run(int start_stop_query)
 /* this returns whether or not the function did any work */
 int wrc_ptp_update(void)
 {
-	int i;
+	int l;
+	int now;
 	struct pp_instance *ppi = &ppi_static;
 
 	if (!ptp_enabled)
@@ -364,22 +365,24 @@ int wrc_ptp_update(void)
 	if (ppi->state != PPS_INITIALIZING) {
 		/* Try to receive only after initialization (which initialize
 		   the socket too */
-		i = __recv_and_count(ppi, ppi->rx_frame, PP_MAX_FRAME_LENGTH - 4,
+		l = __recv_and_count(ppi, ppi->rx_frame, PP_MAX_FRAME_LENGTH - 4,
 				     &ppi->last_rcv_time);
+		if (l) {
+			delay_ms = pp_state_machine(ppi, ppi->rx_ptp, l);
+			return 1;
+		}
 	}
-	else
-		i = 0;
 
-	if ((!i) && (timer_get_tics() - start_tics < delay_ms))
+#if TICS_PER_SECOND != 1000
+#error "TICS_PER_SECOND must be 1000"
+#endif
+	now = timer_get_tics();
+	if ((now - start_tics) < delay_ms)
 		return 0;
 
-	if (!i) {
-		/* Nothing received, but timeout elapsed */
-		start_tics = timer_get_tics();
-		delay_ms = pp_state_machine(ppi, NULL, 0);
-		return 1;
-	}
-	delay_ms = pp_state_machine(ppi, ppi->rx_ptp, i);
+	/* Nothing received, but timeout elapsed */
+	start_tics = now;
+	delay_ms = pp_state_machine(ppi, NULL, 0);
 	return 1;
 }
 

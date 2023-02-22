@@ -336,8 +336,6 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 			return pp_leave_current_state(ppi);
 	}
 
-	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
-
 	/* Run the extension state machine. The extension can provide its own time-out */
 	if ( is_ext_hook_available(ppi,run_ext_state_machine) ) {
 		int delay = ppi->ext_hooks->run_ext_state_machine(ppi,buf,len);
@@ -349,6 +347,8 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 		if (delay < ppi->next_delay)
 			ppi->next_delay=delay;
 	}
+
+	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
 
 	return ppi->next_delay;
 }

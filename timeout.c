@@ -19,41 +19,41 @@ typedef struct  {
 
 
 static timeOutConfig_t timeOutConfigs[PP_TO_COUNT]= {
-		{
-				.name="REQUEST",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
-		},
-		{
-				.name="SYNC_SEND",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
-		},
-		{
-				.name="BMC",
-		},
-		{
-				.name="ANN_RECEIPT",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
-		},
-		{
-				.name="ANN_SEND",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
-		},
-		{
-				.name="QUAL",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
-		},
-		{
-				.name="PROT_STATE",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT,
-		},
-		{
-				.name="IN_STATE",
-				.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT,
-		},
-		{
-				.name="GM_BY_BMCA",
-				.ctrlFlag= 0,
-		},
+	{
+		.name="REQUEST",
+		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+	},
+	{
+		.name="SYNC_SEND",
+		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+	},
+	{
+		.name="BMC",
+	},
+	{
+		.name="ANN_RECEIPT",
+		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+	},
+	{
+		.name="ANN_SEND",
+		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+	},
+	{
+		.name="QUAL",
+		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
+	},
+	{
+		.name="PROT_STATE",
+		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT,
+	},
+	{
+		.name="IN_STATE",
+		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT,
+	},
+	{
+		.name="GM_BY_BMCA",
+		.ctrlFlag= 0,
+	},
 };
 
 static inline timeOutInstCnt_t *__pp_get_counter(struct pp_instance *ppi, int index) {

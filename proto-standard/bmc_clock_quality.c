@@ -28,230 +28,229 @@
  */
 
 static clockDegradation_t clockDegradation[]= {
-		// PP_PTP_CLASS_GM_LOCKED
-		{
-			.clockClass=PP_PTP_CLASS_GM_LOCKED,
-			.lastTimingModeState=-1, // Force initialization the first time
-			.enable_timing_output=1,
-			.holdover= {
-					// PP_PTP_CLASS_GM_LOCKED + PLL holdover
-					.clockQuality={
-							.clockClass=PP_PTP_CLASS_GM_HOLDOVER,
-							.clockAccuracy=PP_PTP_ACCURACY_GM_HOLDOVER,
-							.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_HOLDOVER,
-					},
-					.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-					.ptpTimeScale=TRUE,
-					.frequencyTraceable=TRUE,
-					.timeTraceable=TRUE,
-					.msg="holdover",
+	// PP_PTP_CLASS_GM_LOCKED
+	{
+		.clockClass=PP_PTP_CLASS_GM_LOCKED,
+		.lastTimingModeState=-1, // Force initialization the first time
+		.enable_timing_output=1,
+		.holdover= {
+			// PP_PTP_CLASS_GM_LOCKED + PLL holdover
+			.clockQuality={
+				.clockClass=PP_PTP_CLASS_GM_HOLDOVER,
+				.clockAccuracy=PP_PTP_ACCURACY_GM_HOLDOVER,
+				.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_HOLDOVER,
 			},
-			.unlocked= {
-				// PP_PTP_CLASS_GM_LOCKED + PLL unlocked
-				.clockQuality={
-						.clockClass=PP_PTP_CLASS_GM_UNLOCKED_B,
-						.clockAccuracy=PP_PTP_ACCURACY_GM_UNLOCKED_B,
-						.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_UNLOCKED_B,
-				},
-				.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-				.ptpTimeScale=TRUE,
-				.frequencyTraceable=FALSE,
-				.timeTraceable=FALSE,
-				.msg="unlocked",
-			},
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=TRUE,
+			.frequencyTraceable=TRUE,
+			.timeTraceable=TRUE,
+			.msg="holdover",
 		},
+		.unlocked= {
+			// PP_PTP_CLASS_GM_LOCKED + PLL unlocked
+			.clockQuality={
+				.clockClass=PP_PTP_CLASS_GM_UNLOCKED_B,
+				.clockAccuracy=PP_PTP_ACCURACY_GM_UNLOCKED_B,
+				.offsetScaledLogVariance=PP_PTP_VARIANCE_GM_UNLOCKED_B,
+			},
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=TRUE,
+			.frequencyTraceable=FALSE,
+			.timeTraceable=FALSE,
+			.msg="unlocked",
+		},
+	},
 #ifndef CONFIG_CODEOPT_WRPC_SIZE
-		// PP_ARB_CLASS_GM_LOCKED
-		{
-			.clockClass=PP_ARB_CLASS_GM_LOCKED,
-			.lastTimingModeState=-1, // Force initialization the first time
-			.holdover={
-				// PP_ARB_CLASS_GM_LOCKED + PLL holdover
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_HOLDOVER,
-						.clockAccuracy=PP_ARB_ACCURACY_GM_HOLDOVER,
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_HOLDOVER,
-				},
-				.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-				.ptpTimeScale=FALSE,
-				.frequencyTraceable=FALSE,
-				.timeTraceable=FALSE,
-				.msg="holdover",
+	// PP_ARB_CLASS_GM_LOCKED
+	{
+		.clockClass=PP_ARB_CLASS_GM_LOCKED,
+		.lastTimingModeState=-1, // Force initialization the first time
+		.holdover={
+			// PP_ARB_CLASS_GM_LOCKED + PLL holdover
+			.clockQuality={
+				.clockClass=PP_ARB_CLASS_GM_HOLDOVER,
+				.clockAccuracy=PP_ARB_ACCURACY_GM_HOLDOVER,
+				.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_HOLDOVER,
 			},
-			.unlocked={
-				// PP_ARB_CLASS_GM_LOCKED + PLL unlocked
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
-						.clockAccuracy=CLOCK_ACCURACY_UNKNOWN,
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_B,
-				},
-				.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-				.ptpTimeScale=FALSE,
-				.frequencyTraceable=FALSE,
-				.timeTraceable=FALSE,
-				.msg="unlocked",
-			}
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=FALSE,
+			.frequencyTraceable=FALSE,
+			.timeTraceable=FALSE,
+			.msg="holdover",
 		},
-		// PP_ARB_CLASS_GM_UNLOCKED_A
-		{
-			.clockClass=PP_ARB_CLASS_GM_UNLOCKED_A,
-			.lastTimingModeState=-1, // Force initialization the first time
-			.holdover = {
-				// PP_ARB_CLASS_GM_UNLOCKED_A + PLL holdover
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_UNLOCKED_A,// No changes
-						.clockAccuracy=CLOCK_ACCURACY_UNKNOWN,
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_A,
-				},
-				.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-				.ptpTimeScale=FALSE,
-				.frequencyTraceable=FALSE,
-				.timeTraceable=FALSE,
-				.msg="holdover",
+		.unlocked={
+			// PP_ARB_CLASS_GM_LOCKED + PLL unlocked
+			.clockQuality={
+				.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
+				.clockAccuracy=CLOCK_ACCURACY_UNKNOWN,
+				.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_B,
 			},
-			.unlocked = {
-				// PP_ARB_CLASS_GM_UNLOCKED_A + PLL unlocked
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_UNLOCKED_A,// No changes
-						.clockAccuracy=CLOCK_ACCURACY_UNKNOWN,
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_A,
-				},
-				.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-				.ptpTimeScale=FALSE,
-				.frequencyTraceable=FALSE,
-				.timeTraceable=FALSE,
-				.msg="unlocked",
-			}
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=FALSE,
+			.frequencyTraceable=FALSE,
+			.timeTraceable=FALSE,
+			.msg="unlocked",
+		}
+	},
+	// PP_ARB_CLASS_GM_UNLOCKED_A
+	{
+		.clockClass=PP_ARB_CLASS_GM_UNLOCKED_A,
+		.lastTimingModeState=-1, // Force initialization the first time
+		.holdover = {
+			// PP_ARB_CLASS_GM_UNLOCKED_A + PLL holdover
+			.clockQuality={
+				.clockClass=PP_ARB_CLASS_GM_UNLOCKED_A,// No changes
+				.clockAccuracy=CLOCK_ACCURACY_UNKNOWN,
+				.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_A,
+			},
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=FALSE,
+			.frequencyTraceable=FALSE,
+			.timeTraceable=FALSE,
+			.msg="holdover",
 		},
+		.unlocked = {
+			// PP_ARB_CLASS_GM_UNLOCKED_A + PLL unlocked
+			.clockQuality={
+				.clockClass=PP_ARB_CLASS_GM_UNLOCKED_A,// No changes
+				.clockAccuracy=CLOCK_ACCURACY_UNKNOWN,
+				.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_A,
+			},
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=FALSE,
+			.frequencyTraceable=FALSE,
+			.timeTraceable=FALSE,
+			.msg="unlocked",
+		}
+	},
 #endif
-		// PP_ARB_CLASS_GM_UNLOCKED_B
-		{
-			.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
-			.lastTimingModeState=-1, // Force initialization the first time
-			.holdover= {
-				// PP_ARB_CLASS_GM_UNLOCKED_B + PLL holdover
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
-						.clockAccuracy=CLOCK_ACCURACY_UNKNOWN, // No changes
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_B,
-				},
-				.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-				.ptpTimeScale=FALSE,
-				.frequencyTraceable=FALSE,
-				.timeTraceable=FALSE,
-				.msg="holdover",
+	// PP_ARB_CLASS_GM_UNLOCKED_B
+	{
+		.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
+		.lastTimingModeState=-1, // Force initialization the first time
+		.holdover= {
+			// PP_ARB_CLASS_GM_UNLOCKED_B + PLL holdover
+			.clockQuality={
+				.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
+				.clockAccuracy=CLOCK_ACCURACY_UNKNOWN, // No changes
+				.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_B,
 			},
-			.unlocked={
-				// PP_ARB_CLASS_GM_UNLOCKED_B + PLL unlocked
-				.clockQuality={
-						.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
-						.clockAccuracy=CLOCK_ACCURACY_UNKNOWN, // No changes
-						.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_B,
-				},
-				.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
-				.ptpTimeScale=FALSE,
-				.frequencyTraceable=FALSE,
-				.timeTraceable=FALSE,
-				.msg="unlocked",
-			},
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=FALSE,
+			.frequencyTraceable=FALSE,
+			.timeTraceable=FALSE,
+			.msg="holdover",
 		},
+		.unlocked={
+			// PP_ARB_CLASS_GM_UNLOCKED_B + PLL unlocked
+			.clockQuality={
+				.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
+				.clockAccuracy=CLOCK_ACCURACY_UNKNOWN, // No changes
+				.offsetScaledLogVariance=PP_ARB_VARIANCE_GM_UNLOCKED_B,
+			},
+			.timeSource=TIME_SRC_INTERNAL_OSCILLATOR,
+			.ptpTimeScale=FALSE,
+			.frequencyTraceable=FALSE,
+			.timeTraceable=FALSE,
+			.msg="unlocked",
+		},
+	},
 };
 
 /**
- * Default values for PTP device attributes
- *  ################################################################################
- *  #       clock Class     |Accuracy|Variance|timeSrc|PTP time|frequency|  time   #
- *  #                       |        |        |       |  scale |traceable|traceable#
- *  #------------------------------------------------------------------------------#
- *  # PTP_GM_LOCKED(6)      | 100ns  | 0xB900 | GNSS  |  TRUE  |  TRUE   |  TRUE   #
- *  # PTP_GM_HOLDOVER(7)    | 100ns  | 0xC71D |INT_OSC|  TRUE  |  TRUE   |  TRUE   #
- *  # PTP_GM_UNLOCKED_A(52) | Unknown| 0xC71D |INT_OSC|  TRUE  |  FALSE  |  FALSE  #
- *  # PTP_GM_UNLOCKED_B(187)| Unknown| 0xC71D |INT_OSC|  TRUE  |  FALSE  |  FALSE  #
- *  # ARB_GM_LOCKED(13)     |  25ns  | 0xB900 |ATM_CLK|  FALSE |  FALSE  |  FALSE  #
- *  # ARB_GM_HOLDOVER(14)   |  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
- *  # ARB_GM_UNLOCKED_A(58) |  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
- *  # ARB_GM_UNLOCKED_B(193)|  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
- *  # OTHER                 | Unknown| 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE  #
- *  ################################################################################
- *
- */
+ Default values for PTP device attributes
+#############################################################################
+       clock Class     |Accuracy|Variance|timeSrc|PTP time|frequency|  time
+                       |        |        |       |  scale |traceable|traceable
+------------------------------------------------------------------------------
+ PTP_GM_LOCKED(6)      | 100ns  | 0xB900 | GNSS  |  TRUE  |  TRUE   |  TRUE
+ PTP_GM_HOLDOVER(7)    | 100ns  | 0xC71D |INT_OSC|  TRUE  |  TRUE   |  TRUE
+ PTP_GM_UNLOCKED_A(52) | Unknown| 0xC71D |INT_OSC|  TRUE  |  FALSE  |  FALSE
+ PTP_GM_UNLOCKED_B(187)| Unknown| 0xC71D |INT_OSC|  TRUE  |  FALSE  |  FALSE
+ ARB_GM_LOCKED(13)     |  25ns  | 0xB900 |ATM_CLK|  FALSE |  FALSE  |  FALSE
+ ARB_GM_HOLDOVER(14)   |  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE
+ ARB_GM_UNLOCKED_A(58) |  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE
+ ARB_GM_UNLOCKED_B(193)|  25ns  | 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE
+ OTHER                 | Unknown| 0xC71D |INT_OSC|  FALSE |  FALSE  |  FALSE
+#############################################################################
+*/
 static const defaultDeviceAttributes_t defaultDeviceAttributes[] = {
-		{ .clockClass =	PP_PTP_CLASS_GM_LOCKED,
-		  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED,
-		  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_LOCKED,
-		   .timeSource = PP_PTP_TIME_SOURCE_GM_LOCKED,
-		   .ptpTimeScale=TRUE,
-		   .frequencyTraceable=TRUE,
-		   .timeTraceable=TRUE,
-		},
-		{ .clockClass =	PP_PTP_CLASS_GM_HOLDOVER,
-		  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_HOLDOVER,
-		  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_HOLDOVER,
-		   .timeSource = PP_PTP_TIME_SOURCE_GM_HOLDOVER,
-		   .ptpTimeScale=TRUE,
-		   .frequencyTraceable=TRUE,
-		   .timeTraceable=TRUE,
-		},
+	{ .clockClass =	PP_PTP_CLASS_GM_LOCKED,
+	  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_LOCKED,
+	  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_LOCKED,
+	  .timeSource = PP_PTP_TIME_SOURCE_GM_LOCKED,
+	  .ptpTimeScale=TRUE,
+	  .frequencyTraceable=TRUE,
+	  .timeTraceable=TRUE,
+	},
+	{ .clockClass =	PP_PTP_CLASS_GM_HOLDOVER,
+	  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_HOLDOVER,
+	  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_HOLDOVER,
+	  .timeSource = PP_PTP_TIME_SOURCE_GM_HOLDOVER,
+	  .ptpTimeScale=TRUE,
+	  .frequencyTraceable=TRUE,
+	  .timeTraceable=TRUE,
+	},
 #ifndef CONFIG_CODEOPT_WRPC_SIZE
-		{ .clockClass =	PP_PTP_CLASS_GM_UNLOCKED_A,
-		  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED_A,
-		  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED_A,
-		   .timeSource = PP_PTP_TIME_SOURCE_GM_UNLOCKED_A,
-		   .ptpTimeScale=TRUE,
-		   .frequencyTraceable=FALSE,
-		   .timeTraceable=FALSE,
-		},
+	{ .clockClass =	PP_PTP_CLASS_GM_UNLOCKED_A,
+	  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED_A,
+	  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED_A,
+	  .timeSource = PP_PTP_TIME_SOURCE_GM_UNLOCKED_A,
+	  .ptpTimeScale=TRUE,
+	  .frequencyTraceable=FALSE,
+	  .timeTraceable=FALSE,
+	},
 #endif
-		{ .clockClass =	PP_PTP_CLASS_GM_UNLOCKED_B,
-		  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED_B,
-		  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED_B,
-		   .timeSource = PP_PTP_TIME_SOURCE_GM_UNLOCKED_B,
-		   .ptpTimeScale=TRUE,
-		   .frequencyTraceable=FALSE,
-		   .timeTraceable=FALSE,
-		},
+	{ .clockClass =	PP_PTP_CLASS_GM_UNLOCKED_B,
+	  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED_B,
+	  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED_B,
+	  .timeSource = PP_PTP_TIME_SOURCE_GM_UNLOCKED_B,
+	  .ptpTimeScale=TRUE,
+	  .frequencyTraceable=FALSE,
+	  .timeTraceable=FALSE,
+	},
 #ifndef CONFIG_CODEOPT_WRPC_SIZE
-		{ .clockClass =	PP_ARB_CLASS_GM_LOCKED,
-		  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_LOCKED,
-		  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_LOCKED,
-		   .timeSource = PP_ARB_TIME_SOURCE_GM_LOCKED,
-		   .ptpTimeScale=FALSE,
-		   .frequencyTraceable=FALSE,
-		   .timeTraceable=FALSE,
-		},
-		{ .clockClass =	PP_ARB_CLASS_GM_HOLDOVER,
-		  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_HOLDOVER,
-		  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_HOLDOVER,
-		   .timeSource = PP_PTP_TIME_SOURCE_GM_HOLDOVER,
-		   .ptpTimeScale=FALSE,
-		   .frequencyTraceable=FALSE,
-		   .timeTraceable=FALSE,
-		},
-		{ .clockClass =	PP_ARB_CLASS_GM_UNLOCKED_A,
-		  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED_A,
-		  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_UNLOCKED_A,
-		   .timeSource = PP_ARB_TIME_SOURCE_GM_UNLOCKED_A,
-		   .ptpTimeScale=FALSE,
-		   .frequencyTraceable=FALSE,
-		   .timeTraceable=FALSE,
-		},
+	{ .clockClass =	PP_ARB_CLASS_GM_LOCKED,
+	  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_LOCKED,
+	  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_LOCKED,
+	  .timeSource = PP_ARB_TIME_SOURCE_GM_LOCKED,
+	  .ptpTimeScale=FALSE,
+	  .frequencyTraceable=FALSE,
+	  .timeTraceable=FALSE,
+	},
+	{ .clockClass =	PP_ARB_CLASS_GM_HOLDOVER,
+	  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_HOLDOVER,
+	  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_HOLDOVER,
+	  .timeSource = PP_PTP_TIME_SOURCE_GM_HOLDOVER,
+	  .ptpTimeScale=FALSE,
+	  .frequencyTraceable=FALSE,
+	  .timeTraceable=FALSE,
+	},
+	{ .clockClass =	PP_ARB_CLASS_GM_UNLOCKED_A,
+	  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED_A,
+	  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_UNLOCKED_A,
+	  .timeSource = PP_ARB_TIME_SOURCE_GM_UNLOCKED_A,
+	  .ptpTimeScale=FALSE,
+	  .frequencyTraceable=FALSE,
+	  .timeTraceable=FALSE,
+	},
 #endif
-		{ .clockClass =	PP_ARB_CLASS_GM_UNLOCKED_B,
-		  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED_B,
-		  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_UNLOCKED_B,
-		   .timeSource = PP_ARB_TIME_SOURCE_GM_UNLOCKED_B,
-		   .ptpTimeScale=FALSE,
-		   .frequencyTraceable=FALSE,
-		   .timeTraceable=FALSE,
-		},
-		{ .clockClass =	-1, // The last set is the default to use if the clock class is not found
-		  .clock_quality_clockAccuracy = PP_ACCURACY_DEFAULT,
-		  .clock_quality_offsetScaledLogVariance = PP_VARIANCE_DEFAULT,
-		   .timeSource = PP_TIME_SOURCE_DEFAULT,
-		   .ptpTimeScale=FALSE,
-		   .frequencyTraceable=FALSE,
-		   .timeTraceable=FALSE,
-		}
+	{ .clockClass =	PP_ARB_CLASS_GM_UNLOCKED_B,
+	  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED_B,
+	  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_UNLOCKED_B,
+	  .timeSource = PP_ARB_TIME_SOURCE_GM_UNLOCKED_B,
+	  .ptpTimeScale=FALSE,
+	  .frequencyTraceable=FALSE,
+	  .timeTraceable=FALSE,
+	},
+	{ .clockClass =	-1, // The last set is the default to use if the clock class is not found
+	  .clock_quality_clockAccuracy = PP_ACCURACY_DEFAULT,
+	  .clock_quality_offsetScaledLogVariance = PP_VARIANCE_DEFAULT,
+	  .timeSource = PP_TIME_SOURCE_DEFAULT,
+	  .ptpTimeScale=FALSE,
+	  .frequencyTraceable=FALSE,
+	  .timeTraceable=FALSE,
+	}
 };
 
 void bmc_update_clock_quality(struct pp_globals *ppg)
@@ -386,4 +385,3 @@ void bmc_apply_configured_device_attributes(struct pp_globals *ppg) {
 	defDS->domainNumber = rt_opts->domainNumber;
 
 }
-

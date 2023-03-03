@@ -64,7 +64,7 @@ typedef enum {
 	pps_force_check
 } wrpc_pps_force_t;
 
-extern struct pp_globals *ppg;
+extern struct pp_globals *const ppg;
 /* wrpc-spll.c (some should move to time-wrpc/) */
 int wrpc_spll_locking_enable(struct pp_instance *ppi);
 int wrpc_spll_locking_poll(struct pp_instance *ppi);

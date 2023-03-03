@@ -26,7 +26,7 @@ extern int32_t cal_phase_transition;
 
 /* TODO: get rid of ptp_mode, use WRPC_ARCH_G(ppg)->timingModeCfg instead */
 int ptp_mode = WRC_MODE_UNKNOWN;
-static int ptp_enabled = 0;
+static unsigned char ptp_enabled = 0;
 
 const struct wrh_operations wrh_oper = {
 	.locking_enable = wrpc_spll_locking_enable, // entering slave
@@ -71,27 +71,12 @@ static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
 static int start_tics = 0;
 
 struct pp_globals ppg_static; /* forward declaration */
-struct pp_globals *ppg = &ppg_static;
+struct pp_globals * const ppg = &ppg_static;
 static unsigned char __tx_buffer[PP_MAX_FRAME_LENGTH];
 static unsigned char __rx_buffer[PP_MAX_FRAME_LENGTH];
 
 /* despite the name, ppi_static is not static: tests/measure_t24p.c uses it */
-struct pp_instance ppi_static = {
-	.glbs			= &ppg_static,
-	.portDS			= &portDS,
-	.n_ops			= &wrpc_net_ops,
-	.t_ops			= &wrpc_time_ops,
-	.vlans_array_len	= CONFIG_VLAN_ARRAY_SIZE,
-	.proto			= PP_DEFAULT_PROTO,
-	.delayMechanism		= MECH_E2E, /* until changed by cfg */
-	.iface_name		= "wr0",
-	.port_name		= "wr0",
-	.__tx_buffer		= __tx_buffer,
-	.__rx_buffer		= __rx_buffer,
-	.servo			= &servo,
-	.ptp_support		= TRUE,
-	.asymmetryCorrectionPortDS.enable = 1,
-};
+struct pp_instance ppi_static;
 
 struct wrpc_arch_data_t wrpc_arch_data = {
 	.timingMode = WRH_TM_DISABLED,
@@ -121,6 +106,21 @@ int wrc_ptp_init(void)
 
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
 		PPSI_VERSION);
+
+	ppi->glbs = &ppg_static;
+	ppi->portDS = &portDS;
+	ppi->n_ops = &wrpc_net_ops;
+	ppi->t_ops = &wrpc_time_ops;
+	ppi->vlans_array_len = CONFIG_VLAN_ARRAY_SIZE;
+	ppi->proto = PP_DEFAULT_PROTO;
+	ppi->delayMechanism = MECH_E2E; /* until changed by cfg */
+	ppi->iface_name = "wr0";
+	ppi->port_name = "wr0";
+	ppi->__tx_buffer = __tx_buffer;
+	ppi->__rx_buffer = __rx_buffer;
+	ppi->servo = &servo;
+	ppi->ptp_support = TRUE;
+	ppi->asymmetryCorrectionPortDS.enable = 1;
 
 	/* copy default ppi config */
 	memcpy(&ppi->cfg, &__pp_default_instance_cfg, sizeof(__pp_default_instance_cfg));

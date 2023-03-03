@@ -6,6 +6,7 @@
  */
 
 #include <dev/endpoint.h>
+#include "ptpd_netif.h"
 #include <ppsi/ppsi.h>
 #include <softpll_ng.h>
 #include <hal_exports.h>
@@ -13,8 +14,7 @@
 #include "../proto-ext-whiterabbit/wr-constants.h"
 #include "board.h"
 
-int wrpc_read_calibration_data(
-			       struct pp_instance *ppi,
+int wrpc_read_calibration_data(struct pp_instance *ppi,
 			       int32_t *clock_period,
 			       TimeInterval *scaledBitSlide,
 			       RelativeDifference *scaledDelayCoefficient,
@@ -23,8 +23,7 @@ int wrpc_read_calibration_data(
 {
 	struct wrc_port_state state;
 
-	if (wrpc_get_port_state(&state, ppi->iface_name))
-		return WRH_HW_CALIB_NOT_FOUND;
+	wrpc_get_port_state(&state);
 
 	if (scaledDelayCoefficient)
 		*scaledDelayCoefficient = (RelativeDifference) state.calib.alpha;

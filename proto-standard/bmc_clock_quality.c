@@ -273,7 +273,7 @@ static const defaultDeviceAttributes_t defaultDeviceAttributes[] = {
 
 void bmc_update_clock_quality(struct pp_globals *ppg)
 {
-	char *pp_diag_msg;
+	const char *pp_diag_msg;
 	defaultDS_t *defDS=ppg->defaultDS;
 	struct pp_runtime_opts *rt_opts = ppg->rt_opts;
 	int rt_opts_clock_quality_clockClass=rt_opts->clock_quality_clockClass;

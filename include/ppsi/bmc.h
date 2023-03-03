@@ -24,7 +24,7 @@ typedef struct {
 	Boolean ptpTimeScale;
 	Boolean frequencyTraceable;
 	Boolean timeTraceable;
-	char *msg;
+	const char *msg;
 }deviceAttributesDegradation_t;
 
 /* Used to define all default PTP device attributes for a given clock class */

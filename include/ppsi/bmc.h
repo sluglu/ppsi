@@ -27,18 +27,9 @@ typedef struct {
 	char *msg;
 }deviceAttributesDegradation_t;
 
-typedef struct {
-	int clockClass;
-	pp_timing_mode_state_t  lastTimingModeState;
-	int enable_timing_output;
-	deviceAttributesDegradation_t holdover;
-	deviceAttributesDegradation_t unlocked;
-}clockDegradation_t;
-
-
 /* Used to define all default PTP device attributes for a given clock class */
 typedef struct {
-	int clockClass;
+	unsigned char clockClass;
 	UInteger8 clock_quality_clockAccuracy;
 	UInteger8 timeSource;
 	UInteger16 clock_quality_offsetScaledLogVariance;

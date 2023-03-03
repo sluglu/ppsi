@@ -27,11 +27,17 @@
  *  In this case, we will leave it unchanged.
  */
 
-static clockDegradation_t clockDegradation[]= {
+typedef struct {
+	unsigned char clockClass;
+	unsigned char enable_timing_output;
+	deviceAttributesDegradation_t holdover;
+	deviceAttributesDegradation_t unlocked;
+} clockDegradation_t;
+
+static const clockDegradation_t clockDegradation[]= {
 	// PP_PTP_CLASS_GM_LOCKED
 	{
 		.clockClass=PP_PTP_CLASS_GM_LOCKED,
-		.lastTimingModeState=-1, // Force initialization the first time
 		.enable_timing_output=1,
 		.holdover= {
 			// PP_PTP_CLASS_GM_LOCKED + PLL holdover
@@ -64,7 +70,6 @@ static clockDegradation_t clockDegradation[]= {
 	// PP_ARB_CLASS_GM_LOCKED
 	{
 		.clockClass=PP_ARB_CLASS_GM_LOCKED,
-		.lastTimingModeState=-1, // Force initialization the first time
 		.holdover={
 			// PP_ARB_CLASS_GM_LOCKED + PLL holdover
 			.clockQuality={
@@ -95,7 +100,6 @@ static clockDegradation_t clockDegradation[]= {
 	// PP_ARB_CLASS_GM_UNLOCKED_A
 	{
 		.clockClass=PP_ARB_CLASS_GM_UNLOCKED_A,
-		.lastTimingModeState=-1, // Force initialization the first time
 		.holdover = {
 			// PP_ARB_CLASS_GM_UNLOCKED_A + PLL holdover
 			.clockQuality={
@@ -127,7 +131,6 @@ static clockDegradation_t clockDegradation[]= {
 	// PP_ARB_CLASS_GM_UNLOCKED_B
 	{
 		.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
-		.lastTimingModeState=-1, // Force initialization the first time
 		.holdover= {
 			// PP_ARB_CLASS_GM_UNLOCKED_B + PLL holdover
 			.clockQuality={
@@ -155,6 +158,21 @@ static clockDegradation_t clockDegradation[]= {
 			.msg="unlocked",
 		},
 	},
+};
+
+/* lastTimingModeState for each clockDegration.
+   Set to -1 to force initialization the first time.
+
+   Ideally it should be part of the clockDegradation array, but only this
+   value is modified.  Make it separate to reduce data size. */
+static signed char clockDeg_lastTimingModeState[] =
+{
+	-1, 	// PP_PTP_CLASS_GM_LOCKED
+#ifndef CONFIG_CODEOPT_WRPC_SIZE
+	-1,	// PP_ARB_CLASS_GM_LOCKED
+	-1,	// PP_ARB_CLASS_GM_UNLOCKED_A
+#endif
+	-1,	// PP_ARB_CLASS_GM_UNLOCKED_B
 };
 
 /**
@@ -260,7 +278,8 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 	struct pp_runtime_opts *rt_opts = ppg->rt_opts;
 	int rt_opts_clock_quality_clockClass=rt_opts->clock_quality_clockClass;
 	pp_timing_mode_state_t timing_mode_state;
-	clockDegradation_t *clkDeg=clockDegradation;
+	const clockDegradation_t *clkDeg=clockDegradation;
+	signed char *lastTimingModeState;
 	int i;
 
 	/* Check if we are concerned by this clock class */
@@ -272,6 +291,8 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 	if ( i>=ARRAY_SIZE(clockDegradation) )
 		return; // No degradation possible for this clock class
 
+	lastTimingModeState = &clockDeg_lastTimingModeState[i];
+	
 	/* Get the clock status ( locked, holdover, unlocked ) */
 	if (TOPS(INST(ppg,0))->get_GM_lock_state(ppg,&timing_mode_state) ) {
 		pp_diag(NULL, bmc, 1,
@@ -282,7 +303,7 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 
 	pp_diag_clear_msg(pp_diag_msg);
 
-	if ( clkDeg->lastTimingModeState != timing_mode_state) {
+	if (*lastTimingModeState != timing_mode_state) {
 		// Changes detected
 		if ( timing_mode_state == PP_TIMING_MODE_STATE_LOCKED) {
 			// PLL locked: return back to the initial clock class
@@ -292,7 +313,7 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 				TOPS(INST(ppg,0))->enable_timing_output(ppg,1); /* Enable PPS generation */
 			pp_diag_set_msg(pp_diag_msg,"locked");
 		} else {
-			deviceAttributesDegradation_t *devAttr =
+			const deviceAttributesDegradation_t *devAttr =
 					timing_mode_state== PP_TIMING_MODE_STATE_UNLOCKED ?
 							&clkDeg->unlocked : &clkDeg->holdover;
 			// The clock is degraded
@@ -314,7 +335,7 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 				tpDS->timeTraceable=devAttr->timeTraceable;
 			pp_diag_set_msg(pp_diag_msg,devAttr->msg);
 		}
-		clkDeg->lastTimingModeState=timing_mode_state;
+		*lastTimingModeState=timing_mode_state;
 	}
 	if ( pp_diag_is_msg_set(pp_diag_msg) ) {
 		timePropertiesDS_t *tpDS=GDSPRO(ppg);

@@ -36,6 +36,17 @@ static int run_all_state_machines(struct pp_globals *ppg)
 			delay_ms = delay_ms_j;
 	}
 
+	/* BMCA must run at least once per announce interval 9.2.6.8 */
+	if (pp_gtimeout(ppg, PP_TO_BMC)) {
+		bmc_calculate_ebest(ppg); /* Calculate erbest, ebest,... */
+		pp_gtimeout_reset(ppg, PP_TO_BMC);
+		delay_ms=0;
+	} else {
+		/* check if the BMC timeout is the next to run */
+		int delay_bmca = pp_gnext_delay_1(ppg,PP_TO_BMC);
+		if (delay_bmca < delay_ms)
+			delay_ms = delay_bmca;
+	}
 	return delay_ms;
 }
 
@@ -52,7 +63,8 @@ void sim_main_loop(struct pp_globals *ppg)
 		ppi = INST(ppg, j);
 		ppi->is_new_state = 1;
 		/* just tell that the links are up */
-		ppi->link_up = TRUE; 
+		ppi->state = PPS_INITIALIZING;
+		ppi->link_up = TRUE;
 	}
 
 	delay_ns = run_all_state_machines(ppg) * 1000LL * 1000LL;

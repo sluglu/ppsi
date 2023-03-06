@@ -57,6 +57,9 @@ int sim_set_global_DS(struct pp_instance *ppi)
 static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 {
 	struct sim_ppi_arch_data *data;
+
+	memcpy(&ppi->cfg, &__pp_default_instance_cfg, sizeof(__pp_default_instance_cfg));
+
 	ppi->proto = PP_DEFAULT_PROTO;
 	ppi->__tx_buffer = malloc(PP_MAX_FRAME_LENGTH);
 	ppi->__rx_buffer = malloc(PP_MAX_FRAME_LENGTH);
@@ -107,6 +110,9 @@ int main(int argc, char **argv)
 		ppi = INST(ppg, i);
 		ppi->glbs = ppg; // must be done before using sim_set_global_DS
 		ppi->vlans_array_len = CONFIG_VLAN_ARRAY_SIZE;
+		ppi->servo = calloc(1, sizeof (struct pp_servo));
+		if (ppi->servo == NULL)
+			return -1;
 		if (sim_ppi_init(ppi, i))
 			return -1;
 	}
@@ -122,6 +128,7 @@ int main(int argc, char **argv)
 	 * to set the initial offset for the slave
 	 */
 	sim_set_global_DS(pp_sim_get_master(ppg));
+	
 	pp_config_string(ppg, strdup("port SIM_MASTER; iface MASTER;"
 					"proto udp;"
 					"sim_iter_max 10000;"
@@ -151,6 +158,9 @@ int main(int argc, char **argv)
 		ppi->ch[PP_NP_EVT].fd = -1;
 		ppi->t_ops = &DEFAULT_TIME_OPS;
 		ppi->n_ops = &DEFAULT_NET_OPS;
+
+		ppi->portDS->logAnnounceInterval = PP_DEFAULT_ANNOUNCE_INTERVAL;
+
 		if (pp_sim_is_master(ppi))
 			pp_init_globals(ppg, &sim_master_rt_opts);
 		else

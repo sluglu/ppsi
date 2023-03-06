@@ -61,10 +61,10 @@ static int sim_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *le
 	*leap59 = 0;
 	*leap61 = 0;
 	*offset = 0;
-	return -1;	
+	return -1;
 }
 
-static int sim_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
+static int sim_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61)
 {
 	/* no UTC offset */
 	return -1;
@@ -144,6 +144,11 @@ static unsigned long sim_calc_timeout(struct pp_instance *ppi, int millisec)
 	return millisec + SIM_PPI_ARCH(ppi)->time.current_ns / 1000LL / 1000LL;
 }
 
+static int sim_enable_timing_output(struct pp_globals *ppg, int enable)
+{
+	return 0;
+}
+
 const struct pp_time_operations sim_time_ops = {
 	.get_utc_time = sim_time_get_utc_time,
 	.get_utc_offset = sim_time_get_utc_offset,
@@ -156,4 +161,5 @@ const struct pp_time_operations sim_time_ops = {
 	.adjust_freq = sim_adjust_freq,
 	.init_servo = sim_init_servo,
 	.calc_timeout = sim_calc_timeout,
+	.enable_timing_output = sim_enable_timing_output
 };

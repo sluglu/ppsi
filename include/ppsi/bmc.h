@@ -29,7 +29,7 @@ typedef struct {
 
 /* Used to define all default PTP device attributes for a given clock class */
 typedef struct {
-	unsigned char clockClass;
+	short clockClass;
 	UInteger8 clock_quality_clockAccuracy;
 	UInteger8 timeSource;
 	UInteger16 clock_quality_offsetScaledLogVariance;

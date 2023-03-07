@@ -9,8 +9,6 @@ typedef struct {
 	UInteger16 wrFlags;
 }wr_announce_field_t;
 
-int wrTmoIdx=0; /* TimeOut Index */
-
 #if 0
 // Useful function used for debugging
 #include <stdio.h>
@@ -30,8 +28,7 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	if ( wrTmoIdx==0)
-		wrTmoIdx=pp_timeout_get_timer(ppi,"WR_EXT_0",TO_RAND_NONE, TMO_CF_INSTANCE_DEPENDENT);
+	pp_timeout_get_timer(ppi,PP_TO_WR_EXT_0,TO_RAND_NONE);
 
 	wr_reset_process(ppi,WR_ROLE_NONE);
 	ppi->pdstate = PP_PDSTATE_WAIT_MSG;

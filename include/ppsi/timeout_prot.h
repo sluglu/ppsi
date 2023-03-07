@@ -13,7 +13,7 @@
 #define TIMEOUT_DISABLE_VALUE -1
 
 extern void pp_timeout_init(struct pp_instance *ppi);
-extern void __pp_timeout_reset(struct pp_instance *ppi, int index,unsigned int multiplier);
+extern void __pp_timeout_reset(struct pp_instance *ppi, int index, unsigned int multiplier);
 extern int pp_timeout_get(struct pp_instance *ppi, int index);
 extern void pp_timeout_setall(struct pp_instance *ppi);
 extern int pp_timeout(struct pp_instance *ppi, int index)
@@ -21,10 +21,8 @@ extern int pp_timeout(struct pp_instance *ppi, int index)
 extern int pp_next_delay_1(struct pp_instance *ppi, int i1);
 extern int pp_next_delay_2(struct pp_instance *ppi, int i1, int i2);
 extern int pp_next_delay_3(struct pp_instance *ppi, int i1, int i2, int i3);
-extern int pp_timeout_get_timer(struct pp_instance *ppi, char *name,
-		to_rand_t rand, int ctl_flags);
-extern void pp_timeout_free_timer(struct pp_instance *ppi, int index);
-extern void pp_timeout_set_rename(struct pp_instance *ppi,int index ,  int millisec, char *name);
+extern int pp_timeout_get_timer(struct pp_instance *ppi, int index, to_rand_t rand);
+extern void pp_timeout_set_rename(struct pp_instance *ppi, int index, int millisec);
 extern void pp_timeout_disable_all(struct pp_instance *ppi);
 
 
@@ -37,12 +35,12 @@ static inline int pp_gtimeout_get(struct pp_globals *ppg, int index) {
 	return pp_timeout_get(INST(ppg,0),index);
 }
 
-static inline void pp_timeout_set(struct pp_instance *ppi,int index ,  int millisec)
+static inline void pp_timeout_set(struct pp_instance *ppi,int index, int millisec)
 {
-	pp_timeout_set_rename(ppi,index,millisec,NULL);
+	pp_timeout_set_rename(ppi,index,millisec);
 }
 
-static inline void pp_gtimeout_set(struct pp_globals *ppg,int index ,  int millisec) {
+static inline void pp_gtimeout_set(struct pp_globals *ppg,int index, int millisec) {
 	pp_timeout_set(INST(ppg,0),index,millisec);
 }
 
@@ -78,12 +76,8 @@ static inline int pp_gnext_delay_1(struct pp_globals *ppg, int index) {
 	return pp_next_delay_1(INST(ppg,0),index);
 }
 
-static inline int pp_gtimeout_get_timer(struct pp_globals *ppg, char *name, to_rand_t rand, int ctl_flags){
-	return pp_timeout_get_timer(INST(ppg,0),name,rand,ctl_flags);
-}
-
-static inline void pp_gtimeout_free_timer(struct pp_globals *ppg, int index){
-	pp_timeout_free_timer(INST(ppg,0),index);
+static inline int pp_gtimeout_get_timer(struct pp_globals *ppg, int index, to_rand_t rand){
+	return pp_timeout_get_timer(INST(ppg,0),index,rand);
 }
 
 static inline void pp_timeout_reset(struct pp_instance *ppi, int index)

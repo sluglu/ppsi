@@ -40,11 +40,16 @@ enum pp_timeouts {
 	PP_TO_PROT_STATE,
 	PP_TO_IN_STATE,
 	PP_TO_GM_BY_BMCA,
-	PP_TO_PREDEF_COUNTERS /* Number of predefined counters */
+	PP_TO_PREDEF_COUNTERS, /* Number of predefined counters */
+	PP_TO_L1E_TX_SYNC = PP_TO_PREDEF_COUNTERS,
+	PP_TO_L1E_RX_SYNC,
+	PP_TO_WR_EXT_0,
+#if CONFIG_ARCH_IS_WRS == 1
+	PP_TO_WRS_SEND_PORT_INFO,
+	PP_TO_WRS_GM_REFRESH,
+#endif
+	PP_TO_COUNT
 };
-
-#define PP_TO_MAX_FREE_COUNTERS 6
-#define PP_TO_COUNT (PP_TO_PREDEF_COUNTERS+PP_TO_MAX_FREE_COUNTERS)
 
 /* Control flags */
 #define TMO_CF_INSTANCE_DEPENDENT 1 /* PPSi instance dependent: each instance has its own counters */

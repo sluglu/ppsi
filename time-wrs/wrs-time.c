@@ -195,13 +195,14 @@ int wrs_get_timing_mode_state(struct pp_globals *ppg, wrh_timing_mode_pll_state_
 			if ( timing_mode == WRH_TM_GRAND_MASTER){
 				if ( tmoIndex==0 ) {
 					/* First time. Timer must be initialized */
-					if ( (tmoIndex=pp_gtimeout_get_timer(ppg,"GM_REFRESH", TO_RAND_NONE,0))>0 )
-							pp_gtimeout_set(ppg,tmoIndex,TIMEOUT_REFRESH_GRAND_MASTER_MS);
+					pp_gtimeout_get_timer(ppg,PP_TO_WRS_GM_REFRESH, TO_RAND_NONE);
+					pp_gtimeout_set(ppg,PP_TO_WRS_GM_REFRESH,TIMEOUT_REFRESH_GRAND_MASTER_MS);
+					tmoIndex=1;
 				}
 				if ( tmoIndex > 0 ) {
-					if ( pp_gtimeout(ppg,tmoIndex) ) {
+					if ( pp_gtimeout(ppg,PP_TO_WRS_GM_REFRESH) ) {
 						wrs_set_timing_mode(ppg,WRH_TM_GRAND_MASTER);
-						pp_gtimeout_reset(ppg,tmoIndex);
+						pp_gtimeout_reset(ppg,PP_TO_WRS_GM_REFRESH);
 						pp_diag(NULL,time,3,"Refresh (hw) timing mode GM\n");
 					}
 				}
@@ -212,7 +213,6 @@ int wrs_get_timing_mode_state(struct pp_globals *ppg, wrh_timing_mode_pll_state_
 			/* Free the timer: Next unlock state, we will wait then 60s again
 			 * before to set again the Timing mode.
 			 */
-			pp_gtimeout_free_timer(ppg,tmoIndex);
 			tmoIndex=0;
 		}
 	}

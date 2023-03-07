@@ -113,8 +113,9 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 	int delay_ms = 0, delay_ms_j;
 
 	if ( portInfoTmoIdx==-1) {
-		portInfoTmoIdx=pp_gtimeout_get_timer(ppg, "SEND_PORT_INFO", TO_RAND_NONE, 0);
-		pp_gtimeout_set(ppg,portInfoTmoIdx,2000); // Update interface info every 2 seconds
+		pp_gtimeout_get_timer(ppg, PP_TO_WRS_SEND_PORT_INFO, TO_RAND_NONE);
+		portInfoTmoIdx=1;
+		pp_gtimeout_set(ppg,PP_TO_WRS_SEND_PORT_INFO,2000); // Update interface info every 2 seconds
 		pp_gtimeout_set(ppg, PP_TO_BMC,TMO_DEFAULT_BMCA_MS);
 	}
 
@@ -215,9 +216,9 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 			delay_ms=delay_bmca;
 	}
 
-	if ( pp_gtimeout(ppg, portInfoTmoIdx) ) {
+	if ( pp_gtimeout(ppg, PP_TO_WRS_SEND_PORT_INFO) ) {
 		wrs_update_port_info(ppg);
-		pp_gtimeout_reset(ppg,portInfoTmoIdx);
+		pp_gtimeout_reset(ppg,PP_TO_WRS_SEND_PORT_INFO);
 	}
 
 	return delay_ms;

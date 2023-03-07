@@ -18,10 +18,6 @@
 
 #define PROTO_EXT_L1SYNC (1)
 
-/* Rename the timeouts, for readability */
-#define L1E_TIMEOUT_TX_SYNC	l1eTmoTxSync
-#define L1E_TIMEOUT_RX_SYNC	l1eTmoRxSync
-
 /* Time-out */
 #define L1E_DEFAULT_L1SYNC_INTERVAL		   0
 #define L1E_MIN_L1SYNC_INTERVAL		       -4
@@ -163,10 +159,6 @@ static inline int l1e_servo_got_resp(struct pp_instance *ppi) {
 static inline int l1e_servo_got_presp(struct pp_instance *ppi) {
 	return wrh_servo_got_presp(ppi);
 }
-
-/* Timer indexes */
-extern int l1eTmoTxSync;
-extern int l1eTmoRxSync;
 
 #else
 #define PROTO_EXT_L1SYNC (0)

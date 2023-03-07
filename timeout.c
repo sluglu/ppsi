@@ -18,7 +18,7 @@ typedef struct  {
 } timeOutConfig_t;
 
 
-static timeOutConfig_t timeOutConfigs[PP_TO_COUNT]= {
+static const timeOutConfig_t timeOutConfigs[PP_TO_COUNT]= {
 	{
 		.name="REQUEST",
 		.ctrlFlag= TMO_CF_INSTANCE_DEPENDENT | TMO_CF_ALLOW_COMMON_SET,
@@ -54,6 +54,28 @@ static timeOutConfig_t timeOutConfigs[PP_TO_COUNT]= {
 		.name="GM_BY_BMCA",
 		.ctrlFlag= 0,
 	},
+	{
+		.name="L1E_TX_SYNC",
+		.ctrlFlag = TMO_CF_INSTANCE_DEPENDENT
+	},
+	{
+		.name="L1E_RX_SYNC",
+		.ctrlFlag = TMO_CF_INSTANCE_DEPENDENT
+	},
+	{
+		.name="WR_EXT",
+		.ctrlFlag = TMO_CF_INSTANCE_DEPENDENT
+	},
+#if CONFIG_ARCH_IS_WRS == 1
+	{
+		.name="SEND_PORT_INDEX",
+		.ctrlFlag = 0,
+	},
+	{
+		.name="GM_REFRESH",
+		.ctrlFlag = 0,
+	},
+#endif
 };
 
 static inline timeOutInstCnt_t *__pp_get_counter(struct pp_instance *ppi, int index) {
@@ -72,28 +94,13 @@ void pp_timeout_disable_all(struct pp_instance *ppi) {
 }
 
 /* Return counter index or -1 if not available */
-int pp_timeout_get_timer(struct pp_instance *ppi, char *name, to_rand_t rand, int ctl_flags) {
-	int i;
+int pp_timeout_get_timer(struct pp_instance *ppi, int index, to_rand_t rand) {
 	timeOutInstCnt_t *tmoCnt;
-	timeOutConfig_t *cfg=&timeOutConfigs[0];
-	for ( i=0; i < PP_TO_COUNT; i++) {
-		if ( !cfg->name ) {
-			cfg->name=name;
-			cfg->ctrlFlag=ctl_flags;
-			tmoCnt= __pp_get_counter(ppi,i);
-			tmoCnt->which_rand=rand;
-			ppi->tmo_cfg[i].initValueMs=TIMEOUT_DISABLE_VALUE;
-			return i;
-		}
-		cfg++;
-	}
-	pp_diag(ppi, time, 1, "No free timer for %s\n",name);
-	return -1;
-}
 
-void pp_timeout_free_timer(struct pp_instance *ppi, int index){
-	if ( index >= PP_TO_PREDEF_COUNTERS )
-		timeOutConfigs[index].name=NULL;
+	tmoCnt= __pp_get_counter(ppi,index);
+	tmoCnt->which_rand=rand;
+	ppi->tmo_cfg[index].initValueMs=TIMEOUT_DISABLE_VALUE;
+	return index;
 }
 
 int pp_timeout_log_to_ms ( Integer8 logValue) {
@@ -160,18 +167,16 @@ int pp_timeout_get(struct pp_instance *ppi, int index) {
 	return tmoCnt->initValueMs;
 }
 
-static inline void __pp_timeout_set(struct pp_instance *ppi,int index , int millisec) {
+static inline void __pp_timeout_set(struct pp_instance *ppi, int index, int millisec) {
 	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
 
 	tmoCnt->tmo = TOPS(ppi)->calc_timeout(ppi, millisec);
 }
 
-void pp_timeout_set_rename(struct pp_instance *ppi,int index ,  int millisec, char *name)
+void pp_timeout_set_rename(struct pp_instance *ppi, int index, int millisec)
 {
 	timeOutInstCnt_t *tmoCnt= __pp_get_counter(ppi,index);
 
-	if ( name!=NULL )
-		timeOutConfigs[index].name=name;
 	tmoCnt->initValueMs=millisec;
 	__pp_timeout_set(ppi,index,millisec);
 	pp_diag(ppi, time, 3, "timeout overwr.: %s - %i / %lu\n",
@@ -241,7 +246,7 @@ void pp_timeout_setall(struct pp_instance *ppi)
 {
 	int i;
 	for (i = 0; i < PP_TO_COUNT; i++) {
-		if (timeOutConfigs[i].ctrlFlag&TMO_CF_ALLOW_COMMON_SET )
+		if (timeOutConfigs[i].ctrlFlag & TMO_CF_ALLOW_COMMON_SET )
 			pp_timeout_reset(ppi, i);
 	}
 	/* but announce_send must be send soon */

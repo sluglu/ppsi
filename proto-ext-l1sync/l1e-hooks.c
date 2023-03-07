@@ -19,13 +19,9 @@ char *l1e_state_name[] = {
 	[L1SYNC_UP]		= "L1SYNC_UP",
 };
 
-int l1eTmoTxSync=0;
-int l1eTmoRxSync=0;
-
 void l1e_print_L1Sync_basic_bitmaps(struct pp_instance *ppi, uint8_t configed,
 					uint8_t active, char* text)
 {
-
 	pp_diag(ppi, ext, 2, "ML: L1Sync %s\n", text);
 	pp_diag(ppi, ext, 2, "ML: \tConfig: TxC=%d RxC=%d Cong=%d Param=%d\n",
 		  ((configed & L1E_TX_COHERENT) == L1E_TX_COHERENT),
@@ -54,15 +50,11 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__,
 		ppi->protocol_extension);
 
-	if ( l1eTmoTxSync==0) {
-		l1eTmoTxSync=pp_timeout_get_timer(ppi,"L1E_TX_SYNC",TO_RAND_NONE, TMO_CF_INSTANCE_DEPENDENT);
-	}
+	pp_timeout_get_timer(ppi, PP_TO_L1E_TX_SYNC,TO_RAND_NONE);
+	pp_timeout_get_timer(ppi, PP_TO_L1E_RX_SYNC,TO_RAND_NONE);
 
-	if ( l1eTmoRxSync==0)
-		l1eTmoRxSync=pp_timeout_get_timer(ppi,"L1E_RX_SYNC",TO_RAND_NONE, TMO_CF_INSTANCE_DEPENDENT);
-
-	pp_timeout_set(ppi, L1E_TIMEOUT_TX_SYNC, 100); /* Will be set later to the appropriate value */
-	pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, 100); /* Will be set later to the appropriate value */
+	pp_timeout_set(ppi, PP_TO_L1E_TX_SYNC, 100); /* Will be set later to the appropriate value */
+	pp_timeout_set(ppi, PP_TO_L1E_RX_SYNC, 100); /* Will be set later to the appropriate value */
 
 	// init dynamic data set members with zeros/defaults
 	bds->L1SyncLinkAlive          = FALSE;
@@ -101,7 +93,7 @@ static int l1e_handle_signaling(struct pp_instance * ppi, void *buf, int len)
 		/* Valid Sync message */
 
 		/* Reset reception timeout */
-		pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(bds));
+		pp_timeout_set(ppi, PP_TO_L1E_RX_SYNC, l1e_get_rx_tmo_ms(bds));
 
 		bds->L1SyncLinkAlive = TRUE;
 		if ( ppi->extState==PP_EXSTATE_PTP ) {

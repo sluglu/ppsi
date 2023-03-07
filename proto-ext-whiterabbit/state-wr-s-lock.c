@@ -18,7 +18,7 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 
 	if (new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
-		pp_timeout_set_rename(ppi, wrTmoIdx, WR_TMO_MS*(WR_STATE_RETRY+1),WR_TMO_NAME);
+		pp_timeout_set_rename(ppi, PP_TO_WR_EXT_0, WR_TMO_MS*(WR_STATE_RETRY+1));
 		enable = 1;
 	} else {
 
@@ -29,7 +29,7 @@ int wr_s_lock(struct pp_instance *ppi, void *buf, int len, int new_state)
 		}
 
 		{ /* Check remaining time */
-			int rms=pp_next_delay_1(ppi, wrTmoIdx);
+			int rms=pp_next_delay_1(ppi, PP_TO_WR_EXT_0);
 			if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 				WRH_OPER()->locking_disable(ppi);
 				if ( rms==0 ) {

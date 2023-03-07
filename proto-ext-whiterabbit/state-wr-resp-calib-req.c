@@ -17,7 +17,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 
 	if (new_state) {
 		wrp->wrStateRetry = WR_STATE_RETRY;
-		pp_timeout_set_rename(ppi, wrTmoIdx,WR_TMO_MS*(WR_STATE_RETRY+1),WR_TMO_NAME);
+		pp_timeout_set_rename(ppi, PP_TO_WR_EXT_0,WR_TMO_MS*(WR_STATE_RETRY+1));
 	}
 
 	/* Check whether a message is received, otherwise it may downgrade a link to ptp for wrs v5.0.x */
@@ -43,7 +43,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 	}
 
 	{ /* Check remaining time */
-		int rms=pp_next_delay_1(ppi, wrTmoIdx);
+		int rms=pp_next_delay_1(ppi, PP_TO_WR_EXT_0);
 		if ( rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 			if ( !rms ) {
 				pp_diag(ppi, time, 1, "timeout expired: %s\n", WR_TMO_NAME);
@@ -54,5 +54,5 @@ int wr_resp_calib_req(struct pp_instance *ppi, void *buf, int len, int new_state
 		}
 	}
 
-	return pp_next_delay_1(ppi,wrTmoIdx)-wrp->wrStateRetry*WR_TMO_MS;
+	return pp_next_delay_1(ppi,PP_TO_WR_EXT_0)-wrp->wrStateRetry*WR_TMO_MS;
 }

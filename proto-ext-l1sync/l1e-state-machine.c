@@ -64,7 +64,7 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 		return PP_DEFAULT_NEXT_DELAY_MS; /* Return default delay */
 
 	if ( nextState>=MAX_STATE_ACTIONS)
-		return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC);
+		return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC);
 
 	/*
 	 *  Update the L1SYNC dynamic data independent of the state machine
@@ -74,15 +74,15 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 	basicDS->isTxCoherent= ppi->link_up ? 1 : 0;
 
 	/* Check L1SYNC reception Time-out */
-	if ( pp_timeout(ppi, L1E_TIMEOUT_RX_SYNC) ) {
+	if ( pp_timeout(ppi, PP_TO_L1E_RX_SYNC) ) {
 		/* Time-out detected */
-		pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basicDS));
+		pp_timeout_set(ppi, PP_TO_L1E_RX_SYNC, l1e_get_rx_tmo_ms(basicDS));
 		basicDS->L1SyncLinkAlive = FALSE;
 		*execute_state_machine=TRUE;
 	}
 
 	/* Check L1SYNC transmission Time-out */
-	if ( pp_timeout(ppi, L1E_TIMEOUT_TX_SYNC) ) {
+	if ( pp_timeout(ppi, PP_TO_L1E_TX_SYNC) ) {
 		*execute_state_machine=TRUE;
 	}
 
@@ -101,7 +101,7 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 		 */
 		delay=(*le1_state_actions[basicDS->L1SyncState].action) (ppi,newState);
 	} else
-		delay=pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+		delay=pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 
 	/* If return delay is 0, it means that the state machine should be executed at last call */
 	*execute_state_machine= (delay==0);
@@ -112,7 +112,7 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 }
 
 static int l1e_empty_action(struct pp_instance *ppi, Boolean new_state){
-	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* L1_SYNC_RESET event */
@@ -206,7 +206,7 @@ static __inline__ int measure_last_time(struct pp_instance *ppi, int fmeas) {
 
 static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 
-	if (immediatSend || pp_timeout(ppi, L1E_TIMEOUT_TX_SYNC) ) {
+	if (immediatSend || pp_timeout(ppi, PP_TO_L1E_TX_SYNC) ) {
 		int len;
 		int fmeas, lmeas;
 		int diff;
@@ -226,7 +226,7 @@ static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 		tmo_ms=pp_timeout_log_to_ms(L1E_DSPOR_BS(ppi)->logL1SyncInterval);
 		if ( tmo_ms >= diff ) /* to be sure to have a positive value */
 			tmo_ms-=diff;
-		pp_timeout_set(ppi, L1E_TIMEOUT_TX_SYNC,tmo_ms); /* loop ever since */
+		pp_timeout_set(ppi, PP_TO_L1E_TX_SYNC,tmo_ms); /* loop ever since */
 	}
 }
 
@@ -257,7 +257,7 @@ static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state)
 		 L1E_DSPOR_BS(ppi)->next_state=L1SYNC_IDLE;
 		 return 0; /* no wait to evaluate next state */
 	}
-	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* IDLE state */
@@ -292,7 +292,7 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 	}
 	/* Iterative treatment */
 	l1e_send_sync_msg(ppi,0);
-	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* LINK_ALIVE state */
@@ -302,7 +302,7 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 	/* State initialization */
 	if ( new_state ) {
 		/* Initialize time-out peer L1SYNC reception */
-		pp_timeout_set(ppi, L1E_TIMEOUT_RX_SYNC, l1e_get_rx_tmo_ms(basic));
+		pp_timeout_set(ppi, PP_TO_L1E_RX_SYNC, l1e_get_rx_tmo_ms(basic));
 
 	}
 	/* Check if state transition needed */
@@ -318,7 +318,7 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 	}
 	/* Iterative treatment */
 	l1e_send_sync_msg(ppi,0);
-	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* CONFIG_MATCH state */
@@ -361,7 +361,7 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 	}
 	/* Iterative treatment */
 	l1e_send_sync_msg(ppi,0);
-	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* UP state */
@@ -402,5 +402,5 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
 	pdstate_enable_extension(ppi);
 	wrh_update_correction_values(ppi);
 	l1e_send_sync_msg(ppi,0);
-	return pp_next_delay_2(ppi,L1E_TIMEOUT_TX_SYNC, L1E_TIMEOUT_RX_SYNC); /* Return the shorter timeout */
+	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }

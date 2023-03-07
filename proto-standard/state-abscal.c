@@ -22,8 +22,6 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
  * This is using a software loop during the last 10ms in order to get
  * right after the pps event
  */
-#define WR_TMO_NAME "PP_ABSCAL"
-
 int pp_abscal(struct pp_instance *ppi, void *buf, int plen)
 {
 	struct pp_time t;
@@ -31,7 +29,7 @@ int pp_abscal(struct pp_instance *ppi, void *buf, int plen)
 
 	if (ppi->is_new_state) {
 		/* add 1s to be enough in the future, the first time */
-		pp_timeout_set_rename(ppi, PP_TO_SYNC_SEND, 990 + next_pps_ms(ppi, &t),WR_TMO_NAME);
+		pp_timeout_set_rename(ppi, PP_TO_SYNC_SEND, 990 + next_pps_ms(ppi, &t));
 		ppi->bmca_execute = 0;
 		/* print header for the serial port stream of stamps */
 		pp_printf("### t4.phase is already corrected for bitslide\n");

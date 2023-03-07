@@ -48,9 +48,6 @@ TARGET = ppsi
 # we should use linux/scripts/setlocalversion instead...
 VERSION = $(shell git describe --always --dirty)
 
-# The main target is the big object file.
-all: $(TARGET).o
-
 # CFLAGS to use. Both this Makefile (later) and app-makefile may grow CFLAGS
 CFLAGS = $(USER_CFLAGS)
 CFLAGS += -Wall -Wstrict-prototypes -Wmissing-prototypes -Werror

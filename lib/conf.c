@@ -400,18 +400,9 @@ static struct pp_argline pp_global_arglines[] = {
 	{}
 };
 
-/* Provide default empty argument lines for architecture and extension */
-struct pp_argline pp_arch_arglines[] __attribute__((weak)) = {
-	{}
-};
-struct pp_argline pp_ext_arglines[] __attribute__((weak)) = {
-	{}
-};
-
 static struct pp_argline * pp_arglines[] = {
 		pp_global_arglines,
 		pp_arch_arglines,
-		pp_ext_arglines,
 		NULL
 };
 

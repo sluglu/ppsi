@@ -36,11 +36,13 @@ OBJ-y += \
 
 OBJ-$(CONFIG_WRPC_FAULTS) += $A/faults.o
 
+# wrpc/Makefile invokes this makefile with the ppsi.a target,
+# if you can also call it directly.
+all: $(TARGET).a
+
 # We only support "wrpc" time operations
 TIME := wrpc
 include time-wrpc/Makefile
-
-$(TARGET).o: $(LIBARCH)
 
 fsm.o: wrpcsw_root_check
 

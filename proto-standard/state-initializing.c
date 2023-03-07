@@ -108,11 +108,11 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	port->minorVersionNumber = PP_MINOR_VERSION_PTP;
 
 	/* Init timers */
-	ppi->portDS->logAnnounceInterval=(Integer8)ppi->cfg.announce_interval;
-	ppi->portDS->announceReceiptTimeout=(UInteger8)ppi->cfg.announce_receipt_timeout;
-	ppi->portDS->logSyncInterval=(Integer8)ppi->cfg.sync_interval;
-	ppi->portDS->logMinDelayReqInterval=(Integer8)ppi->cfg.min_delay_req_interval;
-	ppi->portDS->logMinPdelayReqInterval=(Integer8)ppi->cfg.min_pdelay_req_interval;
+	port->logAnnounceInterval=(Integer8)ppi->cfg.announce_interval;
+	port->announceReceiptTimeout=(UInteger8)ppi->cfg.announce_receipt_timeout;
+	port->logSyncInterval=(Integer8)ppi->cfg.sync_interval;
+	port->logMinDelayReqInterval=(Integer8)ppi->cfg.min_delay_req_interval;
+	port->logMinPdelayReqInterval=(Integer8)ppi->cfg.min_pdelay_req_interval;
 	pp_timeout_init(ppi);
 	pp_timeout_setall(ppi);
 

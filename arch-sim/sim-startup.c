@@ -39,7 +39,7 @@ static struct pp_runtime_opts sim_master_rt_opts = {
 
 extern struct pp_ext_hooks const pp_hooks;
 
-#if CONFIG_HAS_EXT_WR == 1
+#if CONFIG_HAS_EXT_WR == 1 || CONFIG_HAS_EXT_L1SYNC == 1
 
 static int sim_read_calib_data(struct pp_instance *ppi,
 			       int32_t *clock_period,
@@ -144,6 +144,19 @@ int sim_set_global_DS(struct pp_instance *ppi)
 	return 0;
 }
 
+/* TODO: share with wrs-startup.c */
+static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable ) {
+	if ( (ppi->asymmetryCorrectionPortDS.enable=enable)==TRUE ) {
+		/* Enabled: The delay asymmetry will be calculated */
+
+		ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient =( ppi->cfg.scaledDelayCoefficient != 0) ?
+			ppi->cfg.scaledDelayCoefficient :
+			(RelativeDifference)(ppi->cfg.delayCoefficient * REL_DIFF_TWO_POW_FRACBITS);
+		ppi->portDS->delayAsymCoeff=pp_servo_calculateDelayAsymCoefficient(ppi->asymmetryCorrectionPortDS.scaledDelayCoefficient);
+	}
+	ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
+}
+
 static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 {
 	struct sim_ppi_arch_data *data;
@@ -168,6 +181,30 @@ static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 	ppi->portDS->ext_dsport = calloc(1, sizeof(struct wr_dsport));
 	if (!ppi->ext_data || !ppi->portDS->ext_dsport)
 		return -1;
+#endif
+
+#if CONFIG_HAS_EXT_L1SYNC
+	ppi->protocol_extension=PPSI_EXT_L1S;
+	ppi->ext_hooks=&l1e_ext_hooks;
+	
+	ppi->ext_data = calloc(1, sizeof (struct l1e_data));
+	ppi->portDS->ext_dsport = calloc(1, sizeof (l1e_ext_portDS_t));
+	if (!ppi->ext_data || !ppi->portDS->ext_dsport)
+		return -1;
+	/* Set L1SYNC state. Must be done here because the init hook
+	   is called only in the initializing state. If the port is
+	   not connected, the initializing is then never called so the
+	   L1SYNC state is invalid (0) */
+	L1E_DSPOR_BS(ppi)->L1SyncState=L1SYNC_DISABLED;
+	L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
+	
+	/* Force mandatory attributes - Do not take care of the configuration */
+	L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =
+	  L1E_DSPOR_BS(ppi)->txCoherentIsRequired =
+	  L1E_DSPOR_BS(ppi)->congruentIsRequired=
+	  L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
+	L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
+	enable_asymmetryCorrection(ppi,TRUE);
 #endif
 
 	data = SIM_PPI_ARCH(ppi);

@@ -70,27 +70,6 @@ void sim_main_loop(struct pp_globals *ppg)
 	delay_ns = run_all_state_machines(ppg) * 1000LL * 1000LL;
 
 	while (data->sim_iter_n <= data->sim_iter_max) {
-		/*
-		 * If Ebest was changed in previous loop, run best
-		 * master clock before checking for new packets, which
-		 * would affect port state again
-		 */
-		if (ppg->ebest_updated) {
-			bmc_calculate_ebest(ppg);
-#if 0
-			for (j = 0; j < ppg->nlinks; j++) {
-				int new_state;
-				struct pp_instance *ppi = INST(ppg ,j);
-				new_state = bmc(ppg);
-				if (new_state != ppi->state) {
-					ppi->state = new_state;
-					ppi->is_new_state = 1;
-				}
-			}
-#endif
-			ppg->ebest_updated = 0;
-		}
-
 		while (data->n_pending && data->pending->delay_ns <= delay_ns) {
 			ppi = INST(ppg, data->pending->which_ppi);
 

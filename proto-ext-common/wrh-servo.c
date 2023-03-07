@@ -8,8 +8,14 @@
 #include <inttypes.h>
 #include <ppsi/ppsi.h>
 // #include "wrs-constants.h"
-#include <libwr/shmem.h>
 #include "../proto-standard/common-fun.h"
+
+#if CONFIG_ARCH_IS_WRS
+#include <libwr/shmem.h>
+#else
+/* No shmem */
+#define wrs_shm_write(ppi, FLAG) do {} while (0)
+#endif
 
 /* Define threshold values for SNMP */
 #define SNMP_MAX_OFFSET_PS 500

@@ -7,8 +7,15 @@
 
 #include <stdio.h>
 
+#include "generated/autoconf.h"
 #include <ppsi/ppsi.h>
 #include "ppsi-sim.h"
+
+#if CONFIG_HAS_EXT_WR == 1
+/* WR extension declaration */
+#include "../proto-ext-whiterabbit/wr-api.h"
+#include "../proto-ext-whiterabbit/wr-constants.h"
+#endif
 
 static struct pp_runtime_opts sim_master_rt_opts = {
 /*	.clock_quality = {
@@ -31,6 +38,89 @@ static struct pp_runtime_opts sim_master_rt_opts = {
 };
 
 extern struct pp_ext_hooks const pp_hooks;
+
+#if CONFIG_HAS_EXT_WR == 1
+
+static int sim_read_calib_data(struct pp_instance *ppi,
+			       int32_t *clock_period,
+			       TimeInterval *scaledBitSlide,
+			       RelativeDifference *scaledDelayCoefficient,
+			       TimeInterval *scaledSfpDeltaTx,
+			       TimeInterval *scaledSfpDeltaRx)
+{
+	if (scaledDelayCoefficient)
+		abort();
+
+	if (scaledBitSlide)
+		abort();
+
+	if (clock_period)
+		*clock_period = 8000; /* in ps */
+
+	if (scaledSfpDeltaTx)
+		abort();
+
+	if (scaledSfpDeltaRx)
+		abort();
+
+	return WRH_HW_CALIB_OK;
+}
+
+static int sim_adjust_phase(int32_t phase_ps)
+{
+	return WRH_SPLL_OK;
+}
+
+static int sim_locking_enable(struct pp_instance *ppi)
+{
+	return WRH_SPLL_OK;
+}
+
+static int sim_locking_poll(struct pp_instance *ppi)
+{
+	/* Perfect world */
+	return WRH_SPLL_LOCKED;
+}
+
+static int sim_locking_reset(struct pp_instance *ppi)
+{
+	return WRH_SPLL_OK;
+}
+
+static int sim_enable_ptracker(struct pp_instance *ppi)
+{
+	return WRH_SPLL_OK;
+}
+
+static int sim_adjust_in_progress(void)
+{
+	return 0;
+}
+
+static int sim_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
+{
+	return 0;
+}
+
+const struct wrh_operations wrh_oper = {
+	.locking_enable = sim_locking_enable,
+	.locking_poll = sim_locking_poll,
+	.locking_disable = NULL,
+	.locking_reset = sim_locking_reset,
+	.enable_ptracker = sim_enable_ptracker,
+
+	.adjust_in_progress = sim_adjust_in_progress,
+	.adjust_counters = sim_adjust_counters,
+	.adjust_phase = sim_adjust_phase,
+
+	.read_calib_data = sim_read_calib_data,
+
+	/* not used */
+	.set_timing_mode = NULL,
+	.get_timing_mode = NULL,
+	.get_timing_mode_state = NULL,
+};
+#endif
 
 /*
  * In arch-sim we use two pp_instances in the same pp_globals to represent
@@ -65,9 +155,21 @@ static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 	ppi->__rx_buffer = malloc(PP_MAX_FRAME_LENGTH);
 	ppi->arch_data = calloc(1, sizeof(struct sim_ppi_arch_data));
 	ppi->portDS = calloc(1, sizeof(*ppi->portDS));
-	ppi->ext_hooks=&pp_hooks;
 	if ((!ppi->arch_data) || (!ppi->portDS))
 		return -1;
+
+	ppi->ext_hooks=&pp_hooks;
+
+#if CONFIG_HAS_EXT_WR
+	ppi->protocol_extension = PPSI_EXT_WR;
+	ppi->ext_hooks = &wr_ext_hooks;
+
+	ppi->ext_data = calloc(1, sizeof (struct wr_data));
+	ppi->portDS->ext_dsport = calloc(1, sizeof(struct wr_dsport));
+	if (!ppi->ext_data || !ppi->portDS->ext_dsport)
+		return -1;
+#endif
+
 	data = SIM_PPI_ARCH(ppi);
 	data->defaultDS = calloc(1, sizeof(*data->defaultDS));
 	data->currentDS = calloc(1, sizeof(*data->currentDS));
@@ -128,7 +230,7 @@ int main(int argc, char **argv)
 	 * to set the initial offset for the slave
 	 */
 	sim_set_global_DS(pp_sim_get_master(ppg));
-	
+
 	pp_config_string(ppg, strdup("port SIM_MASTER; iface MASTER;"
 					"proto udp;"
 					"sim_iter_max 10000;"

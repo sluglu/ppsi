@@ -1,6 +1,5 @@
 #include <ppsi/ppsi.h>
 #include <ppsi/assert.h>
-#include <libwr/shmem.h>
 #include "../proto-standard/common-fun.h"
 
 static inline void _calculate_raw_delayMM(struct pp_instance *ppi,

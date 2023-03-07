@@ -14,7 +14,7 @@ typedef struct {
 	int (*action)(struct pp_instance *ppi, Boolean newState);
 }l1e_state_machine_t;
 
-extern char *l1e_state_name[];
+extern const char * const l1e_state_name[];
 
 #define MAX_STATE_ACTIONS (sizeof(le1_state_actions)/sizeof(l1e_state_machine_t))
 

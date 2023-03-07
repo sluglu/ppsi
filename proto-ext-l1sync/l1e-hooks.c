@@ -11,7 +11,7 @@
 #include "l1e-constants.h"
 #include <math.h>
 
-char *l1e_state_name[] = {
+const char * const l1e_state_name[] = {
 	[L1SYNC_DISABLED]	= "L1SYNC_DISABLED",
 	[L1SYNC_IDLE]		= "L1SYNC_IDLE",
 	[L1SYNC_LINK_ALIVE]	= "L1SYNC_LINK_ALIVE",

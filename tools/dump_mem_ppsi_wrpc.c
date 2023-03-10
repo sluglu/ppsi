@@ -367,6 +367,7 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(wrpc_mode_cfg, wrpcModeCfg),
 #endif
 
+#if CONFIG_HAS_EXT_WR
 #undef DUMP_STRUCT
 #define DUMP_STRUCT struct wr_data
 
@@ -374,7 +375,7 @@ struct dump_info  dump_ppsi_info[] = {
 	/* These are structs not pointers, but we need to know the offset in wr_data structure */
 	DUMP_FIELD(pointer,servo),
 	DUMP_FIELD(pointer,servo_ext),
-
+#endif
 	DUMP_HEADER("end"),
 
 };
@@ -486,6 +487,7 @@ void dump_mem_ppsi_wrpc(void *mapaddr, unsigned long ppg_off)
 		}
 
 		protocol_extension = wrpc_get_i32(mapaddr + ppi_off + wrpc_get_offset("pp_instance", "protocol_extension"));
+		(void)protocol_extension;
 #if CONFIG_HAS_EXT_WR == 1
 		if ( protocol_extension == PPSI_EXT_WR) {
 			unsigned long ext_data_off;
@@ -772,6 +774,7 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 		printf("\n");
 		break;
 
+#if CONFIG_HAS_EXT_WR
 	case dump_type_wr_config:
 	case dump_type_wr_config_Enumeration8:
 		switch(i) {
@@ -801,6 +804,7 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 		print_str(char_p);
 		printf("\n");
 		break;
+#endif
 
 	case dump_type_pp_pdstate:
 		switch(i) {
@@ -859,6 +863,7 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 		printf("\n");
 		break;
 
+#if CONFIG_HAS_EXT_WR
 	case dump_type_wr_state:
 		switch(i) {
 		ENUM_TO_P_IN_CASE(WRS_IDLE, char_p);
@@ -878,6 +883,7 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 		print_str(char_p);
 		printf("\n");
 		break;
+#endif
 
 	case dump_type_ppi_profile:
 		switch(i) {

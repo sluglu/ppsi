@@ -168,6 +168,7 @@ static int l1e_handle_sync(struct pp_instance *ppi)
 	return l1e_sync_followup(ppi);
 }
 
+#if CONFIG_HAS_P2P
 static int l1e_handle_presp(struct pp_instance *ppi)
 {
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
@@ -179,6 +180,7 @@ static int l1e_handle_presp(struct pp_instance *ppi)
 		pp_servo_got_presp(ppi);
 	return 0;
 }
+#endif
 
 /* Check if ready to go to SLAVE state */
 static int l1e_ready_for_slave(struct pp_instance *ppi)

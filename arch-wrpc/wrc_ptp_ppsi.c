@@ -125,13 +125,13 @@ int wrc_ptp_init(void)
 	/* copy default ppi config */
 	memcpy(&ppi->cfg, &__pp_default_instance_cfg, sizeof(__pp_default_instance_cfg));
 	ppi->ext_hooks =&pp_hooks; /* default value */
-	if ( CONFIG_HAS_EXT_WR == 1 ) {
-		ppi->protocol_extension = PPSI_EXT_WR;
-		ppi->ext_hooks = &wr_ext_hooks;
-		ppi->ext_data = &wr_ext_data;
+#if CONFIG_HAS_EXT_WR
+	ppi->protocol_extension = PPSI_EXT_WR;
+	ppi->ext_hooks = &wr_ext_hooks;
+	ppi->ext_data = &wr_ext_data;
 
-		ppi->portDS->ext_dsport = &wr_dsport;
-	}
+	ppi->portDS->ext_dsport = &wr_dsport;
+#endif
 	/* egressLatency and ingressLatency are overwritten on ptp_start */
 
 	ppi->timestampCorrectionPortDS.messageTimestampPointLatency=0;
@@ -143,9 +143,11 @@ int wrc_ptp_init(void)
 
 int wrc_ptp_set_mode(int mode)
 {
+#if CONFIG_HAS_EXT_WR == 1
 	struct pp_instance *ppi = &ppi_static;
 // 	struct pp_globals *ppg = ppi->glbs;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
+#endif
 	typeof(ppg->rt_opts->clock_quality_clockClass) *class_ptr;
 	int error = 0;
 
@@ -174,8 +176,10 @@ int wrc_ptp_set_mode(int mode)
 	case WRC_MODE_ABSCAL: /* absolute calibration, gm-lookalike */
 		/* Can become slave if clock class is degradated due to PLL
 		 * unlocked and the peer on the other side has better clock class */
+#if CONFIG_HAS_EXT_WR == 1
 		wrp->wrConfig = WR_M_AND_S;
 		WRPC_ARCH_G(ppg)->timingMode = WRH_TM_GRAND_MASTER;
+#endif
 		*class_ptr = PP_PTP_CLASS_GM_LOCKED;
 		spll_init(SPLL_MODE_GRAND_MASTER, 0, SPLL_FLAG_ALIGN_PPS);
 		error = wrpc_spll_check_lock_with_timeout(LOCK_TIMEOUT_GM);
@@ -185,8 +189,10 @@ int wrc_ptp_set_mode(int mode)
 		break;
 
 	case WRC_MODE_MASTER:
+#if CONFIG_HAS_EXT_WR == 1
 		wrp->wrConfig = WR_M_AND_S;
 		WRPC_ARCH_G(ppg)->timingMode = WRH_TM_FREE_MASTER;
+#endif
 		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, SPLL_FLAG_ALIGN_PPS);
 
 		wrpc_enable_timing_output(ppg, 1);
@@ -196,9 +202,11 @@ int wrc_ptp_set_mode(int mode)
 		break;
 
 	case WRC_MODE_SLAVE:
+#if CONFIG_HAS_EXT_WR == 1
 		wrp->wrConfig = WR_S_ONLY;
 		/* when enter to slave state it will set spll to slave */
 		WRPC_ARCH_G(ppg)->timingMode = WRH_TM_BOUNDARY_CLOCK;
+#endif
 
 		*class_ptr = PP_CLASS_SLAVE_ONLY;
 		break;
@@ -285,7 +293,9 @@ int wrc_ptp_start(void)
 	/* just tell that the link is up, if not it will anyhow not receive anything */
 	ppi->link_up = TRUE;
 	ppi->state = PPS_INITIALIZING;
+#if CONFIG_HAS_EXT_WR == 1
 	wr_servo_reset(ppi);
+#endif
 	ptp_enabled = 1;
 	return 0;
 }
@@ -293,10 +303,13 @@ int wrc_ptp_start(void)
 int wrc_ptp_stop(void)
 {
 	struct pp_instance *ppi = &ppi_static;
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
 	/* Moving fiber: forget about this parent (FIXME: shouldn't be here) */
+#if CONFIG_HAS_EXT_WR == 1
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	wrp->parentWrConfig = wrp->parentWrModeOn = 0;
+#endif
+
 	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
 	ppi->frgn_rec_num = 0;          /* no known master */
 	

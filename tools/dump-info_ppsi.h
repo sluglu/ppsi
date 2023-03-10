@@ -70,7 +70,9 @@ typedef pp_pdstate_t   pp_pdstate;
 typedef pp_exstate_t   exstate;
 typedef unsigned long  pp_servo_flag;
 typedef int            pp_servo_state;
+#if CONFIG_HAS_EXT_WR
 typedef wr_state_t     wr_state;
+#endif
 typedef int            ppi_profile;
 typedef int            ppi_proto;
 typedef unsigned char  ppi_flag;

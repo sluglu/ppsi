@@ -45,6 +45,8 @@ hal_headers = hal_shmem.h \
 
 hal_headers_in_ppsi= $(addprefix $A/include/libwr/,$(hal_headers))
 
+all: $(TARGET)
+
 $(arch-spec-o) : $(hal_headers_in_ppsi)
 
 $(hal_headers_in_ppsi):
@@ -73,8 +75,6 @@ $(MINIPC_LIB):
 	$(MAKE) -C $(MINIPC_DIR) CFLAGS_OPTIMIZATION="$(CFLAGS_OPTIMIZATION)"
 
 OBJ-y += $(MINIPC_LIB)
-
-all: $(TARGET)
 
 clean::
 	rm -f $(hal_headers_in_ppsi)

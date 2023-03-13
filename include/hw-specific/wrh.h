@@ -125,7 +125,6 @@ typedef struct wrh_servo_t {
 	/* Following fields are for monitoring/diagnostics (use w/ shmem) */
 	int64_t delayMM_ps;
 	int64_t delayMS_ps;
-	int tracking_enabled;
 	int64_t skew_ps;
 	int64_t offsetMS_ps;
 
@@ -133,11 +132,12 @@ typedef struct wrh_servo_t {
 	int64_t prev_delayMS_ps;
 	int missed_iters;
 
+	Boolean tracking_enabled;
 	Boolean readyForSync; /* Ready for synchronization */
 	Boolean doRestart; /* PLL is unlocked: A restart of the calibration is needed */
 } wrh_servo_t;
 
-static inline  wrh_servo_t *WRH_SRV(struct pp_instance *ppi)
+static inline wrh_servo_t *WRH_SRV(struct pp_instance *ppi)
 {
 	return (wrh_servo_t *)ppi->ext_data;
 }

@@ -48,8 +48,6 @@
 
 /* new stuff for WRPTPv2 */
 
-#define TLV_TYPE_ORG_EXTENSION		0x0003 /* organization specific */
-
 #define WR_TLV_ORGANIZATION_ID		0x080030
 #define WR_TLV_MAGIC_NUMBER		0xDEAD
 #define WR_TLV_WR_VERSION_NUMBER	0x01

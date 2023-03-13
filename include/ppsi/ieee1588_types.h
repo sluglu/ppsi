@@ -120,6 +120,9 @@ struct TLV { /* page 14 (34) -- never used */
 	Octet		*valueField;
 };
 
+#define TLV_TYPE_ORG_EXTENSION	    0x0003 /* organization specific */
+#define TLV_TYPE_L1_SYNC            0x8001u
+
 struct PTPText { /* page 14 (34) -- never used */
 	UInteger8	lengthField;
 	Octet		*textField;

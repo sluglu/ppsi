@@ -188,10 +188,14 @@ static inline Boolean le1_evt_LINK_OK(struct pp_instance *ppi) {
 static __inline__ int measure_first_time(struct pp_instance *ppi) {
 	struct pp_time current_time;
 	int ms;
+	uint64_t ns;
 
 	TOPS(ppi)->get(ppi, &current_time);
 	ms=(current_time.secs&0xFFFF)*1000; /* do not take all second - Not necessary to calculate a difference*/
-	ms+=((current_time.scaled_nsecs + 0x8000) >> TIME_INTERVAL_FRACBITS)/1000000;
+	ns = (current_time.scaled_nsecs + 0x8000) >> TIME_INTERVAL_FRACBITS;
+	__div64_32(&ns, 1000000);
+	ms += ns;
+
 	return ms;
 }
 

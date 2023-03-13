@@ -264,7 +264,7 @@ static int l1e_extension_state_changed( struct pp_instance * ppi) {
 }
 
 /* The global structure used by ppsi */
-struct pp_ext_hooks l1e_ext_hooks = {
+const struct pp_ext_hooks l1e_ext_hooks = {
 	.open = l1e_open,
 	.init = l1e_init,
 	.handle_signaling = l1e_handle_signaling,

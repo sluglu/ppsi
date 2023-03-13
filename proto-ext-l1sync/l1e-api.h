@@ -85,9 +85,9 @@ typedef struct { /*draft P1588_v_29: page 101 and 340-341  */
 	/* dynamic members */
 	Boolean		 phaseOffsetTxValid;
 	Boolean		 frequencyOffsetTxValid;
-	TimeInterval phaseOffsetTx;
+	TimeInterval	 phaseOffsetTx;
 	Timestamp	 phaseOffsetTxTimesatmp;
-	TimeInterval frequencyOffsetTx;
+	TimeInterval	 frequencyOffsetTx;
 	Timestamp	 frequencyOffsetTxTimesatmp;
 } L1SyncOptParamsPortDS_t;
 
@@ -100,7 +100,7 @@ typedef struct  {
 	int execute_state_machine;
 }l1e_ext_portDS_t;
 
-static inline  l1e_ext_portDS_t *L1E_DSPOR(struct pp_instance *ppi)
+static inline l1e_ext_portDS_t *L1E_DSPOR(struct pp_instance *ppi)
 {
 	return (l1e_ext_portDS_t *) ppi->portDS->ext_dsport;
 }
@@ -110,7 +110,7 @@ static inline L1SyncBasicPortDS_t *L1E_DSPOR_BS(struct pp_instance *ppi)
 	return &L1E_DSPOR(ppi)->basic;
 }
 
-static inline  L1SyncOptParamsPortDS_t *L1E_DSPOR_OP(struct pp_instance *ppi)
+static inline L1SyncOptParamsPortDS_t *L1E_DSPOR_OP(struct pp_instance *ppi)
 {
 	return &L1E_DSPOR(ppi)->opt_params;
 }
@@ -137,7 +137,7 @@ static inline  int l1e_get_rx_tmo_ms(L1SyncBasicPortDS_t * bds) {
 	return (4 << (bds->logL1SyncInterval + 8)) * bds->L1SyncReceiptTimeout;
 }
 
-extern struct pp_ext_hooks l1e_ext_hooks;
+extern const struct pp_ext_hooks l1e_ext_hooks;
 
 /* Servo routines */
 static inline int l1e_servo_init(struct pp_instance *ppi) {

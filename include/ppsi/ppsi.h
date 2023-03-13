@@ -395,14 +395,14 @@ extern int msg_issue_pdelay_resp(struct pp_instance *ppi, struct pp_time *time);
 
 /* Functions for time math */
 extern void normalize_pp_time(struct pp_time *t);
-extern void pp_time_add(struct pp_time *t1, struct pp_time *t2);
-extern void pp_time_sub(struct pp_time *t1, struct pp_time *t2);
+extern void pp_time_add(struct pp_time *t1, const struct pp_time *t2);
+extern void pp_time_sub(struct pp_time *t1, const struct pp_time *t2);
 extern void pp_time_div2(struct pp_time *t);
 extern TimeInterval pp_time_to_interval(struct pp_time *ts);
 extern TimeInterval picos_to_interval(int64_t picos);
 extern void pp_time_add_interval(struct pp_time *t1, TimeInterval t2);
 extern void pp_time_sub_interval(struct pp_time *t1, TimeInterval t2);
-extern int pp_timeout_log_to_ms ( Integer8 logValue);
+extern int pp_timeout_log_to_ms(Integer8 logValue);
 extern void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t);
 
 /* Function for time conversion */

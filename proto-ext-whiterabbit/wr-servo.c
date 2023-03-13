@@ -3,8 +3,11 @@
 #include "../proto-standard/common-fun.h"
 
 static inline void _calculate_raw_delayMM(struct pp_instance *ppi,
-		struct pp_time *ta,struct pp_time *tb,
-		struct pp_time *tc,struct pp_time *td  ) {
+					  const struct pp_time *ta,
+					  const struct pp_time *tb,
+					  const struct pp_time *tc,
+					  const struct pp_time *td)
+{
 	wr_servo_ext_t *se=WRE_SRV(ppi);
 
 	/* The calculation done will be
@@ -12,7 +15,7 @@ static inline void _calculate_raw_delayMM(struct pp_instance *ppi,
 	 */
 	struct pp_time *sa=&se->rawDelayMM,sb;
 
-	/* sa = td-ta) */
+	/* sa = (td-ta) */
 	*sa=*td;
 	pp_time_sub(sa,ta);
 	/* sb = (tc-tb) */
@@ -63,7 +66,8 @@ int wr_servo_got_resp(struct pp_instance *ppi) {
 	return wrh_servo_got_resp(ppi);
 }
 
-int wr_servo_got_presp(struct pp_instance *ppi) {
+int wr_servo_got_presp(struct pp_instance *ppi)
+{
 	/* Re-adjust T3,T4,T5 and T6 */
 	wr_servo_ext_t *se=WRE_SRV(ppi);
 

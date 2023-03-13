@@ -14,7 +14,7 @@
 void normalize_pp_time(struct pp_time *t)
 {
 	/* no 64b division please, we'll rather loop a few times */
-	#define SNS_PER_S ((1000LL * 1000 * 1000) << 16)
+#define SNS_PER_S ((1000LL * 1000 * 1000) << 16)
 
 	/* For whatever reason we perform a normalization on an incorrect
 	 * timestamp, don't treat is as an negative value. */
@@ -65,7 +65,7 @@ void pp_time_sub_interval(struct pp_time *t1, TimeInterval t2)
 		  (((a < 0) && (b < INT64_MIN - a)))   \
 		)
 
-void pp_time_add(struct pp_time *t1, struct pp_time *t2)
+void pp_time_add(struct pp_time *t1, const struct pp_time *t2)
 {
 	t1->secs += t2->secs;
 	t1->scaled_nsecs += t2->scaled_nsecs;
@@ -77,7 +77,7 @@ void pp_time_add(struct pp_time *t1, struct pp_time *t2)
 		  ((b > 0) && (a < INT64_MIN + b))   \
 		)
 
-void pp_time_sub(struct pp_time *t1, struct pp_time *t2)
+void pp_time_sub(struct pp_time *t1, const struct pp_time *t2)
 {
 	t1->secs -= t2->secs;
 	t1->scaled_nsecs -= t2->scaled_nsecs;
@@ -113,7 +113,8 @@ int64_t pp_time_to_picos(struct pp_time *t)
 	return ret;
 }
 
-void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t) {
+void fixedDelta_to_pp_time(struct FixedDelta fd, struct pp_time *t)
+{
 	/* FixedDelta is expressed in ps*2^16 */
 	uint64_t v = ((uint64_t)fd.scaledPicoseconds.msb)<<32 | (uint64_t)fd.scaledPicoseconds.lsb;
 	__div64_32(&v,1000);

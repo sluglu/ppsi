@@ -219,7 +219,8 @@ static void l1e_state_change(struct pp_instance *ppi)
 	}
 }
 
-static int l1e_new_slave (struct pp_instance *ppi, void *buf, int len) {
+static int l1e_new_slave (struct pp_instance *ppi, void *buf, int len)
+{
 	if ( ppi->extState==PP_EXSTATE_ACTIVE )
 		l1e_servo_init(ppi);
 	return 0;

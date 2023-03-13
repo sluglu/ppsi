@@ -327,22 +327,27 @@ static void dump_tlv(const char *prefix, const unsigned char *tlv, int totallen)
 }
 
 /* A big function to dump the ptp information */
-static void dump_payload(char *prefix, void *pl, int len)
+static void dump_payload(const char *prefix, const void *pl, unsigned plen)
 {
-	struct ptp_header *h = pl;
-	void *msg_specific = (void *)(h + 1);
+	const struct ptp_header *h = pl;
+	const void *msg_specific = (const void *)(h + 1);
 	int donelen = 34; /* packet length before tlv */
 	int version = h->versionPTP_and_reserved & 0xf;
 	int messageType = h->type_and_transport_specific & 0xf;
-	char *cfptr = (void *)&h->correctionField;
+	const char *cfptr = (void *)&h->correctionField;
+	unsigned len = plen;
 
+	if (plen < sizeof (*h)) {
+		printf("%struncated (len = %i)\n", prefix, plen);
+		goto out;
+	}
 	if (version != 2) {
 		printf("%sVERSION: unsupported (%i)\n", prefix, version);
 		goto out;
 	}
+	len = ntohs(h->messageLength);
 	printf("%sVERSION: %i (type %i, len %i, domain %i)\n", prefix,
-	       version, messageType,
-	       ntohs(h->messageLength), h->domainNumber);
+	       version, messageType, len, h->domainNumber);
 	printf("%sFLAGS: 0x%02x%02x (correction 0x%08x:%08x %08u)\n",
 	       prefix, (unsigned) h->flagField[0],(unsigned) h->flagField[1],
 	       (int) ntohl(*(int *)cfptr),

@@ -65,6 +65,15 @@ static struct wr_data wr_ext_data; /* WR extension data */
 static struct wr_dsport wr_dsport;
 #endif
 
+#if CONFIG_HAS_EXT_L1SYNC
+/* WR extension declaration */
+#include "../proto-ext-l1sync/l1e-api.h"
+
+static struct l1e_data l1e_ext_data; /* WR extension data */
+
+static l1e_ext_portDS_t l1e_dsport;
+#endif
+
 static portDS_t     portDS ;
 
 static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
@@ -125,6 +134,17 @@ int wrc_ptp_init(void)
 	/* copy default ppi config */
 	memcpy(&ppi->cfg, &__pp_default_instance_cfg, sizeof(__pp_default_instance_cfg));
 	ppi->ext_hooks =&pp_hooks; /* default value */
+#if CONFIG_HAS_EXT_L1SYNC
+	ppi->protocol_extension = PPSI_EXT_L1S;
+	ppi->ext_hooks = &l1e_ext_hooks;
+	ppi->ext_data = &l1e_ext_data;
+
+	ppi->portDS->ext_dsport = &l1e_dsport;
+	L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
+	L1E_DSPOR_BS(ppi)->rxCoherentIsRequired = TRUE;
+	L1E_DSPOR_BS(ppi)->txCoherentIsRequired = TRUE;
+	L1E_DSPOR_BS(ppi)->congruentIsRequired = TRUE;
+#endif
 #if CONFIG_HAS_EXT_WR
 	ppi->protocol_extension = PPSI_EXT_WR;
 	ppi->ext_hooks = &wr_ext_hooks;
@@ -293,9 +313,7 @@ int wrc_ptp_start(void)
 	/* just tell that the link is up, if not it will anyhow not receive anything */
 	ppi->link_up = TRUE;
 	ppi->state = PPS_INITIALIZING;
-#if CONFIG_HAS_EXT_WR == 1
-	wr_servo_reset(ppi);
-#endif
+	wrh_servo_reset(ppi);
 	ptp_enabled = 1;
 	return 0;
 }

@@ -269,6 +269,11 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 		len = 0;
 		buf = NULL;
 	}
+	else {
+		/* Use length from the message (to deal with minimal eth
+		   frame size) */
+		len = ppi->received_ptp_header.messageLength;
+	}
 
 	state = ppi->state;
 

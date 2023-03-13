@@ -313,11 +313,11 @@ int main(int argc, char **argv)
 				if ( !enable_l1Sync(ppi,TRUE) )
 					goto exit_out_of_memory;
 				/* Force mandatory attributes - Do not take care of the configuration */
-				L1E_DSPOR_BS(ppi)->rxCoherentIsRequired =
-						L1E_DSPOR_BS(ppi)->txCoherentIsRequired =
-								L1E_DSPOR_BS(ppi)->congruentIsRequired=
-										L1E_DSPOR_BS(ppi)->L1SyncEnabled=TRUE;
-				L1E_DSPOR_BS(ppi)->optParamsEnabled=FALSE;
+				L1E_DSPOR_BS(ppi)->rxCoherentIsRequired = TRUE;
+				L1E_DSPOR_BS(ppi)->txCoherentIsRequired = TRUE;
+				L1E_DSPOR_BS(ppi)->congruentIsRequired = TRUE;
+				L1E_DSPOR_BS(ppi)->L1SyncEnabled = TRUE;
+				L1E_DSPOR_BS(ppi)->optParamsEnabled = FALSE;
 				enable_asymmetryCorrection(ppi,TRUE);
 
 #else

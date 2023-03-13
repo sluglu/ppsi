@@ -26,7 +26,7 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_state);
 static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state);
 
-static l1e_state_machine_t le1_state_actions[] ={
+static const l1e_state_machine_t le1_state_actions[] ={
 		[0] { /* Not used */
 			.action=l1e_empty_action,
 		},
@@ -146,7 +146,7 @@ static Boolean le1_evt_STATE_OK(struct pp_instance *ppi) {
 	case PPS_UNCALIBRATED :
 		pll_state= WRH_OPER()->locking_poll(ppi); /* Get the PPL state */
 		basicDS->isCongruent =
-				basicDS->isRxCoherent= pll_state == WRH_SPLL_LOCKED ? 1 : 0;
+			basicDS->isRxCoherent = pll_state == WRH_SPLL_LOCKED ? 1 : 0;
 		break;
 	case PPS_MASTER :
 		basicDS->isRxCoherent=
@@ -231,7 +231,8 @@ static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
 }
 
 /* DISABLED state */
-static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state){
+static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state)
+{
 	l1e_ext_portDS_t * l1e_portDS=L1E_DSPOR(ppi);
 
 	/* State initialization */
@@ -240,16 +241,15 @@ static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state)
 		 * All dynamic members of L1SyncBasicPortDS and L1SyncOptPortDS data sets are set
 		 * to initialization values
 		 */
-		l1e_portDS->basic.isTxCoherent =
-				l1e_portDS->basic.isRxCoherent =
-						l1e_portDS->basic.isCongruent =
-								l1e_portDS->basic.peerTxCoherentIsRequired =
-										l1e_portDS->basic.peerRxCoherentIsRequired =
-												l1e_portDS->basic.peerCongruentIsRequired =
-														l1e_portDS->basic.peerIsTxCoherent =
-																l1e_portDS->basic.peerIsRxCoherent =
-																		l1e_portDS->basic.peerIsCongruent =
-																				FALSE;
+		l1e_portDS->basic.isTxCoherent = FALSE;
+		l1e_portDS->basic.isRxCoherent = FALSE;
+		l1e_portDS->basic.isCongruent = FALSE;
+		l1e_portDS->basic.peerTxCoherentIsRequired = FALSE;
+		l1e_portDS->basic.peerRxCoherentIsRequired = FALSE;
+		l1e_portDS->basic.peerCongruentIsRequired = FALSE;
+		l1e_portDS->basic.peerIsTxCoherent = FALSE;
+		l1e_portDS->basic.peerIsRxCoherent = FALSE;
+		l1e_portDS->basic.peerIsCongruent = FALSE;
 	}
 	/* Check if state transition needed */
 	if ( le1_evt_L1_SYNC_ENABLED(ppi) && !le1_evt_L1_SYNC_RESET(ppi) ) {
@@ -261,7 +261,8 @@ static int l1e_handle_state_disabled(struct pp_instance *ppi, Boolean new_state)
 }
 
 /* IDLE state */
-static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
+static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state)
+{
 	l1e_ext_portDS_t * l1e_portDS=L1E_DSPOR(ppi);
 
 	/* State initialization */
@@ -270,12 +271,12 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 		 * The dynamic members listed in Table 155 are set to initialization
 		 * values when entering this state.
 		 */
-		l1e_portDS->basic.peerTxCoherentIsRequired =
-				l1e_portDS->basic.peerRxCoherentIsRequired =
-						l1e_portDS->basic.peerCongruentIsRequired =
-								l1e_portDS->basic.peerIsTxCoherent  =
-										l1e_portDS->basic.peerIsRxCoherent=
-												l1e_portDS->basic.peerIsCongruent = FALSE;
+		l1e_portDS->basic.peerTxCoherentIsRequired = FALSE;
+		l1e_portDS->basic.peerRxCoherentIsRequired = FALSE;
+		l1e_portDS->basic.peerCongruentIsRequired = FALSE;
+		l1e_portDS->basic.peerIsTxCoherent = FALSE;
+		l1e_portDS->basic.peerIsRxCoherent = FALSE;
+		l1e_portDS->basic.peerIsCongruent = FALSE;
 		l1e_send_sync_msg(ppi,1); /* Send immediately a message */
 	}
 
@@ -296,7 +297,8 @@ static int l1e_handle_state_idle(struct pp_instance *ppi, Boolean new_state){
 }
 
 /* LINK_ALIVE state */
-static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_state){
+static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_state)
+{
 	L1SyncBasicPortDS_t *basic= L1E_DSPOR_BS(ppi);
 
 	/* State initialization */
@@ -322,7 +324,8 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 }
 
 /* CONFIG_MATCH state */
-static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_state){
+static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_state)
+{
 	L1SyncBasicPortDS_t *basic= L1E_DSPOR_BS(ppi);
 
 	/* State initialization */
@@ -365,7 +368,8 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 }
 
 /* UP state */
-static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state){
+static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state)
+{
 	l1e_ext_portDS_t * l1e_portDS=L1E_DSPOR(ppi);
 	Enumeration8 next_state=0;
 

@@ -70,7 +70,7 @@ int l1e_pack_signal(struct pp_instance *ppi)
 			bds->congruentIsRequired);
 	if(bds->optParamsEnabled)
 		  local_config |= L1E_OPT_PARAMS;
-	
+
 	local_active = l1e_creat_L1Sync_bitmask(bds->isTxCoherent,
 			bds->isRxCoherent,
 			bds->isCongruent);

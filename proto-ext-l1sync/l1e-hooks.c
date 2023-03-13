@@ -192,37 +192,31 @@ static int l1e_ready_for_slave(struct pp_instance *ppi)
 	return 1; /* Ready for slave */
 }
 
-static 	void l1e_state_change(struct pp_instance *ppi) {
-
+static void l1e_state_change(struct pp_instance *ppi)
+{
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
-	if ( ppi->extState==PP_EXSTATE_PTP &&  ppi->next_state==PPS_UNCALIBRATED ) {
+	if (ppi->extState==PP_EXSTATE_PTP && ppi->next_state==PPS_UNCALIBRATED) {
 		// Extension need to be re-enabled
 		pdstate_enable_extension(ppi);
 	}
 
-	if ( (ppi->next_state==PPS_DISABLED || ppi->extState!=PP_EXSTATE_ACTIVE) &&
-			L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED) {
+	if ((ppi->next_state==PPS_DISABLED || ppi->extState!=PP_EXSTATE_ACTIVE)
+	    && L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED) {
 		// Extension not active but the l1sync state is not disable yet.
 		L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */
 		l1e_run_state_machine(ppi,NULL,0);
-	} else {
-		if ( ppi->extState==PP_EXSTATE_ACTIVE && ppi->next_state==PPS_INITIALIZING) {
-			L1E_DSPOR(ppi)->basic.L1SyncState=L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED;
-		} else {
-			if ( ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED &&
-					L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED ) {
-				/* Leave SLAVE state : We must stop the PPS generation */
-				if ( !GOPTS(GLBS(ppi))->forcePpsGen )
-					TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
-				WRH_OPER()->locking_disable(ppi);
-				WRH_OPER()->locking_reset(ppi);
-				l1e_servo_reset(ppi);
-			}
-
-		}
+	} else if (ppi->extState==PP_EXSTATE_ACTIVE && ppi->next_state==PPS_INITIALIZING) {
+		L1E_DSPOR(ppi)->basic.L1SyncState=L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED;
+	} else if (ppi->state==PPS_SLAVE && ppi->next_state!=PPS_UNCALIBRATED
+		    && L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED) {
+		/* Leave SLAVE state : We must stop the PPS generation */
+		if ( !GOPTS(GLBS(ppi))->forcePpsGen )
+			TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
+		WRH_OPER()->locking_disable(ppi);
+		WRH_OPER()->locking_reset(ppi);
+		l1e_servo_reset(ppi);
 	}
-
 }
 
 static int l1e_new_slave (struct pp_instance *ppi, void *buf, int len) {
@@ -254,7 +248,8 @@ static int l1e_is_correction_field_compliant (struct pp_instance *ppi) {
 	return 1;
 }
 
-static int l1e_extension_state_changed( struct pp_instance * ppi) {
+static int l1e_extension_state_changed( struct pp_instance * ppi)
+{
 	if ( ppi->extState!=PP_EXSTATE_ACTIVE && L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED ) {
 		// Extension disabled : Force L1SYNC_DISABLED disable state
 		L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */

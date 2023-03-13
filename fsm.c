@@ -46,20 +46,22 @@ enum {
 static void pp_diag_fsm(struct pp_instance *ppi, const char *name, int sequence,
 			int len)
 {
-	if (sequence == STATE_ENTER) {
+	switch (sequence) {
+	case STATE_ENTER:
 		/* enter with or without a packet len */
 		pp_fsm_printf(ppi, "ENTER %s, packet len %i\n",
 			  name, len);
 		return;
-	}
-	if (sequence == STATE_LOOP) {
+	case STATE_LOOP:
 		pp_fsm_printf(ppi, "%s: reenter in %i ms\n", name,
-				ppi->next_delay);
+			      ppi->next_delay);
+		return;
+	case STATE_LEAVE:
+		/* leave has one \n more, so different states are separate */
+		pp_fsm_printf(ppi, "LEAVE %s (next: %3i)\n\n",
+			      name, ppi->next_state);
 		return;
 	}
-	/* leave has one \n more, so different states are separate */
-	pp_fsm_printf(ppi, "LEAVE %s (next: %3i)\n\n",
-		      name, ppi->next_state);
 }
 
 static const struct pp_state_table_item *

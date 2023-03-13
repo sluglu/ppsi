@@ -208,30 +208,32 @@ static __inline__ int measure_last_time(struct pp_instance *ppi, int fmeas) {
 	return ms;
 }
 
-static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend) {
+static void l1e_send_sync_msg(struct pp_instance *ppi, Boolean immediatSend)
+{
+	int len;
+	int fmeas, lmeas;
+	int diff;
+	int tmo_ms;
 
-	if (immediatSend || pp_timeout(ppi, PP_TO_L1E_TX_SYNC) ) {
-		int len;
-		int fmeas, lmeas;
-		int diff;
-		int tmo_ms;
+	if (!immediatSend && !pp_timeout(ppi, PP_TO_L1E_TX_SYNC))
+		return;
 
-		fmeas=measure_first_time(ppi);
-		pp_diag(ppi, ext, 1, "Sending L1SYNC_TLV signaling msg\n");
-		len = l1e_pack_signal(ppi);
-		__send_and_log(ppi, len, PP_NP_GEN,PPM_SIGNALING_NO_FWD_FMT);
-		lmeas=measure_last_time(ppi,fmeas);
-		diff=lmeas-fmeas;
-		/* Calculate when the next message should be sent */
-		/* A "diff" value is subtracted from the timer to take into account
-		 * the execution time of this function. With small time-out like 64ms,
-		 * the error become not negligible.
-		 */
-		tmo_ms=pp_timeout_log_to_ms(L1E_DSPOR_BS(ppi)->logL1SyncInterval);
-		if ( tmo_ms >= diff ) /* to be sure to have a positive value */
-			tmo_ms-=diff;
-		pp_timeout_set(ppi, PP_TO_L1E_TX_SYNC,tmo_ms); /* loop ever since */
-	}
+	fmeas=measure_first_time(ppi);
+	pp_diag(ppi, ext, 1, "Sending L1SYNC_TLV signaling msg\n");
+	len = l1e_pack_signal(ppi);
+	__send_and_log(ppi, len, PP_NP_GEN,PPM_SIGNALING_NO_FWD_FMT);
+	lmeas=measure_last_time(ppi,fmeas);
+
+	/* Calculate when the next message should be sent */
+	/* A "diff" value is subtracted from the timer to take into account
+	 * the execution time of this function. With small time-out like 64ms,
+	 * the error become not negligible.
+	 */
+	tmo_ms=pp_timeout_log_to_ms(L1E_DSPOR_BS(ppi)->logL1SyncInterval);
+	diff=lmeas-fmeas;
+	if ( tmo_ms >= diff ) /* to be sure to have a positive value */
+		tmo_ms-=diff;
+	pp_timeout_set(ppi, PP_TO_L1E_TX_SYNC,tmo_ms); /* loop ever since */
 }
 
 /* DISABLED state */

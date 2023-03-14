@@ -10,7 +10,7 @@
 #include "../arch-wrpc/wrpc.h"
 #include <dev/syscon.h> /* wrpc-sw */
 #include <dev/endpoint.h> /* wrpc-sw */
-#include <ptpd_netif.h> /* wrpc-sw */
+#include "net.h"
 #include "board.h"
 
 #ifdef CONFIG_ABSCAL

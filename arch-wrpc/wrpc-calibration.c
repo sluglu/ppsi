@@ -5,8 +5,7 @@
  * Released to the public domain
  */
 
-#include <dev/endpoint.h>
-#include "ptpd_netif.h"
+#include "net.h"
 #include <ppsi/ppsi.h>
 #include <softpll_ng.h>
 #include <hal_exports.h>

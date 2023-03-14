@@ -29,7 +29,7 @@ static DECLARE_WRPC_SOCKET(ptp_socket, 512);
 static int wrpc_open_ch(struct pp_instance *ppi)
 {
 	struct wrpc_socket *sock;
-	mac_addr_t mac;
+	const unsigned char *mac;
 	struct wr_sockaddr addr;
 	char *macaddr = PP_MCAST_MACADDRESS;
 
@@ -43,10 +43,10 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	if (!sock)
 		return -1;
 
-	ptpd_netif_get_hw_addr(sock, &mac);
-	memcpy(ppi->ch[PP_NP_EVT].addr, &mac, sizeof(mac_addr_t));
+	mac = wrc_endpoint_dev.mac_addr;
+	memcpy(ppi->ch[PP_NP_EVT].addr, mac, sizeof(mac_addr_t));
 	ppi->ch[PP_NP_EVT].custom = sock;
-	memcpy(ppi->ch[PP_NP_GEN].addr, &mac, sizeof(mac_addr_t));
+	memcpy(ppi->ch[PP_NP_GEN].addr, mac, sizeof(mac_addr_t));
 	ppi->ch[PP_NP_GEN].custom = sock;
 
 	return 0;

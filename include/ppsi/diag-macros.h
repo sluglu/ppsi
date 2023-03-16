@@ -111,4 +111,4 @@ extern void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
  * And this is the parser of the string. Internally it obeys VERB_LOG_MESGS
  * to set the value to 0xfffffff0 to be compatible with previous usage.
  */
-extern unsigned long pp_diag_parse(char *diaglevel);
+extern unsigned long pp_diag_parse(const char *diaglevel);

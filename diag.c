@@ -49,7 +49,7 @@ void __pp_diag(struct pp_instance *ppi, enum pp_diag_things th,
 	va_end(args);
 }
 
-unsigned long pp_diag_parse(char *diaglevel)
+unsigned long pp_diag_parse(const char *diaglevel)
 {
 	unsigned long res = 0;
 	int i = 28; /* number of bits to shift the nibble: 28..31 is first */

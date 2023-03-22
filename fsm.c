@@ -326,9 +326,10 @@ int pp_state_machine(struct pp_instance *ppi, void *buf, int len)
 		return pp_leave_current_state(ppi);
 
 	/* Check protocol state */
-	if ( ppi->extState==PP_EXSTATE_ACTIVE &&
-			(ppi->pdstate==PP_PDSTATE_PDETECTION || ppi->pdstate==PP_PDSTATE_PDETECTED) &&
-			pp_timeout(ppi, PP_TO_PROT_STATE) ) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE
+	     && (ppi->pdstate==PP_PDSTATE_PDETECTION
+		 || ppi->pdstate==PP_PDSTATE_PDETECTED)
+	     && pp_timeout(ppi, PP_TO_PROT_STATE) ) {
 		pdstate_disable_extension(ppi);
 	}
 

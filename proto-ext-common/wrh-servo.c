@@ -82,7 +82,7 @@ int wrh_servo_init(struct pp_instance *ppi)
 	WRH_SERVO_RESET_DATA(s);
 
 	/* Update correction data in data sets*/
-	if (wrh_update_correction_values(ppi) != -1) {
+	if (wrh_update_correction_values(ppi) == 0) {
 
 		/*
 		 * Do not reset cur_setpoint, but trim it to be less than one tick.

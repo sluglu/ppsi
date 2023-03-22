@@ -331,11 +331,11 @@ int wrs_locking_poll(struct pp_instance *ppi)
 			break;
 		case HEXP_LOCK_STATUS_RELOCK_ERROR:
 			pp_diag_set_msg(pp_diag_msg,"in fault. Re-locking error.");
-			ret=WRH_SPLL_RELOCK_ERROR;
+			ret=WRH_SPLL_ERROR;
 			break;
 		default:
 			pp_diag_set_msg(pp_diag_msg,"in an unknown state");
-			ret=WRH_SPLL_UNKWOWN_ERROR;
+			ret=WRH_SPLL_ERROR;
 			break;
 		}
 	}

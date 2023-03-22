@@ -21,7 +21,7 @@ int wrs_read_calibration_data(struct pp_instance *ppi,int32_t *clock_period, Tim
 
 	p = pp_wrs_lookup_port(ppi->iface_name);
 	if (!p)
-		return WRH_HW_CALIB_NOT_FOUND;
+		return WRH_HW_CALIB_ERROR;
 
 	if ( scaledBitSlide )
 		*scaledBitSlide=picos_to_interval( (int64_t) p->calib.bitslide_ps);

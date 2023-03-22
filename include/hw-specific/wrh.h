@@ -19,19 +19,13 @@
 
 /* White Rabbit softpll status values */
 #define WRH_SPLL_ERROR		  -1
-#define WRH_SPLL_OK			   0
-#define WRH_SPLL_LOCKED		   1
-#define WRH_SPLL_UNLOCKED  	   2
-#define WRH_SPLL_RELOCK_ERROR  3
-#define WRH_SPLL_UNKWOWN_ERROR 4
+#define WRH_SPLL_OK		   0
+#define WRH_SPLL_LOCKED		   0
+#define WRH_SPLL_UNLOCKED  	   1
 
 /* White Rabbit calibration defines */
-#define WRH_HW_CALIB_TX	1
-#define WRH_HW_CALIB_RX	2
-#define WRH_HW_CALIB_OK	0
-#define WRH_HW_CALIB_READY	1
+#define WRH_HW_CALIB_OK		0
 #define WRH_HW_CALIB_ERROR	-1
-#define WRH_HW_CALIB_NOT_FOUND	-3
 
 #define FIX_ALPHA_FRACBITS 40
 #define FIX_ALPHA_FRACBITS_AS_FLOAT 40.0

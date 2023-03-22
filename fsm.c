@@ -53,8 +53,9 @@ static void pp_diag_fsm(struct pp_instance *ppi, const char *name, int sequence,
 			  name, len);
 		return;
 	case STATE_LOOP:
-		pp_fsm_printf(ppi, "%s: reenter in %i ms\n", name,
-			      ppi->next_delay);
+		if (pp_diag_allow(ppi, fsm, 3))
+			pp_fsm_printf(ppi, "%s: reenter in %i ms\n", name,
+				      ppi->next_delay);
 		return;
 	case STATE_LEAVE:
 		/* leave has one \n more, so different states are separate */

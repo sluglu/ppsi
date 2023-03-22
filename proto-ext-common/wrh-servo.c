@@ -24,7 +24,7 @@
 static const char * const wrh_servo_state_name[] = {
 	[WRH_UNINITIALIZED] = "Uninitialized",
 	[WRH_SYNC_NSEC] = "SYNC_NSEC",
-	[WRH_SYNC_TAI] = "SYNC_SEC",
+	[WRH_SYNC_TAI] = "SYNC_TAI",
 	[WRH_SYNC_PHASE] = "SYNC_PHASE",
 	[WRH_TRACK_PHASE] = "TRACK_PHASE",
 	[WRH_WAIT_OFFSET_STABLE] = "WAIT_OFFSET_STABLE",

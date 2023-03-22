@@ -340,7 +340,7 @@ int wrc_ptp_stop(void)
 	pp_leave_current_state(ppi);
 	ppi->n_ops->exit(ppi);
 	
-	pp_sprintf(ppi->servo->servo_state_name, "LINK_DOWN");
+	ppi->servo->servo_state_name = "LINK_DOWN";
 	if( ppi->ext_hooks->servo_reset) {
 		(*ppi->ext_hooks->servo_reset)(ppi);
 

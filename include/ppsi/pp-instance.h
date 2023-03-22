@@ -141,7 +141,7 @@ struct pp_servo {
 
 	/* Data used only by extensions */
 	int state;
-	char servo_state_name[32]; /* Updated by the servo itself */
+	const char *servo_state_name; /* Updated by the servo itself */
 
 	/* Data shared with extension servo */
 	uint32_t update_count; /* incremented each time the servo is running */

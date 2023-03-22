@@ -100,7 +100,6 @@ int wrh_servo_init(struct pp_instance *ppi)
 		TOPS(ppi)->get(ppi, &gs->update_time);
 		s->tracking_enabled = wrh_tracking_enabled;
 		setState(ppi,WRH_SYNC_TAI);
-		strcpy(gs->servo_state_name, wrh_servo_state_name[gs->state]);
 	}
 
 	/* shmem unlock */
@@ -204,12 +203,16 @@ int wrh_servo_got_presp(struct pp_instance *ppi)
 	return 1;
 }
 
-static void  setState(struct pp_instance *ppi, int newState)  {
+static void  setState(struct pp_instance *ppi, int newState)
+{
 	struct pp_servo *gs=SRV(ppi);
 	if ( gs->state != newState ) {
-		pp_diag(ppi, servo, 2, "new state %s\n", wrh_servo_state_name[newState]);
+		const char *state_name = wrh_servo_state_name[newState];
+		pp_diag(ppi, servo, 2, "new state %s\n", state_name);
 		gs->state=newState;
-    }
+		gs->servo_state_name = state_name;
+
+	}
 }
 
 static int __wrh_servo_update(struct pp_instance *ppi)
@@ -278,9 +281,6 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 			setState(ppi,WRH_SYNC_NSEC);
 	/* else, let the states below choose the sequence */
 	}
-
-	/* update string state name */
-	strcpy(gs->servo_state_name, wrh_servo_state_name[gs->state]);
 
 	pp_diag(ppi, servo, 1, "wrh_servo state: %s%s\n",
 			gs->servo_state_name,

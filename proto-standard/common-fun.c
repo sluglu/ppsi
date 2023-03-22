@@ -5,6 +5,7 @@
  *
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
+#include "ppsi/assert.h"
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 #include "../lib/network_types.h"
@@ -88,25 +89,28 @@ static int is_grand_master(struct pp_instance *ppi) {
 int st_com_check_announce_receive_timeout(struct pp_instance *ppi)
 {
 	/* Clause 17.6.5.3 : ExternalPortConfiguration enabled
-	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not be active.
+	 *  - The Announce receipt timeout mechanism (see 9.2.6.12) shall not
+	 *    be active.
+	 * (This has to be checked by the caller).
 	 */
-	if ( !is_externalPortConfigurationEnabled(DSDEF(ppi))) {
-		if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
-			/* 9.2.6.11 b) reset timeout when an announce timeout happened */
-			pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+	assert (!is_externalPortConfigurationEnabled(DSDEF(ppi)),
+		"must not be called when external port configured");
 
-			if ( !is_slaveOnly(DSDEF(ppi)) ) {
-				if ( is_grand_master(ppi) ) {
-					bmc_m1(ppi);
-				} else {
-					bmc_m3(ppi);
-				}
-				ppi->next_state = PPS_MASTER;
+	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+		/* 9.2.6.11 b) reset timeout when an announce timeout happened */
+		pp_timeout_reset(ppi, PP_TO_ANN_RECEIPT);
+
+		if ( !is_slaveOnly(DSDEF(ppi)) ) {
+			if ( is_grand_master(ppi) ) {
+				bmc_m1(ppi);
 			} else {
-				ppi->next_state = PPS_LISTENING;
+				bmc_m3(ppi);
 			}
-			bmc_flush_erbest(ppi); /* ErBest is removed from the foreign master list and ErBest need to be re-computed */
+			ppi->next_state = PPS_MASTER;
+		} else {
+			ppi->next_state = PPS_LISTENING;
 		}
+		bmc_flush_erbest(ppi); /* ErBest is removed from the foreign master list and ErBest need to be re-computed */
 	}
 	return 0;
 }

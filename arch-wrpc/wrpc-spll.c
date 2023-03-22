@@ -41,15 +41,17 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi)
 	/* Else, slave: ensure calibration is done */
 	if(!locked) {
 		t24p_calibrated = 0;
+		return WRH_SPLL_UNLOCKED;
 	}
-	else if(locked && !t24p_calibrated) {
+	if(!t24p_calibrated) {
 		/*run t24p calibration if needed*/
-		if (calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition) < 0)
+		if (calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition) < 0) {
 			return WRH_SPLL_UNLOCKED;
+		}
 		t24p_calibrated = 1;
 	}
 
-	return locked ? WRH_SPLL_LOCKED : WRH_SPLL_ERROR;
+	return WRH_SPLL_LOCKED;
 }
 
 int wrpc_spll_check_lock_with_timeout(int lock_timeout)

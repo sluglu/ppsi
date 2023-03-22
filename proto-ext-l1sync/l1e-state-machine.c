@@ -370,6 +370,16 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 	}
 	/* Iterative treatment */
 	l1e_send_sync_msg(ppi,0);
+
+#if CONFIG_ARCH_IS_WRPC
+	/* This is an hack.  The locking_poll function called in
+	   le1_evt_STATE_OK check for spll locking but also performs rxts
+	   calibration, which takes multiple iterations.  To speed up the
+	   process, don't wait for the timeout and run it without pause.
+	   This is done only on the WR node and only in slave mode.  */
+	if (ppi->state == PPS_SLAVE)
+		return 0;
+#endif
 	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }
 

@@ -452,45 +452,10 @@ extern int ppsi_drop_rx(void);
 extern int ppsi_drop_tx(void);
 
 /* link state functions to manage the extension (Enable/disable) */
-static inline void pdstate_disable_extension(struct pp_instance * ppi) {
-	ppi->pdstate=PP_PDSTATE_FAILURE;
-	if ( ppi->extState==PP_EXSTATE_ACTIVE) {
-		if ( ppi->ptp_support )
-			ppi->extState=ppi->ptp_support ? PP_EXSTATE_PTP : PP_EXSTATE_DISABLE;
-		pp_servo_init(ppi); // Reinitialize the servo
-		if ( is_ext_hook_available(ppi,extension_state_changed) )
-				ppi->ext_hooks->extension_state_changed(ppi);
-	}
-}
-
-static inline void pdstate_set_state_pdetection(struct pp_instance * ppi) {
-	if (ppi->pdstate != PP_PDSTATE_NONE ) {
-		ppi->pdstate=PP_PDSTATE_PDETECTION;
-		pp_timeout_reset(ppi,PP_TO_PROT_STATE);
-	}
-}
-
-static inline void pdstate_set_state_pdetected(struct pp_instance * ppi) {
-	if (ppi->pdstate != PP_PDSTATE_NONE ) {
-		ppi->pdstate=PP_PDSTATE_PDETECTED;
-		pp_timeout_reset(ppi,PP_TO_PROT_STATE);
-	}
-}
-
-/* link state functions to manage the extension (Enable/disable) */
-static inline void pdstate_enable_extension(struct pp_instance * ppi) {
-	if (ppi->pdstate != PP_PDSTATE_NONE ) {
-		ppi->pdstate=PP_PDSTATE_PDETECTED;
-		pp_timeout_reset(ppi,PP_TO_PROT_STATE);
-		if ( ppi->extState!=PP_EXSTATE_ACTIVE ) {
-			ppi->extState=PP_EXSTATE_ACTIVE;
-			if ( is_ext_hook_available(ppi,extension_state_changed) )
-					ppi->ext_hooks->extension_state_changed(ppi);
-		}
-	}
-}
-
-
+extern void pdstate_disable_extension(struct pp_instance * ppi);
+extern void pdstate_set_state_pdetection(struct pp_instance * ppi);
+extern void pdstate_set_state_pdetected(struct pp_instance * ppi);
+extern void pdstate_enable_extension(struct pp_instance * ppi);
 
 #include <ppsi/faults.h>
 #include <ppsi/timeout_prot.h>

@@ -343,11 +343,13 @@ int wrc_ptp_stop(void)
 		(*ppi->ext_hooks->servo_reset)(ppi);
 
 	}
+#if CONFIG_HAS_EXT_WR
 	/* FIXME: this should be done in a different place and in a nicer way.
 	    This dirty hack was introduce to force re-doing of WR Link Setup
 	    when a link goes down and then up. */
 	if (ppi->ext_data)
 		WRH_SRV(ppi)->doRestart = TRUE;
+#endif
 	pp_close_globals(&ppg_static);
 
 	return 0;

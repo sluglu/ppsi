@@ -67,9 +67,7 @@ struct wrh_operations {
 	int (*adjust_counters)(int64_t adjust_sec, int32_t adjust_nsec);
 	int (*adjust_phase)(int32_t phase_ps);
 
-	int (*read_calib_data)(struct pp_instance *ppi,int32_t *clock_period, TimeInterval *scaledBitSlide,
-			RelativeDifference *scaledDelayCoefficient,
-			TimeInterval *scaledSfpDeltaTx, TimeInterval *scaledSfpDeltaRx);
+	int32_t (*get_clock_period)(void);
 	int (*get_timing_mode)(struct pp_globals *,wrh_timing_mode_t *state);
 	int (*get_timing_mode_state)(struct pp_globals *, wrh_timing_mode_pll_state_t *state);
 	int (*set_timing_mode)(struct pp_globals *, wrh_timing_mode_t tm);

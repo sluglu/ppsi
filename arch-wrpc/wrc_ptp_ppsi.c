@@ -37,7 +37,7 @@ const struct wrh_operations wrh_oper = {
 	.adjust_counters = wrpc_adjust_counters,
 	.adjust_phase = wrpc_adjust_phase,
 
-	.read_calib_data = wrpc_read_calibration_data,
+	.get_clock_period = wrpc_get_clock_period,
 	
 	/* not used */
 	.set_timing_mode = NULL,
@@ -279,7 +279,7 @@ int wrc_ptp_start(void)
 
 	/* sfp match was done before so read calibration data */
 
-	wrpc_read_calibration_data(ppi, NULL,
+	wrpc_read_calibration_data(ppi,
 			&scaledBitSlide,
 			&scaledDelayCoefficient,
 			&scaledSfpDeltaTx,

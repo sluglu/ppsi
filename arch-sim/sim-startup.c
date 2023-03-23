@@ -41,29 +41,9 @@ extern struct pp_ext_hooks const pp_hooks;
 
 #if CONFIG_HAS_EXT_WR == 1 || CONFIG_HAS_EXT_L1SYNC == 1
 
-static int sim_read_calib_data(struct pp_instance *ppi,
-			       int32_t *clock_period,
-			       TimeInterval *scaledBitSlide,
-			       RelativeDifference *scaledDelayCoefficient,
-			       TimeInterval *scaledSfpDeltaTx,
-			       TimeInterval *scaledSfpDeltaRx)
+static int32_t sim_get_clock_period(void)
 {
-	if (scaledDelayCoefficient)
-		abort();
-
-	if (scaledBitSlide)
-		abort();
-
-	if (clock_period)
-		*clock_period = 8000; /* in ps */
-
-	if (scaledSfpDeltaTx)
-		abort();
-
-	if (scaledSfpDeltaRx)
-		abort();
-
-	return WRH_HW_CALIB_OK;
+	return 8000;
 }
 
 static int sim_adjust_phase(int32_t phase_ps)
@@ -113,7 +93,7 @@ const struct wrh_operations wrh_oper = {
 	.adjust_counters = sim_adjust_counters,
 	.adjust_phase = sim_adjust_phase,
 
-	.read_calib_data = sim_read_calib_data,
+	.get_clock_period = sim_get_clock_period,
 
 	/* not used */
 	.set_timing_mode = NULL,

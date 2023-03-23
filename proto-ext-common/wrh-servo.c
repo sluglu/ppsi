@@ -39,33 +39,10 @@ static void  setState(struct pp_instance *ppi, int newState);
 
 /* External data */
 extern struct wrs_shm_head *ppsi_head;
-extern struct pp_time faulty_stamps[6]; /* if unused, dropped at link time */
 
 void wrh_servo_enable_tracking(int enable)
 {
 	wrh_tracking_enabled = enable;
-}
-
-/*
- * Update calibration data
- */
-static int wrh_update_correction_values(struct pp_instance *ppi)
-{
-
-	wrh_servo_t *s = WRH_SRV(ppi);
-	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__, ppi->protocol_extension);
-
-
-	/* read the interesting values from HW (i.e. HAL)*/
-	if ( WRH_OPER()->read_calib_data(ppi,&s->clock_period_ps,NULL,NULL,NULL,NULL) != WRH_HW_CALIB_OK){
-		      pp_diag(ppi, ext, 2, "hook: %s -- cannot read calib values\n",
-			__func__);
-		return -1;
-	}
-	pp_diag(ppi, ext, 2, "ML- Updated correction values: Clock period=%d [ps]\n",
-		s->clock_period_ps);
-
-	return 0;
 }
 
 int wrh_servo_init(struct pp_instance *ppi)
@@ -81,26 +58,26 @@ int wrh_servo_init(struct pp_instance *ppi)
 
 	WRH_SERVO_RESET_DATA(s);
 
-	/* Update correction data in data sets*/
-	if (wrh_update_correction_values(ppi) == 0) {
+	/* Re-read clock period.
+	   FIXME: isn't it fixed ?  */
+	s->clock_period_ps = WRH_OPER()->get_clock_period();
 
-		/*
-		 * Do not reset cur_setpoint, but trim it to be less than one tick.
-		 * The softpll code uses the module anyways, but if we unplug-replug
-		 * the fiber it will always increase, so don't scare the user
-		 */
-		if (s->cur_setpoint_ps > s->clock_period_ps)
-			s->cur_setpoint_ps %= s->clock_period_ps;
+	/*
+	 * Do not reset cur_setpoint, but trim it to be less than one tick.
+	 * The softpll code uses the module anyways, but if we unplug-replug
+	 * the fiber it will always increase, so don't scare the user
+	 */
+	if (s->cur_setpoint_ps > s->clock_period_ps)
+		s->cur_setpoint_ps %= s->clock_period_ps;
 
-		pp_diag(ppi, servo, 3, "%s.%d: Adjust_phase: %d\n",__func__,__LINE__,s->cur_setpoint_ps);
+	pp_diag(ppi, servo, 3, "%s.%d: Adjust_phase: %d\n",__func__,__LINE__,s->cur_setpoint_ps);
 
-		WRH_OPER()->adjust_phase(s->cur_setpoint_ps);
+	WRH_OPER()->adjust_phase(s->cur_setpoint_ps);
 
-		gs->flags |= PP_SERVO_FLAG_VALID;
-		TOPS(ppi)->get(ppi, &gs->update_time);
-		s->tracking_enabled = wrh_tracking_enabled;
-		setState(ppi,WRH_SYNC_TAI);
-	}
+	gs->flags |= PP_SERVO_FLAG_VALID;
+	TOPS(ppi)->get(ppi, &gs->update_time);
+	s->tracking_enabled = wrh_tracking_enabled;
+	setState(ppi,WRH_SYNC_TAI);
 
 	/* shmem unlock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);

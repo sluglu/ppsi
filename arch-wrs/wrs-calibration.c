@@ -13,7 +13,16 @@
 
 #include <hal_exports.h>
 
-int wrs_read_calibration_data(struct pp_instance *ppi,int32_t *clock_period, TimeInterval *scaledBitSlide,
+int32_t wrs_get_clock_period(void)
+{
+	struct hal_port_state *p = &hal_ports[0];
+
+	if (p && p->clock_period)
+		return p->clock_period;
+	return HAL_REF_CLOCK_PERIOD_PS; /* REF_CLOCK_PERIOD_PS */
+}
+
+int wrs_read_calibration_data(struct pp_instance *ppi, TimeInterval *scaledBitSlide,
 		RelativeDifference *scaledDelayCoefficient,
 		TimeInterval *scaledSfpDeltaTx, TimeInterval *scaledSfpDeltaRx)
 {
@@ -23,15 +32,9 @@ int wrs_read_calibration_data(struct pp_instance *ppi,int32_t *clock_period, Tim
 	if (!p)
 		return WRH_HW_CALIB_ERROR;
 
-	if ( scaledBitSlide )
-		*scaledBitSlide=picos_to_interval( (int64_t) p->calib.bitslide_ps);
-	if(clock_period)
-		*clock_period =   (p->clock_period)?p->clock_period:HAL_REF_CLOCK_PERIOD_PS; /* REF_CLOCK_PERIOD_PS */
-	if ( scaledDelayCoefficient )
-		*scaledDelayCoefficient=(RelativeDifference)(p->calib.sfp.alpha * REL_DIFF_TWO_POW_FRACBITS);
-	if ( scaledSfpDeltaTx )
-		*scaledSfpDeltaTx= picos_to_interval( (int64_t) p->calib.sfp.delta_tx_ps);
-	if ( scaledSfpDeltaRx )
-		*scaledSfpDeltaRx= picos_to_interval( (int64_t) p->calib.sfp.delta_rx_ps);
+	*scaledBitSlide=picos_to_interval( (int64_t) p->calib.bitslide_ps);
+	*scaledDelayCoefficient=(RelativeDifference)(p->calib.sfp.alpha * REL_DIFF_TWO_POW_FRACBITS);
+	*scaledSfpDeltaTx= picos_to_interval( (int64_t) p->calib.sfp.delta_tx_ps);
+	*scaledSfpDeltaRx= picos_to_interval( (int64_t) p->calib.sfp.delta_rx_ps);
 	return WRH_HW_CALIB_OK;
 }

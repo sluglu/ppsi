@@ -42,7 +42,7 @@ const struct wrh_operations wrh_oper = {
 	.adjust_in_progress = wrs_adjust_in_progress,
 	.adjust_counters = wrs_adjust_counters,
 	.adjust_phase = wrs_adjust_phase,
-	.read_calib_data = wrs_read_calibration_data,
+	.get_clock_period = wrs_get_clock_period,
 
 	.set_timing_mode= wrs_set_timing_mode,
 	.get_timing_mode= wrs_get_timing_mode,

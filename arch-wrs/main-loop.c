@@ -151,7 +151,7 @@ static unsigned int run_all_state_machines(struct pp_globals *ppg)
 				TimeInterval scaledSfpDeltaRx = 0;
 
 				ppi->state = PPS_INITIALIZING;
-				if ( wrs_read_calibration_data(ppi,NULL,
+				if ( wrs_read_calibration_data(ppi,
 						&scaledBitSlide,
 						&scaledDelayCoefficient,
 						&scaledSfpDeltaTx,

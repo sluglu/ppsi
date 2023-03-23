@@ -85,14 +85,14 @@ int wrpc_get_GM_lock_state(struct pp_globals *ppg, pp_timing_mode_state_t *state
 
 
 /* wrpc-calibration.c */
-int wrpc_read_calibration_data(
-			       struct pp_instance *ppi,
-			       int32_t *clock_period,
+int wrpc_read_calibration_data(struct pp_instance *ppi,
 			       TimeInterval *scaledBitSlide,
 			       RelativeDifference *scaledDelayCoefficient,
 			       TimeInterval *scaledSfpDeltaTx,
 			       TimeInterval *scaledSfpDeltaRx);
 
+
+int32_t wrpc_get_clock_period(void);
 
 static inline wrpc_arch_data_t *WRPC_ARCH_I(struct pp_instance *ppi)
 {

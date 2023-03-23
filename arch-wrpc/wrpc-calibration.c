@@ -13,8 +13,12 @@
 #include "../proto-ext-whiterabbit/wr-constants.h"
 #include "board.h"
 
+int32_t wrpc_get_clock_period(void)
+{
+	return REF_CLOCK_PERIOD_PS;
+}
+
 int wrpc_read_calibration_data(struct pp_instance *ppi,
-			       int32_t *clock_period,
 			       TimeInterval *scaledBitSlide,
 			       RelativeDifference *scaledDelayCoefficient,
 			       TimeInterval *scaledSfpDeltaTx,
@@ -24,26 +28,17 @@ int wrpc_read_calibration_data(struct pp_instance *ppi,
 
 	wrpc_get_port_state(&state);
 
-	if (scaledDelayCoefficient)
-		*scaledDelayCoefficient = (RelativeDifference) state.calib.alpha;
+	*scaledDelayCoefficient = (RelativeDifference) state.calib.alpha;
 
-	if (scaledBitSlide)
-		*scaledBitSlide = picos_to_interval((int64_t)state.calib.bitslide_ps);
+	*scaledBitSlide = picos_to_interval((int64_t)state.calib.bitslide_ps);
 	
-	if (clock_period)
-		*clock_period = state.clock_period;
-
 	/* check if tx is calibrated,
 	 * if so read data */
-	if (scaledSfpDeltaTx) {
-		*scaledSfpDeltaTx = picos_to_interval(state.calib.delta_tx_ps);
-	}
+	*scaledSfpDeltaTx = picos_to_interval(state.calib.delta_tx_ps);
 
 	/* check if rx is calibrated,
 	 * if so read data */
-	if (scaledSfpDeltaRx) {
-		*scaledSfpDeltaRx = picos_to_interval(state.calib.delta_rx_ps);
-	}
+	*scaledSfpDeltaRx = picos_to_interval(state.calib.delta_rx_ps);
 
 	return WRH_HW_CALIB_OK;
 }

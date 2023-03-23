@@ -261,8 +261,6 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(pp_time, t4),
 	DUMP_FIELD(pp_time, t5),
 	DUMP_FIELD(pp_time, t6),
-	DUMP_FIELD(Integer32, t4_cf),
-	DUMP_FIELD(Integer32, t6_cf),
 	DUMP_FIELD(UInteger64, syncCF),
 	DUMP_FIELD(pp_time, last_rcv_time),
 	DUMP_FIELD(pp_time, last_snt_time),

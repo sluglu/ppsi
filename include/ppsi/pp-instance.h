@@ -252,7 +252,6 @@ struct pp_instance {
 
 	/* Times, for the various offset computations */
 	struct pp_time t1, t2, t3, t4, t5, t6;		/* *the* stamps */
-	Integer32 t4_cf, t6_cf;	
 	uint64_t syncCF;				/* transp. clocks */
 	struct pp_time last_rcv_time, last_snt_time;	/* two temporaries */
 

@@ -22,8 +22,6 @@
 
 #include "softpll_ng.h"
 
-extern int32_t cal_phase_transition;
-
 /* TODO: get rid of ptp_mode, use WRPC_ARCH_G(ppg)->timingModeCfg instead */
 int ptp_mode = WRC_MODE_UNKNOWN;
 static unsigned char ptp_enabled = 0;

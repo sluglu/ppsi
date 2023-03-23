@@ -27,7 +27,7 @@ int wrpc_spll_locking_enable(struct pp_instance *ppi)
 	spll_init(SPLL_MODE_SLAVE, 0, SPLL_FLAG_ALIGN_PPS);
 	WRPC_ARCH_I(ppi)->timingMode = WRH_TM_BOUNDARY_CLOCK;
 	spll_enable_ptracker(0, 1);
-	rxts_calibration_start();
+	calib_t24p_init();
 	return WRH_SPLL_OK;
 }
 
@@ -45,7 +45,7 @@ int wrpc_spll_locking_poll(struct pp_instance *ppi)
 	}
 	if(!t24p_calibrated) {
 		/*run t24p calibration if needed*/
-		if (calib_t24p(WRC_MODE_SLAVE, &cal_phase_transition) < 0) {
+		if (calib_t24p() < 0) {
 			return WRH_SPLL_UNLOCKED;
 		}
 		t24p_calibrated = 1;

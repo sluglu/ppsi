@@ -414,7 +414,6 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state)
 
 	/* Iterative treatment */
 	pdstate_enable_extension(ppi);
-	wrh_update_correction_values(ppi);
 	l1e_send_sync_msg(ppi,0);
 	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }

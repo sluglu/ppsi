@@ -144,7 +144,6 @@ extern void    wrh_servo_reset(struct pp_instance *ppi);
 extern int     wrh_servo_got_sync(struct pp_instance *ppi);
 extern int     wrh_servo_got_resp(struct pp_instance *ppi);
 extern int     wrh_servo_got_presp(struct pp_instance *ppi);
-extern int     wrh_update_correction_values(struct pp_instance *ppi);
 
 
 #endif /* __ASSEMBLY__ */

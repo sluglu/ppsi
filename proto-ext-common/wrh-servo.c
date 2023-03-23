@@ -49,7 +49,7 @@ void wrh_servo_enable_tracking(int enable)
 /*
  * Update calibration data
  */
-int wrh_update_correction_values(struct pp_instance *ppi)
+static int wrh_update_correction_values(struct pp_instance *ppi)
 {
 
 	wrh_servo_t *s = WRH_SRV(ppi);
@@ -211,7 +211,6 @@ static void  setState(struct pp_instance *ppi, int newState)
 		pp_diag(ppi, servo, 2, "new state %s\n", state_name);
 		gs->state=newState;
 		gs->servo_state_name = state_name;
-
 	}
 }
 

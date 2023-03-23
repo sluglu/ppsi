@@ -10,13 +10,11 @@
 #include "l1e-constants.h"
 #include <math.h>
 
-typedef struct {
-	int (*action)(struct pp_instance *ppi, Boolean newState);
-}l1e_state_machine_t;
+typedef int (*l1e_state_action_t)(struct pp_instance *ppi, Boolean newState);
 
 extern const char * const l1e_state_name[];
 
-#define MAX_STATE_ACTIONS (sizeof(le1_state_actions)/sizeof(l1e_state_machine_t))
+#define MAX_STATE_ACTIONS ARRAY_SIZE(le1_state_actions)
 
 /* prototypes */
 static int l1e_empty_action(struct pp_instance *ppi, Boolean new_state);
@@ -26,25 +24,14 @@ static int l1e_handle_state_link_alive(struct pp_instance *ppi, Boolean new_stat
 static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_state);
 static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state);
 
-static const l1e_state_machine_t le1_state_actions[] ={
-		[0] { /* Not used */
-			.action=l1e_empty_action,
-		},
-		[L1SYNC_DISABLED] {
-			.action=l1e_handle_state_disabled,
-		},
-		[L1SYNC_IDLE] {
-			.action=l1e_handle_state_idle,
-		},
-		[L1SYNC_LINK_ALIVE] {
-			.action=l1e_handle_state_link_alive,
-		},
-		[L1SYNC_CONFIG_MATCH] {
-			.action=l1e_handle_state_config_match,
-		},
-		[L1SYNC_UP] {
-			.action=l1e_handle_state_up,
-		},
+static const l1e_state_action_t le1_state_actions[] =
+{
+	[0]			= l1e_empty_action,
+	[L1SYNC_DISABLED]	= l1e_handle_state_disabled,
+	[L1SYNC_IDLE]		= l1e_handle_state_idle,
+	[L1SYNC_LINK_ALIVE]	= l1e_handle_state_link_alive,
+	[L1SYNC_CONFIG_MATCH]	= l1e_handle_state_config_match,
+	[L1SYNC_UP]		= l1e_handle_state_up,
 };
 
 /*
@@ -52,7 +39,8 @@ static const l1e_state_machine_t le1_state_actions[] ={
  * It is used to send signaling messages.
  * It returns the ext-specific timeout value
  */
-int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
+int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len)
+{
 	L1SyncBasicPortDS_t * basicDS=L1E_DSPOR_BS(ppi);
 	Enumeration8 nextState=basicDS->next_state;
 	Boolean newState=nextState!=basicDS->L1SyncState;
@@ -99,7 +87,7 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 		/* The state machine is executed only when really needed because
 		 * fsm can call this function too often.
 		 */
-		delay=(*le1_state_actions[basicDS->L1SyncState].action) (ppi,newState);
+		delay=(*le1_state_actions[basicDS->L1SyncState])(ppi,newState);
 	} else
 		delay=pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 
@@ -111,32 +99,37 @@ int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len) {
 	return delay;
 }
 
-static int l1e_empty_action(struct pp_instance *ppi, Boolean new_state){
+static int l1e_empty_action(struct pp_instance *ppi, Boolean new_state)
+{
 	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }
 
 /* L1_SYNC_RESET event */
-static inline Boolean le1_evt_L1_SYNC_RESET(struct pp_instance *ppi) {
+static inline Boolean le1_evt_L1_SYNC_RESET(struct pp_instance *ppi)
+{
 	return ppi->link_up == 0 || ppi->state==PPS_INITIALIZING;
 }
 
 /* L1_SYNC_ENABLED event */
-static inline Boolean le1_evt_L1_SYNC_ENABLED(struct pp_instance *ppi) {
+static inline Boolean le1_evt_L1_SYNC_ENABLED(struct pp_instance *ppi)
+{
 	return L1E_DSPOR_BS(ppi)->L1SyncEnabled == TRUE;
 }
 
 /* CONFIG_OK event */
-static inline Boolean le1_evt_CONFIG_OK(struct pp_instance *ppi) {
+static inline Boolean le1_evt_CONFIG_OK(struct pp_instance *ppi)
+{
 	L1SyncBasicPortDS_t *basicDS=L1E_DSPOR_BS(ppi);
 
 	return basicDS->txCoherentIsRequired==basicDS->peerTxCoherentIsRequired
-			&& basicDS->rxCoherentIsRequired==basicDS->peerRxCoherentIsRequired
-			&& basicDS->congruentIsRequired==basicDS->peerCongruentIsRequired;
+		&& basicDS->rxCoherentIsRequired==basicDS->peerRxCoherentIsRequired
+		&& basicDS->congruentIsRequired==basicDS->peerCongruentIsRequired;
 }
 
 
 /* STATE_OK event */
-static Boolean le1_evt_STATE_OK(struct pp_instance *ppi) {
+static Boolean le1_evt_STATE_OK(struct pp_instance *ppi)
+{
 	L1SyncBasicPortDS_t *basicDS=L1E_DSPOR_BS(ppi);
 	int pll_state;
 
@@ -146,13 +139,12 @@ static Boolean le1_evt_STATE_OK(struct pp_instance *ppi) {
 	case PPS_UNCALIBRATED :
 		pll_state= WRH_OPER()->locking_poll(ppi); /* Get the PPL state */
 		basicDS->isCongruent =
-			basicDS->isRxCoherent = pll_state == WRH_SPLL_LOCKED ? 1 : 0;
+			basicDS->isRxCoherent = pll_state == WRH_SPLL_LOCKED;
 		break;
 	case PPS_MASTER :
-		basicDS->isRxCoherent=
-					basicDS->peerIsTxCoherent  &&
+		basicDS->isRxCoherent=  basicDS->peerIsTxCoherent  &&
 					basicDS->peerIsRxCoherent  &&
-					basicDS->isTxCoherent    ? 1 : 0;
+					basicDS->isTxCoherent;
 		/** TODO: in principle, the PLL should report unlocked when it is not locked,
 		 * regardless of the state. Thus, when we check in MASTER state, it should report
 		 * unlocked - this is not the case for some reasons
@@ -176,19 +168,18 @@ static Boolean le1_evt_STATE_OK(struct pp_instance *ppi) {
 }
 
 /* LINK_OK event */
-static inline Boolean le1_evt_LINK_OK(struct pp_instance *ppi) {
+static inline Boolean le1_evt_LINK_OK(struct pp_instance *ppi)
+{
 	return L1E_DSPOR(ppi)->basic.L1SyncLinkAlive == TRUE;
 }
 
-#define pp_time_to_ms(ts) ts.secs * 1000 + ((ts.scaled_nsecs + 0x8000) >> TIME_INTERVAL_FRACBITS)/1000000
-#define MEASURE_INIT_VALUE(x) {ppi->t_ops->get(ppi, &t);t.secs%=100;x=pp_time_to_ms(t);}
-#define MEASURE_LAST_VALUE(x) {ppi->t_ops->get(ppi, &t);t.secs%=100;x=pp_time_to_ms(t);}
-#define ADJUST_TIME_MS(a) {a+=100*1000;}
-
-static __inline__ int measure_first_time(struct pp_instance *ppi) {
+static __inline__ int measure_first_time(struct pp_instance *ppi)
+{
 	struct pp_time current_time;
 	int ms;
 	uint64_t ns;
+
+	/* FIXME: use calc_timeout ? */
 
 	TOPS(ppi)->get(ppi, &current_time);
 	ms=(current_time.secs&0xFFFF)*1000; /* do not take all second - Not necessary to calculate a difference*/
@@ -199,7 +190,8 @@ static __inline__ int measure_first_time(struct pp_instance *ppi) {
 	return ms;
 }
 
-static __inline__ int measure_last_time(struct pp_instance *ppi, int fmeas) {
+static __inline__ int measure_last_time(struct pp_instance *ppi, int fmeas)
+{
 	int ms=measure_first_time(ppi);
 	if ( ms<fmeas ) {
 		/* Readjust the time */
@@ -376,7 +368,9 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 	   le1_evt_STATE_OK check for spll locking but also performs rxts
 	   calibration, which takes multiple iterations.  To speed up the
 	   process, don't wait for the timeout and run it without pause.
-	   This is done only on the WR node and only in slave mode.  */
+	   This is done only on the WR node and only in slave mode.
+
+	   FIXME: makes locking_poll return a timeout ?  */
 	if (ppi->state == PPS_SLAVE)
 		return 0;
 #endif

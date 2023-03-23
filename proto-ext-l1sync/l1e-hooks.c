@@ -143,7 +143,8 @@ static int l1e_handle_dreq(struct pp_instance *ppi)
 }
 
 
-static int  l1e_sync_followup(struct pp_instance *ppi) {
+static int  l1e_sync_followup(struct pp_instance *ppi)
+{
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
 		l1e_servo_got_sync(ppi);
 	}

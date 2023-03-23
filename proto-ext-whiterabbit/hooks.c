@@ -24,6 +24,7 @@ static char * getPortIdentityAsString ( PortIdentity *pid, UInteger16 seqId) {
 	return text;
 }
 #endif
+
 static int wr_init(struct pp_instance *ppi, void *buf, int len)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
@@ -34,10 +35,9 @@ static int wr_init(struct pp_instance *ppi, void *buf, int len)
 	ppi->pdstate = PP_PDSTATE_WAIT_MSG;
 
 #ifdef CONFIG_ABSCAL
-        /* absolute calibration only exists in arch-wrpc, so far */
-        extern int ptp_mode;
-        if (ptp_mode == 4 /* WRC_MODE_ABSCAL */)
-                ppi->next_state = WRS_WR_LINK_ON;
+	/* absolute calibration only exists in arch-wrpc, so far */
+	if (wrc_ptp_is_abscal())
+		ppi->next_state = WRS_WR_LINK_ON;
 #endif
 
 	return 0;

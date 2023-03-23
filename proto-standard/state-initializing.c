@@ -138,10 +138,10 @@ int pp_initializing(struct pp_instance *ppi, void *buf, int len)
 	
 #ifdef CONFIG_ABSCAL
 	/* absolute calibration only exists in arch-wrpc, so far */
-	extern int ptp_mode;
-	if (ptp_mode == 4 /* WRC_MODE_ABSCAL */)
+	if (wrc_ptp_is_abscal()) {
 		ppi->next_state = PPS_ABSCAL;
-	else
+		return 0;
+	}
 #endif
 	if (is_externalPortConfigurationEnabled(DSDEF(ppi))) {
 		/* Clause 17.6.5.2 : the member portDS.portState shall be set to

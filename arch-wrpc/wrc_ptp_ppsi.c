@@ -105,7 +105,6 @@ struct pp_globals ppg_static = {
 
 
 extern struct pp_ext_hooks const pp_hooks;
-int wrc_ptp_is_abscal(void);
 
 int wrc_ptp_init(void)
 {

@@ -404,6 +404,7 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state)
 		next_state=L1SYNC_CONFIG_MATCH;
 	}
 	if (next_state!=0 ) {
+		/* So leave SYNC_UP. */
 		l1e_portDS->basic.next_state=next_state;
 		if ( ppi->state == PPS_SLAVE || ppi->state==PPS_UNCALIBRATED) {
 			WRH_OPER()->locking_disable(ppi); /* Unlock the PLL */

@@ -12,10 +12,8 @@
 #include "common-fun.h"
 
 static int slave_handle_sync(struct pp_instance *ppi, void *buf, int len);
-static int slave_handle_followup(struct pp_instance *ppi, void *buf,
-			  int len);
-static int slave_handle_response(struct pp_instance *ppi, void *buf,
-			  int len);
+static int slave_handle_followup(struct pp_instance *ppi, void *buf, int len);
+static int slave_handle_response(struct pp_instance *ppi, void *buf, int len);
 static int slave_handle_announce(struct pp_instance *ppi, void *buf, int len);
 
 static pp_action * const actions[] = {
@@ -178,10 +176,8 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 		ret=pp_servo_got_resp(ppi,1);
 	}
 
-	if ( ret &&
-			DSPOR(ppi)->logMinDelayReqInterval !=hdr->logMessageInterval) {
-		DSPOR(ppi)->logMinDelayReqInterval =
-			hdr->logMessageInterval;
+	if ( ret && DSPOR(ppi)->logMinDelayReqInterval !=hdr->logMessageInterval) {
+		DSPOR(ppi)->logMinDelayReqInterval = hdr->logMessageInterval;
 		/* new value for logMin */
 		pp_timeout_init(ppi);
 	}

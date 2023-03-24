@@ -114,11 +114,10 @@ int wrh_servo_got_sync(struct pp_instance *ppi)
 	gs->t1=ppi->t1;apply_faulty_stamp(ppi,1);
 	gs->t2=ppi->t2;apply_faulty_stamp(ppi,2);
 
-
 	if ( is_delayMechanismP2P(ppi) && gs->got_sync) {
 		gs->got_sync=0;
 		__wrh_servo_update(ppi);
-	}else {
+	} else {
 		gs->got_sync=1;
 	}
 
@@ -155,6 +154,7 @@ int wrh_servo_got_resp(struct pp_instance *ppi)
 	return ret;
 }
 
+#if CONFIG_HAS_P2P
 /**
  *  PDELAY_RESPONSE_FUP message has been received: t3/t4/t5/t6 are available
  */
@@ -179,8 +179,9 @@ int wrh_servo_got_presp(struct pp_instance *ppi)
 
 	return 1;
 }
+#endif
 
-static void  setState(struct pp_instance *ppi, int newState)
+static void setState(struct pp_instance *ppi, int newState)
 {
 	struct pp_servo *gs=SRV(ppi);
 	if ( gs->state != newState ) {

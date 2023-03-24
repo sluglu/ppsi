@@ -65,8 +65,8 @@ static int l1e_init(struct pp_instance *ppi, void *buf, int len)
 	bds->peerTxCoherentIsRequired = FALSE;
 	bds->peerRxCoherentIsRequired = FALSE;
 	bds->peerCongruentIsRequired  = FALSE;
-	bds->peerIsTxCoherent     	  = FALSE;
-	bds->peerIsRxCoherent     	  = FALSE;
+	bds->peerIsTxCoherent	      = FALSE;
+	bds->peerIsRxCoherent	      = FALSE;
 	bds->peerIsCongruent          = FALSE;
 	/* Init  configurable parameters */
 	bds->logL1SyncInterval=ppi->cfg.l1syncInterval;

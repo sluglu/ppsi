@@ -237,9 +237,11 @@ static int l1e_is_correction_field_compliant (struct pp_instance *ppi) {
 
 static int l1e_extension_state_changed( struct pp_instance * ppi)
 {
-	if ( ppi->extState!=PP_EXSTATE_ACTIVE && L1E_DSPOR(ppi)->basic.L1SyncState!=L1SYNC_DISABLED ) {
+	if (ppi->extState == PP_EXSTATE_ACTIVE) {
+		l1e_servo_init(ppi);
+	} else if (L1E_DSPOR(ppi)->basic.L1SyncState != L1SYNC_DISABLED) {
 		// Extension disabled : Force L1SYNC_DISABLED disable state
-		L1E_DSPOR(ppi)->basic.next_state=L1SYNC_DISABLED; /* Force L1Sync DISABLE state */
+		L1E_DSPOR(ppi)->basic.next_state = L1SYNC_DISABLED;
 		l1e_run_state_machine(ppi,NULL,0);
 	}
 	return 0;

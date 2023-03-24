@@ -15,7 +15,7 @@
  * Runtime options. Default values can be overridden by command line.
  */
 struct pp_runtime_opts {
-    uint32_t updated_fields_mask;
+	uint32_t updated_fields_mask;
 	int clock_quality_clockClass;                 // ClockQuality.clockClass
 	int clock_quality_clockAccuracy;              // ClockQuality.clockAccuracy
 	int clock_quality_offsetScaledLogVariance;    // ClockQuality.offsetScaledLogVariance

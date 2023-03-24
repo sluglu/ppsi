@@ -278,7 +278,7 @@ int pp_slave(struct pp_instance *ppi, void *buf, int len)
 	/* when entering uncalibrated init servo */
 	if (uncalibrated && ppi->is_new_state) {
 		memset(&ppi->t1, 0, sizeof(ppi->t1));
-		pp_diag(ppi, bmc, 2, "Entered to uncalibrated, reset servo\n");
+		pp_diag(ppi, servo, 2, "Entered to uncalibrated, reset servo\n");
 		pp_servo_init(ppi);
 
 		if (is_ext_hook_available(ppi,new_slave))

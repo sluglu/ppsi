@@ -122,8 +122,6 @@ static inline L1SyncOptParamsPortDS_t *L1E_DSPOR_OP(struct pp_instance *ppi)
 /* Prototypes */
 
 uint8_t l1e_creat_L1Sync_bitmask(int tx_coh, int rx_coh, int congru);
-void    l1e_print_L1Sync_basic_bitmaps(struct pp_instance *ppi,
-			uint8_t configed, uint8_t active, char* text);
 void    l1e_servo_enable_tracking(int enable);
 int l1e_update_correction_values(struct pp_instance *ppi);
 int l1e_run_state_machine(struct pp_instance *ppi, void *buf, int len);

@@ -19,21 +19,6 @@ const char * const l1e_state_name[] = {
 	[L1SYNC_UP]		= "L1SYNC_UP",
 };
 
-void l1e_print_L1Sync_basic_bitmaps(struct pp_instance *ppi, uint8_t configed,
-					uint8_t active, char* text)
-{
-	pp_diag(ppi, ext, 2, "ML: L1Sync %s\n", text);
-	pp_diag(ppi, ext, 2, "ML: \tConfig: TxC=%d RxC=%d Cong=%d Param=%d\n",
-		  ((configed & L1E_TX_COHERENT) == L1E_TX_COHERENT),
-		  ((configed & L1E_RX_COHERENT) == L1E_RX_COHERENT),
-		  ((configed & L1E_CONGRUENT)   == L1E_CONGRUENT),
-		  ((configed & L1E_OPT_PARAMS)  == L1E_OPT_PARAMS));
-	pp_diag(ppi, ext, 2, "ML: \tActive: TxC=%d RxC=%d Cong=%d\n",
-		  ((active & L1E_TX_COHERENT)   == L1E_TX_COHERENT),
-		  ((active & L1E_RX_COHERENT)   == L1E_RX_COHERENT),
-		  ((active & L1E_CONGRUENT)     == L1E_CONGRUENT));
-}
-
 /* open is global; called from "pp_init_globals" */
 static int l1e_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 {

@@ -52,6 +52,22 @@
 #define MSG_L1SYNC_TLV_LENGTH 2u
 #define MSG_L1SYNC_TLV_EXTENDED_LENGTH 40u
 
+static void l1e_print_L1Sync_basic_bitmaps(struct pp_instance *ppi,
+					   uint8_t configed,
+					   uint8_t active, char* text)
+{
+	pp_diag(ppi, ext, 3, "ML: L1Sync %s\n", text);
+	pp_diag(ppi, ext, 3, "ML: \tConfig: TxC=%d RxC=%d Cong=%d Param=%d\n",
+		  ((configed & L1E_TX_COHERENT) == L1E_TX_COHERENT),
+		  ((configed & L1E_RX_COHERENT) == L1E_RX_COHERENT),
+		  ((configed & L1E_CONGRUENT)   == L1E_CONGRUENT),
+		  ((configed & L1E_OPT_PARAMS)  == L1E_OPT_PARAMS));
+	pp_diag(ppi, ext, 3, "ML: \tActive: TxC=%d RxC=%d Cong=%d\n",
+		  ((active & L1E_TX_COHERENT)   == L1E_TX_COHERENT),
+		  ((active & L1E_RX_COHERENT)   == L1E_RX_COHERENT),
+		  ((active & L1E_CONGRUENT)     == L1E_CONGRUENT));
+}
+
 int l1e_pack_signal(struct pp_instance *ppi)
 {
 	void *buf=ppi->tx_ptp;

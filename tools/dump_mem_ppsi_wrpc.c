@@ -135,11 +135,8 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(pp_time, offsetFromMaster), /* Shared with extension servo */
 	DUMP_FIELD(pp_servo_flag, flags),
 
-	DUMP_FIELD(int, reset_address),
-
 	/* Data used only by extensions */
 	DUMP_FIELD(pp_servo_state, state),
-	DUMP_FIELD_SIZE(char, servo_state_name, 32),
 
 	/* Data shared with extension servo */
 	DUMP_FIELD(UInteger32, update_count),

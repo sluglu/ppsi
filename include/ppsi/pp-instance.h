@@ -119,8 +119,8 @@ struct pp_avg_fltr {
 #define PP_SERVO_FLAG_VALID	    (1<<0)
 #define PP_SERVO_FLAG_WAIT_HW	(1<<1)
 
-#define PP_SERVO_RESET_DATA_SIZE        (sizeof(struct pp_servo)-offsetof(struct pp_servo,reset_address))
-#define PP_SERVO_RESET_DATA(servo)      memset(&servo->reset_address,0,PP_SERVO_RESET_DATA_SIZE);
+#define PP_SERVO_RESET_DATA_SIZE        (sizeof(struct pp_servo)-offsetof(struct pp_servo,state))
+#define PP_SERVO_RESET_DATA(servo)      memset(&servo->state,0,PP_SERVO_RESET_DATA_SIZE);
 
 struct pp_servo {
 	/* ptp servo specific data */
@@ -132,25 +132,24 @@ struct pp_servo {
 	struct pp_time delayMS; /* Shared with extension servo */
 	struct pp_time meanDelay; /* Shared with extension servo */
 	struct pp_time offsetFromMaster; /* Shared with extension servo */
-	unsigned long flags; /* PP_SERVO_FLAG_INVALID, PP_SERVO_FLAG_VALID, ...*/
+	uint8_t flags; /* PP_SERVO_FLAG_INVALID, PP_SERVO_FLAG_VALID, ...*/
 
 	/*
 	 * ----- All data after this line will be cleared during by a servo initialization
 	 */
-	int reset_address;
-
 	/* Data used only by extensions */
-	int state;
+	uint8_t state;
+
+	/* ptp servo specific data */
+	uint8_t servo_locked; /* TRUE when servo is locked. This info can be used by HAL */
+	uint8_t got_sync; /* True when T1/T2 are available */
+
 	const char *servo_state_name; /* Updated by the servo itself */
 
 	/* Data shared with extension servo */
 	uint32_t update_count; /* incremented each time the servo is running */
 	struct pp_time update_time; /* Last updated time of the servo */
 	struct pp_time t1, t2, t3, t4, t5, t6;
-
-	/* ptp servo specific data */
-	int servo_locked; /* TRUE when servo is locked. This info can be used by HAL */
-	int got_sync; /* True when T1/T2 are available */
 };
 
 enum { /* The two sockets. They are called "net path" for historical reasons */

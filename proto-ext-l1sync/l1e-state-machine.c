@@ -335,6 +335,7 @@ static int l1e_handle_state_config_match(struct pp_instance *ppi, Boolean new_st
 					basic->isRxCoherent=0;
 					pp_diag(ppi, ext, 1, "Locking PLL\n");
 					WRH_OPER()->locking_enable(ppi);
+					l1e_servo_init(ppi);
 				}
 				break;
 			case PPS_MASTER :
@@ -414,7 +415,8 @@ static int l1e_handle_state_up(struct pp_instance *ppi, Boolean new_state)
 	}
 
 	/* Iterative treatment */
-	pdstate_enable_extension(ppi);
+	if (new_state)
+		pdstate_enable_extension(ppi);
 	l1e_send_sync_msg(ppi,0);
 	return pp_next_delay_2(ppi,PP_TO_L1E_TX_SYNC, PP_TO_L1E_RX_SYNC); /* Return the shorter timeout */
 }

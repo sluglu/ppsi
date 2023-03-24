@@ -184,12 +184,10 @@ int wrh_servo_got_presp(struct pp_instance *ppi)
 static void setState(struct pp_instance *ppi, int newState)
 {
 	struct pp_servo *gs=SRV(ppi);
-	if ( gs->state != newState ) {
-		const char *state_name = wrh_servo_state_name[newState];
-		pp_diag(ppi, servo, 2, "new state %s\n", state_name);
-		gs->state=newState;
-		gs->servo_state_name = state_name;
-	}
+	const char *state_name = wrh_servo_state_name[newState];
+	pp_diag(ppi, servo, 2, "new state %s\n", state_name);
+	gs->state=newState;
+	gs->servo_state_name = state_name;
 }
 
 static int __wrh_servo_update(struct pp_instance *ppi)

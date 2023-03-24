@@ -95,8 +95,8 @@ typedef enum {
 }wrh_servo_state_t;
 
 
-#define WRH_SERVO_RESET_DATA_SIZE        (sizeof(wrh_servo_t)-offsetof(wrh_servo_t,reset_address))
-#define WRH_SERVO_RESET_DATA(servo)      memset(&servo->reset_address,0,WRH_SERVO_RESET_DATA_SIZE);
+#define WRH_SERVO_RESET_DATA_SIZE        (sizeof(wrh_servo_t)-offsetof(wrh_servo_t,clock_period_ps))
+#define WRH_SERVO_RESET_DATA(servo)      memset(&servo->clock_period_ps,0,WRH_SERVO_RESET_DATA_SIZE);
 
 
 typedef struct wrh_servo_t {
@@ -109,10 +109,13 @@ typedef struct wrh_servo_t {
 	int32_t cur_setpoint_ps;
 
 	/* ----- All data after this line will cleared during a servo reset */
-	int reset_address;
 
 	/* These fields are used by servo code, after setting at init time */
 	int32_t clock_period_ps;
+
+	Boolean tracking_enabled;
+	Boolean readyForSync; /* Ready for synchronization */
+	Boolean doRestart; /* PLL is unlocked: A restart of the calibration is needed */
 
 	/* Following fields are for monitoring/diagnostics (use w/ shmem) */
 	int64_t delayMM_ps;
@@ -123,10 +126,6 @@ typedef struct wrh_servo_t {
 	/* These fields are used by servo code, across iterations */
 	int64_t prev_delayMS_ps;
 	int missed_iters;
-
-	Boolean tracking_enabled;
-	Boolean readyForSync; /* Ready for synchronization */
-	Boolean doRestart; /* PLL is unlocked: A restart of the calibration is needed */
 } wrh_servo_t;
 
 static inline wrh_servo_t *WRH_SRV(struct pp_instance *ppi)
@@ -146,4 +145,3 @@ extern int     wrh_servo_got_presp(struct pp_instance *ppi);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __WRH_H__ */
-

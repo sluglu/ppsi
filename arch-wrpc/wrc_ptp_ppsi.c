@@ -23,7 +23,8 @@
 #include "softpll_ng.h"
 
 /* TODO: get rid of ptp_mode, use WRPC_ARCH_G(ppg)->timingModeCfg instead */
-int ptp_mode = WRC_MODE_UNKNOWN;
+static uint8_t ptp_mode = WRC_MODE_UNKNOWN;
+
 static unsigned char ptp_enabled = 0;
 
 const struct wrh_operations wrh_oper = {

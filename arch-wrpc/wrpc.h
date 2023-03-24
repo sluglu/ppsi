@@ -21,7 +21,6 @@
 #define WRC_MODE_MASTER 2
 #define WRC_MODE_SLAVE 3
 #define WRC_MODE_ABSCAL 4
-extern int ptp_mode;
 
 int wrc_ptp_init(void);
 int wrc_ptp_set_mode(int mode);

@@ -71,7 +71,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 		t->scaled_nsecs += wr_ts.phase * (1 << 16) / 1000;
 		/* avoid "incorrect" stamps when abscal is running */
 		if (!wr_ts.correct
-		    && (!HAS_ABSCAL || ptp_mode != WRC_MODE_ABSCAL))
+		    && (!HAS_ABSCAL || !wrc_ptp_is_abscal()))
 			mark_incorrect(t);
 	}
 	/* copy MAC and vlan of a peer to ppi */
@@ -83,7 +83,7 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	if (pp_diag_allow(ppi, frames, 2))
 		dump_payloadpkt("recv: ", pkt, got, t);
 #endif
-	if (HAS_ABSCAL && ptp_mode == WRC_MODE_ABSCAL) {
+	if (HAS_ABSCAL && wrc_ptp_is_abscal()) {
 		struct pp_time t4, t_bts;
 		int bitslide;
 
@@ -155,7 +155,7 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len, enum pp_ms
 			__func__, snt, (long)t->secs,
 			(long)(t->scaled_nsecs >> 16));
 	}
-	if (HAS_ABSCAL && ptp_mode == WRC_MODE_ABSCAL)
+	if (HAS_ABSCAL && wrc_ptp_is_abscal())
 		pp_printf("%09d %09d %03d ", /* first half of a line */
 			  (int)t->secs, (int)(t->scaled_nsecs >> 16),
 			  ((int)(t->scaled_nsecs & 0xffff) * 1000) >> 16);

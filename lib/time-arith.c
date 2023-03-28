@@ -303,8 +303,12 @@ char *interval_to_string(TimeInterval time)
 		sign='-';
 		time=-time;
 	}
+	/* Rounds now, so that if the picos rounds to 1000, the output will
+	   still be correct.  There might be an ULP error, but who cares, it
+	   is only used to display for the user. */
+	time += (TIME_INTERVAL_ROUNDING_VALUE / 1000);
 	nanos = time >> TIME_INTERVAL_FRACBITS;
-	picos = (((time & TIME_INTERVAL_FRACMASK) * 1000) + TIME_INTERVAL_ROUNDING_VALUE ) >> TIME_INTERVAL_FRACBITS;
+	picos = ((time & TIME_INTERVAL_FRACMASK) * 1000) >> TIME_INTERVAL_FRACBITS;
 	pp_sprintf(time_as_string, "%c%" PRId64 ".%03d", sign, nanos, (unsigned int) picos);
 	return time_as_string;
 }

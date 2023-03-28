@@ -199,7 +199,7 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 }
 
 /* used to make basic checks before the individual state is called */
-static int type_length[__PP_NR_MESSAGES_TYPES] = {
+static unsigned char type_length[__PP_NR_MESSAGES_TYPES] = {
 	[PPM_SYNC]		= PP_SYNC_LENGTH,
 	[PPM_DELAY_REQ]		= PP_DELAY_REQ_LENGTH,
 	[PPM_PDELAY_REQ]	= PP_PDELAY_REQ_LENGTH,

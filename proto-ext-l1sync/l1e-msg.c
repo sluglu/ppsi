@@ -6,6 +6,7 @@
  */
 
 #include <ppsi/ppsi.h>
+#include "l1e-constants.h"
 
 #define MSG_OFFSET_HEADER 0u
 #define MSG_OFFSET_HEADER_MESSAGE_LENGTH (MSG_OFFSET_HEADER+2u)
@@ -47,8 +48,6 @@
 #define MSG_SET_TLV_L1SYNC_PEER_ACTIVE(buf,val)      MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_PEER_ACTIVE)=(UInteger8)(val)
 
 #define MSG_SET_TLV_L1SYNC_OPT_CONFIG(buf,val)       MSG_GET_8(buf,MSG_OFFSET_TLV_L1SYNC_OPT_CONFIG)=(UInteger8)(val)
-
-#define  TLV_TYPE_L1_SYNC		0x8001u
 
 #define MSG_L1SYNC_LEN 50u
 #define MSG_L1SYNC_TLV_LENGTH 2u

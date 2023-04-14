@@ -10,6 +10,8 @@
 #include <ppsi/ieee1588_types.h> /* from ../include */
 #include "decent_types.h"
 #include <ppsi/lib.h>
+#include "../proto-ext-whiterabbit/wr-constants.h"
+#include "../proto-ext-l1sync/l1e-constants.h"
 
 #define WR_MODE_ON_MASK 0x8
 #define CALIBRATED_MASK 0x4
@@ -182,6 +184,13 @@ static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 		uint16_t messageId;
 		char *messageId_str = NULL;
 
+		if (ntohs(tlv->type) != TLV_TYPE_ORG_EXTENSION
+		    || memcmp(tlv->oui, "\x08\x00\x30", 3) /* WR_TLV_ORGANIZATION_ID */
+		    /* WR_TLV_MAGIC_NUMBER, WR_TLV_WR_VERSION_NUMBER */
+		    || memcmp(tlv->subtype, "\xDE\xAD\x01", 3)
+		    ) {
+			return 0;
+		}
 	
 		printf("%sTLV: type %04x len %i oui %02x:%02x:%02x "
 			   "sub %02x:%02x:%02x\n", prefix, ntohs(tlv->type), explen,
@@ -193,15 +202,6 @@ static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 			return totallen;
 		}
 
-		if (memcmp(tlv->oui, "\x08\x00\x30", 3) /* WR_TLV_ORGANIZATION_ID */
-			/* WR_TLV_MAGIC_NUMBER, WR_TLV_WR_VERSION_NUMBER */
-			|| memcmp(tlv->subtype, "\xDE\xAD\x01", 3)
-			) {
-			/* Now dump non-wr tlv in binary, count only payload */
-			dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
-				   explen - sizeof(*tlv));
-			return explen;
-		}
 
 		messageId = (tlv->data[0] << 8) + tlv->data[1];
 		if (SLAVE_PRESENT <= messageId && messageId <= WR_MODE_ON)
@@ -286,17 +286,21 @@ static int wr_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
 		return explen;
 	}
 #else
-		return explen > totallen ? totallen : explen;
+	return 0;
 #endif
 
 }
 
 static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 {
-	/* the field includes 6 bytes of the header, excludes 4 of them. Bah! */
 	int explen = ntohs(tlv->len) + 4;
 
 	if ( CONFIG_HAS_EXT_L1SYNC ) {
+		if (ntohs(tlv->type) != TLV_TYPE_L1_SYNC) {
+			/* Non L1Sync TLV */
+			return 0;
+		}
+
 		printf("%sTLV: type %04x len %i conf %02x act %02x\n",
 				prefix,
 				ntohs(tlv->type), explen,
@@ -308,14 +312,37 @@ static int l1sync_dump_tlv(char *prefix, struct l1sync_tlv *tlv, int totallen)
 			return totallen;
 		}
 
-		/* later:  if (memcmp(tlv->oui, "\x08\x00\x30", 3)) ... */
-
 		/* Now dump non-l1sync tlv in binary, count only payload */
-		dumpstruct(prefix, "TLV: ", "tlv-content", tlv->data,
-			   explen - sizeof(*tlv));
+		if (ntohs(tlv->len) > explen - sizeof(*tlv))
+			dumpstruct(prefix, "TLV: ", "tlv-content",
+				   tlv->data, explen - sizeof(*tlv));
 		return explen;
 	} else
-		return explen > totallen ? totallen : explen;
+		return 0;
+}
+
+/* Dump unknown TLV */
+static int unknown_dump_tlv(char *prefix, struct ptp_tlv *tlv, int totallen)
+{
+	int tlv_len = ntohs(tlv->len);
+	int explen = tlv_len + 4;
+
+	printf("%sTLV: Unknown, type %04x len %i\n",
+	       prefix,
+	       ntohs(tlv->type), tlv_len);
+
+	if (explen > totallen) {
+		printf("%sTLV: too short (expected %i, total %i)\n", prefix,
+			    explen, totallen);
+		return totallen;
+	}
+
+	/* Now dump non-wr tlv in binary, count only payload */
+	if (tlv_len > explen - sizeof(*tlv))
+		dumpstruct(prefix, "TLV: ", "tlv-content",
+			   tlv->data, explen - sizeof(*tlv));
+
+	return tlv_len + 4;
 }
 
 /* A big function to dump the ptp information */
@@ -327,7 +354,6 @@ static void dump_payload(char *prefix, void *pl, int len)
 	int version = h->versionPTP_and_reserved & 0xf;
 	int messageType = h->type_and_transport_specific & 0xf;
 	char *cfptr = (void *)&h->correctionField;
-	int tlv_size=0;
 
 	if (version != 2) {
 		printf("%sVERSION: unsupported (%i)\n", prefix, version);
@@ -369,13 +395,11 @@ static void dump_payload(char *prefix, void *pl, int len)
 		CASE(G, ANNOUNCE);
 		dump_msg_announce(prefix, msg_specific);
 		donelen = 64;
-		tlv_size=sizeof(struct ptp_tlv);
 		break;
 
 		CASE(G, SIGNALING);
 		dump_1port(prefix, "MSG-SIGNALING: target-port ", msg_specific);
 		donelen = 44;
-		tlv_size=sizeof(struct l1sync_tlv);
 		break;
 
 #if __STDC_HOSTED__ /* Avoid pdelay dump within ppsi, we don't use it */
@@ -408,18 +432,25 @@ static void dump_payload(char *prefix, void *pl, int len)
 
 	while (donelen < len && len - donelen > 2) {
 		int n = len - donelen;
-		if (n < tlv_size) {
-			printf("%sTLV: too short (%i - %i = %i)\n", prefix,
-			       len, donelen, n);
-			break;
-		}
+		int ret;
+
 		switch ( messageType) {
 		case PPM_ANNOUNCE :
-			donelen += wr_dump_tlv(prefix, pl + donelen, n);
+			if ((ret = wr_dump_tlv(prefix, pl + donelen, n))) {
+				donelen += ret;
+			} else {
+				donelen += unknown_dump_tlv(prefix, pl + donelen, n);
+			}
 			break;
 		case PPM_SIGNALING :
-			donelen += l1sync_dump_tlv(prefix, pl + donelen, n);
-			donelen += wr_dump_tlv(prefix, pl + donelen, n);
+			if ((ret = l1sync_dump_tlv(prefix, pl + donelen, n))) {
+				donelen += ret;
+			} else if ((ret = wr_dump_tlv(prefix, pl + donelen, n))) {
+				donelen += ret;
+			} else {
+				/* Unknown TLV */
+				donelen += unknown_dump_tlv(prefix, pl + donelen, n);
+			}
 			break;
 		default :
 			goto out;

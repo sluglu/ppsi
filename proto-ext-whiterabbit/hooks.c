@@ -159,8 +159,9 @@ static void wr_unpack_announce(struct pp_instance *ppi,void *buf, MsgAnnounce *a
 // - WR data field of the announce message is stored in the field ext_specific of the frgn_master
 
 
-static int wr_bmca_s1( struct pp_instance * ppi,
-		struct pp_frgn_master *frgn_master) {
+static int wr_bmca_s1(struct pp_instance * ppi,
+		      struct pp_frgn_master *frgn_master)
+{
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	Boolean newParentDectected;
 

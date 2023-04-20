@@ -185,7 +185,7 @@ static void setState(struct pp_instance *ppi, int newState)
 {
 	struct pp_servo *gs=SRV(ppi);
 	const char *state_name = wrh_servo_state_name[newState];
-	pp_diag(ppi, servo, 2, "new state %s\n", state_name);
+	pp_diag(ppi, servo, 1, "new state %s\n", state_name);
 	gs->state=newState;
 	gs->servo_state_name = state_name;
 }
@@ -257,7 +257,7 @@ static int __wrh_servo_update(struct pp_instance *ppi)
 	/* else, let the states below choose the sequence */
 	}
 
-	pp_diag(ppi, servo, 1, "wrh_servo state: %s%s\n",
+	pp_diag(ppi, servo, 3, "wrh_servo state: %s%s\n",
 			gs->servo_state_name,
 			gs->flags & PP_SERVO_FLAG_WAIT_HW ? " (wait for hw)" : "");
 

@@ -62,43 +62,16 @@ CFLAGS += -I$(MAINSW_ROOT)/include
 CFLAGS += -Iinclude -fno-common
 CFLAGS += -DPPSI_VERSION=\"$(VERSION)\"
 
-# to avoid ifdef as much as possible, I use the kernel trick for OBJ variables
-OBJ-y := fsm.o diag.o timeout.o msgtype.o
+# ppsi directory (can be relative).
+PPSI=.
 
-# Include arch code. Each arch chooses its own time directory..
-include arch-$(ARCH)/Makefile
+# Declare the variable as a simply expanded variable
+OBJ-y :=
 
-# include pp_printf code, by default the "full" version. Please
-# set CONFIG_PRINTF_NONE or CONFIG_PRINTF_XINT if needed.
-ifndef CONFIG_NO_PRINTF
-OBJ-y += pp_printf/pp-printf.o
+include $(PPSI)/arch-$(ARCH)/Makefile
 
-pp_printf/pp-printf.o: $(wildcard pp_printf/*.[ch])
-	CFLAGS="$(ARCH_PP_PRINTF_CFLAGS)" \
-	$(MAKE) -C pp_printf pp-printf.o CC="$(CC)" LD="$(LD)" \
-		CONFIG_PRINTF_64BIT=y CFLAGS_OPTIMIZATION="$(CFLAGS_OPTIMIZATION)"
-endif
+include $(PPSI)/ppsi.mk
 
-# We need this -I so <arch/arch.h> can be found
-CFLAGS += -Iarch-$(ARCH)/include
-
-# proto-standard is always included, as it provides default function
-# so the extension can avoid duplication of code.
-ifeq ($(CONFIG_HAS_EXT_WR),1)
-  include proto-ext-whiterabbit/Makefile
-endif
-ifeq ($(CONFIG_HAS_EXT_L1SYNC),1)
-  include proto-ext-l1sync/Makefile
-endif
-include proto-ext-common/Makefile
-include proto-standard/Makefile
-
-# ...and the TIME choice sets the default operations
-CFLAGS += -DDEFAULT_TIME_OPS=$(TIME)_time_ops
-CFLAGS += -DDEFAULT_NET_OPS=$(TIME)_net_ops
-
-CFLAGS-$(CONFIG_ABSCAL) += -DCONFIG_ABSCAL=1
-CFLAGS += $(CFLAGS-y)
 export CFLAGS
 
 # And this is the rule to build our target.o file. The architecture may

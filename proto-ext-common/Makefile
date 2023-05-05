@@ -1,10 +1,13 @@
-D := proto-ext-common
+D := $(PPSI)/proto-ext-common
 
-INC_WRH_SERVO=$(shell test ".$(CONFIG_HAS_EXT_WR)"     = ".1"  -o  \
-                           ".$(CONFIG_HAS_EXT_L1SYNC)" = ".1"  \
-                           &&  echo -n "true")
-                   
-ifeq ($(INC_WRH_SERVO),true)    
+ifeq ($(CONFIG_HAS_EXT_WR),1)
+INC_WRH_SERVO=y
+endif
+ifeq ($(CONFIG_HAS_EXT_L1SYNC),1)
+INC_WRH_SERVO=y
+endif
+
+ifdef INC_WRH_SERVO
 OBJ-y += $D/wrh-servo.o
 endif
 

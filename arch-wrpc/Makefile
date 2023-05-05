@@ -12,37 +12,14 @@ CFLAGS += -ffreestanding \
 	-Itools -Iproto-standard \
 	$(CFLAGS-CPU-$(CPU_ARCH))
 
-# WRPCSW_ROOT shall be defined in the env by WRPC's Makefile
-CFLAGS += -I$(WRPCSW_ROOT)/include -I$(WRPCSW_ROOT)/include/std -I$(WRPCSW_ROOT)/softpll
+include arch.mk
 
 # TODOA: remove --no-gc-sections
 PPSI_O_LDFLAGS = --no-gc-sections -u wrc_ptp_init
 
-# Let's use the pp_printf we already have in wrpc-sw
-CONFIG_NO_PRINTF = y
-
-# All files are under A (short for ARCH): I'm lazy
-A := arch-$(ARCH)
-
-OBJ-y += \
-	$A/wrpc-io.o \
-	$A/wrpc-spll.o \
-	$A/wrpc-calibration.o \
-	$A/wrc_ptp_ppsi.o \
-	lib/dump-funcs.o \
-	lib/drop.o \
-	lib/div64.o \
-	lib/time-arith.o \
-
-OBJ-$(CONFIG_WRPC_FAULTS) += $A/faults.o
-
 # wrpc/Makefile invokes this makefile with the ppsi.a target,
 # if you can also call it directly.
 all: $(TARGET).a
-
-# We only support "wrpc" time operations
-TIME := wrpc
-include time-wrpc/Makefile
 
 fsm.o: wrpcsw_root_check
 

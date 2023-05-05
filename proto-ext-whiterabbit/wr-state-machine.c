@@ -5,10 +5,9 @@
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
 
-#include <ppsi/ppsi.h>
-#include <common-fun.h>
+#include "ppsi/ppsi.h"
+#include "../proto-standard/common-fun.h"
 #include "wr-constants.h"
-#include <math.h>
 
 typedef int (*wr_state_action_t)(struct pp_instance *ppi, void *buf, int len, int new_state);
 

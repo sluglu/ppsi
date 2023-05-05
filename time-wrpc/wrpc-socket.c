@@ -4,12 +4,12 @@
  *
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
-#include <ppsi/ppsi.h>
-#include "ptpdump.h"
+#include "ppsi/ppsi.h"
+#include "../tools/ptpdump.h"
 
 #include "../arch-wrpc/wrpc.h"
-#include <dev/syscon.h> /* wrpc-sw */
-#include <dev/endpoint.h> /* wrpc-sw */
+#include "dev/syscon.h" /* wrpc-sw */
+#include "dev/endpoint.h" /* wrpc-sw */
 #include "net.h"
 #include "board.h"
 

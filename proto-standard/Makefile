@@ -1,7 +1,7 @@
 # Hosted environment: build the final exectuable
 
 # All files are under D: I'm lazy
-D := proto-standard
+D := $(PPSI)/proto-standard
 
 OBJ-y += $D/fsm-table.o \
 	$D/fsm-lib.o \

@@ -6,11 +6,11 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include "ptpdump.h"
-#include <ppsi/ieee1588_types.h> /* from ../include */
+#include "../tools/ptpdump.h"
+#include "ppsi/ieee1588_types.h" /* from ../include */
 #include "../proto-ext-whiterabbit/wr-constants.h"
-#include "decent_types.h"
-#include <ppsi/lib.h>
+#include "../tools/decent_types.h"
+#include "ppsi/lib.h"
 
 #define WR_MODE_ON_MASK 0x8
 #define CALIBRATED_MASK 0x4

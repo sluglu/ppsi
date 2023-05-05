@@ -1,6 +1,6 @@
 
 # All files are under directory D: I'm lazy
-D := proto-ext-whiterabbit
+D := $(PPSI)/proto-ext-whiterabbit
 
 OBJ-y += $D/hooks.o \
 	$D/common-fun.o \

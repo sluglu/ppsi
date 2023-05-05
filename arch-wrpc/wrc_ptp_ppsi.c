@@ -8,9 +8,9 @@
  */
 #include <stdint.h>
 #include <errno.h>
-#include <ppsi/ppsi.h>
+#include "ppsi/ppsi.h"
 #include "wrpc.h"
-#include <common-fun.h>
+#include "../proto-standard/common-fun.h"
 
 /* All of these live in wrpc-sw/include */
 #include "dev/minic.h"

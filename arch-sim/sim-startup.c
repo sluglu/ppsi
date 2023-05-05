@@ -124,6 +124,7 @@ int sim_set_global_DS(struct pp_instance *ppi)
 	return 0;
 }
 
+#if CONFIG_HAS_EXT_L1SYNC
 /* TODO: share with wrs-startup.c */
 static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable ) {
 	if ( (ppi->asymmetryCorrectionPortDS.enable=enable)==TRUE ) {
@@ -136,6 +137,7 @@ static void enable_asymmetryCorrection(struct pp_instance *ppi, Boolean enable )
 	}
 	ppi->asymmetryCorrectionPortDS.constantAsymmetry=picos_to_interval(ppi->cfg.constantAsymmetry_ps);
 }
+#endif
 
 static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 {

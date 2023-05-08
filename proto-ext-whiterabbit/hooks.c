@@ -335,8 +335,6 @@ static int wr_extension_state_changed( struct pp_instance * ppi) {
 
 static int wr_new_slave (struct pp_instance *ppi, void *buf, int len) {
 	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
-		struct wr_dsport *wrp = WR_DSPOR(ppi);
-
 		wr_servo_init(ppi);
 
 		/* To avoid comparison of sequenceId with parentAnnSequenceId

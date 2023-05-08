@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <ppsi/ppsi.h>
 
 #include <libwr/util.h>
 #include <arpa/inet.h> /* for ntohl */

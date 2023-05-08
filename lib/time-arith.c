@@ -310,6 +310,6 @@ char *relative_interval_to_string(RelativeDifference time)
 			sub_yocto += bitWeight;
 		bitWeight /= 2;
 	}
-	pp_sprintf(time_as_string,"%c%"PRId32".%018Ld", sign, nsecs, sub_yocto);
+	pp_sprintf(time_as_string,"%c%"PRId32".%018"PRId64, sign, nsecs, sub_yocto);
 	return time_as_string;
 }

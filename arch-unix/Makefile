@@ -4,6 +4,9 @@ A := arch-$(ARCH)
 
 CFLAGS += -Itools
 
+# needed for --gc-sections option of ld
+PPSI_O_LDFLAGS = --entry=main
+
 OBJ-y += $A/unix-startup.o \
 	$A/main-loop.o \
 	$A/unix-io.o \
@@ -14,7 +17,8 @@ OBJ-y += $A/unix-startup.o \
 	lib/dump-funcs.o \
 	lib/drop.o \
 	lib/assert.o \
-	lib/div64.o
+	lib/div64.o \
+	lib/time-arith.o
 
 # The user can set TIME=, but we pick unix time by default
 TIME ?= unix

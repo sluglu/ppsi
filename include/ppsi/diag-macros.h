@@ -1,5 +1,8 @@
 /*
  * Macros for diagnostic prints.
+ *
+ * Copyright (C) 2011 CERN (www.cern.ch)
+ * Licenses: (LGPL-2.1 & PPSI-LGPL-Exception-1.1 | LGPL-3.0)
  */
 
 

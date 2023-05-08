@@ -159,6 +159,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/* it will be opened later for write */
+	wrs_shm_put(ppsi_head);
+
 	/* try connecting to HAL multiple times in case it's still not ready */
 	hal_retries = WRSW_HAL_RETRIES;
 	while (hal_retries) { /* may be never, if built without WR extension */

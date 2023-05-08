@@ -13,9 +13,9 @@
  */
 struct pp_runtime_opts __pp_default_rt_opts = {
 	.clock_quality_clockClass = PP_CLASS_DEFAULT,
-	.clock_quality_clockAccuracy = -1, // Not defined
-	.clock_quality_offsetScaledLogVariance = -1, // Not defined
-	.timeSource = -1, // Not defined
+	.clock_quality_clockAccuracy = CONFIG_PTP_OPT_CLOCK_ACCURACY, // Not defined
+	.clock_quality_offsetScaledLogVariance = CONFIG_PTP_OPT_CLOCK_ALLAN_VARIANCE, // Not defined
+	.timeSource = CONFIG_PTP_OPT_TIME_SOURCE, // Not defined
 	.ptpTimeScale=-1, // Not defined
 	.frequencyTraceable=-1, // Not defined
 	.timeTraceable=-1, // Not defined
@@ -40,7 +40,7 @@ struct pp_runtime_opts __pp_default_rt_opts = {
 /* These parameters can be then overwritten with the config file ppsi.conf */
 struct pp_instance_cfg __pp_default_instance_cfg = {
 		.profile=PPSI_PROFILE_PTP,
-		.delayMechanism=E2E,
+		.delayMechanism = MECH_E2E,
 		.announce_interval=PP_DEFAULT_ANNOUNCE_INTERVAL,
 		.announce_receipt_timeout=PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT,
 		.sync_interval=PP_DEFAULT_SYNC_INTERVAL,
@@ -103,7 +103,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	def->externalPortConfigurationEnabled=pp_rt_opts->externalPortConfigurationEnabled;
 	def->slaveOnly=rt_opts->slaveOnly;
 	if ( is_externalPortConfigurationEnabled(def) ) {
-		if ( def->slaveOnly ) {
+		if (is_slaveOnly(def)) {
 			pp_printf("ppsi: Incompatible configuration: SlaveOnly  and externalPortConfigurationEnabled\n");
 			def->slaveOnly=FALSE;
 		}
@@ -139,10 +139,6 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 
 	}
 
-	def->priority1 = rt_opts->priority1;
-	def->priority2 = rt_opts->priority2;
-	def->domainNumber = rt_opts->domainNumber;
-
 	for (i = 0; i < get_numberPorts(def); i++) {
 		struct pp_instance *ppi = INST(ppg, i);
 
@@ -162,7 +158,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			Enumeration8 desiradedState=ppi->cfg.desiredState;
 
 			/* Clause 17.6.5.3 : - Clause 9.2.2 shall not be in effect */
-			if ( ppi->portDS->masterOnly ) {
+			if (is_masterOnly(ppi->portDS)) {
 				/* priority given to externalPortConfigurationEnabled */
 				ppi->portDS->masterOnly=FALSE;
 				pp_printf("ppsi: Wrong configuration: externalPortConfigurationEnabled=materOnly=TRUE. materOnly set to FALSE\n");

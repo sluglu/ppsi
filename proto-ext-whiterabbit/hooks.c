@@ -57,7 +57,7 @@ static int wr_open(struct pp_instance *ppi, struct pp_runtime_opts *rt_opts)
 	   ){
 		WR_DSPOR(ppi)->wrConfig = WR_S_ONLY;
 	} else {
-		WR_DSPOR(ppi)->wrConfig = ( ppi->portDS->masterOnly ||
+		WR_DSPOR(ppi)->wrConfig = (is_masterOnly(ppi->portDS) ||
 				( is_externalPortConfigurationEnabled(DSDEF(ppi)) &&
 						ppi->externalPortConfigurationPortDS.desiredState==PPS_MASTER)) ?
 								WR_M_ONLY :
@@ -333,6 +333,23 @@ static int wr_extension_state_changed( struct pp_instance * ppi) {
 	return 0;
 }
 
+static int wr_new_slave (struct pp_instance *ppi, void *buf, int len) {
+	if ( ppi->extState==PP_EXSTATE_ACTIVE ) {
+		struct wr_dsport *wrp = WR_DSPOR(ppi);
+
+		wr_servo_init(ppi);
+
+		/* To avoid comparison of sequenceId with parentAnnSequenceId
+		 * and portIndentity with parentAnnPortIdentity set
+		 * doRestart as TRUE*/
+		if (ppi->ext_data)
+			WRH_SRV(ppi)->doRestart = TRUE;
+
+	}
+	return 0;
+}
+
+
 struct pp_ext_hooks wr_ext_hooks = {
 	.init = wr_init,
 	.open = wr_open,
@@ -342,6 +359,7 @@ struct pp_ext_hooks wr_ext_hooks = {
 	.handle_followup = wr_handle_followup,
 	.ready_for_slave = wr_ready_for_slave,
 	.run_ext_state_machine = wr_run_state_machine,
+	.new_slave = wr_new_slave,
 #if CONFIG_HAS_P2P
 	.handle_presp = wr_handle_presp,
 #endif

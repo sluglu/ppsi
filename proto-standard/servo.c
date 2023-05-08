@@ -288,8 +288,8 @@ int pp_servo_calculate_delays(struct pp_instance *ppi) {
 	if (__PP_DIAG_ALLOW(ppi, pp_dt_servo, 2)) {
 		pp_diag(ppi, servo, 2,"delayMM         : %s s\n", time_to_string(&servo->delayMM));
 		pp_diag(ppi, servo, 2,"delayMS         : %s s\n", time_to_string(&servo->delayMS));
-		pp_diag(ppi, servo, 2,"delayAsym       : %s ns\n", relative_interval_to_string(ppi->portDS->delayAsymCoeff));
-		pp_diag(ppi, servo, 2,"delayAsymCoeff  : %s ns\n", interval_to_string(ppi->portDS->delayAsymmetry));
+		pp_diag(ppi, servo, 2,"delayAsym       : %s ns\n", interval_to_string(ppi->portDS->delayAsymmetry));
+		pp_diag(ppi, servo, 2,"delayAsymCoeff  : %s ns\n", relative_interval_to_string(ppi->portDS->delayAsymCoeff));
 		pp_diag(ppi, servo, 2,"meanDelay       : %s s\n", time_to_string(&servo->meanDelay));
 		pp_diag(ppi, servo, 2,"offsetFromMaster: %s s\n", time_to_string(&servo->offsetFromMaster));
 	}

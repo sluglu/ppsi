@@ -27,7 +27,6 @@ static int next_pps_ms(struct pp_instance *ppi, struct pp_time *t)
 int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 {
 	struct pp_time t;
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int len, i;
 
 	if (new_state) {
@@ -40,7 +39,7 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 	if (pp_timeout(ppi, wrTmoIdx)) {
 		uint64_t secs = t.secs;
 
-		TOPS()->enable_timing_output(GLBS(ppi), 1);
+		TOPS(ppi)->enable_timing_output(GLBS(ppi), 1);
 
 		/* Wait for the second to tick */
 		while( TOPS(ppi)->get(ppi, &t), t.secs == secs)
@@ -49,7 +48,7 @@ int wr_abscal(struct pp_instance *ppi, void *buf, int plen, int new_state)
 		/* Send sync, no f-up -- actually we could send any frame */
 		TOPS(ppi)->get(ppi, &t);
 		len = msg_pack_sync(ppi, &t);
-		__send_and_log(ppi, len, PP_NP_EVT);
+		__send_and_log(ppi, len, PP_NP_EVT, PPM_SYNC_FMT);
 
 		/* And again next second */
 		pp_timeout_set(ppi, wrTmoIdx, next_pps_ms(ppi, &t) - 10);

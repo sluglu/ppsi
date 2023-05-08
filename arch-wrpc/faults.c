@@ -20,9 +20,9 @@ static int cmd_fault(const char *args[])
 
 	if (args[0] && !strcmp(args[0], "drop")) {
 		if (args[1])
-			fromdec(args[1], &ppg->rxdrop);
+			ppg->rxdrop = atoi(args[1]);
 		if (args[2])
-			fromdec(args[2], &ppg->txdrop);
+			ppg->txdrop = atoi(args[2]);
 		ppsi_drop_init(ppg, timer_get_tics());
 		pp_printf("dropping %i/1000 rx,  %i/1000 tx\n",
 			  ppg->rxdrop, ppg->txdrop);
@@ -30,7 +30,7 @@ static int cmd_fault(const char *args[])
 	}
 	if (args[0] && !strcmp(args[0], "delay")) {
 		if (args[1])
-			fromdec(args[1], &frame_rx_delay_us);
+			frame_rx_delay_us = atoi(args[1]);
 		pp_printf("delaying %i us on rx frame\n", frame_rx_delay_us);
 		return 0;
 	}

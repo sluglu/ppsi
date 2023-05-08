@@ -60,6 +60,7 @@ clockDegradation_t clockDegradation[]= {
 				.msg="unlocked",
 			},
 		},
+#ifndef CONFIG_CODEOPT_WRPC_SIZE
 		// PP_ARB_CLASS_GM_LOCKED
 		{
 			.clockClass=PP_ARB_CLASS_GM_LOCKED,
@@ -122,6 +123,7 @@ clockDegradation_t clockDegradation[]= {
 				.msg="unlocked",
 			}
 		},
+#endif
 		// PP_ARB_CLASS_GM_UNLOCKED_B
 		{
 			.clockClass=PP_ARB_CLASS_GM_UNLOCKED_B,
@@ -190,6 +192,7 @@ defaultDeviceAttributes_t defaultDeviceAttributes[] = {
 		   .frequencyTraceable=TRUE,
 		   .timeTraceable=TRUE,
 		},
+#ifndef CONFIG_CODEOPT_WRPC_SIZE
 		{ .clockClass =	PP_PTP_CLASS_GM_UNLOCKED_A,
 		  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED_A,
 		  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED_A,
@@ -198,6 +201,7 @@ defaultDeviceAttributes_t defaultDeviceAttributes[] = {
 		   .frequencyTraceable=FALSE,
 		   .timeTraceable=FALSE,
 		},
+#endif
 		{ .clockClass =	PP_PTP_CLASS_GM_UNLOCKED_B,
 		  .clock_quality_clockAccuracy = PP_PTP_ACCURACY_GM_UNLOCKED_B,
 		  .clock_quality_offsetScaledLogVariance = PP_PTP_VARIANCE_GM_UNLOCKED_B,
@@ -206,6 +210,7 @@ defaultDeviceAttributes_t defaultDeviceAttributes[] = {
 		   .frequencyTraceable=FALSE,
 		   .timeTraceable=FALSE,
 		},
+#ifndef CONFIG_CODEOPT_WRPC_SIZE
 		{ .clockClass =	PP_ARB_CLASS_GM_LOCKED,
 		  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_LOCKED,
 		  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_LOCKED,
@@ -230,6 +235,7 @@ defaultDeviceAttributes_t defaultDeviceAttributes[] = {
 		   .frequencyTraceable=FALSE,
 		   .timeTraceable=FALSE,
 		},
+#endif
 		{ .clockClass =	PP_ARB_CLASS_GM_UNLOCKED_B,
 		  .clock_quality_clockAccuracy = PP_ARB_ACCURACY_GM_UNLOCKED_B,
 		  .clock_quality_offsetScaledLogVariance = PP_ARB_VARIANCE_GM_UNLOCKED_B,
@@ -317,8 +323,8 @@ void bmc_update_clock_quality(struct pp_globals *ppg)
 				"Timing mode changed : %s, "
 				"clock class: %d"
 				", clock accuracy: %d"
-				", clock variance: x%04x"
-				", timeSource: x%02x"
+				", clock variance: 0x%04x"
+				", timeSource: 0x%02x"
 				", ptpTimeScale: %d"
 				", frequencyTraceable: %d"
 				", timeTraceable: %d"
@@ -342,6 +348,8 @@ void bmc_set_default_device_attributes (struct pp_globals *ppg) {
 
 	while ( pDef->clockClass!=clockClass && pDef->clockClass!=-1)
 		pDef++;
+/*	if (pDef->clockClass == -1)
+		pp_printf("%s clockClass %d not found\n", __func__, pDef->clockClass);*/
 	if ( rt_opts->clock_quality_clockAccuracy==-1 )
 		rt_opts->clock_quality_clockAccuracy=(unsigned)pDef->clock_quality_clockAccuracy;
 	if ( rt_opts->clock_quality_offsetScaledLogVariance==-1 )
@@ -372,6 +380,10 @@ void bmc_apply_configured_device_attributes(struct pp_globals *ppg) {
 	tpDS->ptpTimescale=rt_opts->ptpTimeScale;
 	tpDS->frequencyTraceable=rt_opts->frequencyTraceable;
 	tpDS->timeTraceable=rt_opts->timeTraceable;
+
+	defDS->priority1 = rt_opts->priority1;
+	defDS->priority2 = rt_opts->priority2;
+	defDS->domainNumber = rt_opts->domainNumber;
 
 }
 

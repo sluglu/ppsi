@@ -36,8 +36,7 @@ int wr_present(struct pp_instance *ppi, void *buf, int len, int new_state)
 				if ( wrMsgId == LOCK  ) {
 					wrp->next_state = WRS_S_LOCK;
 				} else {
-					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. LOCK was expected\n",wrMsgId);
-					wr_handshake_fail(ppi);
+					pp_diag(ppi, ext, 1, "WR: Invalid msgId(x%04x) received. %s was expected\n",wrMsgId, "LOCK");
 				}
 				return 0;
 			}
@@ -47,7 +46,7 @@ int wr_present(struct pp_instance *ppi, void *buf, int len, int new_state)
 			int rms=pp_next_delay_1(ppi, wrTmoIdx);
 			if (rms<=(wrp->wrStateRetry*WR_TMO_MS)) {
 				if (!rms) {
-					pp_diag(ppi, time, 1, "timeout expired: "WR_TMO_NAME"\n");
+					pp_diag(ppi, time, 1, "timeout expired: %s\n", WR_TMO_NAME);
 					wr_handshake_fail(ppi);
 					return 0; /* non-wr already */
 				}

@@ -6,9 +6,10 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include "ptpdump.h"
 #include <ppsi/ieee1588_types.h> /* from ../include */
 #include "decent_types.h"
-#include "ptpdump.h"
+#include <ppsi/lib.h>
 
 #define WR_MODE_ON_MASK 0x8
 #define CALIBRATED_MASK 0x4
@@ -65,6 +66,8 @@ static int dump_eth(char *prefix, struct ethhdr *eth)
 	unsigned char *s = eth->h_source;
 	int proto = ntohs(eth->h_proto);
 	int ret;
+	char mac_s[20];
+	char mac_d[20];
 
 	/* Between eth header and payload may be a VLAN tag;
 	 * NOTE: We cannot distinguish between both cases looking at
@@ -77,10 +80,9 @@ static int dump_eth(char *prefix, struct ethhdr *eth)
 	} else
 		ret = sizeof(struct ethhdr);
 
-	printf("%sETH: %04x (%02x:%02x:%02x:%02x:%02x:%02x -> "
-	       "%02x:%02x:%02x:%02x:%02x:%02x)\n", prefix, proto,
-	       s[0], s[1], s[2], s[3], s[4], s[5],
-	       d[0], d[1], d[2], d[3], d[4], d[5]);
+	printf("%sETH: %04x (%s -> %s)\n", prefix, proto,
+	       format_mac(mac_s, s),
+	       format_mac(mac_d, d));
 	return ret;
 }
 
@@ -413,6 +415,7 @@ static void dump_payload(char *prefix, void *pl, int len)
 			break;
 		case PPM_SIGNALING :
 			donelen += l1sync_dump_tlv(prefix, pl + donelen, n);
+			donelen += wr_dump_tlv(prefix, pl + donelen, n);
 			break;
 		default :
 			goto out;

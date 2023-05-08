@@ -12,11 +12,11 @@ extern void panic(const char *fmt, ...)
         __attribute__((format(printf,1,2)));
 
 #define assert(cond, fmt, ...) \
-	if (CONFIG_HAS_ASSERT && !(cond)) \
+	if (CONFIG_HAS_PPSI_ASSERT && !(cond)) \
 		__assert(__func__, __LINE__, 1 /* forever */, fmt, ## __VA_ARGS__)
 
 #define assert_warn(cond, fmt, ...) \
-	if (CONFIG_HAS_ASSERT && !(cond)) \
+	if (CONFIG_HAS_PPSI_ASSERT && !(cond)) \
 		__assert(__func__, __LINE__, 0 /* once */, fmt, ## __VA_ARGS__)
 
 

@@ -6,8 +6,11 @@
  * Released according to the GNU LGPL, version 2.1 or any later version.
  */
 #include <ppsi/ppsi.h>
-#include "pps_gen.h" /* in wrpc-sw */
-#include "syscon.h" /* in wrpc-sw */
+#include "dev/pps_gen.h" /* in wrpc-sw */
+#include "dev/syscon.h" /* in wrpc-sw */
+#include "../arch-wrpc/wrpc.h"
+
+static int utcOffset = CONFIG_LEAP_SECONDS_VAL;
 
 static int wrpc_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minutes, int *seconds)
 {
@@ -20,29 +23,15 @@ static int wrpc_time_get_utc_time(struct pp_instance *ppi, int *hours, int *minu
 
 static int wrpc_time_get_utc_offset(struct pp_instance *ppi, int *offset, int *leap59, int *leap61)
 {
-	/* no UTC offset */
 	*leap59 = 0;
 	*leap61 = 0;
-	*offset = 0;
-	return -1;	
+	*offset = utcOffset;
+	return 0;
 }
 
 static int wrpc_time_set_utc_offset(struct pp_instance *ppi, int offset, int leap59, int leap61) 
 {
-	/* no UTC offset */
-	return -1;
-}
-
-static int wrpc_time_get_servo_state(struct pp_instance *ppi, int *state)
-{
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	int locked;
-	
-	locked = wrp->ops->locking_poll(ppi, 1);
-	if (locked == WR_SPLL_READY)
-		*state = PP_SERVO_LOCKED;
-	else
-		*state = PP_SERVO_UNLOCKED;
+	utcOffset = offset;
 	return 0;
 }
 
@@ -105,11 +94,12 @@ struct pp_time_operations wrpc_time_ops = {
 	.get_utc_time = wrpc_time_get_utc_time,
 	.get_utc_offset = wrpc_time_get_utc_offset,
 	.set_utc_offset = wrpc_time_set_utc_offset,
-	.get_servo_state = wrpc_time_get_servo_state,
 	.get = wrpc_time_get,
 	.set = wrpc_time_set,
 	.adjust = wrpc_time_adjust,
 	.adjust_offset = wrpc_time_adjust_offset,
 	.adjust_freq = NULL,
 	.calc_timeout = wrpc_calc_timeout,
+	.get_GM_lock_state = wrpc_get_GM_lock_state,
+	.enable_timing_output = wrpc_enable_timing_output,
 };

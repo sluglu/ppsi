@@ -20,7 +20,7 @@ struct pp_runtime_opts {
 	int clock_quality_clockAccuracy;              // ClockQuality.clockAccuracy
 	int clock_quality_offsetScaledLogVariance;    // ClockQuality.offsetScaledLogVariance
 	int timeSource;                               // timePropertiesDS_t.timeSource
-	Boolean ptpTimeScale;                         // timePropertiesDS_t.timeSource
+	Boolean ptpTimeScale;                         // timePropertiesDS_t.timeScale
 	Boolean frequencyTraceable;                   // timePropertiesDS_t.frequencyTraceable
 	Boolean timeTraceable;                        // timePropertiesDS_t.timeTraceable
 	Integer32 ttl;
@@ -95,6 +95,7 @@ struct pp_frgn_master {
 	unsigned long lastAnnounceMsgMs; // Last time in ms when the announce message was received
 	/* used by extension */
 	UInteger16      ext_specific[4]; /* Extension specific. Must be  UInteger16 to align it in the structure*/
+	unsigned char peer_mac[6];
 };
 
 /*
@@ -243,7 +244,7 @@ struct pp_instance {
 
 	/* The net_path used to be allocated separately, but there's no need */
 	struct pp_channel ch[__NR_PP_NP];	/* general and event ch */
-	Integer32 mcast_addr[2];		/* only ipv4/udp */
+	Integer32 mcast_addr[MECH_MAX_SUPPORTED + 1];	/* only ipv4/udp */
 	int tx_offset, rx_offset;		/* ptp payload vs send/recv */
 	unsigned char peer[6];			/* Our peer's MAC address from last received msg*/
 	unsigned char activePeer[6];	/* Our peer's MAC address we talk with */

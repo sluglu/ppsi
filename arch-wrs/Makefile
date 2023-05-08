@@ -5,6 +5,10 @@ A := arch-$(ARCH)
 SIZE =		$(CROSS_COMPILE)size
 
 CFLAGS += -Itools
+
+# needed for --gc-sections option of ld
+PPSI_O_LDFLAGS = --entry=main
+
 # Prevent a warning for a missing prototype in pp_printf, bug since ever
 ARCH_PP_PRINTF_CFLAGS += -include ../$A/include/strnlen.h
 

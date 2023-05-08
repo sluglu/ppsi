@@ -308,6 +308,9 @@ int wrs_locking_poll(struct pp_instance *ppi)
 	char *pp_diag_msg;
 	char text[128];
 
+	/* Wait 10ms between checks when polling */
+	usleep(10 * 1000);
+
 	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_lock_cmd,
 			  &rval, ppi->iface_name, HEXP_LOCK_CMD_CHECK, 0);
 	if ( ret<0 ) {

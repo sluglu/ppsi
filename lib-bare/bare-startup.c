@@ -43,7 +43,7 @@ static struct pp_instance ppi_static = {
 	.port_name 		= "eth0",
 	.vlans_array_len	= CONFIG_VLAN_ARRAY_SIZE,
 	.proto			= PP_DEFAULT_PROTO,
-	.delayMechanism			= CONFIG_HAS_P2P ? P2P : E2E,
+	.delayMechanism			= CONFIG_HAS_P2P ? MECH_P2P : MECH_E2E,
 	.__tx_buffer		= __tx_buffer,
 	.__rx_buffer		= __rx_buffer,
 };

@@ -223,6 +223,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+#if 0
 char *format_hex(char *s, const unsigned char *mac, int cnt)
 {
 	int i;
@@ -246,3 +247,4 @@ char *format_mac(char *s, const unsigned char *mac)
 	format_hex(s, mac, 6);
 	return s;
 }
+#endif

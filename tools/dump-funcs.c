@@ -486,7 +486,10 @@ static char *format_hex(char *s, const unsigned char *mac, int cnt)
 	int i;
 	*s = '\0';
 	for (i = 0; i < cnt; i++) {
-		pp_sprintf(s, "%s%02x:", s, mac[i]);
+#ifdef CONFIG_WR_NODE
+#define sprintf pp_sprintf
+#endif
+		sprintf(s + 3 * i, "%02x:", mac[i]);
 	}
 
 	/* remove last colon */

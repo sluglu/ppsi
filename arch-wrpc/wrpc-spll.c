@@ -16,8 +16,6 @@
 #include "../include/hw-specific/wrh.h"
 #include "wrpc.h"
 
-extern uint32_t cal_phase_transition;
-
 int wrpc_spll_locking_enable(struct pp_instance *ppi)
 {
 	if (wrc_ptp_get_mode() == WRC_MODE_GM) {

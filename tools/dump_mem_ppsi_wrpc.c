@@ -88,7 +88,6 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(UInteger16, stepsRemoved),
 	DUMP_FIELD(TimeInterval, offsetFromMaster),
 	DUMP_FIELD(TimeInterval, meanDelay), /* oneWayDelay */
-	DUMP_FIELD(UInteger16, primarySlavePortNumber),
 
 
 #undef DUMP_STRUCT

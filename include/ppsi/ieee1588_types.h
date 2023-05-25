@@ -247,9 +247,6 @@ typedef struct {		/* page 67 */
 	UInteger16	stepsRemoved;
 	TimeInterval	offsetFromMaster; /* page 112 */
 	TimeInterval	meanDelay; /* page 112 : one Way Delay */
-	/* White Rabbit extension begin */
-	UInteger16	primarySlavePortNumber;
-	/* White Rabbit extension end */
 } currentDS_t;
 
 /* Parent Data Set */

@@ -9,7 +9,7 @@
  * These are the functions provided by the various unix files
  */
 
-#define POSIX_ARCH(ppg) ((struct unix_arch_data *)(ppg->arch_data))
+#define POSIX_ARCH(ppg) ((struct unix_arch_data *)(ppg->arch_glbl_data))
 struct unix_arch_data {
 	struct timeval tv;
 };

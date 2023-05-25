@@ -30,7 +30,7 @@ struct dump_info  dump_ppsi_info[] = {
 
 	DUMP_FIELD(int, rxdrop),
 	DUMP_FIELD(int, txdrop),
-	DUMP_FIELD(pointer, arch_data),
+	DUMP_FIELD(pointer, arch_glbl_data),
 	DUMP_FIELD(pointer, global_ext_data),
 
 
@@ -214,7 +214,7 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(int, next_delay),
 	DUMP_FIELD(yes_no, is_new_state),
 	DUMP_FIELD(pointer, current_state_item),
-	DUMP_FIELD(pointer, arch_data),
+	DUMP_FIELD(pointer, arch_inst_data),
 	DUMP_FIELD(pointer, ext_data),
 	DUMP_FIELD(protocol_extension, protocol_extension),
 	DUMP_FIELD(pointer, ext_hooks),
@@ -235,12 +235,12 @@ struct dump_info  dump_ppsi_info[] = {
 	/* This is a sub-structure */
 	DUMP_FIELD(int, ch[0].fd),
 	DUMP_FIELD(pointer, ch[0].custom),
-	DUMP_FIELD(pointer, ch[0].arch_data),
+	DUMP_FIELD(pointer, ch[0].arch_chan_data),
 	DUMP_FIELD_SIZE(bina, ch[0].addr, 6),
 	DUMP_FIELD(yes_no, ch[0].pkt_present),
 	DUMP_FIELD(int, ch[1].fd),
 	DUMP_FIELD(pointer, ch[1].custom),
-	DUMP_FIELD(pointer, ch[1].arch_data),
+	DUMP_FIELD(pointer, ch[1].arch_chan_data),
 	DUMP_FIELD_SIZE(bina, ch[1].addr, 6),
 	DUMP_FIELD(yes_no, ch[1].pkt_present),
 
@@ -392,9 +392,9 @@ void dump_mem_ppsi_wrpc(void *mapaddr, unsigned long ppg_off)
 	dump_many_fields(mapaddr + ppg_off, "pp_globals", prefix);
 
 	arch_data_offset = wrpc_get_pointer(mapaddr + ppg_off,
-					"pp_globals", "arch_data");
+					"pp_globals", "arch_glbl_data");
 	if (arch_data_offset) {
-		prefix = "ppsi.arch_data";
+		prefix = "ppsi.arch_glbl_data";
 		printf("%s at 0x%lx\n", prefix, arch_data_offset);
 		dump_many_fields(mapaddr + arch_data_offset, "wrpc_arch_data_t",
 				 prefix);

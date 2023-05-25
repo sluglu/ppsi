@@ -228,7 +228,7 @@ static int wrs_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	struct scm_timestamping *sts = NULL;
 	struct tpacket_auxdata *aux = NULL;
 
-	s = (struct wrs_socket*)ppi->ch[PP_NP_GEN].arch_data;
+	s = (struct wrs_socket*)ppi->ch[PP_NP_GEN].arch_chan_data;
 
 	memset(&msg, 0, sizeof(msg));
 	msg.msg_iov = &entry;
@@ -505,7 +505,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,enum pp_msg_
 	int ret, fd, drop;
 	char prefix[32];
 
-	s = (struct wrs_socket *)ppi->ch[PP_NP_GEN].arch_data;
+	s = (struct wrs_socket *)ppi->ch[PP_NP_GEN].arch_chan_data;
 
 	/*
 	 * To fake a packet loss, we must corrupt the frame; we need
@@ -661,7 +661,7 @@ static int wrs_net_init(struct pp_instance *ppi)
 	int r, i;
 	struct hal_port_state *p;
 
-	if (ppi->ch[PP_NP_GEN].arch_data)
+	if (ppi->ch[PP_NP_GEN].arch_chan_data)
 		wrs_net_exit(ppi);
 
 	/* Generic OS work is done by standard Unix stuff */
@@ -695,15 +695,15 @@ static int wrs_net_init(struct pp_instance *ppi)
 
 	s->dmtd_phase_valid = 0;
 
-	ppi->ch[PP_NP_GEN].arch_data = s;
-	ppi->ch[PP_NP_EVT].arch_data = s;
+	ppi->ch[PP_NP_GEN].arch_chan_data = s;
+	ppi->ch[PP_NP_EVT].arch_chan_data = s;
 	tmo_init(&s->dmtd_update_tmo, DMTD_UPDATE_INTERVAL);
 
 	for (i = PP_NP_GEN, r = 0; i <= PP_NP_EVT && r == 0; i++)
 		r = wrs_enable_timestamps(ppi, ppi->ch[i].fd);
 	if (r) {
-		ppi->ch[PP_NP_GEN].arch_data = NULL;
-		ppi->ch[PP_NP_EVT].arch_data = NULL;
+		ppi->ch[PP_NP_GEN].arch_chan_data = NULL;
+		ppi->ch[PP_NP_EVT].arch_chan_data = NULL;
 		free(s);
 	}
 	return r;
@@ -712,9 +712,9 @@ static int wrs_net_init(struct pp_instance *ppi)
 static int wrs_net_exit(struct pp_instance *ppi)
 {
 	unix_net_ops.exit(ppi);
-	free(ppi->ch[PP_NP_GEN].arch_data);
-	ppi->ch[PP_NP_GEN].arch_data = NULL;
-	ppi->ch[PP_NP_EVT].arch_data = NULL;
+	free(ppi->ch[PP_NP_GEN].arch_chan_data);
+	ppi->ch[PP_NP_GEN].arch_chan_data = NULL;
+	ppi->ch[PP_NP_EVT].arch_chan_data = NULL;
 	return 0;
 }
 

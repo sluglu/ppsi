@@ -25,7 +25,7 @@ struct dump_info ppg_info [] = {
 	
 	DUMP_FIELD(int, rxdrop),
 	DUMP_FIELD(int, txdrop),
-	DUMP_FIELD(pointer, arch_data),
+	DUMP_FIELD(pointer, arch_glbl_data),
 	DUMP_FIELD(pointer, global_ext_data),
 };
 
@@ -238,7 +238,7 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(yes_no, is_new_state),
 	DUMP_FIELD(exstate,extState),
 	DUMP_FIELD(pp_pdstate,pdstate),
-	DUMP_FIELD(pointer, arch_data),
+	DUMP_FIELD(pointer, arch_inst_data),
 	DUMP_FIELD(pointer, ext_data),
 	DUMP_FIELD(protocol_extension, protocol_extension),
 	DUMP_FIELD(pointer, ext_hooks),
@@ -260,12 +260,12 @@ struct dump_info ppi_info [] = {
 	/* This is a sub-structure */
 	DUMP_FIELD(int, ch[0].fd),
 	DUMP_FIELD(pointer, ch[0].custom),
-	DUMP_FIELD(pointer, ch[0].arch_data),
+	DUMP_FIELD(pointer, ch[0].arch_chan_data),
 	DUMP_FIELD_SIZE(bina, ch[0].addr, 6),
 	DUMP_FIELD(yes_no, ch[0].pkt_present),
 	DUMP_FIELD(int, ch[1].fd),
 	DUMP_FIELD(pointer, ch[1].custom),
-	DUMP_FIELD(pointer, ch[1].arch_data),
+	DUMP_FIELD(pointer, ch[1].arch_chan_data),
 	DUMP_FIELD_SIZE(bina, ch[1].addr, 6),
 	DUMP_FIELD(yes_no, ch[1].pkt_present),
 
@@ -783,7 +783,7 @@ int dump_ppsi_mem(struct wrs_shm_head *head)
 #if CONFIG_ARCH_IS_WRS
 	{
 		wrs_arch_data_t *arch_data=wrs_shm_follow(head, WRS_ARCH_G(ppg));
-		dump_many_fields(arch_data, wrs_arch_data_info, ARRAY_SIZE(wrs_arch_data_info),"ppsi.arch_data");
+		dump_many_fields(arch_data, wrs_arch_data_info, ARRAY_SIZE(wrs_arch_data_info),"ppsi.arch_inst_data");
 	}
 #endif
 

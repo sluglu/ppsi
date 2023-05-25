@@ -37,12 +37,10 @@ static inline struct hal_port_state *pp_wrs_lookup_port(char *name)
 
 #define DEFAULT_TO 200000 /* ms */
 
-#define POSIX_ARCH(ppg) ((struct unix_arch_data *)(ppg->arch_data))
+#define POSIX_ARCH(ppg) ((struct unix_arch_data *)(ppg->arch_glbl_data))
 struct unix_arch_data {
 	struct timeval tv;
 };
-
-#define WRH_GLOBAL_ARCH(ppg) ((wrs_arch_data *)(ppg->arch_data))
 
 typedef struct  wrs_arch_data_t {
 	struct unix_arch_data unix_data; // Must be kept at first position
@@ -53,12 +51,12 @@ typedef struct  wrs_arch_data_t {
 
 static inline wrs_arch_data_t *WRS_ARCH_I(struct pp_instance *ppi)
 {
-	return (wrs_arch_data_t *) GLBS(ppi)->arch_data;
+	return (wrs_arch_data_t *) GLBS(ppi)->arch_glbl_data;
 }
 
 static inline wrs_arch_data_t *WRS_ARCH_G(struct pp_globals *ppg)
 {
-	return (wrs_arch_data_t *) ppg->arch_data;
+	return (wrs_arch_data_t *) ppg->arch_glbl_data;
 }
 
 extern void wrs_main_loop(struct pp_globals *ppg);

@@ -101,7 +101,7 @@ struct pp_globals ppg_static = {
 	.max_links		= PP_MAX_LINKS,
 	.nlinks			= 1,
 	/* rt_opts set by pp_init_globals */
-	.arch_data = &wrpc_arch_data,
+	.arch_glbl_data = &wrpc_arch_data,
 };
 
 

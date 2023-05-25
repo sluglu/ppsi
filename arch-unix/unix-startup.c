@@ -54,10 +54,10 @@ int main(int argc, char **argv)
 
 	/* We are hosted, so we can allocate */
 	ppg->max_links = PP_MAX_LINKS;
-	ppg->arch_data = calloc(1, sizeof(struct unix_arch_data));
+	ppg->arch_glbl_data = calloc(1, sizeof(struct unix_arch_data));
 	ppg->pp_instances = calloc(ppg->max_links, sizeof(struct pp_instance));
 
-	if ((!ppg->arch_data) || (!ppg->pp_instances)) {
+	if ((!ppg->arch_glbl_data) || (!ppg->pp_instances)) {
 		fprintf(stderr, "ppsi: out of memory\n");
 		exit(1);
 	}

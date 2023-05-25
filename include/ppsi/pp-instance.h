@@ -66,7 +66,7 @@ struct pp_channel {
 		int fd;		/* Posix wants fid descriptor */
 		void *custom;	/* Other archs want other stuff */
 	};
-	void *arch_data;	/* Other arch-private info, if any */
+	void *arch_chan_data;	/* Other arch-private info, if any */
 	unsigned char addr[PP_MAC_ADRESS_SIZE];	/* Our own MAC address */
 	int pkt_present;
 };
@@ -217,7 +217,7 @@ struct pp_instance {
 	int state;
 	int next_state, next_delay, is_new_state; /* set by state processing */
 	const struct pp_state_table_item *current_state_item;
-	void *arch_data;		/* if arch needs it */
+	void *arch_inst_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
 	int protocol_extension; /* PPSI_EXT_NONE, PPSI_EXT_WR, PPSI_EXT_L1S */
 	const struct pp_ext_hooks *ext_hooks; /* if protocol ext needs it */
@@ -331,7 +331,7 @@ struct pp_globals {
 
 	int rxdrop, txdrop;		/* fault injection, per thousand */
 
-	void *arch_data;		/* if arch needs it */
+	void *arch_glbl_data;		/* if arch needs it */
 	void *global_ext_data;		/* if protocol ext needs it */
 
 	/* FIXME Here include all is common to many interfaces */

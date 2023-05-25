@@ -36,8 +36,8 @@ struct pp_sim_net_delay {
  * chtype is the channel and delay_ns is the time that should pass from when the
  * packet is sent until it will be received from the destination.
  * Every time a packet is sent a structure like this is filled and stored in the
- * ppg->arch_data so that we always know which is the first packet that has to
- * be received and when.
+ * ppg->arch_glbl_data so that we always know which is the first packet that
+ * has to be received and when.
  */
 struct sim_pending_pkt {
 	int64_t delay_ns;
@@ -64,7 +64,7 @@ struct sim_ppg_arch_data {
 
 static inline struct sim_ppg_arch_data *SIM_PPG_ARCH(struct pp_globals *ppg)
 {
-	return (struct sim_ppg_arch_data *)(ppg->arch_data);
+	return (struct sim_ppg_arch_data *)(ppg->arch_glbl_data);
 }
 
 /*
@@ -101,7 +101,7 @@ struct sim_ppi_arch_data {
 
 static inline struct sim_ppi_arch_data *SIM_PPI_ARCH(struct pp_instance *ppi)
 {
-	return (struct sim_ppi_arch_data *)(ppi->arch_data);
+	return (struct sim_ppi_arch_data *)(ppi->arch_inst_data);
 }
 
 static inline struct pp_instance *pp_sim_get_master(struct pp_globals *ppg)

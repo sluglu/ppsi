@@ -105,8 +105,8 @@ const struct wrh_operations wrh_oper = {
 /*
  * In arch-sim we use two pp_instances in the same pp_globals to represent
  * two different machines. This means *completely differnt* machines, with
- * their own Data Sets. Given we can't put more all the different Data Sets
- * in the same ppg, we stored them in the ppi->arch_data of every instance.
+ * their own Data Sets. Given we can't put more all the different Data Sets in
+ * the same ppg, we stored them in the ppi->arch_inst_data of every instance.
  * This function is used to set the inner Data Sets pointer of the ppg to
  * point to the Data Sets related to the pp_instange passed as argument
  */
@@ -148,9 +148,9 @@ static int sim_ppi_init(struct pp_instance *ppi, int which_ppi)
 	ppi->proto = PP_DEFAULT_PROTO;
 	ppi->__tx_buffer = malloc(PP_MAX_FRAME_LENGTH);
 	ppi->__rx_buffer = malloc(PP_MAX_FRAME_LENGTH);
-	ppi->arch_data = calloc(1, sizeof(struct sim_ppi_arch_data));
+	ppi->arch_inst_data = calloc(1, sizeof(struct sim_ppi_arch_data));
 	ppi->portDS = calloc(1, sizeof(*ppi->portDS));
-	if ((!ppi->arch_data) || (!ppi->portDS))
+	if ((!ppi->arch_inst_data) || (!ppi->portDS))
 		return -1;
 
 	ppi->ext_hooks=&pp_hooks;
@@ -220,10 +220,10 @@ int main(int argc, char **argv)
 
 	ppg = calloc(1, sizeof(struct pp_globals));
 	ppg->max_links = 2; // master and slave, nothing else
-	ppg->arch_data = calloc(1, sizeof(struct sim_ppg_arch_data));
+	ppg->arch_glbl_data = calloc(1, sizeof(struct sim_ppg_arch_data));
 	ppg->pp_instances = calloc(ppg->max_links, sizeof(struct pp_instance));
 
-	if ((!ppg->arch_data) || (!ppg->pp_instances))
+	if ((!ppg->arch_glbl_data) || (!ppg->pp_instances))
 		return -1;
 
 	/* Alloc data stuctures inside the pp_instances */

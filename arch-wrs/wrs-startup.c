@@ -229,11 +229,11 @@ int main(int argc, char **argv)
 
 	ppg->max_links = PP_MAX_LINKS;
 
-	ppg->arch_data = wrs_shm_alloc(ppsi_head, sizeof(wrs_arch_data_t));
+	ppg->arch_glbl_data = wrs_shm_alloc(ppsi_head, sizeof(wrs_arch_data_t));
 	ppg->pp_instances = wrs_shm_alloc(ppsi_head,
 				     ppg->max_links * sizeof(struct pp_instance));
 
-	if ((!ppg->arch_data) || (!ppg->pp_instances)) {
+	if ((!ppg->arch_glbl_data) || (!ppg->pp_instances)) {
 		fprintf(stderr, "ppsi: out of memory\n");
 		exit(1);
 	}

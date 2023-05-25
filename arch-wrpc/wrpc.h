@@ -95,12 +95,12 @@ int32_t wrpc_get_clock_period(void);
 
 static inline wrpc_arch_data_t *WRPC_ARCH_I(struct pp_instance *ppi)
 {
-	return (wrpc_arch_data_t *) GLBS(ppi)->arch_data;
+	return (wrpc_arch_data_t *) GLBS(ppi)->arch_glbl_data;
 }
 
 static inline wrpc_arch_data_t *WRPC_ARCH_G(struct pp_globals *ppg)
 {
-	return (wrpc_arch_data_t *) ppg->arch_data;
+	return (wrpc_arch_data_t *) ppg->arch_glbl_data;
 }
 
 static inline void wrc_ptp_get_leapsec(int *ptp, int *system)

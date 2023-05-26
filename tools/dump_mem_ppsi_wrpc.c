@@ -751,7 +751,6 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 	case dump_type_ppi_state:
 	case dump_type_ppi_state_Enumeration8:
 		switch(i) {
-		ENUM_TO_P_IN_CASE(PPS_END_OF_TABLE, char_p);
 		ENUM_TO_P_IN_CASE(PPS_INITIALIZING, char_p);
 		ENUM_TO_P_IN_CASE(PPS_FAULTY, char_p);
 		ENUM_TO_P_IN_CASE(PPS_DISABLED, char_p);
@@ -761,6 +760,7 @@ void dump_one_field_ppsi_wrpc(int type, int size, void *p, int i)
 		ENUM_TO_P_IN_CASE(PPS_PASSIVE, char_p);
 		ENUM_TO_P_IN_CASE(PPS_UNCALIBRATED, char_p);
 		ENUM_TO_P_IN_CASE(PPS_SLAVE, char_p);
+		ENUM_TO_P_IN_CASE(PPS_LAST_STATE, char_p);
 		default:
 			char_p = "Unknown";
 		}

@@ -372,10 +372,8 @@ typedef enum  {
 	PPS_SLAVE,
 #ifdef CONFIG_ABSCAL
 	PPS_ABSCAL,  /* not standard */
-	PPS_LAST_STATE=PPS_ABSCAL
-#else
-	PPS_LAST_STATE=PPS_SLAVE
 #endif
+	PPS_LAST_STATE /* unused */
 }pp_std_states;
 
 typedef enum  {

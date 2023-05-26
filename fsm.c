@@ -68,32 +68,25 @@ static void pp_diag_fsm(struct pp_instance *ppi, const char *name, int sequence,
 static const struct pp_state_table_item *
 get_current_state_table_item(struct pp_instance *ppi)
 {
-	const struct pp_state_table_item *ip = ppi->current_state_item;
+	const struct pp_state_table_item *cur_ip = ppi->current_state_item;
+	const struct pp_state_table_item *nxt_ip = &pp_state_table[ppi->state];
 
-	/* Avoid searching if we already know where we are */
-	ppi->is_new_state = 0;
-	if (ip && ip->state == ppi->state)
-		return ip;
-	ppi->is_new_state = 1;
+	if (cur_ip == nxt_ip) {
+		ppi->is_new_state = 0;
+	}
+	else {
+		ppi->is_new_state = 1;
+		ppi->current_state_item = nxt_ip;
+	}
 
-	/* a linear search is affordable up to a few dozen items */
-	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE; ip++)
-		if (ip->state == ppi->state) {
-			ppi->current_state_item = ip;
-			return ip;
-		}
-	return NULL;
+	return nxt_ip;
 }
 
-const char *get_state_as_string(struct pp_instance *ppi, int state) {
-	static char *def="INVALID";
-	const struct pp_state_table_item *ip = ppi->current_state_item;
-
-	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE; ip++)
-		if (ip->state == state) {
-			return ip->name;
-		}
-	return def;
+const char *get_state_as_string(struct pp_instance *ppi, int state)
+{
+	if (state >= 0 && state < PPS_LAST_STATE)
+		return pp_state_table[state].name;
+	return "INVALID";
 }
 
 /*
@@ -111,7 +104,8 @@ int pp_leave_current_state(struct pp_instance *ppi)
 	}
 	
 	/* if the next or old state is non standard PTP reset all timeouts */
-	if ((ppi->state > PPS_LAST_STATE) || (ppi->next_state > PPS_LAST_STATE))
+	if ((ppi->state >= PPS_LAST_STATE)
+	    || (ppi->next_state >= PPS_LAST_STATE))
 		pp_timeout_setall(ppi);
 
 	ppi->state = ppi->next_state;

@@ -425,12 +425,11 @@ int is_timestamp_incorrect_thres(struct pp_instance *ppsi, int *err_count, int t
 typedef int pp_action(struct pp_instance *ppi, void *buf, int len);
 
 struct pp_state_table_item {
-	int state;
 	const char *name;
 	pp_action *f1;
 };
 
-extern const struct pp_state_table_item pp_state_table[]; /* 0-terminated */
+extern const struct pp_state_table_item pp_state_table[];
 
 /* Convert current state as a string value */
 const char *get_state_as_string(struct pp_instance *ppi, int state);

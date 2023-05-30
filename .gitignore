@@ -7,7 +7,7 @@ ppsi.bin
 /ppsi
 
 *.cmd
-*.o
+*.d
 .tmp_*
 .config
 .config.old

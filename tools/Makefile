@@ -20,10 +20,13 @@ all: $(PROGS)
 $(PROGS): $(wildcard *.h) $(wildcard ../include/ppsi/*.h)
 
 %: %.c
-	$(CC) $(CFLAGS) $*.c $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $*.c $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
+
+dump-funcs.o: ../lib/dump-funcs.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 ptpdump: dump-main.o dump-funcs.o
 	$(CC) $(LDFLAGS) dump-main.o dump-funcs.o -o $@

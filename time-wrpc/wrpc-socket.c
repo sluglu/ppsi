@@ -10,6 +10,7 @@
 #include "../arch-wrpc/wrpc.h"
 #include "dev/syscon.h" /* wrpc-sw */
 #include "dev/endpoint.h" /* wrpc-sw */
+#include "dev/netif.h"
 #include "net.h"
 #include "board.h"
 
@@ -32,6 +33,7 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	const unsigned char *mac;
 	struct wr_sockaddr addr;
 	char *macaddr = PP_MCAST_MACADDRESS;
+	struct wrc_netif_device *nif = netif_get_device(0);
 
 	if ( is_delayMechanismP2P(ppi) )
 		macaddr = PP_PDELAY_MACADDRESS;
@@ -39,7 +41,7 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	memcpy(addr.mac, macaddr, sizeof(mac_addr_t));
 	sock = ptpd_netif_create_socket
 	  (GET_WRPC_SOCKET(ptp_socket), LEN_WRPC_SOCKET(ptp_socket),
-	   &addr, PTPD_SOCK_RAW_ETHERNET, 0);
+	   &addr, PTPD_SOCK_RAW_ETHERNET, 0, nif);
 	if (!sock)
 		return -1;
 

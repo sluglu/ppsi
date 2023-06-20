@@ -283,8 +283,6 @@ struct dump_info ppi_info [] = {
 	DUMP_FIELD(time, t5),
 	DUMP_FIELD(time, t6),
 	DUMP_FIELD(uint64_t, syncCF),
-	DUMP_FIELD(Integer32, t4_cf),
-	DUMP_FIELD(Integer32, t6_cf),
 	DUMP_FIELD(time, last_rcv_time),
 	DUMP_FIELD(time, last_snt_time),
 	DUMP_FIELD(UInteger16, frgn_rec_num),
@@ -686,7 +684,6 @@ void dump_one_field_ppsi_wrs(int type, int size, void *p, int i)
 		ENUM_TO_P_IN_CASE(WRS_CALIBRATED, char_p);
 		ENUM_TO_P_IN_CASE(WRS_RESP_CALIB_REQ, char_p);
 		ENUM_TO_P_IN_CASE(WRS_WR_LINK_ON, char_p);
-		ENUM_TO_P_IN_CASE(WRS_ABSCAL, char_p);
 		ENUM_TO_P_IN_CASE(WRS_MAX_STATES, char_p);
 		default:
 			char_p = "Unknown";

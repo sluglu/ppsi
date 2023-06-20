@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/timex.h>
 #include <ppsi/ppsi.h>
+#include "../arch-unix/include/ppsi-unix.h"
 
 #ifndef MOD_TAI
 #define MOD_TAI 0x80
@@ -280,6 +281,29 @@ static unsigned long unix_calc_timeout(struct pp_instance *ppi, int millisec)
 	return now_ms + millisec;
 }
 
+static int unix_get_GM_lock_state(struct pp_globals *ppg,
+				  pp_timing_mode_state_t *state)
+{
+	*state = PP_TIMING_MODE_STATE_LOCKED;
+	return 0;
+
+}
+
+static int unix_enable_timing_output(struct pp_globals *ppg, int enable)
+{
+	static int prev_enable = 0;
+
+	if (prev_enable != enable) {
+		pp_diag(NULL, time, 2, "%s dummy timing output\n",
+			enable ? "enable" : "disable");
+		prev_enable = enable;
+
+		return 0;
+	}
+
+	return 0;
+}
+
 const struct pp_time_operations unix_time_ops = {
 	.get_utc_time = unix_time_get_utc_time,
 	.get_utc_offset = unix_time_get_utc_offset,
@@ -291,5 +315,6 @@ const struct pp_time_operations unix_time_ops = {
 	.adjust_freq = unix_time_adjust_freq,
 	.init_servo = unix_time_init_servo,
 	.calc_timeout = unix_calc_timeout,
+	.get_GM_lock_state = unix_get_GM_lock_state,
+	.enable_timing_output = unix_enable_timing_output
 };
-

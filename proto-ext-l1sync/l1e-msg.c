@@ -6,6 +6,7 @@
  */
 
 #include <ppsi/ppsi.h>
+#include "l1e-constants.h"
 
 #define MSG_OFFSET_HEADER 0u
 #define MSG_OFFSET_HEADER_MESSAGE_LENGTH (MSG_OFFSET_HEADER+2u)

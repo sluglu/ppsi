@@ -36,23 +36,48 @@ arch-spec-o = $(patsubst %.c,%.o,$(arch-spec-c))
 OBJ-y += $(arch-spec-o)
 
 # build symbolic links for libwr
-hal_headers = hal_shmem.h \
+libwr_headers = hal_shmem.h \
 	generic_fsm.h\
 	sfp_lib.h\
 	util.h\
 	shmem.h	\
 	timeout.h
 
-hal_headers_in_ppsi= $(addprefix $A/include/libwr/,$(hal_headers))
+libwr_headers_in_ppsi= $(addprefix $A/include/libwr/,$(libwr_headers))
 
 all: $(TARGET)
+$(arch-spec-o) : $(libwr_headers_in_ppsi)
 
-$(arch-spec-o) : $(hal_headers_in_ppsi)
 
-$(hal_headers_in_ppsi):
+$(libwr_headers_in_ppsi):
+	@f=$(notdir $@); \
+	echo "Creating symbolic link to include/libwr/$$f";\
+	ln -sf ../../../../libwr/include/libwr/$$f  $@
+
+# build symbolic links for source files in libwr
+libwr_source = hal_minirpc.c
+
+libwr_source_in_ppsi= $(addprefix $A,/$(libwr_source))
+
+$(arch-spec-o) : $(libwr_source_in_ppsi)
+
+$(libwr_source_in_ppsi):
 	@f=$(notdir $@); \
 	echo "Creating symbolic link to $$f";\
-	ln -sf ../../../../libwr/include/libwr/$$f  $@
+	ln -sf ../../libwr/$$f  $@
+
+# build symbolic links for userspace files from wrs
+wrs_userspace_headers = hal_exports.h
+
+wrs_userspace_headers_in_ppsi = $(addprefix $A/include/,$(wrs_userspace_headers))
+
+$(arch-spec-o): $(wrs_userspace_headers_in_ppsi)
+
+$(wrs_userspace_headers_in_ppsi):
+	@f=$(notdir $@); \
+	echo "Creating symbolic link to include/$$f";\
+	ln -sf ../../../include/$$f  $@
+
 
 export size_db_file:=size_wrs_db.txt
 export size_info_file:=size_wrs_info.txt
@@ -77,7 +102,10 @@ $(MINIPC_LIB):
 OBJ-y += $(MINIPC_LIB)
 
 clean::
-	rm -f $(hal_headers_in_ppsi)
+	rm -f \
+		$(libwr_headers_in_ppsi) \
+		$(libwr_source_in_ppsi) \
+		$(wrs_userspace_headers_in_ppsi)
 
 # to build the target, we need -lstd again, in case we call functions that
 # were not selected yet (e.g., pp_init_globals() ).

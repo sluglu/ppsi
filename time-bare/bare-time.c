@@ -147,6 +147,29 @@ static unsigned long bare_calc_timeout(struct pp_instance *ppi, int millisec)
 	return now_ms + millisec;
 }
 
+static int bare_get_GM_lock_state(struct pp_globals *ppg,
+				  pp_timing_mode_state_t *state)
+{
+	*state = PP_TIMING_MODE_STATE_LOCKED;
+	return 0;
+
+}
+
+static int bare_enable_timing_output(struct pp_globals *ppg, int enable)
+{
+	static int prev_enable = 0;
+
+	if (prev_enable != enable) {
+		pp_diag(NULL, time, 2, "%s dummy timing output\n",
+			enable ? "enable" : "disable");
+		prev_enable = enable;
+
+		return 0;
+	}
+
+	return 0;
+}
+
 struct pp_time_operations bare_time_ops = {
 	.get_utc_time = bare_time_get_utc_time,
 	.get_utc_offset = bare_time_get_utc_offset,
@@ -158,4 +181,6 @@ struct pp_time_operations bare_time_ops = {
 	.adjust_offset = bare_time_adjust_offset,
 	.adjust_freq = bare_time_adjust_freq,
 	.calc_timeout = bare_calc_timeout,
+	.get_GM_lock_state = bares_get_GM_lock_state,
+	.enable_timing_output = bare_enable_timing_output
 };

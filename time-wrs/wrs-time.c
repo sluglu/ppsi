@@ -431,10 +431,11 @@ static int wrs_time_get(struct pp_instance *ppi, struct pp_time *t)
 static int wrs_time_set(struct pp_instance *ppi, const struct pp_time *t)
 {
 	if ( WRS_ARCH_I(ppi)->timingMode==WRH_TM_GRAND_MASTER) {
-		// Grand master mode
-		// We delegate the time setup to the wr_date tool has
-		// it can take time to adjust the time
-		system("/wr/bin/wr_date -v set host &");
+		/* Grand master mode
+		 * We delegate the time setup to the wr_date script as it can
+		 * take time to adjust the time. Let it know that we call it
+		 * from the ppsi */
+		system("/etc/init.d/wr_date ppsi &");
 	} else {
 		struct pp_time diff, now;
 		int msec;

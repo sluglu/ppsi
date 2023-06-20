@@ -144,8 +144,26 @@ static unsigned long sim_calc_timeout(struct pp_instance *ppi, int millisec)
 	return millisec + SIM_PPI_ARCH(ppi)->time.current_ns / 1000LL / 1000LL;
 }
 
+static int sim_get_GM_lock_state(struct pp_globals *ppg,
+				  pp_timing_mode_state_t *state)
+{
+	*state = PP_TIMING_MODE_STATE_LOCKED;
+	return 0;
+
+}
+
 static int sim_enable_timing_output(struct pp_globals *ppg, int enable)
 {
+	static int prev_enable = 0;
+
+	if (prev_enable != enable) {
+		pp_diag(NULL, time, 2, "%s dummy timing output\n",
+			enable ? "enable" : "disable");
+		prev_enable = enable;
+
+		return 0;
+	}
+
 	return 0;
 }
 
@@ -161,5 +179,6 @@ const struct pp_time_operations sim_time_ops = {
 	.adjust_freq = sim_adjust_freq,
 	.init_servo = sim_init_servo,
 	.calc_timeout = sim_calc_timeout,
+	.get_GM_lock_state = sim_get_GM_lock_state,
 	.enable_timing_output = sim_enable_timing_output
 };

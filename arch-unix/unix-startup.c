@@ -136,8 +136,7 @@ int main(int argc, char **argv)
 				ppi->protocol_extension = PPSI_EXT_WR;
 				/* Add WR extension portDS */
 				if ( !(ppi->portDS->ext_dsport =
-					wrs_shm_alloc(ppsi_head,
-						      sizeof(struct wr_dsport))
+					    calloc(1, sizeof(struct wr_dsport))
 				      )
 				    ) {
 					goto exit_out_of_memory;
@@ -145,8 +144,7 @@ int main(int argc, char **argv)
 
 				/* Allocate WR data extension */
 				if (! (ppi->ext_data =
-						wrs_shm_alloc(ppsi_head,
-							      sizeof(struct wr_data))
+					    calloc(1, sizeof(struct wr_data))
 				      )
 				   ) {
 					goto exit_out_of_memory;

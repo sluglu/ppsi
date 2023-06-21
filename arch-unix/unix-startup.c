@@ -35,6 +35,101 @@ static timePropertiesDS_t timePropertiesDS;
 
 extern struct pp_ext_hooks pp_hooks;
 
+
+#if CONFIG_HAS_EXT_WR == 1 || CONFIG_HAS_EXT_L1SYNC == 1
+
+static int32_t unix_get_clock_period(void)
+{
+	return 8000;
+}
+
+static int unix_adjust_phase(int32_t phase_ps)
+{
+	return WRH_SPLL_OK;
+}
+
+static int unix_locking_enable(struct pp_instance *ppi)
+{
+	return WRH_SPLL_OK;
+}
+
+static int unix_locking_poll(struct pp_instance *ppi)
+{
+	/* Perfect world */
+	return WRH_SPLL_LOCKED;
+}
+
+static int unix_locking_reset(struct pp_instance *ppi)
+{
+	return WRH_SPLL_OK;
+}
+
+static int unix_enable_ptracker(struct pp_instance *ppi)
+{
+	return WRH_SPLL_OK;
+}
+
+static int unix_adjust_in_progress(void)
+{
+	return 0;
+}
+
+static int unix_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
+{
+	return 0;
+}
+
+const struct wrh_operations wrh_oper = {
+	.locking_enable = unix_locking_enable,
+	.locking_poll = unix_locking_poll,
+	.locking_disable = NULL,
+	.locking_reset = unix_locking_reset,
+	.enable_ptracker = unix_enable_ptracker,
+
+	.adjust_in_progress = unix_adjust_in_progress,
+	.adjust_counters = unix_adjust_counters,
+	.adjust_phase = unix_adjust_phase,
+
+	.get_clock_period = unix_get_clock_period,
+
+	/* not used */
+	.set_timing_mode = NULL,
+	.get_timing_mode = NULL,
+	.get_timing_mode_state = NULL,
+};
+#endif
+
+#if CONFIG_HAS_EXT_L1SYNC
+/**
+ * Enable the l1sync extension for a given ppsi instance
+ */
+static int enable_l1Sync(struct pp_instance *ppi, Boolean enable) {
+	if (!enable)
+		return 1;
+
+	ppi->protocol_extension = PPSI_EXT_L1S;
+	/* Add L1SYNC extension portDS */
+	if (!(ppi->portDS->ext_dsport = calloc(1, sizeof(l1e_ext_portDS_t)))) {
+		return 0;
+	}
+
+	/* Allocate L1SYNC data extension */
+	if (!(ppi->ext_data = calloc(1, sizeof(struct l1e_data)))) {
+		return 0;
+	}
+	/* Set L1SYNC state. Must be done here because the init hook is called only in the initializing state. If
+	 * the port is not connected, the initializing is then never called so the L1SYNC state is invalid (0)
+	 */
+	L1E_DSPOR_BS(ppi)->L1SyncState = L1SYNC_DISABLED;
+	L1E_DSPOR_BS(ppi)->L1SyncEnabled = TRUE;
+	/* Set L1SYNC extension hooks */
+	ppi->ext_hooks = &l1e_ext_hooks;
+
+	return 1;
+}
+#endif
+
+
 /**
  * Enable/disable asymmetry correction
  */

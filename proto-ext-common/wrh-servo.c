@@ -9,6 +9,7 @@
 #include <ppsi/ppsi.h>
 // #include "wrs-constants.h"
 #include "../proto-standard/common-fun.h"
+#include "wrh-servo_state_name.h"
 
 #if CONFIG_ARCH_IS_WRS
 #include <libwr/shmem.h>
@@ -20,15 +21,6 @@
 /* Define threshold values for SNMP */
 #define SNMP_MAX_OFFSET_PS 500
 #define SNMP_MAX_DELTA_RTT_PS 1000
-
-static const char * const wrh_servo_state_name[] = {
-	[WRH_UNINITIALIZED] = "Uninitialized",
-	[WRH_SYNC_NSEC] = "SYNC_NSEC",
-	[WRH_SYNC_TAI] = "SYNC_TAI",
-	[WRH_SYNC_PHASE] = "SYNC_PHASE",
-	[WRH_TRACK_PHASE] = "TRACK_PHASE",
-	[WRH_WAIT_OFFSET_STABLE] = "WAIT_OFFSET_STABLE",
-};
 
 /* Enable tracking by default. Disabling the tracking is used for demos. */
 static int wrh_tracking_enabled = 1;

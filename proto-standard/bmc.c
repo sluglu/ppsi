@@ -82,6 +82,9 @@ void bmc_m1(struct pp_instance *ppi)
 				prop->leap59 =
 						prop->leap61 = FALSE;
 	}
+	prop->timeTraceable = GLBS(ppi)->rt_opts->timeTraceable;
+	prop->frequencyTraceable = GLBS(ppi)->rt_opts->frequencyTraceable;
+	prop->timeSource = GLBS(ppi)->rt_opts->timeSource;
 }
 
 /* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */

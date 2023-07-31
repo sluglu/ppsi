@@ -19,6 +19,7 @@ static inline int is_incorrect(const struct pp_time *t)
 }
 static inline void mark_incorrect(struct pp_time *t)
 {
+	t->secs &= ~(0xc0LL << 56);
 	t->secs |= (0x8fLL << 56);
 }
 static inline void clear_time(struct pp_time *t)

@@ -38,7 +38,7 @@
 #define L1E_CONGRUENT	0x04
 #define L1E_OPT_PARAMS	0x08
 
-enum l1_sync_states { /*draft P1588_v_29: page 334 */
+enum l1_sync_states { /* 1588-2019 L5.3.5, table L.1 */
 	__L1SYNC_MISSING = 0, /* my addition... */ //TODO: std-error->report in ballout
 	L1SYNC_DISABLED = 1,
 	L1SYNC_IDLE,
@@ -54,7 +54,7 @@ int l1e_unpack_signal(struct pp_instance *ppi, void *pkt, int plen);
 /*
  * These structures are used as extension-specific data in the DSPort
  */
-typedef struct  { /*draft P1588_v_29: page 100 and 333-335 */
+typedef struct  { /* 1588-2019 8.2.23 and L5.3 */
 	/* configurable members */
 	Boolean		L1SyncEnabled;
 	Boolean		txCoherentIsRequired;
@@ -79,7 +79,7 @@ typedef struct  { /*draft P1588_v_29: page 100 and 333-335 */
 	Enumeration8	next_state;
 } L1SyncBasicPortDS_t;
 
-typedef struct { /*draft P1588_v_29: page 101 and 340-341  */
+typedef struct { /* 1588-2019 8.2.24 and L.8.4 */
 	/* configurable members */
 	Boolean		 timestampsCorrectedTx;
 	/* dynamic members */

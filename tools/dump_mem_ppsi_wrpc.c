@@ -267,18 +267,18 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(pointer, portDS),
 	DUMP_FIELD(pointer, servo),
 
-	/*  dump of substructure asymmetryCorrectionPortDS_t; draft P1588_v_29: page 99*/
+	/*  dump of substructure asymmetryCorrectionPortDS_t; 1588-2019 8.2.17 */
 	DUMP_FIELD(TimeInterval, asymmetryCorrectionPortDS.constantAsymmetry),
 	DUMP_FIELD(RelativeDifference, asymmetryCorrectionPortDS.scaledDelayCoefficient),
 	DUMP_FIELD(yes_no_Boolean, asymmetryCorrectionPortDS.enable),
 
-	/* dump of substructure timestampCorrectionPortDS_t; draft P1588_v_29: page 99 */
+	/* dump of substructure timestampCorrectionPortDS_t; 1588-2019 8.2.16 */
 	DUMP_FIELD(TimeInterval, timestampCorrectionPortDS.egressLatency),
 	DUMP_FIELD(TimeInterval, timestampCorrectionPortDS.ingressLatency),
 	DUMP_FIELD(TimeInterval, timestampCorrectionPortDS.messageTimestampPointLatency),
 	DUMP_FIELD(TimeInterval, timestampCorrectionPortDS.semistaticLatency),
 
-	/* dump of substructure externalPortConfigurationPortDS_t; draft P1588: Clause 17.6.3*/
+	/* dump of substructure externalPortConfigurationPortDS_t; 1588-2019 8.2.28 */
 	DUMP_FIELD(ppi_state_Enumeration8, externalPortConfigurationPortDS.desiredState),
 	
 // 	timeOutInstCnt_t tmo_cfg[PP_TO_COUNT];

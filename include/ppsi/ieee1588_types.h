@@ -85,7 +85,7 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 #define RELATIVE_DIFFERENCE_MIN_VALUE_AS_DOUBLE  -2.0
 #define RELATIVE_DIFFERENCE_MAX_VALUE_AS_DOUBLE  1.9999999999999989
 
-/*draft P1588_v_29: page 17*/
+/* 1588-2019 5.3.11 */
 /* The scaledRelativeDifference member is the relative difference expressed
  * as a dimensionless fraction and multiplied by 2^+62, with any remaining
  * fractional part truncated. */
@@ -280,13 +280,13 @@ typedef struct  {			/* page 72 */
 
 	void		*ext_dsport;
 	/** (IEEE1588-2019) */
-	Integer8	       logMinPdelayReqInterval;      /*draft P1588_v_29: page 124 */
-	UInteger4	       minorVersionNumber;           /*draft P1588_v_29: page 124 */
-	TimeInterval       delayAsymmetry;               /*draft P1588_v_29: page 124 */
-	TimeInterval       meanLinkDelay;                /* P2P: estimation of the current one-way propagation delay */
+	Integer8	logMinPdelayReqInterval;   /* 1588-2019 8.2.15.4.5 */
+	UInteger4	minorVersionNumber;        /* 1588-2019 8.2.15.4.7 */
+	TimeInterval	delayAsymmetry;            /* 1588-2019 8.2.15.4.8 */
+	TimeInterval	meanLinkDelay;             /* 1588-2019 8.2.15.3.3 */
 	/** Optional: */
-	Boolean		       portEnable;                   /*draft P1588_v_29: page 124 */
-	Boolean		       masterOnly;                   /*draft P1588_v_29: page 124 */
+	Boolean		portEnable;                /* 1588-2019 8.2.15.5.1 */
+	Boolean		masterOnly;                /* 1588-2019 8.2.15.5.2 */
 	/** *********************** */
 	RelativeDifference delayAsymCoeff; /* alpha/(alpha+2). Used to compute delayAsymmetry */
 } portDS_t;
@@ -308,35 +308,36 @@ typedef struct  {	/* page 70 */
  * Adding new optional data sets (DS) defined in clause, only these relevant
  * for HA
  */
-typedef struct { /*draft P1588_v_29: page 118 */
-	Octet		manufacturerIdentity[3];
-	struct PTPText	productDescription;
-	struct PTPText	productRevision;
-	struct PTPText	userDescription;
+typedef struct { /* 1588-2019 8.2.5.1 */
+	Octet		manufacturerIdentity[3];   /* 1588-2019 8.2.5.2 */
+	struct PTPText	productDescription;        /* 1588-2019 8.2.5.3 */
+	struct PTPText	productRevision;           /* 1588-2019 8.2.5.4 */
+	struct PTPText	userDescription;           /* 1588-2019 8.2.5.5 */
 } descriptionDS_t;
+
 /* Optional, not implemented, Instance DS:
- * faultLogDS:                       draft P1588_v_29: page 93
- * nonvolatileStorageDS              draft P1588_v_29: page 94
- * pathTraceDS                       draft P1588_v_29: page 95
- * alternateTimescaleOffsetsDS       draft P1588_v_29: page 95
- * holdoverUpgradeDS                 draft P1588_v_29: page 95
- * grandmasterClusterDS              draft P1588_v_29: page 95
- * acceptableMasterTableDS           draft P1588_v_29: page 95
- * clockPerformanceMonitoringDS      draft P1588_v_29: page 95
+ * faultLogDS
+ * nonVolatileStorageDS
+ * pathTraceDS
+ * alternateTimescaleOffsetsDS
+ * holdoverUpgradeDS
+ * grandmasterClusterDS
+ * acceptableMasterTableDS
+ * performanceMonitoringDS
  *
  * Optional, not implemented, port DS
- * descriptionPortDS                 draft P1588_v_29: page 99
- * unicastNegotiationDS              draft P1588_v_29: page 100
- * alternateMasterDS                 draft P1588_v_29: page 100
- * unicastDiscoveryDS                draft P1588_v_29: page 100
- * acceptableMasterPortDS            draft P1588_v_29: page 100
- * performanceMonitoringPortDS       draft P1588_v_29: page 101
+ * descriptionPortDS
+ * unicastNegotiationDS
+ * alternateMasterDS
+ * unicastDiscoveryDS
+ * acceptableMasterPortDS
+ * performanceMonitoringPortDS
  *
  * For Transparent Clocks, not implemented
- * transparentClockDefaultDS		draft P1588_v_29: page 102
- * transparentClockPortDS		draft P1588_v_29: page 103
+ * transparentClockDefaultDS
+ * transparentClockPortDS
  */
-typedef struct  { /*draft P1588_v_29: page 128*/
+typedef struct  { /* 1588-2019 8.2.16 */
 	TimeInterval egressLatency;
 	TimeInterval ingressLatency;
 	TimeInterval messageTimestampPointLatency;
@@ -344,14 +345,14 @@ typedef struct  { /*draft P1588_v_29: page 128*/
 	TimeInterval semistaticLatency;
 } timestampCorrectionPortDS_t;
 
-typedef struct  { /*draft P1588_v_29: page129*/
+typedef struct  { /* 1588-2019 8.2.17 */
 	TimeInterval	constantAsymmetry;
 	RelativeDifference	scaledDelayCoefficient;
 	Boolean enable;
 } asymmetryCorrectionPortDS_t;
 
-typedef struct {/*draft P1588_v_29: Clause 17.6.3 */
-	Enumeration8 desiredState; /* draft P1588_v_29: Clause 17.6.3.2 */
+typedef struct { /* 1588-2019 8.2.28 */
+	Enumeration8 desiredState; /* 1588-2019 17.6.3.2 */
 }externalPortConfigurationPortDS_t;
 
 /** ************************************************************************/

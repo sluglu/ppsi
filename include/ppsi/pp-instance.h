@@ -266,9 +266,9 @@ struct pp_instance {
 	struct pp_servo *servo;  /* Servo moved from globals because we may have more than one servo : redundancy */
 
 	/** (IEEE1588-2019) */
-	asymmetryCorrectionPortDS_t asymmetryCorrectionPortDS; /*draft P1588_v_29: page 99*/
-	timestampCorrectionPortDS_t timestampCorrectionPortDS; /*draft P1588_v_29: page 99*/
-	externalPortConfigurationPortDS_t  externalPortConfigurationPortDS; /*draft P1588: Clause 17.6.3*/
+	asymmetryCorrectionPortDS_t asymmetryCorrectionPortDS; /* 1588-2019 8.2.17 */
+	timestampCorrectionPortDS_t timestampCorrectionPortDS; /* 1588-2019 8.2.16 */
+	externalPortConfigurationPortDS_t  externalPortConfigurationPortDS; /* 1588-2019 8.2.28 */
 	/************************* */
 
 	timeOutInstCnt_t tmo_cfg[PP_TO_COUNT];

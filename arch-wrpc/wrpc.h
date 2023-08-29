@@ -12,7 +12,7 @@
 #include <ppsi/ppsi.h>
 #include <libwr/hal_shmem.h>
 
-#define LOCK_TIMEOUT_FM (4 * TICS_PER_SECOND)
+#define LOCK_TIMEOUT_FM (20 * TICS_PER_SECOND)
 #define LOCK_TIMEOUT_GM (60 * TICS_PER_SECOND)
 
 /* This part is exactly wrpc-sw::wrc_ptp.h */

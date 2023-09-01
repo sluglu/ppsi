@@ -48,9 +48,9 @@ const struct pp_instance_cfg __pp_default_instance_cfg = {
 		.min_pdelay_req_interval=PP_DEFAULT_MIN_PDELAY_REQ_INTERVAL,
 #if CONFIG_HAS_EXT_L1SYNC
 		.l1SyncEnabled=FALSE,
-		.l1SyncRxCoherencyIsRequired=FALSE,
-		.l1SyncTxCoherencyIsRequired=FALSE,
-		.l1SyncCongruencyIsRequired=FALSE,
+		.l1SyncRxCoherentIsRequired=FALSE,
+		.l1SyncTxCoherentIsRequired=FALSE,
+		.l1SyncCongruentIsRequired=FALSE,
 		.l1SyncOptParamsEnabled=FALSE,
 		.l1SyncOptParamsTimestampsCorrectedTx=FALSE,
 		.l1syncInterval=L1E_DEFAULT_L1SYNC_INTERVAL,

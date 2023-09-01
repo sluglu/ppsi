@@ -286,9 +286,9 @@ int main(int argc, char **argv)
 					if (!enable_l1Sync(ppi, TRUE))
 						goto exit_out_of_memory;
 					/* Read L1SYNC parameters */
-					L1E_DSPOR_BS(ppi)->rxCoherentIsRequired = ppi->cfg.l1SyncRxCoherencyIsRequired;
-					L1E_DSPOR_BS(ppi)->txCoherentIsRequired = ppi->cfg.l1SyncTxCoherencyIsRequired;
-					L1E_DSPOR_BS(ppi)->congruentIsRequired = ppi->cfg.l1SyncCongruencyIsRequired;
+					L1E_DSPOR_BS(ppi)->rxCoherentIsRequired = ppi->cfg.l1SyncRxCoherentIsRequired;
+					L1E_DSPOR_BS(ppi)->txCoherentIsRequired = ppi->cfg.l1SyncTxCoherentIsRequired;
+					L1E_DSPOR_BS(ppi)->congruentIsRequired = ppi->cfg.l1SyncCongruentIsRequired;
 					L1E_DSPOR_BS(ppi)->optParamsEnabled = ppi->cfg.l1SyncOptParamsEnabled;
 					if (L1E_DSPOR_BS(ppi)->optParamsEnabled) {
 						L1E_DSPOR_OP(ppi)->timestampsCorrectedTx = ppi->cfg.l1SyncOptParamsTimestampsCorrectedTx;

@@ -174,9 +174,9 @@ struct pp_instance_cfg {
 	int min_pdelay_req_interval;/* pdelay request messages interval */
 #if	CONFIG_HAS_EXT_L1SYNC
 	Boolean l1SyncEnabled; /* L1SYNC: protocol enabled */
-	Boolean l1SyncRxCoherencyIsRequired; /* L1SYNC: Rx coherency is required */
-	Boolean l1SyncTxCoherencyIsRequired; /* L1SYNC: Tx coherency is required */
-	Boolean l1SyncCongruencyIsRequired; /* L1SYNC: Congruency isrRequired */
+	Boolean l1SyncRxCoherentIsRequired; /* L1SYNC: Rx coherent is required */
+	Boolean l1SyncTxCoherentIsRequired; /* L1SYNC: Tx coherent is required */
+	Boolean l1SyncCongruentIsRequired; /* L1SYNC: Congruent is required */
 	Boolean l1SyncOptParamsEnabled; /* L1SYNC: Optional parameters enabled */
 	int l1syncInterval; /* L1SYNC: l1sync messages interval */
 	int l1syncReceiptTimeout; /* L1SYNC: l1sync messages receipt timeout */

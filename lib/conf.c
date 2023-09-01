@@ -344,9 +344,9 @@ static struct pp_argline pp_global_arglines[] = {
 	INST_OPTION_INT_RANGE("l1sync-receipt-timeout l1SyncReceiptTimeout", ARG_INT, NULL, cfg.l1syncReceiptTimeout,
 			L1E_MIN_L1SYNC_RECEIPT_TIMEOUT,L1E_MAX_L1SYNC_RECEIPT_TIMEOUT),
     INST_OPTION_BOOL("l1SyncEnabled", cfg.l1SyncEnabled),
-    INST_OPTION_BOOL("l1SyncRxCoherencyIsRequired", cfg.l1SyncRxCoherencyIsRequired),
-    INST_OPTION_BOOL("l1SyncTxCoherencyIsRequired", cfg.l1SyncTxCoherencyIsRequired),
-    INST_OPTION_BOOL("l1SyncCongruencyIsRequired", cfg.l1SyncCongruencyIsRequired),
+    INST_OPTION_BOOL("l1SyncRxCoherentIsRequired", cfg.l1SyncRxCoherentIsRequired),
+    INST_OPTION_BOOL("l1SyncTxCoherentIsRequired", cfg.l1SyncTxCoherentIsRequired),
+    INST_OPTION_BOOL("l1SyncCongruentIsRequired", cfg.l1SyncCongruentIsRequired),
     INST_OPTION_BOOL("l1SyncOptParamsEnabled", cfg.l1SyncOptParamsEnabled),
     INST_OPTION_BOOL("l1SyncTimestampsCorrectedTxEnabled", cfg.l1SyncOptParamsTimestampsCorrectedTx),
 #endif

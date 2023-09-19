@@ -44,13 +44,6 @@ static int slave_handle_sync(struct pp_instance *ppi, void *buf,
 		return 0;
 	}
 
-	if ( is_delayMechanismE2E(ppi) &&  ppi->t1.scaled_nsecs==0 && ppi->t1.secs==0 ) {
-		/* First time we receive the SYNC message in uncalib/slave state
-		 * We set the REQUEST time-out to the minDelayReqInterval/2 value (500ms)
-		 * in order to provide quickly a DelayReq message
-		 */
-		pp_timeout_set(ppi, PP_TO_REQUEST, (1000*(1<<PP_MIN_MIN_DELAY_REQ_INTERVAL))/2);
-	}
 	/* t2 may be overriden by follow-up, save it immediately */
 	ppi->t2 = ppi->last_rcv_time;
 	msg_unpack_sync(buf, &sync);

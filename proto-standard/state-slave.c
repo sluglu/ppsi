@@ -169,7 +169,11 @@ static int slave_handle_response(struct pp_instance *ppi, void *buf,
 		ret=pp_servo_got_resp(ppi,1);
 	}
 
-	if ( ret && DSPOR(ppi)->logMinDelayReqInterval !=hdr->logMessageInterval) {
+	/* If logMinDelayReqInterval in incoming delay_response differs from
+	 * the value used locally, update it
+	 * (see IEEE1588-2019 9.5.11.2 and 7.7.2.4) */
+	if (!ret
+	    && DSPOR(ppi)->logMinDelayReqInterval != hdr->logMessageInterval) {
 		DSPOR(ppi)->logMinDelayReqInterval = hdr->logMessageInterval;
 		/* new value for logMin */
 		pp_timeout_init(ppi);

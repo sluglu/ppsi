@@ -599,135 +599,162 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 @heading List of port-specific options
 
 @table @code
-  @item @b{port} @i{[String]}
-  @itemx @b{link} @i{[String]}
-  Defines a named PTP port instance. The argument correspond to the instance name.
-  
-	@item @b{iface} @i{[String]}
-  Defines the physical port interface name to use (e.g. "eth0", "wri1", ...)
-  
-	@item  @b{proto} @i{[TextList]}
-  Defines the network transport protocol (mapping) to use :
-  @example
-. "raw" : Raw Ethernet
-. "udp" : User Datagram Protocol
-  @end example
-	
-  @item @b{extension} @i{[TextList]} @i{(deprecated)} 
-  @itemx @b{profile} @i{[TextList]}
-  Defines the profile to use : 
-  @example
-. "none", "ptp": Default PTP profile
-. "whiterabbit", "wr": White Rabbit profile
-. "highaccuracy", "ha": High Accuracy profile
-  @end example
+@item @b{announce-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)}
+	See @t{logAnnounceInterval}.
 
-  @item @b{mechanism} @i{[TextList]}
-  @itemx @b{dm} @i{[TextList]} 
-  Defines the delay mechanism to use:
-  @example
-. "request-response", "delay", "e2e": end-to-end delay mechanism
-. "peer-delay", "pdelay", "p2p": peer-to-peer delay mechanism
-	@end example
-  
-  @item @b{masterOnly} @i{[Boolean]}
-  If enabled , activates the optional '@i{masterOnly}' feature 
-  (refer to the IEEE 1588-2019 - clause 9.2.2.2).
-  This option cannot be used if the global option '@i{externalPortConfiguration}' is 
-  enabled.
-  If this option is not set, then the standard BMCA algorithm is used.
-  
-  @item @b{sync-interval} @i{[Int32,Unit=logarithm to the base 2]} @i{(deprecated)} 
-  @itemx @b{logSyncInterval} @i{[Int32,Unit=logarithm to the base 2]} 
-  The mean time interval between transmission of successive
-  Sync messages. For more details please refer to the IEEE 1588 standard.
-  
-  @item @b{announce-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)} 
-  @itemx @b{logAnnounceInterval} @i{[Int32,Unit=logarithm to the base 2]} 
-  The mean time interval between transmissions of successive
-	Announce messages. For more details please refer to the IEEE 1588 standard.
+@item @b{announce-receipt-timeout} @i{[Int32]} @i{(deprecated)}
+@itemx @b{announceReceiptTimeout} @i{[Int32]}
+	The announceReceiptTimeout specifies the number of announceIntervals
+	that must pass without receipt of an Announce message before the
+	occurrence of the event ANNOUNCE_RECEIPT_TIMEOUT_EXPIRES.
+	For more details please refer to the IEEE 1588 standard.
 
-  @item @b{min-delay-req-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)} 
-  @itemx @b{logMinDelayReqInterval} @i{[Int32,Unit=logarithm to the base 2]} 
-  The minDelayRequestInterval specifies the minimum permitted
-  mean time interval between successive Delay_Req messages.
-  This option is effective only when 'end-to-end' delay mechanism is selected.
-  For more details please refer to the IEEE 1588 standard.
-  
-  @item @b{min-pdelay-req-interval}  @i{[Int32,Unit=logarithm to the base 2]} @i{(deprecated)} 
-  @itemx @b{logMinPDelayReqInterval} @i{[Int32,Unit=logarithm to the base 2]}
-  The minPDelayRequestInterval specifies the minimum permitted
-  mean time interval between successive Pdelay_Req messages.
-  This option is effective only when 'peer-to-peer' delay mechanism is selected.
-  For more details please refer to the IEEE 1588 standard.
-  
-  @item @b{announce-receipt-timeout} @i{[Int32]} @i{(deprecated)} 
-  @itemx @b{announceReceiptTimeout} @i{[Int32]} 
-  The announceReceiptTimeout specifies the number of announceIntervals 
-  that must pass without receipt of an Announce message before the 
-  occurrence of the event ANNOUNCE_RECEIPT_TIMEOUT_EXPIRES.
-  For more details please refer to the IEEE 1588 standard.
-  
-  @item @b{asymmetryCorrectionEnable} @i{[Boolean]}
-  When enabled, this feature calculates delay asymmetry which is then used in the
-  computation of offset from master in the PTP servo.
-  This feature is obligatorily enabled in some profiles when used (e.g. White Rabbit,..).
-  In the Default PTP Profile, this feature is not used by default.
-  For more details please refer to the IEEE 15882-2019 standard.
-    
-  @item @b{constantAsymmetry} @i{[Int64,Unit=picoseconds]}
-  When '@i{asymmetryCorrectionEnable}' feature is used, this parameter allows fine-adjustment
-  of the calculated delay asymmetry. The provided value of @i{constantAsymmetry}
-  will be added to the calculation of the delay asymmetry.
-  For more details please refer to the IEEE 15882-2019 standard.
-  
-  @item @b{desiredState} @i{[TextList]}
-  When the option '@i{externalPortConfigurationEnabled}' is enabled, this parameter indicates
-  the PTP state to apply on a PTP Port :
-@example
-. "initializing": Initializing state
-. "faulty"      : Faulty state
-. "disabled"    : Disabled state
-. "listening"   : Listening state
-. "pre_master"  : Pre-master state
-. "master"      : Master state
-. "passive"     : Passive state
-. "uncalibrated": Uncalibrated state
-. "slave"       : Slave state. During synchronization
-                  with a master, the port instance can
-                  transition to UNCALIBRATED state.
-@end example
+@item @b{asymmetryCorrectionEnable} @i{[Boolean]}
+	When enabled, this feature calculates delay asymmetry which is then
+	used in the computation of offset from master in the PTP servo.
+	This feature is obligatorily enabled in some profiles when used
+	(e.g. White Rabbit,..).
+	In the Default PTP Profile, this feature is not used by default.
+	For more details please refer to the IEEE 15882-2019 standard.
 
-  @item @b{egressLatency} @i{[Int64,Unit=picoseconds]}
-  Defines the transmission constant delays (tx fixed delta).
-  For more details please refer to the IEEE 15882-2019 standard.
-  
-  @item @b{ingressLatency} @i{[Int64,Unit=picoseconds]}
-  Defines the reception constant delays (rx fixed delata).
-  For more details please refer to the IEEE 15882-2019 standard.
-  
-  @item @b{delayCoefficient} @i{[Double]} 
-  Defines the relative delay coefficient (alpha parameter). When the feature 
-  '@i{asymmetryCorrectionEnable}' is enabled, this value is used in 
-  calculation of the delay asymmetry.
-  For more details please refer to the IEEE 15882-2019 standard.
-  
-  @item @b{scaledDelayCoefficient} @i{[Int64,Unit=RelativeDifference]]} 
-  Defines the relative delay coefficient (alpha parameter). When the feature 
-  '@i{asymmetryCorrectionEnable}' is enabled, this value is used in 
-  calculation of the delay asymmetry. It overwrites the parameter
-  '@i{delayCoefficient}' if set by providing a value expressed with a
-  better resolution.
-  For more details please refer to the IEEE 15882-2019 standard.
-  
-  @item @b{servo-pi}  @i{[Int16[2]]}
-  If set, it overrides the default PTP servo parameters.
-  The first argument correspond to the
-  proportional coefficient and the second to the integral one.
-  
-  
+@item @b{bmca} @i{[TextList]}
+	Defines the BMCA mechanism to use:
+	@itemize @bullet
+	@item @t{standard} -- use BMCA mechanism described in IEEE1588-2019
+	@item @t{externalPortConfiguration} -- use External Port Configuration
+	      mechanism described in IEEE1588-2019
+	@end itemize
+
+@item @b{constantAsymmetry} @i{[Int64,Unit=picoseconds]}
+	When '@i{asymmetryCorrectionEnable}' feature is used, this parameter
+	allows fine-adjustment of the calculated delay asymmetry.
+	The provided value of @i{constantAsymmetry} will be added to the
+	calculation of the delay asymmetry.
+	For more details please refer to the IEEE 15882-2019 standard.
+
+@item @b{delayCoefficient} @i{[Double]}
+	Defines the relative delay coefficient (alpha parameter).
+	When the feature '@i{asymmetryCorrectionEnable}' is enabled, this value
+	is used in calculation of the delay asymmetry.
+	For more details please refer to the IEEE 15882-2019 standard.
+
+@item @b{desiredState} @i{[TextList]}
+	When the option '@i{externalPortConfigurationEnabled}' is enabled,
+	this parameter indicates the PTP state to apply on a PTP Port:
+	@itemize @bullet
+	@item @t{initializing} -- Initializing state
+	@item @t{faulty}       -- Faulty state
+	@item @t{disabled}     -- Disabled state
+	@item @t{listening}    -- Listening state
+	@item @t{pre_master}   -- Pre-master state
+	@item @t{master}       -- Master state
+	@item @t{passive}      -- Passive state
+	@item @t{uncalibrated} -- Uncalibrated state
+	@item @t{slave}        -- Slave state. During synchronization with a
+	      master, the port instance can transition to UNCALIBRATED state.
+	@end itemize
+
 @item @b{diagnostic} @i{[String]}
         Change the diagnostic level. @xref{Diagnostics,,Diagnostics}.
+
+@item @b{dm} @i{[TextList]}
+	Defines the delay mechanism to use:
+	@itemize @bullet
+	@item @t{request-response}, @t{delay}, @t{e2e} -- end-to-end delay mechanism
+	@item @t{peer-delay}, @t{pdelay}, @t{p2p} -- peer-to-peer delay mechanism
+	@end itemize
+
+@item @b{egressLatency} @i{[Int64,Unit=picoseconds]}
+	Defines the transmission constant delays (tx fixed delta).
+	For more details please refer to the IEEE 15882-2019 standard.
+
+@item @b{extension} @i{[TextList]} @i{(deprecated)}
+	See @t{profile}.
+
+@item @b{iface} @i{[String]}
+	Defines the physical port interface name to use (e.g. "eth0", "wri1",
+	...)
+
+@item @b{ingressLatency} @i{[Int64,Unit=picoseconds]}
+	Defines the reception constant delays (rx fixed delata).
+	For more details please refer to the IEEE 15882-2019 standard.
+
+@item @b{link} @i{[String]}
+	Defines a named PTP port instance. The argument correspond to
+	the instance name.
+
+@item @b{logAnnounceInterval} @i{[Int32,Unit=logarithm to the base 2]}
+	The mean time interval between transmissions of successive
+	Announce messages. For more details please refer to the IEEE 1588
+	standard.
+
+@item @b{logMinDelayReqInterval} @i{[Int32,Unit=logarithm to the base 2]}
+	The minDelayRequestInterval specifies the minimum permitted
+	mean time interval between successive Delay_Req messages.
+	This option is effective only when 'end-to-end' delay mechanism is
+	selected.
+	For more details please refer to the IEEE 1588 standard.
+
+@item @b{logMinPDelayReqInterval} @i{[Int32,Unit=logarithm to the base 2]}
+	The minPDelayRequestInterval specifies the minimum permitted
+	mean time interval between successive Pdelay_Req messages.
+	This option is effective only when 'peer-to-peer' delay mechanism is
+	selected.
+	For more details please refer to the IEEE 1588 standard.
+
+@item @b{logSyncInterval} @i{[Int32,Unit=logarithm to the base 2]}
+	The mean time interval between transmission of successive
+	Sync messages. For more details please refer to the IEEE 1588 standard.
+
+@item @b{masterOnly} @i{[Boolean]}
+	If enabled , activates the optional '@i{masterOnly}' feature
+	(refer to the IEEE 1588-2019 - clause 9.2.2.2).
+	This option cannot be used if the global option
+	'@i{externalPortConfiguration}' is enabled.
+	If this option is not set, then the standard BMCA algorithm is used.
+
+@item @b{mechanism} @i{[TextList]}
+	See @t{dm}.
+
+@item @b{min-delay-req-interval} @i{[Int32,Unit=logarithm to the base 2]}  @i{(deprecated)}
+	See @t{logMinDelayReqInterval}.
+
+@item @b{min-pdelay-req-interval}  @i{[Int32,Unit=logarithm to the base 2]} @i{(deprecated)}
+	See @t{logMinPDelayReqInterval}.
+
+@item @b{port} @i{[String]}
+	See @t{link}.
+
+@item @b{profile} @i{[TextList]}
+	Defines the profile to use:
+	@itemize @bullet
+	@item @t{none}, @t{ptp} --  Default PTP profile
+	@item @t{whiterabbit}, @t{wr} --  White Rabbit profile
+	@item @t{highaccuracy}, @t{ha} --  High Accuracy profile
+	@end itemize
+
+@item @b{proto} @i{[TextList]}
+	Defines the network transport protocol (mapping) to use:
+	@itemize @bullet
+	@item @t{raw} --  Raw Ethernet
+	@item @t{udp} --  User Datagram Protocol
+	@end itemize
+
+@item @b{scaledDelayCoefficient} @i{[Int64,Unit=RelativeDifference]]}
+	Defines the relative delay coefficient (alpha parameter).
+	When the feature '@i{asymmetryCorrectionEnable}' is enabled, this value
+	is used in calculation of the delay asymmetry.
+	It overwrites the parameter '@i{delayCoefficient}' if set by providing
+	a value expressed with a better resolution.
+	For more details please refer to the IEEE 15882-2019 standard.
+
+@item @b{servo-pi}  @i{[Int16[2]]}
+	If set, it overrides the default PTP servo parameters.
+	The first argument correspond to the
+	proportional coefficient and the second to the integral one.
+
+@item @b{sync-interval} @i{[Int32,Unit=logarithm to the base 2]} @i{(deprecated)}
+	See @t{logSyncInterval}.
 
 @item @b{vlan} @i{[String]}
         Specify vlans. @xref{VLAN Support,,VLAN Support}.

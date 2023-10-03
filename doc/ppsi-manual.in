@@ -516,12 +516,6 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 @heading List of global options (i.e. keywords)
 @table @code
 
-@item @b{clock-class} @i{[Int32]}
-	An attribute defining the TAI traceability, synchronization state and
-	expected performance of the time or frequency distributed by a
-	Boundary Clock or Ordinary Clock.
-	For more details please refer to the IEEE 1588 standard
-
 @item @b{clock-accuracy} @i{[Int32]}
 	An attribute defining the accuracy of the Local Clock (e.g. local
 	oscillator) of a Boundary Clock or Ordinary Clock.
@@ -532,8 +526,11 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 	Boundary Clock or Ordinary Clock.
 	For more details please refer to the IEEE 1588 standard
 
-@item @b{time-source} @i{[Int32]}
-	The source of time used by the grandmaster (or free-running master).
+@item @b{clock-class} @i{[Int32]}
+	An attribute defining the TAI traceability, synchronization state and
+	expected performance of the time or frequency distributed by a
+	Boundary Clock or Ordinary Clock.
+	For more details please refer to the IEEE 1588 standard
 
 @item @b{domain-number}  @i{[Int32]}
 	A domain consists of one or more PTP devices communicating with each
@@ -541,6 +538,24 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 	PTP message communication, state, operations, data sets, and
 	timescale. PTP devices may participate in multiple domains.
 	For more details please refer to the IEEE 1588-2019 standard.
+
+@item @b{externalPortConfigurationEnabled}  @i{[Boolean]}
+	This option is used to force the state of all port instances. The BMCA is then disabled
+	in PPSi.
+	When enabled, the port-specific option @t{desiredState} must be defined for each port instance.
+	For more details please refer to the IEEE 1588-2019 (clause 17.6.2)
+
+@item @b{forcePpsGen}  @i{[Boolean]}
+	Configuration of the PPS output. By default, the PPS is generated
+	only when the clock class is set to 6 (Grandmaster), or to 193
+	(Free-running master), or when the PTP device is a PTP Slave, i.e.
+	it is synchronized via port in Slave state to a PTP Master.
+
+@item @b{gmDelayToGenPpsSec} @i{[Int32]}
+	If this option is set to a value greater than 0, it allows PPS generation
+	when the PTP device becomes Grandmaster by BMCA (i.e. it is configured to be
+	a Boundary Clock). The value represent a delay in seconds between the
+	moment the PTP Device becomes Grandmaster and the start of PPS generation.
 
 @item @b{priority1}  @i{[Int32]}
 	A user configurable designation that a clock belongs to an ordered
@@ -551,12 +566,6 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 	A user configurable designation that provides finer grained ordering
 	among otherwise equivalent PTP devices.
 	For more details please refer to the IEEE 1588 standard.
-
-@item @b{forcePpsGen}  @i{[Boolean]}
-	Configuration of the PPS output. By default, the PPS is generated
-	only when the clock class is set to 6 (Grandmaster), or to 193 
-	(Free-running master), or when the PTP device is a PTP Slave, i.e.
-	it is synchronized via port in Slave state to a PTP Master.
 
 @item @b{ptpFallbackPpsGen}  @i{[Boolean]}
 	If set, PPS is generated even if a PTP Device with enabled
@@ -573,25 +582,16 @@ Some old keywords will be marked '@i{(deprecated)}', and will be removed in the 
 	A 0 value means that the PPS will be not generated for the considered cases. 
 	When the PPS is generated, it can be also disabled when the offset from master becomes greater
 	than the threshold value + 20%.
-	
-@item @b{gmDelayToGenPpsSec} @i{[Int32]}
-	If this option is set to a value greater than 0, it allows PPS generation 
-	when the PTP device becomes Grandmaster by BMCA (i.e. it is configured to be
-	a Boundary Clock). The value represent a delay in seconds between the 
-	moment the PTP Device becomes Grandmaster and the start of PPS generation.
-
-@item @b{externalPortConfigurationEnabled}  @i{[Boolean]}
- This option is used to force the state of all port instances. The BMCA is then disabled
- in PPSi.
- When enabled, the port-specific option @t{desiredState} must be defined for each port instance.
- For more details please refer to the IEEE 1588-2019 (clause 17.6.2)
 
 @item @b{slaveOnly}  @i{[Boolean]}
-  A @t{slaveOnly} Ordinary Clock utilizes the slaveOnly state machine
-  which does not enable transition to MASTER state.
-  This option must not be used when @i{externalPortConfigurationEnabled} is
-  enabled.
-  For more details please refer to the IEEE 1588-2019 (clause 9.2.2.1)
+	A @t{slaveOnly} Ordinary Clock utilizes the slaveOnly state machine
+	which does not enable transition to MASTER state.
+	This option must not be used when @i{externalPortConfigurationEnabled} is
+	enabled.
+	For more details please refer to the IEEE 1588-2019 (clause 9.2.2.1)
+
+@item @b{time-source} @i{[Int32]}
+	The source of time used by the grandmaster (or free-running master).
 
 @end table
 

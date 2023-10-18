@@ -28,8 +28,17 @@
 #define WR_DEFAULT_STATE_TIMEOUT_MS	300	/* [ms] ML: not really used*/
 
 #define WR_PRESENT_TIMEOUT_MS	     1000
+
 #define WR_M_LOCK_TIMEOUT_MS		15000
+
+/* Special case for eRTM14, where it can take more than 15sec to sync PLL */
+#if CONFIG_TARGET_ERTM14
+#define WR_S_LOCK_TIMEOUT_MS		30000
+#else
 #define WR_S_LOCK_TIMEOUT_MS		15000
+#endif
+
+
 #define WR_LOCKED_TIMEOUT_MS          300
 #define WR_CALIBRATION_TIMEOUT_MS    3000
 #define WR_RESP_CALIB_REQ_TIMEOUT_MS  300 //  3

@@ -223,7 +223,8 @@ static int l1e_get_tmo_lstate_detection(struct pp_instance *ppi) {
 }
 
 static TimeInterval l1e_get_ingress_latency (struct pp_instance *ppi) {
-	return ppi->timestampCorrectionPortDS.ingressLatency;
+	return ppi->timestampCorrectionPortDS.ingressLatency
+	       + ppi->timestampCorrectionPortDS.semistaticLatency;
 }
 
 static TimeInterval l1e_get_egress_latency (struct pp_instance *ppi) {

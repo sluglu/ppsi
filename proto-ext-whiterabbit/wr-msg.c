@@ -223,10 +223,10 @@ int msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		/* OtherNodeCalPeriod in a frame crosses a word boundary,
 		   split it into two parts */
 		WR_DSPOR(ppi)->otherNodeCalPeriod =
-					    ntohs(*(UInteger16 *)(buf + 60));
+					    ntohs(*(UInteger16 *)(buf + 58));
 		WR_DSPOR(ppi)->otherNodeCalPeriod <<= 16;
 		WR_DSPOR(ppi)->otherNodeCalPeriod |=
-					    ntohs(*(UInteger16 *)(buf + 58));
+					    ntohs(*(UInteger16 *)(buf + 60));
 
 		pp_diag(ppi, frames, 1, "otherNodeCalPeriod 0x%x\n",
 			WR_DSPOR(ppi)->otherNodeCalPeriod);

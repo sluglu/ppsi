@@ -283,11 +283,10 @@ static void wr_state_change(struct pp_instance *ppi)
 		 * in SLAVE state with the extension active and now it can be inactive
 		 */
 		WRH_OPER()->locking_reset(ppi);
-		if ( ppi->next_state!=PPS_UNCALIBRATED ) {
-			/* Leave SLAVE/UNCALIB states : We must stop the PPS generation */
-			if ( !GOPTS(GLBS(ppi))->forcePpsGen )
-				TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
-		}
+
+		/* Leave SLAVE/UNCALIB states : We must stop the PPS generation */
+		if ( !GOPTS(GLBS(ppi))->forcePpsGen )
+			TOPS(ppi)->enable_timing_output(GLBS(ppi),0);
 	}
 }
 

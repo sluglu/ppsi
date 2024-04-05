@@ -210,6 +210,14 @@ menu "PTP Protocol Options"
 		default 37
 		help
 		  Difference in seconds between TAI and UTC.
+
+	config PTP_FALLBACK_PTP_DISABLE
+		boolean "Disable fallback from WR to PTP"
+		default false
+		help
+		  Option to disable PTP fallback from WR to PTP.
+		  In some situations it might be desired to retry
+		  establishing WR link on handshake failure.
 endmenu
 
 menu "Enabled profiles"

@@ -22,6 +22,12 @@
 
 #include "softpll_ng.h"
 
+#ifdef CONFIG_PTP_FALLBACK_PTP_DISABLE
+#  define HAS_PTP_FALLBACK 0
+#else
+#  define HAS_PTP_FALLBACK 1
+#endif
+
 /* TODO: get rid of ptp_mode, use WRPC_ARCH_G(ppg)->timingModeCfg instead */
 static uint8_t ptp_mode = WRC_MODE_UNKNOWN;
 
@@ -126,7 +132,7 @@ int wrc_ptp_init(void)
 	ppi->__tx_buffer = __tx_buffer;
 	ppi->__rx_buffer = __rx_buffer;
 	ppi->servo = &servo;
-	ppi->ptp_fallback = TRUE;
+	ppi->ptp_fallback = HAS_PTP_FALLBACK;
 	ppi->asymmetryCorrectionPortDS.enable = 1;
 
 	/* copy default ppi config */

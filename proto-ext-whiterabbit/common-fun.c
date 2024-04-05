@@ -29,9 +29,22 @@ void wr_handshake_fail(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
+	wrp->next_state = WRS_IDLE;
+
+	/* Don't use PTP without WR, try WR one more time */
+	if (!ppi->ptp_fallback) {
+		wrh_servo_t *s = WRH_SRV(ppi);
+		if (s)
+			s->doRestart = TRUE;
+		pp_diag(ppi, ext, 1, "Handshake failure: PTP fallback disabled."
+			" Try WR again as %s\n",
+			wrp->wrMode == WR_MASTER ? "master" : "slave");
+		return;
+	}
+
 	pp_diag(ppi, ext, 1, "Handshake failure: now non-wr %s\n",
 		wrp->wrMode == WR_MASTER ? "master" : "slave");
-	wrp->next_state=WRS_IDLE;
+
 	wr_reset_process(ppi,WR_ROLE_NONE);
 	wr_servo_reset(ppi);
 	pdstate_disable_extension(ppi);

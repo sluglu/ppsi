@@ -308,7 +308,7 @@ struct dump_info  dump_ppsi_info[] = {
 	DUMP_FIELD(unsigned_long, ptp_rx_count),
 	DUMP_FIELD(yes_no_Boolean, received_dresp), /* Count the number of delay response messages received for a given delay request */
 	DUMP_FIELD(yes_no_Boolean, received_dresp_fup), /* Count the number of delay response follow up messages received for a given delay request */
-	DUMP_FIELD(yes_no_Boolean, ptp_support), /* True if allow pure PTP support */
+	DUMP_FIELD(yes_no_Boolean, ptp_fallback), /* True if allow pure PTP support */
 	DUMP_FIELD(yes_no_Boolean, bmca_execute), /* True: Ask fsm to run bmca state decision */
 	DUMP_FIELD(pp_pdstate, pdstate),  /* Protocol detection state */
 	DUMP_FIELD(exstate, extState), /* Extension state */

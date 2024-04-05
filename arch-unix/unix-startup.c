@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
 		ppi->servo = calloc(1, sizeof(*ppi->servo));
 		ppi->ext_hooks = &pp_hooks;
-		ppi->ptp_support = TRUE;
+		ppi->ptp_fallback = TRUE;
 
 		if (ppi->portDS) {
 			switch (ppi->cfg.profile) {

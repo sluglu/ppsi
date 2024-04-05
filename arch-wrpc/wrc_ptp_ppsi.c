@@ -126,7 +126,7 @@ int wrc_ptp_init(void)
 	ppi->__tx_buffer = __tx_buffer;
 	ppi->__rx_buffer = __rx_buffer;
 	ppi->servo = &servo;
-	ppi->ptp_support = TRUE;
+	ppi->ptp_fallback = TRUE;
 	ppi->asymmetryCorrectionPortDS.enable = 1;
 
 	/* copy default ppi config */

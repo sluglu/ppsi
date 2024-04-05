@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 		ppi->portDS = wrs_shm_alloc(ppsi_head, sizeof(*ppi->portDS));
 		ppi->servo = wrs_shm_alloc(ppsi_head, sizeof(*ppi->servo));
 		ppi->ext_hooks=&pp_hooks; /* Default value. Can be overwritten by an extension */
-		ppi->ptp_support=TRUE;
+		ppi->ptp_fallback = TRUE;
 		if (ppi->portDS) {
 			switch (ppi->cfg.profile) {
 			case PPSI_PROFILE_WR :

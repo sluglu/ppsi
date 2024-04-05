@@ -361,8 +361,8 @@ void pdstate_disable_extension(struct pp_instance * ppi)
 {
 	ppi->pdstate=PP_PDSTATE_FAILURE;
 	if ( ppi->extState==PP_EXSTATE_ACTIVE) {
-		if ( ppi->ptp_support )
-			ppi->extState=ppi->ptp_support ? PP_EXSTATE_PTP : PP_EXSTATE_DISABLE;
+		if ( ppi->ptp_fallback )
+			ppi->extState=ppi->ptp_fallback ? PP_EXSTATE_PTP : PP_EXSTATE_DISABLE;
 		pp_servo_init(ppi); // Reinitialize the servo
 		if ( is_ext_hook_available(ppi,extension_state_changed) )
 				ppi->ext_hooks->extension_state_changed(ppi);

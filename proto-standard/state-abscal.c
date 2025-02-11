@@ -31,6 +31,7 @@ int pp_abscal(struct pp_instance *ppi, void *buf, int plen)
 		/* add 1s to be enough in the future, the first time */
 		pp_timeout_set_rename(ppi, PP_TO_SYNC_SEND, 990 + next_pps_ms(ppi, &t));
 		ppi->bmca_execute = 0;
+		WRH_OPER()->enable_ptracker(ppi);
 		/* print header for the serial port stream of stamps */
 		pp_printf("### t4.phase is already corrected for bitslide\n");
 		pp_printf("t1:                     t4:                  "

@@ -35,7 +35,7 @@
 
 @setchapternewpage off
 
-@set update-month October 2022
+@set update-month April 2025
 @set release __RELEASE_GIT_ID__
 
 @finalout
@@ -81,9 +81,9 @@ WR is a multi-lab research project that aims at synchronizing
 thousands of I/O devices distributed in a network several kilometers
 wide; its software protocol is an extension of @sc{ptp}, @sc{wr-ptp}.
 A WR network is
-made up of two types of devices: the @i{WR Switch} and the @i{WR Node}.  White
-Rabbit is developed at ohwr.org:
-@url{https://www.ohwr.org/project/white-rabbit}.
+made up of two types of devices: the @i{WR Switch} and the @i{WR Node}.
+For more information please visit:
+@url{https://gitlab.com/ohwr/project/white-rabbit/-/wikis}.
 
 The WR switch is an 18-ports Gigabit Ethernet switch that runs
 @sc{wr-ptp} as a Linux process, synchronizing each Ethernet link as
@@ -107,7 +107,7 @@ Authors thank Danilo Sabato for fixing the @i{bare} architectures
 
 The home page of the PPSi project and the source repository are:
 
-@url{https://www.ohwr.org/project/ppsi}
+@url{https://gitlab.com/ohwr/project/ppsi/-/wikis}
 
 @c ##########################################################################
 @node Status Features and Bugs

@@ -15,6 +15,63 @@
 #include <ppsi/ppsi.h>
 #include "../arch-sim/ppsi-sim.h"
 
+void update_and_print_propagation_delays(struct pp_globals *ppg)
+{
+    struct sim_ppi_arch_data *master_data, *slave_data;
+    struct pp_instance *master_ppi, *slave_ppi;
+    struct sim_ppg_arch_data *ppg_data = SIM_PPG_ARCH(ppg);
+    
+    // Get instances
+    master_ppi = pp_sim_get_master(ppg);
+    slave_ppi = pp_sim_get_slave(ppg);
+    master_data = SIM_PPI_ARCH(master_ppi);
+    slave_data = SIM_PPI_ARCH(slave_ppi);
+    
+    // Store old delays to calculate the change
+    unsigned int old_master_delay = master_data->n_delay.t_prop_ns;
+    unsigned int old_slave_delay = slave_data->n_delay.t_prop_ns;
+    
+    // Print current values
+    pp_diag(0, ext, 3, "Current propagation delays:\n");
+    pp_diag(0, ext, 3, "  Master->Slave: %u ns\n", old_master_delay);
+    pp_diag(0, ext, 3, "  Slave->Master: %u ns\n", old_slave_delay);
+    
+    // Update delays (your logic here)
+    master_data->n_delay.t_prop_ns += 10000;  // Example: +10μs
+    slave_data->n_delay.t_prop_ns += 10000;
+    
+    // Calculate the change in delays
+    int master_delay_change = (int)master_data->n_delay.t_prop_ns - (int)old_master_delay;
+    int slave_delay_change = (int)slave_data->n_delay.t_prop_ns - (int)old_slave_delay;
+    
+    // Adjust in-flight packets - they should arrive later if delay increased
+    if (ppg_data->n_pending > 0) {
+        for (int i = 0; i < ppg_data->n_pending; i++) {
+            struct sim_pending_pkt *pkt = &ppg_data->pending[i];
+            
+            if (pkt->which_ppi == SIM_SLAVE) {
+                // Master->Slave packet in flight
+                pkt->delay_ns += master_delay_change;
+                pp_diag(NULL, ext, 3, "Adjusted M->S packet delay by %d ns\n", master_delay_change);
+            } else if (pkt->which_ppi == SIM_MASTER) {
+                // Slave->Master packet in flight  
+                pkt->delay_ns += slave_delay_change;
+                pp_diag(NULL, ext, 3, "Adjusted S->M packet delay by %d ns\n", slave_delay_change);
+            }
+            
+            // Ensure delay doesn't go negative
+            if (pkt->delay_ns < 0) {
+                pkt->delay_ns = 0;
+            }
+        }
+    }
+    
+    // Print new values
+    pp_diag(0, ext, 3, "Updated propagation delays:\n");
+    pp_diag(0, ext, 3, "  Master->Slave: %u ns\n", master_data->n_delay.t_prop_ns);
+    pp_diag(0, ext, 3, "  Slave->Master: %u ns\n", slave_data->n_delay.t_prop_ns);
+}
+
 int sim_fast_forward_ns(struct pp_globals *ppg, int64_t ff_ns)
 {
 	struct pp_sim_time_instance *t_inst;
@@ -28,6 +85,8 @@ int sim_fast_forward_ns(struct pp_globals *ppg, int64_t ff_ns)
 						tmp / 1000 / 1000 / 1000;
 	}
 	pp_diag(0, ext, 2, "%s: %lli ns\n", __func__, (long long)ff_ns);
+
+	update_and_print_propagation_delays(ppg);
 
 	struct sim_pending_pkt *pkt;
 	struct sim_ppg_arch_data *data = SIM_PPG_ARCH(ppg);

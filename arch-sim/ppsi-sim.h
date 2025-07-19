@@ -60,6 +60,7 @@ struct sim_ppg_arch_data {
 	struct sim_pending_pkt pending[64];
 	int64_t sim_iter_max;
 	int64_t sim_iter_n;
+	int enable_runtime_delay_updates;
 };
 
 static inline struct sim_ppg_arch_data *SIM_PPG_ARCH(struct pp_globals *ppg)

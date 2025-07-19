@@ -117,6 +117,12 @@ static int f_iter(struct pp_argline *l, int lineno, struct pp_globals *ppg,
 	return 0;
 }
 
+static int f_enable_runtime_delay_updates(struct pp_argline *l, int lineno,
+                                          struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+    SIM_PPG_ARCH(ppg)->enable_runtime_delay_updates = arg->i;
+    return 0;
+}
 struct pp_argline pp_arch_arglines[] = {
 	LEGACY_OPTION(f_ppm_real,	"sim_ppm_real",		ARG_INT),
 	LEGACY_OPTION(f_ppm_servo,	"sim_init_ppm_servo",	ARG_INT),
@@ -129,6 +135,7 @@ struct pp_argline pp_arch_arglines[] = {
 	LEGACY_OPTION(f_fwd_jit,	"sim_fwd_jit_ns",	ARG_INT),
 	LEGACY_OPTION(f_bckwd_jit,	"sim_bckwd_jit_ns",	ARG_INT),
 	LEGACY_OPTION(f_iter,		"sim_iter_max",		ARG_TIME),
+	LEGACY_OPTION(f_enable_runtime_delay_updates, "sim_enable_runtime_delay_updates", ARG_INT),
 	{}
 };
 

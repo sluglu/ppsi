@@ -20,6 +20,10 @@ void update_and_print_propagation_delays(struct pp_globals *ppg)
     struct sim_ppi_arch_data *master_data, *slave_data;
     struct pp_instance *master_ppi, *slave_ppi;
     struct sim_ppg_arch_data *ppg_data = SIM_PPG_ARCH(ppg);
+
+	if (!ppg_data->enable_runtime_delay_updates) {
+        return; // Skip updates if disabled
+    }
     
     // Get instances
     master_ppi = pp_sim_get_master(ppg);
